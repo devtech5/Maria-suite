@@ -50,14 +50,14 @@ export async function exigerSession(options: OptionsSession = {}): Promise<Sessi
 /**
  * Exige une session ET une entreprise active.
  *
- * Un utilisateur authentifié sans entreprise choisie n'est pas une anomalie :
- * c'est l'état juste après inscription, ou quand il appartient à plusieurs
- * entreprises et n'en a pas encore sélectionné une.
+ * Maria Suite ne sert qu'une entreprise : la session la sélectionne d'elle-même.
+ * Un compte authentifié sans entreprise est un compte dont l'accès a été
+ * révoqué ; il est renvoyé vers l'écran qui l'explique.
  */
 export async function exigerEntreprise(options: OptionsSession = {}): Promise<
   SessionActive & { organizationId: string }
 > {
   const active = await exigerSession(options);
-  if (!active.organizationId) redirect("/entreprises");
+  if (!active.organizationId) redirect("/sans-acces");
   return active as SessionActive & { organizationId: string };
 }

@@ -82,18 +82,6 @@ const schema = z.object({
   WHATSAPP_LANGUE: z.string().default("fr"),
 
   /**
-   * Administrateurs de la plateforme : adresses e-mail, séparées par des
-   * virgules. Ils voient toutes les entreprises et règlent leur abonnement.
-   * Aucun rôle d'entreprise n'y donne accès.
-   */
-  ADMINS_PLATEFORME: z.string().default(""),
-  /**
-   * Comment régler l'abonnement, affiché tel quel sur l'écran Abonnement :
-   * numéro Wave ou Orange Money, compte bancaire, contact. Texte libre.
-   */
-  ABONNEMENT_PAIEMENT: z.string().default(""),
-
-  /**
    * Serveur vidéo (MediaMTX) du module Sécurité.
    *
    * `VIDEO_URL_PUBLIQUE` — adresse où les navigateurs lisent les caméras en

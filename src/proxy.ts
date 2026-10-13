@@ -19,7 +19,7 @@ import { COOKIE_SESSION } from "@/lib/auth/session";
  * manifestement pas de session.
  */
 
-const ROUTES_PUBLIQUES = ["/connexion", "/inscription"];
+const ROUTES_PUBLIQUES = ["/connexion"];
 
 /**
  * Ouvertes à tous, avec ou sans session : le lien de réinitialisation reçu

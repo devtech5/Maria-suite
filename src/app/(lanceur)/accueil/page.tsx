@@ -7,7 +7,7 @@ import { Cloche } from "@/components/coque/cloche";
 import { IconeModule } from "@/components/coque/icone-module";
 import { SignatureFiessou } from "@/components/coque/signature";
 import { exigerEntreprise } from "@/lib/auth/dal";
-import { entreprisesAccessibles } from "@/lib/auth/entreprises";
+import { nomDuRole } from "@/lib/auth/roles";
 import { droitsActifs } from "@/lib/droits/garde";
 import { modulesOuverts } from "@/lib/modules/garde";
 import { groupesVisibles, raccourcisCompte, type CleIcone } from "@/lib/navigation";
@@ -28,10 +28,9 @@ export const metadata: Metadata = { title: "Accueil" };
  */
 export default async function PageAccueil() {
   const session = await exigerEntreprise();
-  const [droits, entreprises] = await Promise.all([droitsActifs(), entreprisesAccessibles(session.userId)]);
+  const [droits, role] = await Promise.all([droitsActifs(), nomDuRole(session.roleId)]);
   const ouverts = modulesOuverts();
   const groupes = groupesVisibles(droits, ouverts);
-  const role = entreprises.find((e) => e.id === session.organizationId)?.roleNom;
   const total = groupes.reduce((s, g) => s + g.modules.length, 0);
 
   type EntreeTuile = { href: string; libelle: string; description: string; icone: CleIcone };
@@ -60,7 +59,7 @@ export default async function PageAccueil() {
           nomUtilisateur={session.nom}
           entrepriseActive={session.organizationNom}
           gereLesMembres={droits.has("organisation.membre.gerer")}
-          raccourcis={[...(entreprises.length > 1 ? [{ href: "/entreprises", libelle: "Changer d'entreprise" }] : []), ...raccourcisCompte(ouverts)]}
+          raccourcis={raccourcisCompte(ouverts)}
         />
       </div>
 

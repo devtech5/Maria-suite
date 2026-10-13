@@ -7,8 +7,6 @@ import { db } from "@/db";
 import { accesModules, memberships, organizationModules, rolePermissions } from "@/db/schema";
 import { exigerEntreprise } from "@/lib/auth/dal";
 import type { SessionActive } from "@/lib/auth/session";
-import { ajouterJours, estDroitDeLecture, JOURS_GRACE } from "@/lib/abonnement/calcul";
-import { abonnementCourant } from "@/lib/abonnement/garde";
 import { appliquerRestrictions, type NiveauAcces } from "./acces";
 import { type Droit, definitionDroit, presetRole, resoudreDroits } from "./catalogue";
 
@@ -40,15 +38,6 @@ export type SessionEntreprise = SessionActive & { organizationId: string };
  * module (`src/lib/droits/acces.ts`). Une restriction ne peut rien ajouter.
  */
 export const droitsActifs = cache(async (): Promise<Set<Droit>> => {
-  const [droits, abonnement] = await Promise.all([droitsSansAbonnement(), abonnementCourant()]);
-  // Abonnement échu au-delà de la grâce : lecture seule. Tous les gestes
-  // passent par ces droits, l'écran comme l'action : un seul filtre suffit.
-  if (abonnement?.acces === "lecture") return new Set([...droits].filter(estDroitDeLecture));
-  return droits;
-});
-
-/** Droits du rôle et des restrictions, avant l'effet de l'abonnement. */
-const droitsSansAbonnement = cache(async (): Promise<Set<Droit>> => {
   // Le verrou n'est pas affaire de droits : il se contrôle là où la session
   // est exigée, page ou action. Le vérifier ici aussi fermerait la caisse,
   // qui en est exemptée, dès qu'un onglet de gestion voisin se voile.
@@ -56,19 +45,6 @@ const droitsSansAbonnement = cache(async (): Promise<Set<Droit>> => {
   const [duRole, restrictions] = await Promise.all([droitsDuRole(session), restrictionsDe(session)]);
   return appliquerRestrictions(duRole, restrictions);
 });
-
-/**
- * Un ticket encaissé hors ligne AVANT la bascule en lecture seule se
- * synchronise quand même : la vente a eu lieu, l'argent est dans le tiroir.
- * Le refuser perdrait une recette réelle. Les ventes postérieures, elles,
- * sont refusées comme tout autre geste.
- */
-export async function encaissementTolere(encaisseeLe: string | undefined): Promise<boolean> {
-  if (!encaisseeLe || !(await droitsSansAbonnement()).has("pos.vente.encaisser")) return false;
-  const abonnement = await abonnementCourant();
-  if (abonnement?.phase !== "expire" || !abonnement.finLe) return false;
-  return encaisseeLe.slice(0, 10) <= ajouterJours(abonnement.finLe, JOURS_GRACE);
-}
 
 /** Droits que le rôle accorde, avant toute restriction par module. */
 async function droitsDuRole(session: SessionEntreprise): Promise<Set<Droit>> {
@@ -143,10 +119,7 @@ export async function peut(droit: Droit): Promise<boolean> {
  */
 export async function exigerDroit(droit: Droit): Promise<SessionEntreprise> {
   const session = await exigerEntreprise();
-  if (!(await peut(droit))) {
-    const abonnement = await abonnementCourant();
-    throw new Error(abonnement?.acces === "lecture" ? MESSAGE_LECTURE_SEULE : messageRefus(droit));
-  }
+  if (!(await peut(droit))) throw new Error(messageRefus(droit));
   return session;
 }
 
@@ -159,13 +132,8 @@ export async function exigerDroit(droit: Droit): Promise<SessionEntreprise> {
  */
 export async function refusDroit(droit: Droit): Promise<{ erreur: string } | null> {
   if (await peut(droit)) return null;
-  const abonnement = await abonnementCourant();
-  if (abonnement?.acces === "lecture") return { erreur: MESSAGE_LECTURE_SEULE };
   return { erreur: messageRefus(droit) };
 }
-
-const MESSAGE_LECTURE_SEULE =
-  "L'entreprise est en lecture seule : son abonnement est échu ou suspendu. Le propriétaire peut le renouveler depuis « Abonnement ».";
 
 /**
  * Le message nomme le droit manquant, pas seulement le refus.

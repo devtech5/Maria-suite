@@ -112,7 +112,6 @@ export const RACCOURCIS_COMPTE: { href: string; libelle: string; module: string 
   { href: "/documents", libelle: "Mes documents", module: "documents" },
   { href: "/archives", libelle: "Mes archives", module: "archives" },
   { href: "/rh", libelle: "Ressources humaines", module: "personnes" },
-  { href: "/abonnement", libelle: "Abonnement", module: "organisation" },
   { href: "/mot-de-passe", libelle: "Changer de mot de passe", module: "organisation" },
 ];
 

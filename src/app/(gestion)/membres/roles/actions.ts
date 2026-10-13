@@ -6,7 +6,7 @@ import { z } from "zod";
 
 import { db } from "@/db";
 import { auditLogs, rolePermissions, roles } from "@/db/schema";
-import { slug } from "@/lib/auth/creation-entreprise";
+import { slug } from "@/lib/slug";
 import { droitsAccordables, presetRole, type Droit } from "@/lib/droits/catalogue";
 import { droitsActifs, exigerDroit } from "@/lib/droits/garde";
 import { newId } from "@/lib/ids";

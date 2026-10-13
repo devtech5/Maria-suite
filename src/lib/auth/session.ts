@@ -261,17 +261,6 @@ export async function deverrouillerSessionId(sessionId: string): Promise<void> {
     .where(eq(sessions.id, sessionId));
 }
 
-/** Choisit l'entreprise active de la session en cours. */
-export async function choisirEntreprise(
-  sessionId: string,
-  organizationId: string,
-): Promise<void> {
-  await db
-    .update(sessions)
-    .set({ organizationId, updatedAt: new Date() })
-    .where(eq(sessions.id, sessionId));
-}
-
 /**
  * Ferme la session courante.
  *

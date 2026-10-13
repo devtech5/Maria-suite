@@ -1,16 +1,11 @@
 "use server";
 
 import { and, eq, isNull, ne } from "drizzle-orm";
-import { revalidatePath } from "next/cache";
 import { headers } from "next/headers";
 import { redirect } from "next/navigation";
-import { z } from "zod";
 
 import { db } from "@/db";
-import { memberships, sessions, users } from "@/db/schema";
-import { env } from "@/env";
-import { newId } from "@/lib/ids";
-import { creerEntreprisePour } from "./creation-entreprise";
+import { sessions, users } from "@/db/schema";
 import {
   DUREE_VERROU_MINUTES,
   apresEchec,
@@ -20,14 +15,12 @@ import {
 } from "./identifiants";
 import { hacherMotDePasse, verifierMotDePasse } from "./mot-de-passe";
 import {
-  choisirEntreprise,
   CONNEXION_EXPIREE,
   fermerSession,
   lireSession,
   ouvrirSession,
 } from "./session";
 import { tracerPartout } from "@/lib/audit";
-import { estDoublon } from "@/lib/erreurs-pg";
 import { destinationApresConnexion } from "@/lib/navigation";
 
 export interface EtatConnexion {
@@ -118,90 +111,6 @@ export async function seConnecter(
   await ouvrirSessionAvecContexte(compte.id);
   await tracerPartout(compte.id, { action: "connexion.reussie", entite: "compte", entiteId: compte.id });
   redirect(destinationApresConnexion(donnees.get("suite")));
-}
-
-export interface EtatInscription {
-  erreur?: string;
-  valeurs?: { nom?: string; entreprise?: string; email?: string };
-}
-
-const schemaInscription = z.object({
-  nom: z.string().trim().min(2, "Indiquez votre nom."),
-  entreprise: z.string().trim().min(2, "Indiquez le nom de votre entreprise."),
-});
-
-/**
- * Création d'un compte et de son entreprise.
- *
- * L'utilisateur, son entreprise, le rôle de propriétaire et le rattachement
- * naissent dans une seule transaction. Un compte sans entreprise, ou une
- * entreprise sans propriétaire, laisserait quelqu'un connecté devant une
- * application vide sans moyen d'en sortir.
- *
- * Une adresse déjà prise est signalée : la contrainte d'unicité le dirait de
- * toute façon, et la personne doit savoir qu'elle a déjà un compte plutôt que
- * d'en chercher un second.
- */
-export async function sInscrire(
-  _precedent: EtatInscription,
-  donnees: FormData,
-): Promise<EtatInscription> {
-  const valeurs = {
-    nom: String(donnees.get("nom") ?? ""),
-    entreprise: String(donnees.get("entreprise") ?? ""),
-    email: String(donnees.get("email") ?? ""),
-  };
-  const motDePasse = String(donnees.get("motDePasse") ?? "");
-  const confirmation = String(donnees.get("confirmation") ?? "");
-
-  const analyse = schemaInscription.safeParse(valeurs);
-  if (!analyse.success) return { valeurs, erreur: analyse.error.issues[0].message };
-
-  const email = normaliserEmail(valeurs.email);
-  if (!email) return { valeurs, erreur: "Adresse e-mail invalide." };
-
-  const refus = motifRefusMotDePasse(motDePasse, { email });
-  if (refus) return { valeurs, erreur: refus };
-  if (motDePasse !== confirmation) {
-    return { valeurs, erreur: "Les deux mots de passe ne correspondent pas." };
-  }
-
-  const userId = newId();
-  const empreinte = await hacherMotDePasse(motDePasse);
-
-  try {
-    await db.transaction(async (tx) => {
-      await tx.insert(users).values({
-        id: userId,
-        email,
-        fullName: analyse.data.nom,
-        passwordHash: empreinte,
-        lastLoginAt: new Date(),
-      });
-
-      // L'entreprise, ses rôles et le rattachement du propriétaire naissent
-      // ensemble : celui qui s'inscrit se retrouve administrateur de sa
-      // boutique, ou il n'y a pas d'inscription du tout.
-      await creerEntreprisePour(
-        userId,
-        { nom: analyse.data.entreprise, pays: env.DEFAULT_COUNTRY },
-        tx,
-      );
-    });
-  } catch (erreur) {
-    if (estDoublon(erreur)) {
-      return {
-        valeurs,
-        erreur: "Un compte existe déjà avec cette adresse. Connectez-vous.",
-      };
-    }
-    throw erreur;
-  }
-
-  await ouvrirSessionAvecContexte(userId);
-  await tracerPartout(userId, { action: "compte.inscrire", entite: "compte", entiteId: userId, apres: { email } });
-  await tracerPartout(userId, { action: "connexion.reussie", entite: "compte", entiteId: userId });
-  redirect("/accueil");
 }
 
 export interface EtatMotDePasse {
@@ -313,55 +222,6 @@ export async function seDeconnecter(): Promise<void> {
   }
   await fermerSession();
   redirect("/connexion");
-}
-
-/**
- * Bascule l'entreprise active de la session.
- *
- * Le rattachement est revérifié ici et pas seulement au moment d'afficher le
- * sélecteur : l'identifiant vient du client, et rien n'empêche d'en poster un
- * autre. Sans ce contrôle, il suffirait de deviner un identifiant pour entrer
- * dans les données d'une entreprise voisine.
- */
-export async function basculerEntreprise(organizationId: string): Promise<void> {
-  const active = await lireSession();
-  if (!active) redirect(CONNEXION_EXPIREE);
-  if (active.verrouillee) redirect("/verrouille");
-
-  const autorises = await db
-    .select({ id: memberships.id })
-    .from(memberships)
-    .where(
-      and(
-        eq(memberships.userId, active.userId),
-        eq(memberships.organizationId, organizationId),
-        eq(memberships.status, "actif"),
-      ),
-    )
-    .limit(1);
-
-  if (autorises.length === 0) {
-    throw new Error("Entreprise inaccessible.");
-  }
-
-  await choisirEntreprise(active.sessionId, organizationId);
-  await tracerPartout(active.userId, {
-    action: "entreprise.basculer",
-    entite: "compte",
-    entiteId: active.userId,
-    apres: { de: active.organizationNom, vers: organizationId },
-  });
-
-  /**
-   * Retour à l'accueil, et pas un simple rafraîchissement.
-   *
-   * Changer d'entreprise change tout ce qui est affiché. Rester sur la fiche
-   * d'une facture montrerait une pièce qui n'existe pas dans la nouvelle
-   * entreprise — au mieux une erreur, au pire les chiffres d'une société
-   * confondus avec ceux d'une autre.
-   */
-  revalidatePath("/", "layout");
-  redirect("/");
 }
 
 /** Entreprise active de la session, pour l'affichage. */

@@ -1,6 +1,5 @@
 import type { ReactNode } from "react";
 
-import { BandeauAbonnement } from "@/components/coque/bandeau-abonnement";
 import { BandeauDemo } from "@/components/coque/bandeau-demo";
 import { VerrouInactivite } from "@/components/coque/verrou-inactivite";
 import { exigerSession } from "@/lib/auth/dal";
@@ -26,7 +25,6 @@ export default async function LayoutLanceur({ children }: { children: ReactNode 
         className="flex min-h-dvh flex-col bg-[radial-gradient(ellipse_at_top_left,color-mix(in_srgb,var(--color-marque-500)_10%,var(--fond))_0%,var(--fond)_45%,var(--surface-creuse)_100%)]"
       >
         <BandeauDemo />
-        <BandeauAbonnement />
         {children}
       </div>
       <VerrouInactivite

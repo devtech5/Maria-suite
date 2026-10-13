@@ -78,8 +78,8 @@ async function main() {
  *
  * Sert au rattrapage : une entreprise créée avant l'arrivée d'un préréglage
  * n'a que les rôles de son époque, et personne ne peut y être nommé caissier
- * tant que la ligne manque. Les nouvelles entreprises, elles, les reçoivent à
- * leur création (`src/lib/auth/creation-entreprise.ts`).
+ * tant que la ligne manque. Le script d'installation les pose à la création
+ * de l'entreprise (`src/scripts/installer.ts`).
  *
  * Un rôle déjà présent n'est pas retouché : l'exploitant a pu le renommer, et
  * ce nom lui appartient. Seuls les droits viennent du code, et ils n'ont pas

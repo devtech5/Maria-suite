@@ -11,7 +11,7 @@ export default async function PageConnexion({ searchParams }: PageProps<"/connex
     <main className="flex min-h-dvh items-center justify-center bg-[var(--fond)] p-4">
       <div className="w-full max-w-sm">
         <header className="mb-6">
-          <h1 className="text-2xl font-bold tracking-tight">Fiessou</h1>
+          <h1 className="text-2xl font-bold tracking-tight">Maria Suite</h1>
           {/* Écrit pour un commerçant, pas pour un développeur. */}
           <p className="mt-1 text-sm text-[var(--encre-douce)]">
             Connectez-vous pour reprendre votre activité.
@@ -35,10 +35,7 @@ export default async function PageConnexion({ searchParams }: PageProps<"/connex
         </div>
 
         <p className="mt-4 text-center text-sm text-[var(--encre-douce)]">
-          Pas encore de compte ?{" "}
-          <Link href="/inscription" className="font-semibold text-marque-600 hover:underline">
-            Créer votre espace
-          </Link>
+          Pas encore de compte ? Demandez une invitation à l&apos;administrateur.
         </p>
         <p className="mt-2 text-center text-sm">
           <Link href="/mot-de-passe-oublie" className="text-[var(--encre-douce)] hover:underline">

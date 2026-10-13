@@ -6,7 +6,7 @@ import { z } from "zod";
 
 import { db } from "@/db";
 import { exigerEntreprise } from "@/lib/auth/dal";
-import { encaissementTolere, exigerDroit, messageRefus, peut, refusDroit } from "@/lib/droits/garde";
+import { exigerDroit, messageRefus, peut, refusDroit } from "@/lib/droits/garde";
 import { annulerVenteDans } from "./annulation";
 import { creerPosteCaisseDans, enregistrerVenteDans } from "./creation";
 import { postesCaisse } from "./schema";
@@ -79,7 +79,7 @@ export async function encaisserTicket(
   // rejoue ses tickets sans personne devant l'écran.
   const session = await exigerEntreprise({ malgreVerrou: true });
 
-  if (!(await peut("pos.vente.encaisser")) && !(await encaissementTolere(ticket.encaisseeLe))) {
+  if (!(await peut("pos.vente.encaisser"))) {
     return { ok: false, message: (await refusDroit("pos.vente.encaisser"))?.erreur ?? messageRefus("pos.vente.encaisser") };
   }
 

@@ -83,3 +83,10 @@ export async function rolesDeLEntreprise(
       : (parRole.get(role.id) ?? []),
   }));
 }
+
+/** Nom affiché du rôle, tel que l'entreprise l'a peut-être renommé. */
+export async function nomDuRole(roleId: string | null): Promise<string | null> {
+  if (!roleId) return null;
+  const [role] = await db.select({ nom: roles.name }).from(roles).where(eq(roles.id, roleId));
+  return role?.nom ?? null;
+}
