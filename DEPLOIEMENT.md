@@ -145,6 +145,30 @@ refuse une base qui porte déjà une autre entreprise.
 Pousser sur `main`, puis **Deploy** dans Dokploy — ou activer l'Auto Deploy.
 Les migrations s'appliquent au démarrage du nouveau conteneur.
 
+## Avec Render
+
+`render.yaml` est un blueprint de production : il crée le service web
+(plan Starter, Francfort), sa base PostgreSQL privée et un disque persistant
+de 5 Go pour les pièces jointes. Dans Render : **New → Blueprint**, choisir le
+dépôt `devtech5/Maria-suite`, puis renseigner les valeurs demandées :
+
+| Variable | Valeur |
+|---|---|
+| `URL_PUBLIQUE` | `https://` + le domaine, ou l'adresse `.onrender.com` du service. Jamais vide |
+| `COURRIEL_FOURNISSEUR`, `COURRIEL_CLE` | `brevo` ou `resend` et sa clé ; vides, aucun e-mail ne part |
+
+`AUTH_SECRET` est tiré par Render, `DATABASE_URL` vient de la base du
+blueprint, et les migrations s'appliquent au démarrage. Une fois le service
+en ligne, onglet **Shell** :
+
+```bash
+MARIA_ADMIN_EMAIL=admin@exemple.ci pnpm installer
+```
+
+Un disque attaché interdit le déploiement sans interruption : chaque
+déploiement coupe le service quelques secondes. La base est sauvegardée par
+Render selon son plan ; le disque, par un instantané quotidien.
+
 ## Vidéosurveillance (module Sécurité)
 
 Les images ne passent ni par l'application ni par la base. Trois pièces :

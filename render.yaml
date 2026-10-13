@@ -1,21 +1,35 @@
-# Déploiement Render — https://render.com/docs/blueprint-spec
+# Déploiement Render de production — https://render.com/docs/blueprint-spec
 #
 # Render plutôt que Cloudflare ou un runtime Edge : Maria Suite dépend de
 # @node-rs/argon2, un binaire natif qui exige un vrai runtime Node. Un isolate
 # V8 ne peut pas l'exécuter.
+#
+# Le blueprint crée l'application ET sa base. À la création, Render demande
+# les valeurs marquées `sync: false` ; AUTH_SECRET est tiré par Render.
+#
+# Après le premier déploiement, créer MARIA GROUP SARL et son administrateur
+# depuis l'onglet Shell du service :
+#
+#   MARIA_ADMIN_EMAIL=admin@exemple.ci pnpm installer
+#
+# Le mot de passe provisoire s'affiche une fois, et se change à la première
+# connexion.
 services:
   - type: web
     name: maria-suite
     runtime: node
     # La région doit être celle de la base : un aller-retour transatlantique
-    # à chaque requête se sent sur une caisse.
+    # à chaque requête se sent sur une caisse. Francfort est la plus proche
+    # d'Abidjan parmi celles de Render.
     region: frankfurt
     # Le plan gratuit éteint le service après quinze minutes sans requête, et
     # la requête suivante attend le redémarrage — près d'une minute. Sur une
     # caisse, cette minute est un client qui part et une file qui s'allonge.
-    # Sept dollars par mois valent moins cher que la première matinée perdue.
+    # Il n'accepte pas non plus de disque persistant.
     plan: starter
     branch: main
+    # Un push sur main déploie. Les migrations suivent (MIGRATIONS_AU_DEMARRAGE).
+    autoDeploy: true
 
     # Corepack active pnpm à la version fixée dans package.json. Sans lui,
     # Render tenterait npm et ignorerait le lockfile.
@@ -24,34 +38,74 @@ services:
 
     healthCheckPath: /api/health
 
+    # Pièces jointes : photos, preuves de paiement, documents. Le disque du
+    # service est éphémère, tout ce qui n'est pas ici disparaît au déploiement
+    # suivant. Render prend un instantané de ce disque chaque jour.
+    disk:
+      name: fichiers
+      mountPath: /var/data
+      sizeGB: 5
+
     envVars:
       - key: NODE_VERSION
         value: "22"
 
-      # Chaîne de connexion PostgreSQL. Le pool applicatif s'adapte seul :
-      # Render fait tourner un process durable, donc plusieurs connexions,
-      # contrairement à une fonction sans serveur.
+      # Base interne au blueprint, jointe par le réseau privé de Render. Le
+      # pool applicatif s'adapte seul : Render fait tourner un process durable,
+      # donc plusieurs connexions, contrairement à une fonction sans serveur.
       - key: DATABASE_URL
-        sync: false
+        fromDatabase:
+          name: maria-suite-base
+          property: connectionString
 
+      # Clé de signature des sessions, tirée par Render. La changer déconnecte
+      # tout le monde et oblige à reconnecter les boîtes mail.
       - key: AUTH_SECRET
-        sync: false
+        generateValue: true
+
+      # Migrations et catalogue des droits appliqués au démarrage : un
+      # déploiement ne tourne jamais sur un schéma en retard.
+      - key: MIGRATIONS_AU_DEMARRAGE
+        value: "1"
+
+      - key: STOCKAGE_LOCAL
+        value: /var/data/fichiers
 
       - key: DEFAULT_COUNTRY
         value: CI
 
-      # Bandeau « données fictives » sur toutes les pages. L'entreprise et son
-      # administrateur se créent avec `pnpm installer` ; le mot de passe
-      # provisoire n'est connu que de celui qui l'a lancé.
+      # Instance réelle : pas de bandeau « données fictives », et seuls les
+      # modules livrés s'ouvrent. Un module sur jeu d'essai annoncerait au
+      # tableau de bord des factures impayées qui n'existent pas.
       - key: INSTANCE_DEMO
-        value: "1"
-
-      # Modules ouverts malgré des écrans sur jeu d'essai. Clés du registre
-      # séparées par des virgules, ou « * » pour toutes.
-      #
-      # « * » va de pair avec INSTANCE_DEMO=1 : montrer le périmètre à venir
-      # est l'objet même d'une instance de présentation. Sur une instance qui
-      # porte de vraies recettes, cette valeur doit être VIDE — sans quoi le
-      # tableau de bord annonce des factures impayées qui n'existent pas.
+        value: "0"
       - key: MODULES_APERCU
-        value: "*"
+        value: ""
+
+      # Adresse publique, pour les liens envoyés par e-mail : le domaine de
+      # MARIA GROUP SARL, ou l'adresse .onrender.com du service. Ne pas la
+      # laisser vide : une URL vide fait échouer le démarrage.
+      - key: URL_PUBLIQUE
+        sync: false
+
+      # Envoi des e-mails (mot de passe oublié) : `brevo` ou `resend`, avec la
+      # clé API du service. Vides, rien ne part : le lien de réinitialisation
+      # n'est écrit que dans le journal. Voir DEPLOIEMENT.md.
+      #
+      # Ajouter aussi COURRIEL_EXPEDITEUR (« Maria Suite <no-reply@domaine> »)
+      # sur un domaine vérifié chez le fournisseur, sans quoi les messages
+      # partent en indésirables.
+      - key: COURRIEL_FOURNISSEUR
+        sync: false
+      - key: COURRIEL_CLE
+        sync: false
+
+databases:
+  - name: maria-suite-base
+    databaseName: maria
+    user: maria
+    region: frankfurt
+    plan: basic-256mb
+    # Aucune connexion depuis Internet : seul le service, sur le réseau
+    # privé de Render, joint la base.
+    ipAllowList: []
