@@ -3,7 +3,7 @@ import type { ReactNode } from "react";
 import type { CleIcone } from "@/lib/navigation";
 
 /**
- * Icônes des modules, dessinées pour Fiessou : formes plates superposées,
+ * Icônes des modules, dessinées pour Maria Suite : formes plates superposées,
  * trois couleurs au plus, sur une grille de 48. Lisibles à 18 px dans la
  * barre latérale comme à 48 px sur l'accueil.
  *

@@ -5,7 +5,7 @@ import { MenuCompte } from "@/components/coque/barre-laterale";
 import { Calculette } from "@/components/coque/calculette";
 import { Cloche } from "@/components/coque/cloche";
 import { IconeModule } from "@/components/coque/icone-module";
-import { SignatureFiessou } from "@/components/coque/signature";
+import { SignatureMaria } from "@/components/coque/signature";
 import { exigerEntreprise } from "@/lib/auth/dal";
 import { nomDuRole } from "@/lib/auth/roles";
 import { droitsActifs } from "@/lib/droits/garde";
@@ -92,7 +92,7 @@ export default async function PageAccueil() {
       </div>
 
       <footer className="flex justify-center pb-3 pt-2">
-        <SignatureFiessou />
+        <SignatureMaria />
       </footer>
     </main>
   );

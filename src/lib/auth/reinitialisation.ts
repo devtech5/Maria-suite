@@ -87,15 +87,15 @@ export async function demanderReinitialisation(_precedent: EtatDemande, donnees:
   const lien = `${await urlPublique()}/reinitialiser?jeton=${encodeURIComponent(formerJetonReinit(id, secret))}`;
   await envoyerCourriel({
     a: email,
-    sujet: "Fiessou — choisir un nouveau mot de passe",
+    sujet: "Maria Suite — choisir un nouveau mot de passe",
     texte:
       `Bonjour ${compte.nom},\n\n` +
-      `Une demande de nouveau mot de passe a été faite pour votre compte Fiessou.\n` +
+      `Une demande de nouveau mot de passe a été faite pour votre compte Maria Suite.\n` +
       `Ouvrez ce lien dans l'heure pour en choisir un :\n\n${lien}\n\n` +
       `Si vous n'êtes pas à l'origine de cette demande, ignorez ce message : votre mot de passe actuel reste valable.`,
     html:
       `<p>Bonjour ${échapper(compte.nom)},</p>` +
-      `<p>Une demande de nouveau mot de passe a été faite pour votre compte Fiessou.</p>` +
+      `<p>Une demande de nouveau mot de passe a été faite pour votre compte Maria Suite.</p>` +
       `<p><a href="${lien}">Choisir un nouveau mot de passe</a> — lien valable une heure.</p>` +
       `<p>Si vous n'êtes pas à l'origine de cette demande, ignorez ce message : votre mot de passe actuel reste valable.</p>`,
   });

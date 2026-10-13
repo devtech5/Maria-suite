@@ -446,7 +446,7 @@ function Lecture({
         <div className="mx-4 mt-3 min-h-48 flex-1 overflow-hidden rounded-lg bg-white">
           {m.html ? (
             // Aucun script, aucune origine partagée : le message ne peut ni lire
-            // la page de Fiessou, ni exécuter quoi que ce soit.
+            // la page de Maria Suite, ni exécuter quoi que ce soit.
             <iframe title={m.objet} sandbox="allow-popups allow-popups-to-escape-sandbox" srcDoc={documentCourriel(m.html, images)} className="size-full border-0" />
           ) : (
             <pre className="size-full overflow-auto whitespace-pre-wrap break-words p-1 font-sans text-sm text-black">{m.texte}</pre>

@@ -18,7 +18,7 @@
  * Aucune dépendance à React : appelable depuis l'écran ou un service worker.
  */
 
-const BASE = "fiessou-terrain";
+const BASE = "maria-terrain";
 const VERSION = 1;
 const STORE = "operations";
 

@@ -1,5 +1,5 @@
 /**
- * Schéma de fondation de Fiessou.
+ * Schéma de fondation de Maria Suite.
  *
  * Ce dossier ne contient que le socle transverse : entreprises, comptes,
  * droits, numérotation, journal d'audit et synchronisation. Les tables métier

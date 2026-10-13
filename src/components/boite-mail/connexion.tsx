@@ -30,7 +30,7 @@ export function ConnexionBoite({ adresseInitiale }: { adresseInitiale?: string }
       <div>
         <h2 className="text-base font-semibold">Connecter votre boîte mail</h2>
         <p className="mt-1 text-sm text-[var(--encre-douce)]">
-          Vos e-mails restent chez votre fournisseur : Fiessou les lit en direct, sans les copier. Votre mot de passe est chiffré, et vous seul accédez à
+          Vos e-mails restent chez votre fournisseur : Maria Suite les lit en direct, sans les copier. Votre mot de passe est chiffré, et vous seul accédez à
           cette boîte.
         </p>
       </div>

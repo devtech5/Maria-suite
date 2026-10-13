@@ -3,11 +3,11 @@ import "./globals.css";
 
 export const metadata: Metadata = {
   title: {
-    default: "Fiessou",
-    template: "%s · Fiessou",
+    default: "Maria Suite",
+    template: "%s · Maria Suite",
   },
   description:
-    "ERP et point de vente pour l'Afrique de l'Ouest. Encaisse sans connexion.",
+    "ERP et point de vente de MARIA GROUP SARL. Encaisse sans connexion.",
 };
 
 export const viewport: Viewport = {
@@ -27,7 +27,7 @@ export const viewport: Viewport = {
  * basculer en sombre. Sur une caisse qu'on rouvre trente fois par jour, ce
  * clignotement se remarque.
  */
-const RESTAURER_THEME = `try{var t=localStorage.getItem('fiessou-theme');if(t)document.documentElement.setAttribute('data-theme',t)}catch(e){}`;
+const RESTAURER_THEME = `try{var t=localStorage.getItem('maria-theme');if(t)document.documentElement.setAttribute('data-theme',t)}catch(e){}`;
 
 export default function RootLayout({ children }: LayoutProps<"/">) {
   return (

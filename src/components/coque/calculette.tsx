@@ -15,7 +15,7 @@ import {
   versTtc,
 } from "@/lib/calculette";
 
-const CLE_HISTORIQUE = "fiessou-calculette";
+const CLE_HISTORIQUE = "maria-calculette";
 const NOMBRE = new Intl.NumberFormat("fr-FR");
 
 function lireHistorique(): { expression: string; resultat: string }[] {

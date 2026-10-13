@@ -1,24 +1,24 @@
 services:
   postgres:
     image: postgres:18-alpine
-    container_name: fiessou-postgres
+    container_name: maria-postgres
     restart: unless-stopped
     environment:
-      POSTGRES_USER: fiessou
-      POSTGRES_PASSWORD: fiessou_dev
-      POSTGRES_DB: fiessou
+      POSTGRES_USER: maria
+      POSTGRES_PASSWORD: maria_dev
+      POSTGRES_DB: maria
       # Le tri alphabétique doit gérer les accents du français.
       POSTGRES_INITDB_ARGS: "--locale=fr_FR.UTF-8 --encoding=UTF8"
       LANG: fr_FR.utf8
     ports:
       - "5432:5432"
     volumes:
-      - fiessou_pgdata:/var/lib/postgresql/data
+      - maria_pgdata:/var/lib/postgresql/data
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U fiessou -d fiessou"]
+      test: ["CMD-SHELL", "pg_isready -U maria -d maria"]
       interval: 5s
       timeout: 5s
       retries: 10
 
 volumes:
-  fiessou_pgdata:
+  maria_pgdata:

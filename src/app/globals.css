@@ -1,7 +1,7 @@
 @import "tailwindcss";
 
 /**
- * Jetons de conception de Fiessou.
+ * Jetons de conception de Maria Suite.
  *
  * Contraintes de terrain qui dictent ces valeurs :
  *
@@ -167,7 +167,7 @@
  * d'interface. Générée par `src/scripts/police-masque.py`.
  */
 @font-face {
-  font-family: "Fiessou Masque";
+  font-family: "Maria Masque";
   src: url("/polices/masque-etoile.woff") format("woff");
   unicode-range: U+00B7, U+2022, U+2027, U+2219, U+25CF, U+25E6;
   font-display: block;
@@ -188,7 +188,7 @@
   }
 
   input[type="password"] {
-    font-family: "Fiessou Masque", ui-sans-serif, system-ui, sans-serif;
+    font-family: "Maria Masque", ui-sans-serif, system-ui, sans-serif;
     letter-spacing: 0.08em;
   }
 

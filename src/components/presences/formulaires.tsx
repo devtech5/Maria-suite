@@ -326,7 +326,7 @@ export function FormulaireAjustement({ salaries, aujourdhui }: { salaries: Optio
   return (
     <FormulaireRepliable libelle="Ajuster un solde" titre="Ajuster un solde de congés" action={ajusterSolde}>
       <p className="mb-3 text-sm text-[var(--encre-douce)]">
-        <strong>Reprise</strong> : le solde réel à une date (salarié embauché avant Fiessou) ; le décompte repart de là. <strong>Majoration</strong> : jours
+        <strong>Reprise</strong> : le solde réel à une date (salarié embauché avant Maria Suite) ; le décompte repart de là. <strong>Majoration</strong> : jours
         supplémentaires (ancienneté, enfants). <strong>Correction</strong> : rectification motivée, en plus ou en moins.
       </p>
       <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-5">

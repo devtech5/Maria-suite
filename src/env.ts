@@ -63,7 +63,7 @@ const schema = z.object({
    */
   COURRIEL_FOURNISSEUR: z.enum(["", "brevo", "resend"]).default(""),
   COURRIEL_CLE: z.string().optional(),
-  COURRIEL_EXPEDITEUR: z.string().default("Fiessou <no-reply@fiessou.ci>"),
+  COURRIEL_EXPEDITEUR: z.string().default("Maria Suite <no-reply@exemple.ci>"),
   /** Adresse publique de l'application, pour les liens envoyés hors de l'écran. */
   URL_PUBLIQUE: z.string().url().optional(),
 
@@ -85,14 +85,14 @@ const schema = z.object({
    * Serveur vidéo (MediaMTX) du module Sécurité.
    *
    * `VIDEO_URL_PUBLIQUE` — adresse où les navigateurs lisent les caméras en
-   * WebRTC (WHEP) : https://video.fiessou.cloud. `VIDEO_PUBLICATION` — hôte
-   * et port où les relais des sites publient en RTSPS : video.fiessou.cloud:8322.
+   * WebRTC (WHEP) : https://video.exemple.ci. `VIDEO_PUBLICATION` — hôte
+   * et port où les relais des sites publient en RTSPS : video.exemple.ci:8322.
    * Vides : le module se configure, mais aucune image ne s'affiche.
    */
   VIDEO_URL_PUBLIQUE: z.string().url().optional(),
   VIDEO_PUBLICATION: z
     .string()
-    .regex(/^[a-z0-9.-]+:\d{2,5}$/i, "VIDEO_PUBLICATION : hôte:port, par exemple video.fiessou.cloud:8322")
+    .regex(/^[a-z0-9.-]+:\d{2,5}$/i, "VIDEO_PUBLICATION : hôte:port, par exemple video.exemple.ci:8322")
     .optional(),
   NODE_ENV: z.enum(["development", "test", "production"]).default("development"),
 });

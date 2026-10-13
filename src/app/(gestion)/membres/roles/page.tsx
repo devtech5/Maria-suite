@@ -44,7 +44,7 @@ export default async function PageRoles() {
         titre="Rôles"
         sousTitre={
           composes === 0
-            ? `${roles.length} rôles fournis par Fiessou`
+            ? `${roles.length} rôles fournis par Maria Suite`
             : `${roles.length} rôles · ${composes} composé${composes > 1 ? "s" : ""} par vous`
         }
       />

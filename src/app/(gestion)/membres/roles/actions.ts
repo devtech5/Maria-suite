@@ -59,7 +59,7 @@ export async function creerRole(
   // les droits du code au lieu des siens : la résolution regarde la clé avant
   // de descendre en base.
   if (presetRole(cle)) {
-    return { erreur: `Ce nom est celui d'un rôle fourni par Fiessou.` };
+    return { erreur: `Ce nom est celui d'un rôle fourni par Maria Suite.` };
   }
 
   const accordes = droitsAccordables(await droitsActifs(), droitsCoches(donnees));
@@ -137,7 +137,7 @@ export async function modifierDroitsRole(
   if (role.systeme) {
     return {
       erreur:
-        "Les droits d'un rôle fourni par Fiessou ne se modifient pas. Composez le vôtre.",
+        "Les droits d'un rôle fourni par Maria Suite ne se modifient pas. Composez le vôtre.",
     };
   }
 
@@ -200,7 +200,7 @@ export async function supprimerRole(donnees: FormData): Promise<void> {
   if (!role) return;
 
   if (role.systeme) {
-    throw new Error("Un rôle fourni par Fiessou ne se supprime pas.");
+    throw new Error("Un rôle fourni par Maria Suite ne se supprime pas.");
   }
 
   try {

@@ -48,7 +48,7 @@ fb.setupCharacterMap({c: "etoile" for c in MASQUES})
 fb.setupGlyf({".notdef": TTGlyphPen(None).glyph(), "etoile": pen.glyph()})
 fb.setupHorizontalMetrics({".notdef": (500, 0), "etoile": (AVANCE, 0)})
 fb.setupHorizontalHeader(ascent=800, descent=-200)
-fb.setupNameTable({"familyName": "Fiessou Masque", "styleName": "Regular"})
+fb.setupNameTable({"familyName": "Maria Masque", "styleName": "Regular"})
 fb.setupOS2(sTypoAscender=800, sTypoDescender=-200, usWinAscent=800, usWinDescent=200)
 fb.setupPost()
 fb.font.flavor = "woff"

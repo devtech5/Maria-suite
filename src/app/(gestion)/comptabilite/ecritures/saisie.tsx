@@ -269,7 +269,7 @@ export function SaisieEcriture() {
       <aside className="h-fit rounded-xl border border-[var(--filet)] bg-[var(--surface)] p-4">
         <h2 className="text-base font-semibold">Écriture générée</h2>
         <p className="mt-0.5 text-xs text-[var(--encre-faible)]">
-          Vous saisissez un compte, Fiessou écrit les deux lignes.
+          Vous saisissez un compte, Maria Suite écrit les deux lignes.
         </p>
 
         <table className="mt-3 w-full text-sm">

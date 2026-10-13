@@ -27,7 +27,7 @@ const JOUR = new Intl.DateTimeFormat("fr-FR", { weekday: "long", day: "numeric",
 
 function ecranVerrouille(): boolean {
   try {
-    return localStorage.getItem("fiessou-verrou") === "1";
+    return localStorage.getItem("maria-verrou") === "1";
   } catch {
     return false;
   }

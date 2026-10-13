@@ -16,7 +16,7 @@
  * depuis un service worker ou depuis un test.
  */
 
-const BASE = "fiessou-caisse";
+const BASE = "maria-caisse";
 const VERSION = 1;
 
 const STORE_TICKETS = "tickets";

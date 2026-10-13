@@ -20,6 +20,8 @@ import type { Qualite } from "./calcul";
 const DUREE_LECTURE_S = 120;
 
 /** Clé HMAC propre à cet usage, dérivée d'AUTH_SECRET : un jeton de lecture n'ouvre rien d'autre. */
+// « fiessou » est le nom d'origine du logiciel, gardé dans le contexte de la
+// clé : le changer invaliderait les jetons en cours.
 function cle(): Buffer {
   return createHmac("sha256", env.AUTH_SECRET).update("fiessou:video:lecture").digest();
 }

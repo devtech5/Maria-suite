@@ -71,7 +71,7 @@ export default async function PageSoldes() {
         </tbody>
       </Tableau>
       <p className="mt-3 text-xs text-[var(--encre-faible)]">
-        Le décompte part de l&apos;embauche, ou de la dernière reprise de solde. Pour un salarié embauché avant Fiessou, saisissez une reprise : son solde réel à une
+        Le décompte part de l&apos;embauche, ou de la dernière reprise de solde. Pour un salarié embauché avant Maria Suite, saisissez une reprise : son solde réel à une
         date.
       </p>
     </>

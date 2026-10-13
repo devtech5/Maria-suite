@@ -10,8 +10,8 @@ services:
     image: postgres:18-alpine
     restart: unless-stopped
     environment:
-      POSTGRES_USER: fiessou
-      POSTGRES_DB: fiessou
+      POSTGRES_USER: maria
+      POSTGRES_DB: maria
       POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?POSTGRES_PASSWORD est requis}
       # Tri des accents du français, via ICU (présent dans l'image Alpine).
       POSTGRES_INITDB_ARGS: "--encoding=UTF8 --locale-provider=icu --icu-locale=fr-FR"
@@ -20,21 +20,21 @@ services:
       - pgdata:/var/lib/postgresql
     # Aucun port publié : la base n'est joignable que depuis la pile.
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U fiessou -d fiessou"]
+      test: ["CMD-SHELL", "pg_isready -U maria -d maria"]
       interval: 5s
       timeout: 5s
       retries: 20
 
   app:
     build: .
-    image: fiessou:latest
+    image: maria:latest
     restart: unless-stopped
     depends_on:
       postgres:
         condition: service_healthy
     env_file: .env.production
     environment:
-      DATABASE_URL: postgres://fiessou:${POSTGRES_PASSWORD}@postgres:5432/fiessou
+      DATABASE_URL: postgres://maria:${POSTGRES_PASSWORD}@postgres:5432/maria
       MIGRATIONS_AU_DEMARRAGE: "1"
       STOCKAGE_LOCAL: /donnees/fichiers
     volumes:
@@ -50,7 +50,7 @@ services:
       - "443:443"
       - "443:443/udp"
     environment:
-      DOMAINE: ${DOMAINE:?DOMAINE est requis (ex. app.fiessou.ci)}
+      DOMAINE: ${DOMAINE:?DOMAINE est requis (ex. app.exemple.ci)}
     volumes:
       - ./deploiement/Caddyfile:/etc/caddy/Caddyfile:ro
       - caddy_data:/data
@@ -64,8 +64,8 @@ services:
         condition: service_healthy
     environment:
       PGHOST: postgres
-      PGUSER: fiessou
-      PGDATABASE: fiessou
+      PGUSER: maria
+      PGDATABASE: maria
       PGPASSWORD: ${POSTGRES_PASSWORD}
       SAUVEGARDE_INTERVALLE_HEURES: ${SAUVEGARDE_INTERVALLE_HEURES:-24}
       SAUVEGARDE_JOURS: ${SAUVEGARDE_JOURS:-14}

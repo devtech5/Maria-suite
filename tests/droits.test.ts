@@ -121,7 +121,7 @@ describe("resoudreDroits", () => {
 
   it("ignore les accords d'un rôle préréglé", () => {
     // Le préréglage vient du code : une ligne ajoutée à la main en base ne doit
-    // pas élargir un rôle que Fiessou définit.
+    // pas élargir un rôle que Maria Suite définit.
     const droits = resoudreDroits({
       cleRole: "caissier",
       estProprietaire: false,

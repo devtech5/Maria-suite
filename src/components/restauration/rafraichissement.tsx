@@ -17,7 +17,7 @@ export function Rafraichissement({ secondes }: { secondes: number }) {
   useEffect(() => {
     function verrouille(): boolean {
       try {
-        return localStorage.getItem("fiessou-verrou") === "1";
+        return localStorage.getItem("maria-verrou") === "1";
       } catch {
         return false;
       }

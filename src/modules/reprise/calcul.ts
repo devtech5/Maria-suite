@@ -2,7 +2,7 @@ import type { Ecriture } from "@/lib/comptabilite/ecritures";
 import { ECHELLE_QUANTITE, type CodeUnite } from "@/lib/quantite";
 
 /**
- * Reprise de l'existant : ce que l'entreprise apporte en arrivant sur Fiessou.
+ * Reprise de l'existant : ce que l'entreprise apporte en arrivant sur Maria Suite.
  * Articles, clients et fournisseurs, stock initial, et surtout les dettes et
  * créances antérieures — sans elles, un commerce qui a trois ans d'historique
  * repart de zéro et chaque solde affiché est faux.

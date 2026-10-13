@@ -10,7 +10,7 @@ import { memberships, organizations, roles, sessions, users } from "@/db/schema"
 import { newId } from "@/lib/ids";
 import { DELAI_VERROUILLAGE_DEFAUT, MARGE_SERVEUR_MINUTES, sessionVerrouillee } from "./verrou";
 
-export const COOKIE_SESSION = "fiessou_session";
+export const COOKIE_SESSION = "maria_session";
 
 /**
  * Où renvoyer quand le cookie est là mais ne désigne plus aucune session
@@ -55,7 +55,7 @@ export interface SessionActive {
   /**
    * Clé du rôle dans l'entreprise active — `proprietaire`, `caissier`… C'est
    * elle, et non l'identifiant, qui décide des droits quand le rôle est l'un
-   * de ceux que Fiessou fournit. Voir `src/lib/droits/catalogue.ts`.
+   * de ceux que Maria Suite fournit. Voir `src/lib/droits/catalogue.ts`.
    */
   roleCle: string | null;
   /** Créateur de l'entreprise : tous les droits, sans condition. */

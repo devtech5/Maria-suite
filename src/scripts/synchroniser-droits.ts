@@ -111,7 +111,7 @@ async function installerRolesPresets() {
   `;
 
   if (marques.length > 0) {
-    console.log(`${marques.length} rôle(s) préréglé(s) marqué(s) comme fournis par Fiessou.`);
+    console.log(`${marques.length} rôle(s) préréglé(s) marqué(s) comme fournis par Maria Suite.`);
   }
 
   console.log(

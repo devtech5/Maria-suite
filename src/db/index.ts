@@ -12,8 +12,8 @@ type Database = ReturnType<typeof drizzle<typeof schema>>;
  * saturer les connexions de PostgreSQL.
  */
 const globalForDb = globalThis as unknown as {
-  fiessouConnection?: ReturnType<typeof postgres>;
-  fiessouDb?: Database;
+  mariaConnection?: ReturnType<typeof postgres>;
+  mariaDb?: Database;
 };
 
 /**
@@ -39,7 +39,7 @@ function derrierePoolerTransaction(url: string): boolean {
 const SANS_SERVEUR = Boolean(process.env.VERCEL || process.env.AWS_LAMBDA_FUNCTION_NAME);
 
 function resolveDb(): Database {
-  if (globalForDb.fiessouDb) return globalForDb.fiessouDb;
+  if (globalForDb.mariaDb) return globalForDb.mariaDb;
 
   // Base locale PGlite : ouverte au démarrage par `instrumentation.ts`, qui
   // dépose l'instance ci-dessus. L'atteindre ici veut dire que le démarrage
@@ -53,7 +53,7 @@ function resolveDb(): Database {
   const pooler = derrierePoolerTransaction(env.DATABASE_URL);
 
   const connection =
-    globalForDb.fiessouConnection ??
+    globalForDb.mariaConnection ??
     postgres(env.DATABASE_URL, {
       max: SANS_SERVEUR ? 1 : 10,
       prepare: !pooler,
@@ -75,8 +75,8 @@ function resolveDb(): Database {
   const instance = drizzle(connection, { schema });
 
   if (env.NODE_ENV !== "production") {
-    globalForDb.fiessouConnection = connection;
-    globalForDb.fiessouDb = instance;
+    globalForDb.mariaConnection = connection;
+    globalForDb.mariaDb = instance;
   }
 
   return instance;

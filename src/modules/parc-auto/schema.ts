@@ -75,7 +75,7 @@ export const vehicules = pgTable(
  * Plein de carburant.
  *
  * Le volume est en millièmes de litre (le millilitre), comme toute quantité
- * de Fiessou ; le montant en francs entiers. Le prix au litre se déduit, il
+ * de Maria Suite ; le montant en francs entiers. Le prix au litre se déduit, il
  * ne se stocke pas.
  *
  * Le kilométrage relevé à la pompe alimente AUSSI le compteur de l'actif :

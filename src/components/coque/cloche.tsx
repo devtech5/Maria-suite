@@ -11,7 +11,7 @@ const PAS_MS = 45_000;
 
 function ecranVerrouille(): boolean {
   try {
-    return localStorage.getItem("fiessou-verrou") === "1";
+    return localStorage.getItem("maria-verrou") === "1";
   } catch {
     return false;
   }

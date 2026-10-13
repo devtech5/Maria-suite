@@ -22,7 +22,7 @@ export async function register() {
 
   const { ouvrirPglite } = await import("./db/pglite");
   const instance = await ouvrirPglite(url);
-  (globalThis as { fiessouDb?: unknown }).fiessouDb = instance;
+  (globalThis as { mariaDb?: unknown }).mariaDb = instance;
 }
 
 /**

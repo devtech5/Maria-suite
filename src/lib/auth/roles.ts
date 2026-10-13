@@ -12,7 +12,7 @@ export interface RoleDeLEntreprise {
   nom: string;
   description: string | null;
   /**
-   * Fourni par Fiessou : ses droits viennent du code, ils ne se recomposent pas.
+   * Fourni par Maria Suite : ses droits viennent du code, ils ne se recomposent pas.
    *
    * Déduit de la clé et non de la colonne `is_system`. C'est la clé que regarde
    * `resoudreDroits`, et un écran qui se fierait à la colonne afficherait

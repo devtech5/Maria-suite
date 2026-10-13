@@ -1,5 +1,5 @@
 /**
- * Service worker de Fiessou.
+ * Service worker de Maria Suite.
  *
  * Il n'a qu'un but : que l'écran de caisse S'OUVRE sans réseau. Le reste du
  * hors-ligne — la vente elle-même — vit dans IndexedDB, côté application
@@ -24,7 +24,7 @@
  *     rien à dire sur une écriture.
  */
 
-const VERSION = "fiessou-v1";
+const VERSION = "maria-suite-v1";
 const COQUE = `coque-${VERSION}`;
 const STATIQUE = `statique-${VERSION}`;
 

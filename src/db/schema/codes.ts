@@ -13,7 +13,7 @@ export const codeKind = pgEnum("code_kind", [
 /**
  * Codes scannables rattachés à n'importe quelle entité.
  *
- * Tout ce qui est ajouté dans Fiessou peut porter un code : un article, un
+ * Tout ce qui est ajouté dans Maria Suite peut porter un code : un article, un
  * engin, un ordinateur du parc, un plat de la carte, un modèle en atelier, un
  * employé — pour sa carte professionnelle —, un ticket de caisse, un contrat de
  * location, une chambre, un colis.
@@ -58,7 +58,7 @@ export const entityCodes = pgTable(
      */
     value: text("value").notNull(),
 
-    /** Jeton court de résolution, propre à Fiessou. Nul pour un code externe. */
+    /** Jeton court de résolution, propre à Maria Suite. Nul pour un code externe. */
     token: text("token"),
 
     /** URL ouverte par un téléphone qui scanne le symbole. */

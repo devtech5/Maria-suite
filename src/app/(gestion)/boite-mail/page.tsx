@@ -13,7 +13,7 @@ import { comptesCourriel } from "@/modules/boite-mail/schema";
 
 export const metadata: Metadata = { title: "Boîte mail" };
 
-/** La boîte mail de la personne connectée, consultée sans quitter Fiessou. */
+/** La boîte mail de la personne connectée, consultée sans quitter Maria Suite. */
 export default async function PageBoiteMail() {
   if (!moduleOuvert("boite_mail")) return <ModuleEnPreparation cle="boite_mail" />;
   if (!(await peut("boite_mail.utiliser"))) return <AccesRefuse droit="boite_mail.utiliser" />;

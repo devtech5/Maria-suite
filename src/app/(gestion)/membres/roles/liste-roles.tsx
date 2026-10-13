@@ -66,7 +66,7 @@ export function ListeRoles({
               <div className="min-w-0">
                 <h2 className="flex flex-wrap items-center gap-2 text-sm font-semibold">
                   {role.nom}
-                  {role.systeme && <Pastille>Fourni par Fiessou</Pastille>}
+                  {role.systeme && <Pastille>Fourni par Maria Suite</Pastille>}
                 </h2>
                 {role.description && (
                   <p className="mt-0.5 text-sm text-[var(--encre-douce)]">

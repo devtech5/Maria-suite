@@ -7,7 +7,7 @@ import { memberships, organizations } from "./tenancy";
 /**
  * Rôle.
  *
- * Un rôle marqué `isSystem` est fourni par Fiessou : il est copié dans chaque
+ * Un rôle marqué `isSystem` est fourni par Maria Suite : il est copié dans chaque
  * entreprise à sa création, et ses droits sont lus dans le code
  * (`src/lib/droits/catalogue.ts`), jamais dans `role_permissions`. Copié
  * plutôt que partagé, pour qu'un exploitant puisse appeler son caissier

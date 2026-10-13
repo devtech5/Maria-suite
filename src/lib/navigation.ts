@@ -80,7 +80,7 @@ export const GROUPES_MODULES: GroupeModules[] = [
       { href: "/planning", racine: "/planning", icone: "planning", libelle: "Planning", description: "Qui est disponible, occupé, en mission ou sur le terrain.", droit: "planning.utiliser" },
       { href: "/taches", racine: "/taches", icone: "taches", libelle: "Tâches", description: "Ce qui est à faire, par qui et pour quand.", droit: "taches.consulter" },
       { href: "/messagerie", racine: "/messagerie", icone: "messagerie", libelle: "Messagerie", description: "Discussions privées et groupes de l'équipe.", droit: "messagerie.utiliser" },
-      { href: "/boite-mail", racine: "/boite-mail", icone: "boite-mail", libelle: "Boîte mail", description: "Vos e-mails, sans quitter Fiessou.", droit: "boite_mail.utiliser" },
+      { href: "/boite-mail", racine: "/boite-mail", icone: "boite-mail", libelle: "Boîte mail", description: "Vos e-mails, sans quitter Maria Suite.", droit: "boite_mail.utiliser" },
       { href: "/documents", racine: "/documents", icone: "documents", libelle: "Documents", description: "Pièces rattachées aux fiches et leurs échéances.", droit: "documents.consulter" },
       { href: "/archives", racine: "/archives", icone: "archives", libelle: "Archives", description: "Votre espace d'archivage personnel, intègre et tracé.", droit: "archives.consulter" },
     ],

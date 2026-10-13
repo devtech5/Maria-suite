@@ -10,7 +10,7 @@ import type { Droit } from "@/lib/droits/catalogue";
 import { groupesVisibles, raccourcisCompte, type CleIcone, type EntreeModule } from "@/lib/navigation";
 
 import { IconeModule } from "./icone-module";
-import { SignatureFiessou } from "./signature";
+import { SignatureMaria } from "./signature";
 import { verrouillerMaintenant } from "./verrou-inactivite";
 
 /** Hors groupes : l'accueil et le tableau de bord les traversent tous. */
@@ -159,7 +159,7 @@ export function BarreLaterale({
           nomUtilisateur={nomUtilisateur}
           entrepriseActive={entrepriseActive}
         />
-        <SignatureFiessou className="hidden px-2 lg:block" />
+        <SignatureMaria className="hidden px-2 lg:block" />
       </div>
     </nav>
   );
@@ -215,10 +215,10 @@ export function MenuCompte({
     const racine = document.documentElement;
     if (theme === "light") {
       racine.removeAttribute("data-theme");
-      localStorage.removeItem("fiessou-theme");
+      localStorage.removeItem("maria-theme");
     } else {
       racine.setAttribute("data-theme", theme);
-      localStorage.setItem("fiessou-theme", theme);
+      localStorage.setItem("maria-theme", theme);
     }
   }
 

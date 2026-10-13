@@ -8,9 +8,9 @@ import { cleValide, verifierLecture } from "./jetons";
 import { siteEtCameraDuChemin } from "./requetes";
 
 /**
- * Ce que le serveur vidéo (MediaMTX) demande à Fiessou avant chaque
+ * Ce que le serveur vidéo (MediaMTX) demande à Maria Suite avant chaque
  * publication et chaque lecture — son « authentification HTTP externe ».
- * Fiessou répond oui ou non ; le serveur vidéo applique.
+ * Maria Suite répond oui ou non ; le serveur vidéo applique.
  */
 export interface DemandeVideo {
   action: string;

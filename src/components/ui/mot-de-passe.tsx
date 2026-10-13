@@ -7,7 +7,7 @@ import { useState, type ComponentProps } from "react";
  *
  * Le champ reste un vrai `type="password"` tant qu'on ne demande pas à voir :
  * le gestionnaire de mots de passe le reconnaît, le clavier du téléphone ne
- * mémorise pas la frappe. Les étoiles viennent de la police « Fiessou Masque »
+ * mémorise pas la frappe. Les étoiles viennent de la police « Maria Masque »
  * (voir `globals.css`).
  *
  * Afficher sert à vérifier une saisie sur un clavier tactile, où une faute de

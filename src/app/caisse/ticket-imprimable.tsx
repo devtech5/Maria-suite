@@ -8,8 +8,8 @@ import {
   type LargeurTicket,
 } from "@/lib/caisse/ticket";
 
-const CLE_LARGEUR = "fiessou.ticket.largeur";
-const CLE_AUTO = "fiessou.ticket.auto";
+const CLE_LARGEUR = "maria.ticket.largeur";
+const CLE_AUTO = "maria.ticket.auto";
 
 /** Lecture tolérante : le stockage local peut être bloqué ou vide. */
 function lire(cle: string): string | null {

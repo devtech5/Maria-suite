@@ -56,7 +56,7 @@ export interface RoleAttribuable {
   cle: string;
   nom: string;
   description: string | null;
-  /** Fourni par Fiessou : ses droits viennent du code, il ne se recompose pas. */
+  /** Fourni par Maria Suite : ses droits viennent du code, il ne se recompose pas. */
   systeme: boolean;
 }
 

@@ -19,7 +19,7 @@ export async function ouvrirBaseDeTest() {
   const instance = drizzle(client, { schema });
   await migrate(instance, { migrationsFolder: resolve("./drizzle") });
   const db = adapter(instance) as unknown as typeof Db;
-  (globalThis as { fiessouDb?: unknown }).fiessouDb = db;
+  (globalThis as { mariaDb?: unknown }).mariaDb = db;
   return { db, fermer: () => client.close() };
 }
 

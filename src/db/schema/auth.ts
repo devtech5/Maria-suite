@@ -30,7 +30,7 @@ export const otpPurpose = pgEnum("otp_purpose", [
  *
  * IMPORTANT — un utilisateur n'est PAS une personne métier.
  *
- * Trois natures de personnes coexistent dans Fiessou et ne doivent jamais être
+ * Trois natures de personnes coexistent dans Maria Suite et ne doivent jamais être
  * confondues dans une seule table :
  *
  *   1. `users`      — celui qui ouvre le logiciel (compte, rôle, permissions)

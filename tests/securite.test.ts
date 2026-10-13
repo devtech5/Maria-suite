@@ -49,7 +49,7 @@ describe("configuration du relais", () => {
     marque: "hikvision",
     adresse: "192.168.1.64",
     port: 554,
-    publication: "video.fiessou.cloud:8322",
+    publication: "video.exemple.ci:8322",
     cameras: [
       { id: CAMERA, nom: "Caisse # 1", canal: 1, hd: true },
       { id: SITE, nom: "Réserve", canal: 2, hd: false },
@@ -57,8 +57,8 @@ describe("configuration du relais", () => {
   });
 
   it("publie la mosaïque de chaque caméra, et la HD seulement quand elle est prévue", () => {
-    expect(contenu).toContain(`c1_sd: rtsps://${SITE}:\${RELAIS_CLE}@video.fiessou.cloud:8322/s/${SITE}/${CAMERA}/sd`);
-    expect(contenu).toContain(`c1_hd: rtsps://${SITE}:\${RELAIS_CLE}@video.fiessou.cloud:8322/s/${SITE}/${CAMERA}/hd`);
+    expect(contenu).toContain(`c1_sd: rtsps://${SITE}:\${RELAIS_CLE}@video.exemple.ci:8322/s/${SITE}/${CAMERA}/sd`);
+    expect(contenu).toContain(`c1_hd: rtsps://${SITE}:\${RELAIS_CLE}@video.exemple.ci:8322/s/${SITE}/${CAMERA}/hd`);
     expect(contenu).toContain("c2_sd:");
     expect(contenu).not.toContain("c2_hd:");
   });

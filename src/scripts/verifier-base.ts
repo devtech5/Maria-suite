@@ -8,7 +8,7 @@
  *   2. les tables attendues existent — socle et modules livrés ;
  *   3. la sécurité au niveau ligne est active sur chacune.
  *
- * Le troisième point est une défense en profondeur : Fiessou se connecte avec
+ * Le troisième point est une défense en profondeur : Maria Suite se connecte avec
  * un rôle propriétaire, qui contourne RLS. Mais qu'un outil expose un jour le
  * schéma `public` (API REST automatique, rôle de lecture partagé), une table
  * sans RLS y deviendrait lisible d'une entreprise à l'autre.

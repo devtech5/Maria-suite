@@ -70,7 +70,7 @@ export function ChargesRecurrentes({
   if (charges.length === 0) {
     return (
       <p className="rounded-xl border border-dashed border-[var(--filet)] bg-[var(--surface)] px-4 py-6 text-center text-sm text-[var(--encre-douce)]">
-        Aucune charge récurrente. Déclarez le loyer, la facture d&apos;électricité, l&apos;abonnement internet : Fiessou les rappelle à
+        Aucune charge récurrente. Déclarez le loyer, la facture d&apos;électricité, l&apos;abonnement internet : Maria Suite les rappelle à
         chaque échéance et les compte dans le plan de trésorerie.
       </p>
     );

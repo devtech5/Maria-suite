@@ -4,7 +4,13 @@ import { check, date, index, integer, pgEnum, pgTable, text, uuid } from "drizzl
 import { money, primaryId, timestamps } from "./_shared";
 import { organizations } from "./tenancy";
 
-/** Comment l'entreprise a réglé Fiessou. */
+/**
+ * Abonnement : vestige de l'époque où le logiciel se vendait à plusieurs
+ * entreprises. Maria Suite ne s'en sert plus ; les tables restent pour ne pas
+ * imposer de migration destructive.
+ */
+
+/** Comment l'entreprise a réglé son abonnement. */
 export const moyenPaiementAbonnement = pgEnum("moyen_paiement_abonnement", [
   "wave",
   "orange_money",

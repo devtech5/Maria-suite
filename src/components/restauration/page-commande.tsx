@@ -67,7 +67,7 @@ export async function PageCommande({ espace, id }: { espace: Espace; id: string 
         postes={postes.map((p) => ({ id: p.id, nom: p.nom, depotNom: p.depotNom }))}
         droits={{ prendre, encaisser, annuler }}
         ticket={{
-          boutique: session.organizationNom ?? "Fiessou",
+          boutique: session.organizationNom ?? "Maria Suite",
           entete: lignesTicket(identite),
           piedDePage: identite.piedDePage,
           logo: identite.logo,

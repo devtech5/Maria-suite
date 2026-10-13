@@ -1,11 +1,11 @@
 # Déploiement Render — https://render.com/docs/blueprint-spec
 #
-# Render plutôt que Cloudflare ou un runtime Edge : Fiessou dépend de
+# Render plutôt que Cloudflare ou un runtime Edge : Maria Suite dépend de
 # @node-rs/argon2, un binaire natif qui exige un vrai runtime Node. Un isolate
 # V8 ne peut pas l'exécuter.
 services:
   - type: web
-    name: fiessou
+    name: maria-suite
     runtime: node
     # La région doit être celle de la base : un aller-retour transatlantique
     # à chaque requête se sent sur une caisse.
@@ -40,10 +40,9 @@ services:
       - key: DEFAULT_COUNTRY
         value: CI
 
-      # Bandeau « données fictives » sur toutes les pages. La connexion se
-      # fait par e-mail et mot de passe : le compte de démonstration se crée
-      # avec `pnpm demo:compte`, son mot de passe n'est connu que de celui
-      # qui l'a lancé.
+      # Bandeau « données fictives » sur toutes les pages. L'entreprise et son
+      # administrateur se créent avec `pnpm installer` ; le mot de passe
+      # provisoire n'est connu que de celui qui l'a lancé.
       - key: INSTANCE_DEMO
         value: "1"
 

@@ -13,7 +13,7 @@ export const sequencePeriodicity = pgEnum("sequence_periodicity", [
 /**
  * Compteurs de numérotation des pièces.
  *
- * Toute pièce qui sort de Fiessou — ticket de caisse, facture, devis, bon de
+ * Toute pièce qui sort de Maria Suite — ticket de caisse, facture, devis, bon de
  * transfert, contrat — porte un numéro séquentiel, sans trou et sans doublon.
  * C'est une exigence comptable, pas un confort.
  *

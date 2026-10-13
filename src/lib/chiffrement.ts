@@ -7,7 +7,7 @@ import { env } from "@/env";
 /**
  * Chiffrement des secrets qu'il faut RELIRE — le mot de passe d'application
  * d'une boîte mail, que le serveur présente à chaque connexion IMAP. Un mot de
- * passe de connexion à Fiessou, lui, se hache (Argon2) : on n'a jamais besoin
+ * passe de connexion à Maria Suite, lui, se hache (Argon2) : on n'a jamais besoin
  * de le relire.
  *
  * AES-256-GCM : chiffré ET authentifié — un octet modifié en base fait échouer
@@ -18,6 +18,8 @@ import { env } from "@/env";
 
 const VERSION = "v1";
 
+// « fiessou » est le nom d'origine du logiciel. Il reste dans la dérivation :
+// le changer rendrait illisible tout secret déjà chiffré.
 function cle(usage: string): Buffer {
   return Buffer.from(hkdfSync("sha256", env.AUTH_SECRET, "fiessou", `fiessou:${usage}`, 32));
 }

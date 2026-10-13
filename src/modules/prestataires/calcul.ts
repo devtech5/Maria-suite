@@ -90,7 +90,7 @@ export function transitionPermise(de: StatutPrestation, vers: StatutPrestation):
 
 /**
  * Note moyenne en dixièmes (42 = 4,2 / 5), ou nulle sans avis. Entière,
- * comme tout ce que Fiessou calcule.
+ * comme tout ce que Maria Suite calcule.
  */
 export function noteMoyenne(notes: readonly (number | null)[]): number | null {
   const valides = notes.filter((n): n is number => n !== null && n >= 1 && n <= 5);
@@ -116,7 +116,7 @@ export function retenue(montant: number, tauxBp: number): number {
  *   C  447 État, impôts retenus  retenue (s'il y en a une)
  *
  * La retenue reste due à l'État : elle se reverse avec les autres impôts
- * retenus. Son taux dépend du régime fiscal du prestataire — Fiessou ne le
+ * retenus. Son taux dépend du régime fiscal du prestataire — Maria Suite ne le
  * devine pas, il se saisit.
  */
 export function ecriturePrestation(p: {

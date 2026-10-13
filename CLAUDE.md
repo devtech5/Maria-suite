@@ -1,8 +1,10 @@
 @AGENTS.md
 
-# Fiessou v2 — conventions
+# Maria Suite — conventions
 
-ERP pour l'Afrique de l'Ouest francophone. Marché prioritaire : **Côte d'Ivoire**.
+ERP de **MARIA GROUP SARL**, en Côte d'Ivoire. Une seule entreprise : pas
+d'inscription publique, pas d'abonnement, pas de choix d'entreprise. Elle
+naît avec `pnpm installer`, les comptes s'ajoutent par invitation.
 Next.js (App Router) · TypeScript · PostgreSQL · Drizzle. La caisse fonctionne
 hors connexion.
 
@@ -21,7 +23,9 @@ parts retombe exactement sur le total.
 ### Rien n'existe hors d'une entreprise
 
 Toute table métier porte `organization_id`. Aucune requête ne s'écrit sans
-filtrer dessus. C'est la frontière d'isolation entre clients.
+filtrer dessus. Maria Suite ne sert qu'une entreprise, mais la colonne et le
+filtre restent : retirer l'un ou l'autre demanderait une migration
+destructive, et la session sélectionne d'elle-même l'unique entreprise.
 
 ### Un utilisateur n'est pas une personne
 
@@ -160,7 +164,7 @@ Les tests unitaires vivent dans `tests/`, tournent sous Vitest et ne touchent
 jamais la base. Ce qui passe par PostgreSQL se vérifie contre une vraie base,
 avec ses contraintes et sa numérotation : un test à double simulerait
 justement la partie qui casse. C'est `tests/integration/` (`pnpm test:base`) :
-PGlite en mémoire, toutes migrations appliquées, `globalThis.fiessouDb`
+PGlite en mémoire, toutes migrations appliquées, `globalThis.mariaDb`
 installé pour que `@/db` le retrouve. `pnpm verify`, le hook et la CI lancent
 les deux.
 
@@ -237,18 +241,20 @@ Après un arrêt brutal pendant une installation, Turbopack peut servir des
 quotidienne). `MIGRATIONS_AU_DEMARRAGE=1` fait appliquer migrations et droits
 par `instrumentation.ts` au démarrage (`src/db/demarrage.ts`).
 
-La production (`fiessou.cloud`) tourne sur Dokploy : build **Dockerfile**
+La production tourne sur Dokploy : build **Dockerfile**
 (Nixpacks prend Node 18, où pnpm 11 plante), base PostgreSQL gérée par Dokploy
 sur le réseau interne, volume nommé sur `/donnees/fichiers`. Section « Avec
 Dokploy » de `DEPLOIEMENT.md`.
 
-## Abonnement
+## Entreprise unique
 
-`organizations.status`, `trial_ends_at`, `paye_jusqu_au` ; paiements dans
-`paiements_abonnement`, saisis par les adresses de `ADMINS_PLATEFORME` sur
-`/plateforme`. Échéance passée : 7 jours de grâce, puis lecture seule —
-`droitsActifs` ne garde que les droits `*.consulter`. Toute nouvelle action
-doit donc passer par `refusDroit`/`peut`, sinon elle échappe à la coupure.
+`pnpm installer` (ou `node scripts/installer.cjs` dans l'image) crée
+MARIA GROUP SARL, ses rôles préréglés et le premier administrateur, avec
+un mot de passe provisoire. Idempotent ; refuse une base qui porte une autre
+entreprise. Un compte sans rattachement actif aboutit sur `/sans-acces`.
+
+Les colonnes d'abonnement d'`organizations` et la table
+`paiements_abonnement` sont des vestiges : plus rien ne les lit.
 
 ## Verrouillage après inactivité
 
@@ -284,7 +290,7 @@ Tout ce qui interroge le serveur en tâche de fond — la cloche, la
 messagerie — lit la session par `session()` et rend un résultat VIDE si elle
 est verrouillée, sans rediriger : une redirection ferait perdre la page
 conservée sous le voile. Le navigateur suspend d'ailleurs ces interrogations
-onglet caché ou écran verrouillé (`localStorage` `fiessou-verrou`).
+onglet caché ou écran verrouillé (`localStorage` `maria-verrou`).
 
 Ce qu'un client ouvre sans compte (sa facture, sa désinscription) passe par
 `src/lib/liens-publics.ts` : jeton signé HMAC, objet et expiration dedans,
@@ -315,7 +321,7 @@ une session stable. Sans pooler, `DATABASE_URL_MIGRATION` reste vide.
 
 **RLS est actif sur toutes les tables** et doit le rester : toute nouvelle
 table l'active dans la migration qui la crée. Aucune policy n'est définie :
-Fiessou se connecte avec un rôle propriétaire, qui contourne RLS, et
+Maria Suite se connecte avec un rôle propriétaire, qui contourne RLS, et
 l'isolation entre entreprises est assurée par le filtre `organization_id`.
 RLS est la défense en profondeur — si un outil expose un jour le schéma
 `public` (API REST automatique, rôle de lecture), rien n'y fuit.

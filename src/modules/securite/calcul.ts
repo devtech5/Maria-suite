@@ -11,7 +11,7 @@
  * Le relais se connecte au serveur central de lui-même : rien à ouvrir sur la
  * box du site, et l'enregistreur ne s'expose jamais sur internet. Le serveur
  * vidéo ne décide de rien : à chaque publication et à chaque lecture, il
- * demande à Fiessou (`/api/video/autorisation`) si elle est permise.
+ * demande à Maria Suite (`/api/video/autorisation`) si elle est permise.
  *
  * Ce fichier est pur : chemins, adresses RTSP des enregistreurs, configuration
  * du relais. Il se teste sans réseau.
@@ -50,7 +50,7 @@ export function lireChemin(chemin: string): { siteId: string; cameraId: string; 
  * mégabits — la liaison montante d'une boutique d'Abidjan ne les a pas.
  *
  * Identifiants laissés en variables (`${NVR_UTILISATEUR}`) : go2rtc les lit
- * dans l'environnement du boîtier. Ils ne passent jamais par Fiessou.
+ * dans l'environnement du boîtier. Ils ne passent jamais par Maria Suite.
  */
 export function urlEnregistreur(marque: Marque, adresse: string, port: number, canal: number, qualite: Qualite): string {
   const auth = "${NVR_UTILISATEUR}:${NVR_MOT_DE_PASSE}";
@@ -86,7 +86,7 @@ export function configurationRelais(site: {
 }): string {
   const nomFlux = (camera: CameraRelais, q: Qualite) => `c${camera.canal}_${q}`;
   const lignes = [
-    `# Relais Fiessou — ${site.nom}`,
+    `# Relais Maria Suite — ${site.nom}`,
     "# Variables à définir sur le boîtier : NVR_UTILISATEUR, NVR_MOT_DE_PASSE, RELAIS_CLE.",
     "# Le boîtier se connecte au serveur vidéo de lui-même : aucun port à ouvrir sur la box.",
     "",

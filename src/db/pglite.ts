@@ -26,7 +26,7 @@ export function estPglite(url: string | undefined): url is string {
 }
 
 const globalPglite = globalThis as unknown as {
-  fiessouPglite?: Promise<unknown>;
+  mariaPglite?: Promise<unknown>;
 };
 
 /**
@@ -36,7 +36,7 @@ const globalPglite = globalThis as unknown as {
  * première requête. Rend l'instance Drizzle, que `src/db/index.ts` reprend.
  */
 export function ouvrirPglite(url: string): Promise<unknown> {
-  globalPglite.fiessouPglite ??= (async () => {
+  globalPglite.mariaPglite ??= (async () => {
     const dossier = resolve(/*turbopackIgnore: true*/ url.slice("pglite:".length) || "./.pglite");
     mkdirSync(dossier, { recursive: true });
 
@@ -54,7 +54,7 @@ export function ouvrirPglite(url: string): Promise<unknown> {
     return adapter(instance);
   })();
 
-  return globalPglite.fiessouPglite;
+  return globalPglite.mariaPglite;
 }
 
 /**

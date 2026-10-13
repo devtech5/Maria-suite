@@ -1,5 +1,5 @@
 /**
- * Registre des modules de Fiessou.
+ * Registre des modules de Maria Suite.
  *
  * Les 28 modules du périmètre ne sont pas 28 développements. Ils se répartissent
  * en trois couches :
@@ -268,7 +268,7 @@ export const MODULES: ModuleDefinition[] = [
     // lisent en direct ; affichage isolé, images distantes bloquées.
     status: "en_cours",
     requires: [],
-    description: "Consulter et envoyer ses e-mails sans quitter Fiessou (Gmail, Yahoo, hébergeur…).",
+    description: "Consulter et envoyer ses e-mails sans quitter Maria Suite (Gmail, Yahoo, hébergeur…).",
   },
 
   {
@@ -279,7 +279,7 @@ export const MODULES: ModuleDefinition[] = [
     // enregistreur Hikvision ou Dahua, caméras par canal, relais du site
     // (clé dont seule l'empreinte est gardée, configuration go2rtc sans
     // secret). Images : relais → serveur vidéo MediaMTX → navigateur en
-    // WebRTC, chaque publication et chaque lecture autorisées par Fiessou,
+    // WebRTC, chaque publication et chaque lecture autorisées par Maria Suite,
     // chaque visionnage journalisé. Restent la main courante, les rondes des
     // gardiens, le registre des visiteurs et la relecture des enregistrements.
     status: "en_cours",

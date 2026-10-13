@@ -2,8 +2,8 @@
 #
 # Il reçoit les flux publiés par les relais des sites (RTSPS, port 8322) et
 # les sert aux navigateurs en WebRTC (WHEP, port 8889 derrière le domaine
-# video.fiessou.cloud). Il ne décide de rien : chaque publication et chaque
-# lecture sont soumises à Fiessou, sur /api/video/autorisation.
+# video.exemple.ci). Il ne décide de rien : chaque publication et chaque
+# lecture sont soumises à Maria Suite, sur /api/video/autorisation.
 #
 # Écrit pour MediaMTX 1.x. Les noms de clés changent parfois d'une version à
 # l'autre : comparez avec la configuration de référence de la version
@@ -13,8 +13,8 @@ logLevel: info
 
 # --------------------------------------------------------------- autorisation
 authMethod: http
-authHTTPAddress: https://fiessou.cloud/api/video/autorisation
-# Rien n'échappe à Fiessou, pas même l'API ou les métriques : il les refuse.
+authHTTPAddress: https://app.exemple.ci/api/video/autorisation
+# Rien n'échappe à Maria Suite, pas même l'API ou les métriques : il les refuse.
 authHTTPExclude: []
 
 api: no
@@ -40,9 +40,9 @@ webrtc: yes
 webrtcAddress: :8889
 webrtcLocalUDPAddress: :8189
 webrtcLocalTCPAddress: :8189
-webrtcAdditionalHosts: [video.fiessou.cloud]
-webrtcAllowOrigin: https://fiessou.cloud
+webrtcAdditionalHosts: [video.exemple.ci]
+webrtcAllowOrigin: https://app.exemple.ci
 
 paths:
-  # Les chemins sont « s/<site>/<caméra>/<sd|hd> » ; Fiessou vérifie le reste.
+  # Les chemins sont « s/<site>/<caméra>/<sd|hd> » ; Maria Suite vérifie le reste.
   all_others:

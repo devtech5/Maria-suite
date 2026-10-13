@@ -135,7 +135,7 @@ export default async function PageCaisse() {
           depotNom: poste.depotNom,
           dernierRang: rang,
         }}
-        nomBoutique={session.organizationNom ?? "Fiessou"}
+        nomBoutique={session.organizationNom ?? "Maria Suite"}
         identiteTicket={{ entete: lignesTicket(identite), piedDePage: identite.piedDePage, logo: identite.logo }}
         deviceId={session.deviceId}
         session={

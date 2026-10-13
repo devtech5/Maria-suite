@@ -1,4 +1,4 @@
-# Déployer Fiessou sur un VPS
+# Déployer Maria Suite sur un VPS
 
 Une seule machine porte tout : l'application (Node, image Docker), PostgreSQL,
 Caddy pour le HTTPS automatique, et un service de sauvegarde. Rien d'autre à
@@ -10,7 +10,7 @@ louer.
   conseillés, 40 Go de disque. La construction de l'image est le moment le
   plus gourmand.
 - Un nom de domaine dont l'enregistrement **A** pointe vers l'IP du VPS
-  (ex. `app.fiessou.ci`). Caddy obtient le certificat tout seul, à condition
+  (ex. `app.exemple.ci`). Caddy obtient le certificat tout seul, à condition
   que le DNS réponde déjà.
 - Les ports **80 et 443** ouverts. Le port 22 pour SSH. Rien d'autre :
   PostgreSQL n'est publié sur aucun port.
@@ -22,8 +22,8 @@ louer.
 curl -fsSL https://get.docker.com | sh
 
 # 2. Le code
-git clone https://github.com/devtech5/Fiessou-erp.git fiessou
-cd fiessou
+git clone https://github.com/devtech5/Maria-suite.git maria-suite
+cd maria-suite
 
 # 3. La configuration
 cp deploiement/env.production.exemple .env.production
@@ -45,12 +45,18 @@ docker compose -f docker-compose.prod.yml logs -f app
 curl https://app.exemple.ci/api/health
 ```
 
-Puis ouvrir le domaine, cliquer sur « Créer votre espace » : le premier compte
-crée la première entreprise.
+Puis créer MARIA GROUP SARL et son premier administrateur :
+
+```bash
+docker compose -f docker-compose.prod.yml exec -e MARIA_ADMIN_EMAIL=admin@exemple.ci app \n  node scripts/installer.cjs
+```
+
+Le mot de passe provisoire s'affiche **une fois** ; il se change à la première
+connexion. Les autres comptes s'invitent ensuite depuis « Membres ».
 
 ## Avec Dokploy
 
-C'est ainsi que tourne `fiessou.cloud`. Dokploy apporte déjà son proxy
+C'est la voie recommandée. Dokploy apporte déjà son proxy
 (Traefik) et le HTTPS : `docker-compose.prod.yml` n'y sert pas, son Caddy se
 disputerait les ports 80 et 443 avec Traefik. On déploie l'application seule,
 à côté d'une base gérée par Dokploy.
@@ -72,7 +78,7 @@ alphanumérique, ou encoder ces caractères (`@` s'écrit `%40`).
 |---|---|
 | General | Dépôt GitHub, branche `main`, **Build Type : Dockerfile** |
 | Environment | Les variables ci-dessous, dans **Environment Settings** |
-| Advanced → Volumes | **Volume Mount** `fiessou-fichiers` sur `/donnees/fichiers` |
+| Advanced → Volumes | **Volume Mount** `maria-fichiers` sur `/donnees/fichiers` |
 | Domains | Le domaine, **port 3000**, HTTPS Let's Encrypt |
 
 **Dockerfile, pas Nixpacks.** Nixpacks devine la version de Node et a pris
@@ -81,7 +87,7 @@ Node 18 : pnpm 11 (`packageManager`) y plante dès l'installation, sur
 argon2 sur Debian, tourne sans privilège et prépare `/donnees/fichiers`.
 
 **Volume Mount, pas Bind Mount.** Un dossier de l'hôte appartient à `root`, et
-l'application tourne sous l'utilisateur `fiessou` : le dépôt d'une pièce
+l'application tourne sous l'utilisateur `maria` : le dépôt d'une pièce
 échouerait en « permission denied ». Un volume nommé reprend les droits que
 l'image pose sur le dossier.
 
@@ -92,10 +98,9 @@ DATABASE_URL=<Internal Connection URL de la base>
 AUTH_SECRET=<48 caractères aléatoires, 32 au moins>
 MIGRATIONS_AU_DEMARRAGE=1
 STOCKAGE_LOCAL=/donnees/fichiers
-URL_PUBLIQUE=https://fiessou.cloud
+URL_PUBLIQUE=https://app.exemple.ci
 DEFAULT_COUNTRY=CI
 INSTANCE_DEMO=0
-ADMINS_PLATEFORME=<adresses des administrateurs>
 ```
 
 `DATABASE_URL_MIGRATION` est inutile : la connexion est directe, sans pooler.
@@ -115,29 +120,25 @@ Wasabi…), puis programmer :
 
 - la base : onglet **Backups** de la base, par exemple `0 3 * * *`, 14 gardées ;
 - les pièces jointes : onglet **Volume Backups** de l'application, volume
-  `fiessou-fichiers`, `30 3 * * *`, 14 gardées.
+  `maria-fichiers`, `30 3 * * *`, 14 gardées.
 
 Les deux vont ensemble : une pièce sans sa ligne en base, ou l'inverse, ne sert
 à rien. La restauration se teste une fois, ailleurs, avant d'en avoir besoin.
 
-### Comptes de démonstration
+### Installation de l'entreprise
 
-L'image embarque le script de `pnpm demo:compte`. Dans Dokploy, onglet
+L'image embarque le script de `pnpm installer`. Dans Dokploy, onglet
 **Terminal** de l'application (shell `sh`) :
 
 ```bash
-node scripts/compte-demo.cjs
+MARIA_ADMIN_EMAIL=admin@exemple.ci node scripts/installer.cjs
 ```
 
-Il crée, ou remet en état, l'entreprise « Quincaillerie Akwaba » (active,
-sans échéance d'abonnement), son propriétaire `demo@fiessou.ci` et son gérant
-`gerant@fiessou.ci`. Les mots de passe s'affichent **une fois** dans le
-terminal ; relancer la commande en tire d'autres. Pour les fixer :
-`DEMO_MOT_DE_PASSE=… DEMO_MOT_DE_PASSE_GERANT=… node scripts/compte-demo.cjs`.
-
-Cette entreprise vit dans la même base que les vraies : elle n'en voit
-aucune donnée, l'isolation par `organization_id` vaut pour elle comme pour
-les autres.
+Il crée MARIA GROUP SARL, ses rôles préréglés et son premier administrateur.
+Le mot de passe provisoire s'affiche **une fois** dans le terminal, et se
+change à la première connexion. Relancer la commande ne duplique rien et ne
+touche pas au mot de passe ; `--reinitialiser` en tire un nouveau. Le script
+refuse une base qui porte déjà une autre entreprise.
 
 ### Mettre à jour
 
@@ -154,7 +155,7 @@ enregistreur du site ──RTSP──▶ relais du site (go2rtc)
                                    ▼
                      serveur vidéo (MediaMTX, sur le VPS) ──WebRTC──▶ navigateur
                                    │
-                                   └── demande à Fiessou : /api/video/autorisation
+                                   └── demande à Maria Suite : /api/video/autorisation
 ```
 
 ### Serveur vidéo, une fois
@@ -165,18 +166,18 @@ fixée, pas `latest`), avec `deploiement/mediamtx.yml` monté sur
 
 | Réglage | Valeur |
 |---|---|
-| Domaine | `video.fiessou.cloud` → **port 8889** (WHEP, HTTPS par Traefik) |
+| Domaine | `video.exemple.ci` → **port 8889** (WHEP, HTTPS par Traefik) |
 | Ports publiés | **8322/tcp** (publication RTSPS des relais), **8189/udp et 8189/tcp** (média WebRTC) |
 | Pare-feu du VPS | ouvrir 8322/tcp et 8189 (udp + tcp) |
 
 Le RTSPS ne passe pas par Traefik : MediaMTX présente lui-même le certificat
-de `video.fiessou.cloud` (Let's Encrypt, renouvelé par certbot sur l'hôte).
+de `video.exemple.ci` (Let's Encrypt, renouvelé par certbot sur l'hôte).
 
 Côté application, deux variables puis **Redeploy** :
 
 ```
-VIDEO_URL_PUBLIQUE=https://video.fiessou.cloud
-VIDEO_PUBLICATION=video.fiessou.cloud:8322
+VIDEO_URL_PUBLIQUE=https://video.exemple.ci
+VIDEO_PUBLICATION=video.exemple.ci:8322
 ```
 
 ### Relais, un par site
@@ -184,7 +185,7 @@ VIDEO_PUBLICATION=video.fiessou.cloud:8322
 Un petit ordinateur toujours allumé sur le réseau de l'enregistreur (mini-PC,
 Raspberry Pi 4, ou le PC de la caisse), avec [go2rtc](https://github.com/AlexxIT/go2rtc).
 
-1. Dans Fiessou : **Sécurité → Sites et caméras → le site**, déclarer les
+1. Dans Maria Suite : **Sécurité → Sites et caméras → le site**, déclarer les
    caméras (canal de l'enregistreur), puis **Émettre la clé du relais** —
    elle ne s'affiche qu'une fois — et **Télécharger la configuration**.
 2. Sur le boîtier, définir trois variables d'environnement :
@@ -192,7 +193,7 @@ Raspberry Pi 4, ou le PC de la caisse), avec [go2rtc](https://github.com/AlexxIT
    sur l'enregistreur) et `RELAIS_CLE`.
 3. Lancer go2rtc avec le fichier téléchargé, en service qui redémarre seul.
 
-Le relais passe « En ligne » dans Fiessou à sa première publication. Après
+Le relais passe « En ligne » dans Maria Suite à sa première publication. Après
 l'ajout ou le retrait d'une caméra, retélécharger la configuration et
 relancer go2rtc.
 
@@ -209,8 +210,6 @@ relancer go2rtc.
 | `AUTH_SECRET` | Signature des sessions, 48 octets aléatoires au moins |
 | `URL_PUBLIQUE` | `https://` + domaine, pour les liens envoyés par e-mail |
 | `COURRIEL_FOURNISSEUR`, `COURRIEL_CLE`, `COURRIEL_EXPEDITEUR` | Envoi des e-mails : `brevo` ou `resend` |
-| `ADMINS_PLATEFORME` | Adresses des administrateurs Fiessou (console `/plateforme`) |
-| `ABONNEMENT_PAIEMENT` | Instructions de paiement affichées aux entreprises |
 | `INSTANCE_DEMO` / `MODULES_APERCU` | `0` et vide sur une vraie instance |
 
 ### E-mails
@@ -232,7 +231,7 @@ stockage objet (Backblaze B2, Wasabi, ou un autre serveur) :
 
 ```bash
 # crontab -e
-30 3 * * * rclone sync /root/fiessou/sauvegardes distant:fiessou-sauvegardes
+30 3 * * * rclone sync /root/maria-suite/sauvegardes distant:maria-sauvegardes
 ```
 
 ### Restaurer
@@ -240,7 +239,7 @@ stockage objet (Backblaze B2, Wasabi, ou un autre serveur) :
 ```bash
 # Base : remplace le contenu actuel par celui de la sauvegarde
 docker compose -f docker-compose.prod.yml exec -T postgres \
-  pg_restore -U fiessou -d fiessou --clean --if-exists --no-owner \
+  pg_restore -U maria -d maria --clean --if-exists --no-owner \
   < sauvegardes/base-AAAAMMJJ-HHMM.dump
 
 # Pièces jointes
@@ -254,23 +253,13 @@ besoin.
 ## Mettre à jour
 
 ```bash
-cd fiessou
+cd maria-suite
 git pull
 docker compose -f docker-compose.prod.yml --env-file .env.production up -d --build app
 ```
 
 Les migrations s'appliquent au redémarrage. L'interruption dure le temps du
 redémarrage du conteneur, quelques secondes.
-
-## Abonnements
-
-Les administrateurs listés dans `ADMINS_PLATEFORME` voient `/plateforme` :
-toutes les entreprises, leur état (essai, actif, grâce, lecture seule), et le
-bouton « Paiement reçu » qui prolonge l'abonnement. Une nouvelle entreprise a
-14 jours d'essai. Une échéance passée laisse 7 jours de grâce, puis
-l'entreprise passe en **lecture seule** : elle voit tout, ne crée plus rien.
-Les tickets de caisse encaissés hors ligne avant la bascule se synchronisent
-quand même.
 
 ## Base PostgreSQL externe
 

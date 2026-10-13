@@ -12,17 +12,17 @@ import { EcranVerrouillage } from "./ecran-verrouillage";
  * travailler dans un onglet laisserait l'autre se verrouiller, et déverrouiller
  * l'un laisserait l'autre voilé.
  */
-const CLE_ACTIVITE = "fiessou-activite";
-const CLE_VERROU = "fiessou-verrou";
+const CLE_ACTIVITE = "maria-activite";
+const CLE_VERROU = "maria-verrou";
 /**
  * Verrou demandé à la main. Seul celui-là voile la caisse : elle reste ouverte
  * malgré l'inactivité, mais le caissier qui verrouille avant de s'éloigner
  * doit la retrouver verrouillée, même rechargée ou rouverte dans un onglet.
  */
-const CLE_VERROU_MANUEL = "fiessou-verrou-manuel";
+const CLE_VERROU_MANUEL = "maria-verrou-manuel";
 
 /** Demande de verrouillage immédiat, émise dans l'onglet par `verrouillerMaintenant`. */
-const EVENEMENT_VERROUILLER = "fiessou:verrouiller";
+const EVENEMENT_VERROUILLER = "maria:verrouiller";
 
 /**
  * Verrouille l'écran sans attendre le délai : le caissier ou le gérant qui

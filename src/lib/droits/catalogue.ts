@@ -482,8 +482,8 @@ export const DROITS = [
   {
     cle: "boite_mail.utiliser",
     moduleKey: "boite_mail",
-    libelle: "Utiliser sa boîte mail dans Fiessou",
-    description: "Connecter SA propre adresse e-mail et la consulter sans quitter Fiessou. Personne d'autre n'y accède.",
+    libelle: "Utiliser sa boîte mail dans Maria Suite",
+    description: "Connecter SA propre adresse e-mail et la consulter sans quitter Maria Suite. Personne d'autre n'y accède.",
   },
 
   // ----------------------------------------------------------- parc auto
@@ -1053,7 +1053,7 @@ export function droitsAccordables(
 // --------------------------------------------------------------------- rôles
 
 /**
- * Rôles préréglés, fournis par Fiessou.
+ * Rôles préréglés, fournis par Maria Suite.
  *
  * Ils correspondent aux fonctions qu'on rencontre réellement dans une boutique
  * ou un maquis d'Abidjan, pas à une hiérarchie théorique. Une entreprise qui

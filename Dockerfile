@@ -1,4 +1,4 @@
-# Image de production de Fiessou — serveur Next autonome (output: "standalone").
+# Image de production de Maria Suite — serveur Next autonome (output: "standalone").
 #
 # Debian (glibc) et non Alpine : @node-rs/argon2 est un binaire natif, et sa
 # variante musl est la moins éprouvée. Construire DANS l'image garantit que le
@@ -24,21 +24,21 @@ ENV NODE_ENV=production NEXT_TELEMETRY_DISABLED=1 PORT=3000 HOSTNAME=0.0.0.0
 
 # Utilisateur sans privilège ; /donnees/fichiers reçoit les pièces jointes
 # (volume persistant, emporté par la sauvegarde).
-RUN groupadd --system fiessou && useradd --system --gid fiessou fiessou \
+RUN groupadd --system maria && useradd --system --gid maria maria \
   && mkdir -p /app/.next/cache /donnees/fichiers \
-  && chown -R fiessou:fiessou /app /donnees
+  && chown -R maria:maria /app /donnees
 
-COPY --from=construction --chown=fiessou:fiessou /app/.next/standalone ./
-COPY --from=construction --chown=fiessou:fiessou /app/.next/static ./.next/static
-COPY --from=construction --chown=fiessou:fiessou /app/public ./public
+COPY --from=construction --chown=maria:maria /app/.next/standalone ./
+COPY --from=construction --chown=maria:maria /app/.next/static ./.next/static
+COPY --from=construction --chown=maria:maria /app/public ./public
 # Lues au démarrage par MIGRATIONS_AU_DEMARRAGE=1.
-COPY --from=construction --chown=fiessou:fiessou /app/drizzle ./drizzle
+COPY --from=construction --chown=maria:maria /app/drizzle ./drizzle
 # Scripts d'exploitation empaquetés (esbuild), lancés depuis le terminal du
-# conteneur : `node scripts/compte-demo.cjs`. Seul @node-rs/argon2 reste
+# conteneur : `MARIA_ADMIN_EMAIL=… node scripts/installer.cjs`. Seul @node-rs/argon2 reste
 # externe, et le serveur autonome l'embarque déjà.
-COPY --from=construction --chown=fiessou:fiessou /app/build/scripts ./scripts
+COPY --from=construction --chown=maria:maria /app/build/scripts ./scripts
 
-USER fiessou
+USER maria
 EXPOSE 3000
 
 HEALTHCHECK --interval=30s --timeout=5s --start-period=60s --retries=3 \

@@ -13,7 +13,7 @@ import { jourLocal } from "./calcul";
 import { presences, reglagesPresence } from "./schema";
 
 /**
- * Pointage automatique : le compte qui se sert de Fiessou est présent.
+ * Pointage automatique : le compte qui se sert de Maria Suite est présent.
  *
  * Appelé à chaque page de gestion, à l'accueil, à la caisse et au signal de
  * présence du navigateur (une fois par minute d'activité). La première fois

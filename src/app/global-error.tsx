@@ -39,7 +39,7 @@ export default function ErreurGlobale({
         }}
       >
         <h1 style={{ fontSize: "1.25rem", fontWeight: 600, margin: 0 }}>
-          Fiessou n&apos;a pas pu démarrer
+          Maria Suite n&apos;a pas pu démarrer
         </h1>
 
         <p style={{ maxWidth: "52ch", fontSize: "0.875rem", opacity: 0.9 }}>

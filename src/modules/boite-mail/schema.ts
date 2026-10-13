@@ -7,10 +7,10 @@ import { organizations } from "@/db/schema/tenancy";
 
 /**
  * Boîte mail connectée par un utilisateur : sa propre adresse, consultée sans
- * quitter Fiessou.
+ * quitter Maria Suite.
  *
  * Les MESSAGES ne sont pas copiés en base : ils restent chez le fournisseur et
- * se lisent en direct, à chaque ouverture. Fiessou ne garde que les réglages
+ * se lisent en direct, à chaque ouverture. Maria Suite ne garde que les réglages
  * de connexion et le mot de passe d'application, CHIFFRÉ (`src/lib/chiffrement`)
  * — il doit être relu à chaque connexion, il ne peut donc pas être haché.
  *

@@ -75,6 +75,8 @@ const TROP_COURANTS = new Set([
   "abidjan2025",
   "abidjan2026",
   "fiessou123",
+  "maria123",
+  "mariasuite",
   "00000000",
   "11111111",
   "87654321",
