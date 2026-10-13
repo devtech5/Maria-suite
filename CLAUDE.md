@@ -252,7 +252,10 @@ Dokploy » de `DEPLOIEMENT.md`.
 MARIA GROUP SARL, ses rôles préréglés et son propriétaire —
 `michael.kadio05@gmail.com`, super administrateur du logiciel, sauf
 `MARIA_ADMIN_EMAIL` — avec un mot de passe provisoire. Idempotent ; refuse une base qui porte une autre
-entreprise. Un compte sans rattachement actif aboutit sur `/sans-acces`.
+entreprise. Logique commune dans `src/db/installation.ts` : avec
+`MIGRATIONS_AU_DEMARRAGE=1`, `MARIA_ADMIN_MOT_DE_PASSE` renseignée la lance
+aussi au démarrage, sans jamais toucher un compte existant.
+Un compte sans rattachement actif aboutit sur `/sans-acces`.
 
 Les colonnes d'abonnement d'`organizations` et la table
 `paiements_abonnement` sont des vestiges : plus rien ne les lit.

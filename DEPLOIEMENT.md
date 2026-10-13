@@ -144,6 +144,13 @@ change à la première connexion. Relancer la commande ne duplique rien et ne
 touche pas au mot de passe ; `--reinitialiser` en tire un nouveau. Le script
 refuse une base qui porte déjà une autre entreprise.
 
+**Sans terminal**, la même installation se fait au démarrage : ajouter dans
+**Environment** `MARIA_ADMIN_MOT_DE_PASSE=<mot de passe provisoire>` (avec
+`MIGRATIONS_AU_DEMARRAGE=1`), puis **Redeploy**. Le journal de l'application
+affiche `"evenement":"proprietaire_cree"` — jamais le mot de passe. Un compte
+existant n'est pas touché ; retirer la variable une fois connecté, pour
+qu'elle ne traîne pas dans Dokploy.
+
 ### Mettre à jour
 
 Pousser sur `main`, puis **Deploy** dans Dokploy — ou activer l'Auto Deploy.
