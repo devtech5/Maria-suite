@@ -45,10 +45,11 @@ docker compose -f docker-compose.prod.yml logs -f app
 curl https://app.exemple.ci/api/health
 ```
 
-Puis créer MARIA GROUP SARL et son premier administrateur :
+Puis créer MARIA GROUP SARL et son propriétaire, super administrateur du
+logiciel (`michael.kadio05@gmail.com`) :
 
 ```bash
-docker compose -f docker-compose.prod.yml exec -e MARIA_ADMIN_EMAIL=admin@exemple.ci app \n  node scripts/installer.cjs
+docker compose -f docker-compose.prod.yml exec app node scripts/installer.cjs
 ```
 
 Le mot de passe provisoire s'affiche **une fois** ; il se change à la première
@@ -131,10 +132,13 @@ L'image embarque le script de `pnpm installer`. Dans Dokploy, onglet
 **Terminal** de l'application (shell `sh`) :
 
 ```bash
-MARIA_ADMIN_EMAIL=admin@exemple.ci node scripts/installer.cjs
+node scripts/installer.cjs
 ```
 
-Il crée MARIA GROUP SARL, ses rôles préréglés et son premier administrateur.
+Il crée MARIA GROUP SARL, ses rôles préréglés et son propriétaire,
+`michael.kadio05@gmail.com`, super administrateur du logiciel : tous les
+droits, sans condition. `MARIA_ADMIN_EMAIL=…` devant la commande en désigne
+un autre.
 Le mot de passe provisoire s'affiche **une fois** dans le terminal, et se
 change à la première connexion. Relancer la commande ne duplique rien et ne
 touche pas au mot de passe ; `--reinitialiser` en tire un nouveau. Le script

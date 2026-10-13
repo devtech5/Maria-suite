@@ -14,7 +14,7 @@ const VERROU_MIGRATION = 727_001;
  *
  * Sur le VPS, c'est ce qui garantit qu'un déploiement ne sert jamais une
  * version du code sur un schéma en retard — exactement la panne qui guettait
- * l'instance Render, restée plusieurs migrations derrière le dépôt.
+ * une ancienne instance, restée plusieurs migrations derrière le dépôt.
  *
  * Connexion dédiée, une seule, fermée à la fin : le pooler en mode
  * transaction ne tient pas une migration, d'où DATABASE_URL_MIGRATION quand

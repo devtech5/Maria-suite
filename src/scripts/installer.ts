@@ -1,15 +1,19 @@
 /**
- * Installe MARIA GROUP SARL et son premier administrateur.
+ * Installe MARIA GROUP SARL et son propriétaire.
  *
- *   MARIA_ADMIN_EMAIL=… pnpm installer
+ *   pnpm installer
  *
  * Maria Suite ne sert qu'une entreprise. Il n'y a ni inscription publique ni
  * création d'entreprise dans l'application : l'entreprise naît ici, une fois,
  * avec ses rôles préréglés et un propriétaire. Les autres comptes sont ensuite
  * invités depuis « Membres ».
  *
- * Variables :
- *   · MARIA_ADMIN_EMAIL         adresse de connexion de l'administrateur (requise) ;
+ * Le propriétaire est le super administrateur du logiciel : il détient tous
+ * les droits, sans condition. C'est `PROPRIETAIRE` ci-dessous, sauf si
+ * l'environnement en désigne un autre.
+ *
+ * Variables, toutes facultatives :
+ *   · MARIA_ADMIN_EMAIL         adresse de connexion du propriétaire ;
  *   · MARIA_ADMIN_NOM           son nom affiché (« Administrateur » sinon) ;
  *   · MARIA_ADMIN_MOT_DE_PASSE  mot de passe provisoire, tiré au hasard sinon
  *                               et affiché UNE fois dans ce terminal.
@@ -30,7 +34,7 @@
  * En production, l'image Docker l'embarque, empaqueté par esbuild
  * (`pnpm build:scripts`). Depuis le terminal du conteneur (Dokploy) :
  *
- *   MARIA_ADMIN_EMAIL=… node scripts/installer.cjs
+ *   node scripts/installer.cjs
  *
  * Il prend DATABASE_URL dans l'environnement du conteneur.
  *
@@ -70,6 +74,9 @@ const ENTREPRISE = {
   devise: "XOF",
   fuseau: "Africa/Abidjan",
 };
+
+/** Propriétaire et super administrateur du logiciel. */
+const PROPRIETAIRE = "michael.kadio05@gmail.com";
 
 type Ligne = Record<string, string>;
 
@@ -118,9 +125,9 @@ function motDePasseAuHasard(): string {
 }
 
 async function main() {
-  const email = process.env.MARIA_ADMIN_EMAIL?.trim().toLowerCase();
-  if (!email || !email.includes("@")) {
-    console.error("MARIA_ADMIN_EMAIL absent ou invalide : l'adresse de connexion de l'administrateur.");
+  const email = (process.env.MARIA_ADMIN_EMAIL?.trim() || PROPRIETAIRE).toLowerCase();
+  if (!email.includes("@")) {
+    console.error("MARIA_ADMIN_EMAIL invalide : l'adresse de connexion du propriétaire.");
     process.exit(1);
   }
   const nom = process.env.MARIA_ADMIN_NOM?.trim() || "Administrateur";
@@ -193,7 +200,7 @@ async function main() {
       [entreprise.id, userId, proprietaire.id],
     );
 
-    const lignes = [`Entreprise      ${ENTREPRISE.nom}`, `Administrateur  ${email}`];
+    const lignes = [`Entreprise      ${ENTREPRISE.nom}`, `Propriétaire    ${email}`];
     if (motDePasse) lignes.push(`Mot de passe    ${motDePasse}  (provisoire, à changer à la première connexion)`);
     const identifiants = `${lignes.join("\n")}\n`;
 

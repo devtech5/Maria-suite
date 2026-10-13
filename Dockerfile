@@ -34,7 +34,7 @@ COPY --from=construction --chown=maria:maria /app/public ./public
 # Lues au démarrage par MIGRATIONS_AU_DEMARRAGE=1.
 COPY --from=construction --chown=maria:maria /app/drizzle ./drizzle
 # Scripts d'exploitation empaquetés (esbuild), lancés depuis le terminal du
-# conteneur : `MARIA_ADMIN_EMAIL=… node scripts/installer.cjs`. Seul @node-rs/argon2 reste
+# conteneur : `node scripts/installer.cjs`. Seul @node-rs/argon2 reste
 # externe, et le serveur autonome l'embarque déjà.
 COPY --from=construction --chown=maria:maria /app/build/scripts ./scripts
 

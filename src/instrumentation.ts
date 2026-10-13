@@ -30,7 +30,7 @@ export async function register() {
  *
  * Sans elle, un plantage chez le client est invisible : il voit un écran
  * d'erreur, il téléphone, et personne n'a la moindre trace de ce qui s'est
- * passé. Render conserve la sortie standard du service — c'est le journal le
+ * passé. Dokploy conserve la sortie standard du conteneur — c'est le journal le
  * plus proche qui existe, et il ne coûte ni dépendance ni compte à ouvrir.
  *
  * Une ligne, un objet JSON. Un journal lisible à l'œil se cherche à la main ;
@@ -68,7 +68,7 @@ export const onRequestError: Instrumentation.onRequestError = (
     pile: erreur instanceof Error ? erreur.stack : undefined,
   };
 
-  // `console.error` et non `console.log` : Render sépare les deux flux, et une
+  // `console.error` et non `console.log` : les journaux séparent les deux flux, et une
   // erreur noyée dans les requêtes ordinaires n'est plus une alerte.
   console.error(JSON.stringify(details));
 };

@@ -249,8 +249,9 @@ Dokploy » de `DEPLOIEMENT.md`.
 ## Entreprise unique
 
 `pnpm installer` (ou `node scripts/installer.cjs` dans l'image) crée
-MARIA GROUP SARL, ses rôles préréglés et le premier administrateur, avec
-un mot de passe provisoire. Idempotent ; refuse une base qui porte une autre
+MARIA GROUP SARL, ses rôles préréglés et son propriétaire —
+`michael.kadio05@gmail.com`, super administrateur du logiciel, sauf
+`MARIA_ADMIN_EMAIL` — avec un mot de passe provisoire. Idempotent ; refuse une base qui porte une autre
 entreprise. Un compte sans rattachement actif aboutit sur `/sans-acces`.
 
 Les colonnes d'abonnement d'`organizations` et la table

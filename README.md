@@ -3,8 +3,9 @@
 ERP et point de vente de **MARIA GROUP SARL**, en Côte d'Ivoire.
 
 L'application ne sert qu'une entreprise : pas d'inscription publique ni
-d'abonnement. L'entreprise et son premier administrateur se créent une fois
-avec `pnpm installer` ; les autres comptes sont invités depuis « Membres ».
+d'abonnement. L'entreprise et son propriétaire, super administrateur du
+logiciel (`michael.kadio05@gmail.com`), se créent une fois avec
+`pnpm installer` ; les autres comptes sont invités depuis « Membres ».
 
 La caisse encaisse sans connexion et se synchronise au retour du réseau. Les
 référentiels fiscaux et sociaux sont ceux du pays de l'entreprise, pas d'un
@@ -36,12 +37,13 @@ Avec un PostgreSQL (`docker compose up -d`, ou tout autre serveur), renseigner
 ```bash
 pnpm db:migrate
 pnpm db:check
-MARIA_ADMIN_EMAIL=vous@exemple.ci pnpm installer
+pnpm installer
 pnpm dev
 ```
 
 Sur PGlite : lancer `pnpm dev:local` une fois (migrations), l'arrêter, puis
-`MARIA_ADMIN_EMAIL=vous@exemple.ci pnpm installer:local`. Le mot de passe
+`pnpm installer:local`. `MARIA_ADMIN_EMAIL` désigne un autre propriétaire
+que celui par défaut, pour un essai local par exemple. Le mot de passe
 provisoire s'affiche une fois, et se change à la première connexion.
 
 `db:check` vérifie la connexion, la présence des tables attendues et
