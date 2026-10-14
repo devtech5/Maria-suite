@@ -166,16 +166,6 @@ export function BarreLaterale({
       })}
 
       <div className="ml-auto flex items-center gap-1 lg:ml-0 lg:mt-auto lg:flex-col lg:items-stretch lg:gap-2 lg:pt-3">
-        {accordes.has("pos.vente.encaisser") && (
-          <Link
-            href="/caisse"
-            className="h-cible flex shrink-0 items-center justify-center gap-2 whitespace-nowrap rounded-lg border border-or/70 px-3 text-sm font-semibold text-or hover:bg-or hover:text-nuit lg:w-full"
-          >
-            <IconeModule cle="caisse" className="size-[18px] shrink-0" />
-            Ouvrir la caisse
-          </Link>
-        )}
-
         <MenuCompte
           gereLesMembres={accordes.has("organisation.membre.gerer")}
           raccourcis={raccourcisCompte(modulesOuverts)}

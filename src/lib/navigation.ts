@@ -1,4 +1,5 @@
 import { definitionDroit, type Droit } from "@/lib/droits/catalogue";
+import { REPRISE_OUVERTE } from "@/modules/reprise/calcul";
 
 /**
  * Carte des modules, partagée par la barre latérale et l'écran d'accueil.
@@ -91,7 +92,9 @@ export const GROUPES_MODULES: GroupeModules[] = [
     modules: [
       { href: "/membres", racine: "/membres", icone: "utilisateurs", libelle: "Utilisateurs", description: "Comptes, rôles et accès.", droit: "organisation.membre.gerer" },
       { href: "/entreprise", racine: "/entreprise", icone: "entreprise", libelle: "Entreprise", description: "Identité, numérotation et sécurité.", droit: "organisation.parametres.gerer" },
-      { href: "/demarrage", racine: "/demarrage", icone: "demarrage", libelle: "Démarrage", description: "Reprise de l'existant : articles, tiers, soldes.", droit: "organisation.reprise.importer" },
+      ...(REPRISE_OUVERTE
+        ? [{ href: "/demarrage", racine: "/demarrage", icone: "demarrage", libelle: "Démarrage", description: "Reprise de l'existant : articles, tiers, soldes.", droit: "organisation.reprise.importer" } satisfies EntreeModule]
+        : []),
       { href: "/securite", racine: "/securite", icone: "securite", libelle: "Sécurité", description: "Caméras des magasins, entrepôts et bureaux en direct.", droit: "securite.consulter" },
       { href: "/communication", racine: "/communication", icone: "communication", libelle: "Communication", description: "Envois aux clients et messages groupés.", droit: "communication.consulter" },
       { href: "/rapports", racine: "/rapports", icone: "rapports", libelle: "Rapports", description: "Ventes, stock, trésorerie, paie : chaque module en chiffres, imprimable et exportable vers Excel.", droit: "rapports.consulter" },

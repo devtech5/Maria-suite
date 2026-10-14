@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import { notFound } from "next/navigation";
 import { sql } from "drizzle-orm";
 
 import { AccesRefuse } from "@/components/coque/acces-refuse";
@@ -7,6 +8,7 @@ import { db } from "@/db";
 import { exigerEntreprise } from "@/lib/auth/dal";
 import { peut } from "@/lib/droits/garde";
 import { fmt } from "@/lib/format";
+import { REPRISE_OUVERTE } from "@/modules/reprise/calcul";
 import { listerComptes } from "@/modules/tresorerie/requetes";
 
 import { ChoixDate } from "./choix-date";
@@ -20,6 +22,7 @@ export const metadata: Metadata = { title: "Démarrage" };
  * part en contrepartie du 4711, que le comptable reclasse ensuite.
  */
 export default async function PageDemarrage({ searchParams }: { searchParams: Promise<Record<string, string | string[] | undefined>> }) {
+  if (!REPRISE_OUVERTE) notFound();
   if (!(await peut("organisation.reprise.importer"))) return <AccesRefuse droit="organisation.reprise.importer" />;
   const session = await exigerEntreprise();
   const { date: demandee } = await searchParams;

@@ -6,7 +6,7 @@ import { db } from "@/db";
 import { exigerEntreprise } from "@/lib/auth/dal";
 import { refusDroit } from "@/lib/droits/garde";
 
-import { lireArticles, lireDate, lireStock, lireTiers, type Anomalie } from "./calcul";
+import { lireArticles, lireDate, lireStock, lireTiers, REPRISE_OUVERTE, type Anomalie } from "./calcul";
 import { importerArticlesDans, importerStockDans, importerTiersDans, reprendreTresorerieDans } from "./creation";
 
 export type ResultatImport = { ok: true; message: string } | { ok: false; message: string; anomalies?: Anomalie[] };
@@ -16,6 +16,7 @@ const fr = (n: number) => n.toLocaleString("fr-FR");
 
 async function operer(travail: (organizationId: string, userId: string) => Promise<ResultatImport>): Promise<ResultatImport> {
   const session = await exigerEntreprise();
+  if (!REPRISE_OUVERTE) return { ok: false, message: "La reprise de l'existant est fermée." };
   const refus = await refusDroit("organisation.reprise.importer");
   if (refus) return { ok: false, message: refus.erreur };
   try {

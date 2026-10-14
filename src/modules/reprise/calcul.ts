@@ -15,7 +15,14 @@ import { ECHELLE_QUANTITE, type CodeUnite } from "@/lib/quantite";
  * report à nouveau deviné, lui, fausserait le bilan sans que personne le sache.
  */
 
-export const COMPTE_REPRISE = { numero: "4711", libelle: "Compte d'attente — reprise des soldes antérieurs" } as const;
+/**
+ * Démarrage fermé chez MARIA GROUP SARL : l'existant n'est pas repris par
+ * import. L'entrée de menu disparaît, l'écran répond 404 et chaque import est
+ * refusé. Le code reste : passer à `true` rouvre le tout.
+ */
+export const REPRISE_OUVERTE = false;
+
+export const COMPTE_REPRISE ={ numero: "4711", libelle: "Compte d'attente — reprise des soldes antérieurs" } as const;
 export const COMPTE_STOCK = { numero: "311", libelle: "Marchandises" } as const;
 
 // ---------------------------------------------------------------- lecture

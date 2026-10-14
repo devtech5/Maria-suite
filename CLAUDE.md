@@ -342,6 +342,10 @@ reprise est une facture émise, une dette une facture fournisseur : elles se
 règlent et se lettrent comme les autres. Contrepartie : le compte d'attente
 4711, à reclasser par le comptable. Un fichier passe en entier ou pas du tout.
 
+Fermé chez MARIA GROUP SARL : `REPRISE_OUVERTE = false`
+(`src/modules/reprise/calcul.ts`) retire l'entrée de menu, rend l'écran en
+404 et refuse les imports. Le code reste ; `true` rouvre le tout.
+
 ## La base est un PostgreSQL, n'importe lequel
 
 Aucun hébergeur imposé. En production, le PostgreSQL géré par Dokploy, joint
