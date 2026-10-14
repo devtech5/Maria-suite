@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { redirect } from "next/navigation";
 
+import { CoqueAcces } from "@/components/coque/coque-acces";
 import { session } from "@/lib/auth/dal";
 import { CONNEXION_EXPIREE } from "@/lib/auth/session";
 
@@ -23,31 +24,23 @@ export default async function PageMotDePasse() {
   const provisoire = active.doitChangerMotDePasse;
 
   return (
-    <main className="flex min-h-dvh items-center justify-center bg-[var(--fond)] p-4">
-      <div className="w-full max-w-sm">
-        <header className="mb-6">
-          <h1 className="text-2xl font-bold tracking-tight">
-            {provisoire ? "Choisissez votre mot de passe" : "Changer de mot de passe"}
-          </h1>
-          <p className="mt-1 text-sm text-[var(--encre-douce)]">
-            {provisoire
-              ? "Le mot de passe qu'on vous a remis est provisoire : celui qui vous l'a donné le connaît. Remplacez-le pour continuer."
-              : "Les autres appareils connectés à votre compte seront déconnectés."}
-          </p>
-        </header>
+    <CoqueAcces
+      titre={provisoire ? "Choisissez votre mot de passe" : "Changer de mot de passe"}
+      sousTitre={
+        provisoire
+          ? "Le mot de passe qu'on vous a remis est provisoire : celui qui vous l'a donné le connaît. Remplacez-le pour continuer."
+          : "Les autres appareils connectés à votre compte seront déconnectés."
+      }
+    >
+      <FormulaireMotDePasse provisoire={provisoire} />
 
-        <div className="rounded-2xl border border-[var(--filet)] bg-[var(--surface)] p-5">
-          <FormulaireMotDePasse provisoire={provisoire} />
-        </div>
-
-        {!provisoire && (
-          <p className="mt-4 text-center text-sm">
-            <Link href="/" className="text-marque-600 hover:underline">
-              Retour à l&apos;accueil
-            </Link>
-          </p>
-        )}
-      </div>
-    </main>
+      {!provisoire && (
+        <p className="mt-6 text-center text-sm lg:text-left">
+          <Link href="/" className="font-semibold text-marque-600 underline-offset-4 hover:underline">
+            Retour à l&apos;accueil
+          </Link>
+        </p>
+      )}
+    </CoqueAcces>
   );
 }

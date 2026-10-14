@@ -33,7 +33,7 @@ export default function ErreurGlobale({
           gap: "1rem",
           padding: "1.5rem",
           textAlign: "center",
-          background: "#0E5E6B",
+          background: "#162E49",
           color: "#fff",
           fontFamily: "system-ui, sans-serif",
         }}
@@ -64,7 +64,7 @@ export default function ErreurGlobale({
             border: 0,
             borderRadius: "0.75rem",
             background: "#fff",
-            color: "#0E5E6B",
+            color: "#162E49",
             fontSize: "1rem",
             fontWeight: 600,
             cursor: "pointer",

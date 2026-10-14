@@ -5,7 +5,7 @@ import { MenuCompte } from "@/components/coque/barre-laterale";
 import { Calculette } from "@/components/coque/calculette";
 import { Cloche } from "@/components/coque/cloche";
 import { IconeModule } from "@/components/coque/icone-module";
-import { SignatureMaria } from "@/components/coque/signature";
+import { EmblemeMaria, SignatureMaria } from "@/components/coque/signature";
 import { exigerEntreprise } from "@/lib/auth/dal";
 import { nomDuRole } from "@/lib/auth/roles";
 import { droitsActifs } from "@/lib/droits/garde";
@@ -71,8 +71,10 @@ export default async function PageAccueil() {
         un portable de 768 px comme sur un grand moniteur.
       */}
       <div className="flex flex-1 flex-col items-center justify-center py-6">
+        <EmblemeMaria className="mb-3 size-[clamp(3rem,8vh,4.5rem)]" />
         <h1 className="text-center text-2xl font-bold tracking-tight sm:text-3xl">{session.organizationNom}</h1>
-        <p className="mt-1 text-center text-sm text-[var(--encre-douce)]">
+        <span aria-hidden className="mt-2 h-0.5 w-10 rounded-full bg-or" />
+        <p className="mt-2 text-center text-sm text-[var(--encre-douce)]">
           {session.nom}
           {role && <> · {role}</>} · {total} module{total > 1 ? "s" : ""}
         </p>

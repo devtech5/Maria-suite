@@ -121,7 +121,7 @@ export function Icone({ nom, className = "size-4" }: { nom: NomIcone; className?
  * puisque la pastille garde son propre fond.
  */
 const TEINTES = [
-  ["#d6ecf0", "#0e5e6b"],
+  ["#d8e1ec", "#162e49"],
   ["#fde3c8", "#8a4b0f"],
   ["#dfe8fb", "#2b4c94"],
   ["#e7dcf7", "#5b2f99"],

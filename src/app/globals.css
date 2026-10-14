@@ -13,35 +13,39 @@
  *  · Les montants s'alignent en colonnes : chiffres à chasse fixe partout.
  */
 @theme {
-  /* Teinte de marque — vert-bleu profond, lisible sur fond clair comme sombre */
-  --color-marque-50: #eef7f8;
-  --color-marque-100: #d3ebee;
-  --color-marque-200: #a9d7dd;
-  --color-marque-300: #74bcc6;
-  --color-marque-400: #429aa8;
-  --color-marque-500: #257d8c;
-  --color-marque-600: #0e5e6b;
-  --color-marque-700: #0d4c57;
-  --color-marque-800: #0f3d46;
-  --color-marque-900: #0f333a;
+  /* Teinte de marque — le bleu nuit de MARIA GROUP. `600` est la couleur
+     exacte de la charte : boutons, liens, élément actif. */
+  --color-marque-50: #eef2f7;
+  --color-marque-100: #d8e1ec;
+  --color-marque-200: #b1c2d7;
+  --color-marque-300: #7f98b7;
+  --color-marque-400: #4b6b93;
+  --color-marque-500: #2c4d74;
+  --color-marque-600: #162e49;
+  --color-marque-700: #0f2236;
+  --color-marque-800: #0b1a2a;
+  --color-marque-900: #07121d;
 
   /* Charte MARIA GROUP : bleu nuit et or. L'or ne porte jamais de texte sur
      fond clair (contraste 2,4:1) ; il souligne, ou s'écrit sur le bleu nuit. */
   --color-nuit: #162e49;
   --color-nuit-profond: #0f2236;
   --color-or: #bfa169;
+  --color-or-50: #f7f2e8;
+  /* Or assombri, seul or permis en texte sur fond clair (5,5:1). */
+  --color-or-700: #7d6638;
 
   /* Neutres légèrement froids, accordés à la teinte de marque */
-  --color-ardoise-50: #f7f9f9;
-  --color-ardoise-100: #eef2f3;
-  --color-ardoise-200: #dde4e6;
-  --color-ardoise-300: #c3ced2;
-  --color-ardoise-400: #94a5ab;
-  --color-ardoise-500: #6b7f87;
-  --color-ardoise-600: #4f636b;
-  --color-ardoise-700: #3c4d54;
-  --color-ardoise-800: #2b383d;
-  --color-ardoise-900: #17212a;
+  --color-ardoise-50: #f6f8fa;
+  --color-ardoise-100: #edf1f5;
+  --color-ardoise-200: #dce3ea;
+  --color-ardoise-300: #c2ccd7;
+  --color-ardoise-400: #93a1b1;
+  --color-ardoise-500: #6a7a8c;
+  --color-ardoise-600: #4e5d6f;
+  --color-ardoise-700: #3b4858;
+  --color-ardoise-800: #2a3542;
+  --color-ardoise-900: #17202b;
 
   /* Couleurs de sens — distinctes de la teinte de marque, jamais décoratives */
   --color-valide-50: #e8f5ee;
@@ -76,13 +80,13 @@
    « Auto » le suit seulement si on le choisit. */
 @media (prefers-color-scheme: dark) {
   :root[data-theme="auto"] {
-    --fond: #0d1418;
-    --surface: #16212a;
-    --surface-creuse: #1e2b34;
-    --encre: #e6edf1;
-    --encre-douce: #aebfc7;
-    --encre-faible: #83959d;
-    --filet: #27353e;
+    --fond: #0b1520;
+    --surface: #122031;
+    --surface-creuse: #1a2b40;
+    --encre: #e8eef5;
+    --encre-douce: #afbdcd;
+    --encre-faible: #8394a8;
+    --filet: #24374f;
     /* Couleurs de sens en thème sombre : les fonds « -50 » deviennent des
        teintes profondes, les textes « -600 » s'éclaircissent. Sans cela, une
        alerte s'affiche en pavé pastel éblouissant et un montant en rouge
@@ -98,21 +102,22 @@
     --color-danger-600: #f2826f;
     /* La marque sert de fond aux boutons (texte blanc) ET de couleur aux liens :
        un ton intermédiaire tient les deux contrastes. */
-    --color-marque-50: #13323a;
-    --color-marque-400: #4fa9b6;
-    --color-marque-600: #2a8a99;
-    --color-marque-700: #237784;
+    --color-marque-50: #15263a;
+    --color-marque-400: #8fb0d6;
+    --color-marque-500: #5d86b8;
+    --color-marque-600: #4a78ad;
+    --color-marque-700: #3f6a9c;
   }
 }
 
 :root[data-theme="dark"] {
-  --fond: #0d1418;
-  --surface: #16212a;
-  --surface-creuse: #1e2b34;
-  --encre: #e6edf1;
-  --encre-douce: #aebfc7;
-  --encre-faible: #83959d;
-  --filet: #27353e;
+  --fond: #0b1520;
+  --surface: #122031;
+  --surface-creuse: #1a2b40;
+  --encre: #e8eef5;
+  --encre-douce: #afbdcd;
+  --encre-faible: #8394a8;
+  --filet: #24374f;
   /* Couleurs de sens en thème sombre : les fonds « -50 » deviennent des
      teintes profondes, les textes « -600 » s'éclaircissent. Sans cela, une
      alerte s'affiche en pavé pastel éblouissant et un montant en rouge
@@ -128,10 +133,11 @@
   --color-danger-600: #f2826f;
   /* La marque sert de fond aux boutons (texte blanc) ET de couleur aux liens :
      un ton intermédiaire tient les deux contrastes. */
-  --color-marque-50: #13323a;
-  --color-marque-400: #4fa9b6;
-  --color-marque-600: #2a8a99;
-  --color-marque-700: #237784;
+  --color-marque-50: #15263a;
+  --color-marque-400: #8fb0d6;
+  --color-marque-500: #5d86b8;
+  --color-marque-600: #4a78ad;
+  --color-marque-700: #3f6a9c;
 }
 
 /**
@@ -141,19 +147,22 @@
  * d'encre : tout ce qu'elle contient — liens, titres de groupe, menu de
  * compte — passe en sombre sans une classe de plus. La page reste claire, et
  * l'œil sépare d'un coup ce qui navigue de ce qui se lit.
+ *
+ * Sa surface est le bleu nuit exact de la charte : le logo blanc et or, à
+ * fond opaque, s'y pose sans cadre. L'or y marque l'élément actif.
  */
 .nav-sombre {
-  --fond: #0b2228;
-  --surface: #0f2b32;
-  --surface-creuse: #183b43;
-  --encre: #f1f6f7;
-  --encre-douce: #c5d6da;
-  --encre-faible: #8eaab0;
-  --filet: #20474f;
-  --color-marque-50: #13323a;
-  --color-marque-400: #5fb6c2;
-  --color-marque-600: #2a8a99;
-  --color-marque-700: #237784;
+  --fond: #0f2236;
+  --surface: #162e49;
+  --surface-creuse: #213d5e;
+  --encre: #f4f6f9;
+  --encre-douce: #c9d4e2;
+  --encre-faible: #8fa2bb;
+  --filet: #2a4566;
+  --color-marque-50: #1d3756;
+  --color-marque-400: #d4bd8c;
+  --color-marque-600: #4a78ad;
+  --color-marque-700: #3f6a9c;
   --color-danger-50: #3a1916;
   --color-danger-600: #f2826f;
   background: var(--surface);
@@ -233,6 +242,28 @@
   }
 }
 
+/**
+ * Logo selon le thème : bleu nuit et or sur fond clair, blanc et or sur fond
+ * sombre — le bleu nuit disparaîtrait sur une surface sombre. Les deux images
+ * sont dans la page, le thème choisit laquelle se montre.
+ */
+.seulement-sombre {
+  display: none;
+}
+:root[data-theme="dark"] .seulement-clair {
+  display: none;
+}
+:root[data-theme="dark"] .seulement-sombre {
+  display: block;
+}
+@media (prefers-color-scheme: dark) {
+  :root[data-theme="auto"] .seulement-clair {
+    display: none;
+  }
+  :root[data-theme="auto"] .seulement-sombre {
+    display: block;
+  }
+}
 
 /**
  * Impression du ticket de caisse.

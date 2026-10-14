@@ -301,16 +301,16 @@ export function EcranVerrouillage({
 /**
  * Pétales de « Bloom », le fond de Windows 11, redessinés en dégradés : aucune
  * image à télécharger, l'écran s'affiche aussi vite sur une connexion 3G.
- * Les bleus de Windows sont mêlés à la teinte de marque.
+ * Aux couleurs de MARIA GROUP : pétales d'or et de bleu clair sur bleu nuit.
  */
 const PETALES: { angle: number; couleur: string }[] = [
-  { angle: -168, couleur: "rgba(66, 154, 168, 0.85)" },
-  { angle: -142, couleur: "rgba(96, 165, 250, 0.9)" },
-  { angle: -116, couleur: "rgba(116, 188, 198, 0.85)" },
-  { angle: -90, couleur: "rgba(147, 197, 253, 0.95)" },
-  { angle: -64, couleur: "rgba(116, 188, 198, 0.85)" },
-  { angle: -38, couleur: "rgba(96, 165, 250, 0.9)" },
-  { angle: -12, couleur: "rgba(66, 154, 168, 0.85)" },
+  { angle: -168, couleur: "rgba(191, 161, 105, 0.85)" },
+  { angle: -142, couleur: "rgba(127, 152, 183, 0.85)" },
+  { angle: -116, couleur: "rgba(212, 189, 140, 0.85)" },
+  { angle: -90, couleur: "rgba(216, 225, 236, 0.9)" },
+  { angle: -64, couleur: "rgba(212, 189, 140, 0.85)" },
+  { angle: -38, couleur: "rgba(127, 152, 183, 0.85)" },
+  { angle: -12, couleur: "rgba(191, 161, 105, 0.85)" },
 ];
 
 function FondBloom() {
@@ -320,9 +320,9 @@ function FondBloom() {
         className="absolute inset-0"
         style={{
           background:
-            "radial-gradient(ellipse 70% 55% at 50% 72%, rgba(37,99,235,0.55), transparent 70%)," +
-            "radial-gradient(ellipse 90% 60% at 50% 105%, rgba(14,94,107,0.9), transparent 75%)," +
-            "linear-gradient(170deg, #050f24 0%, #0a2348 45%, #0d3b5c 75%, #0e5e6b 100%)",
+            "radial-gradient(ellipse 70% 55% at 50% 72%, rgba(191,161,105,0.35), transparent 70%)," +
+            "radial-gradient(ellipse 90% 60% at 50% 105%, rgba(44,77,116,0.9), transparent 75%)," +
+            "linear-gradient(170deg, #07121d 0%, #0f2236 45%, #162e49 75%, #1f3d5f 100%)",
         }}
       />
       {PETALES.map(({ angle, couleur }) => (
@@ -337,7 +337,7 @@ function FondBloom() {
       ))}
       <div
         className="absolute top-[74%] left-1/2 size-[20vmin] -translate-x-1/2 -translate-y-1/2 rounded-full blur-2xl"
-        style={{ background: "radial-gradient(circle, rgba(219,234,254,0.9), rgba(147,197,253,0.4) 45%, transparent 70%)" }}
+        style={{ background: "radial-gradient(circle, rgba(244,236,218,0.9), rgba(191,161,105,0.4) 45%, transparent 70%)" }}
       />
       {/* Vignette : les bords s'assombrissent, l'horloge reste lisible partout. */}
       <div

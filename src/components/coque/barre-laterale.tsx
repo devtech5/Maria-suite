@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
+import Image from "next/image";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 
@@ -14,6 +15,9 @@ import { SignatureMaria } from "./signature";
 import { verrouillerMaintenant } from "./verrou-inactivite";
 
 /** Hors groupes : l'accueil et le tableau de bord les traversent tous. */
+/** Élément actif : un ton plus clair que la barre, et le filet d'or de la charte à gauche. */
+const CLASSE_ACTIF = "bg-[var(--surface-creuse)] text-white shadow-[inset_3px_0_0_var(--color-or)]";
+
 const ACCUEILS: { href: string; libelle: string; icone: CleIcone }[] = [
   { href: "/accueil", libelle: "Accueil", icone: "accueil" },
   { href: "/", libelle: "Tableau de bord", icone: "tableau-de-bord" },
@@ -76,6 +80,25 @@ export function BarreLaterale({
       aria-label="Modules"
       className="nav-sombre flex shrink-0 gap-1 overflow-x-auto border-b border-[var(--filet)] bg-[var(--surface)] px-3 py-2 lg:w-56 lg:flex-col lg:overflow-x-visible lg:overflow-y-auto lg:border-b-0 lg:border-r lg:px-2.5 lg:py-3"
     >
+      <Link
+        href="/accueil"
+        aria-label="MARIA GROUP — accueil"
+        className="mb-3 hidden items-center gap-2.5 border-b border-[var(--filet)] px-2 pb-3 pt-1 lg:flex"
+      >
+        <Image
+          src="/marque/icone-blanc-or-detouree.png"
+          alt=""
+          width={230}
+          height={237}
+          unoptimized
+          className="size-9 shrink-0"
+        />
+        <span className="min-w-0 leading-tight">
+          <span className="block whitespace-nowrap text-[13px] font-bold tracking-[0.12em] text-white">MARIA GROUP</span>
+          <span className="block text-[10px] font-semibold uppercase tracking-[0.2em] text-or">Maria Suite</span>
+        </span>
+      </Link>
+
       <div className="contents lg:mb-2 lg:block">
         {ACCUEILS.map((entree) => (
           <Link
@@ -84,7 +107,7 @@ export function BarreLaterale({
             aria-current={chemin === entree.href ? "page" : undefined}
             className={`h-cible flex shrink-0 items-center gap-2.5 whitespace-nowrap rounded-lg px-3 text-sm font-medium lg:w-full ${
               chemin === entree.href
-                ? "bg-marque-600 text-white"
+                ? CLASSE_ACTIF
                 : "text-[var(--encre-douce)] hover:bg-[var(--surface-creuse)]"
             }`}
           >
@@ -129,7 +152,7 @@ export function BarreLaterale({
                     aria-current={actif ? "page" : undefined}
                     className={`h-cible flex shrink-0 items-center gap-2.5 whitespace-nowrap rounded-lg px-3 text-sm font-medium lg:w-full ${
                       actif
-                        ? "bg-marque-600 text-white"
+                        ? CLASSE_ACTIF
                         : "text-[var(--encre-douce)] hover:bg-[var(--surface-creuse)]"
                     }`}
                   >
@@ -146,7 +169,7 @@ export function BarreLaterale({
         {accordes.has("pos.vente.encaisser") && (
           <Link
             href="/caisse"
-            className="h-cible flex shrink-0 items-center justify-center gap-2 whitespace-nowrap rounded-lg border border-marque-600 px-3 text-sm font-semibold text-marque-600 hover:bg-marque-600 hover:text-white lg:w-full"
+            className="h-cible flex shrink-0 items-center justify-center gap-2 whitespace-nowrap rounded-lg border border-or/70 px-3 text-sm font-semibold text-or hover:bg-or hover:text-nuit lg:w-full"
           >
             <IconeModule cle="caisse" className="size-[18px] shrink-0" />
             Ouvrir la caisse
