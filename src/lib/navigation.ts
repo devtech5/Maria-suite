@@ -49,7 +49,6 @@ export const GROUPES_MODULES: GroupeModules[] = [
       { href: "/stock", racine: "/stock", icone: "stock", libelle: "Stock", description: "Articles, mouvements, inventaires et réapprovisionnement.", droit: "stock.article.consulter" },
       { href: "/achats", racine: "/achats", icone: "achats", libelle: "Achats", description: "Commandes et factures fournisseurs.", droit: "achats.consulter" },
       { href: "/prestataires", racine: "/prestataires", icone: "prestataires", libelle: "Prestataires", description: "Plombiers, photographes, monteurs : annuaire et prestations.", droit: "prestataires.consulter" },
-      { href: "/marches", racine: "/marches", icone: "marches", libelle: "Marchés et conventions", description: "Appels d'offres, consultations et conventions.", droit: "marches.consulter" },
       { href: "/reservations", racine: "/reservations", icone: "reservations", libelle: "Réservations", description: "Locations, chambres et salles : calendrier, caution, retour.", droit: "reservation.consulter" },
     ],
   },
@@ -95,6 +94,7 @@ export const GROUPES_MODULES: GroupeModules[] = [
       ...(REPRISE_OUVERTE
         ? [{ href: "/demarrage", racine: "/demarrage", icone: "demarrage", libelle: "Démarrage", description: "Reprise de l'existant : articles, tiers, soldes.", droit: "organisation.reprise.importer" } satisfies EntreeModule]
         : []),
+      { href: "/marches", racine: "/marches", icone: "marches", libelle: "Marchés et conventions", description: "Appels d'offres, consultations et conventions.", droit: "marches.consulter" },
       { href: "/securite", racine: "/securite", icone: "securite", libelle: "Sécurité", description: "Caméras des magasins, entrepôts et bureaux en direct.", droit: "securite.consulter" },
       { href: "/communication", racine: "/communication", icone: "communication", libelle: "Communication", description: "Envois aux clients et messages groupés.", droit: "communication.consulter" },
       { href: "/rapports", racine: "/rapports", icone: "rapports", libelle: "Rapports", description: "Ventes, stock, trésorerie, paie : chaque module en chiffres, imprimable et exportable vers Excel.", droit: "rapports.consulter" },
