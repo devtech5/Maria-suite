@@ -710,6 +710,22 @@ export const DROITS = [
       "l'entreprise et agir sur chacune.",
   },
 
+  // -------------------------------------------------------------- meeting
+  {
+    cle: "meeting.participer",
+    moduleKey: "meeting",
+    libelle: "Participer aux réunions",
+    description: "Voir les réunions où l'on est invité, entrer dans la salle, parler, se montrer et partager son écran.",
+  },
+  {
+    cle: "meeting.organiser",
+    moduleKey: "meeting",
+    libelle: "Organiser les réunions",
+    description:
+      "Programmer une réunion ou en ouvrir une sur-le-champ, inviter, la terminer pour tous, " +
+      "l'annuler et rédiger son compte rendu — y compris celles d'un autre organisateur.",
+  },
+
   // ------------------------------------------------------ projets et dépenses
   {
     cle: "projet.consulter",
@@ -1127,6 +1143,7 @@ export const PRESETS_ROLES = [
       ...TACHES_PERSONNELLES,
       ...PLANNING_PERSONNEL,
       "messagerie.utiliser",
+      "meeting.participer",
     ],
   },
   {
@@ -1148,6 +1165,7 @@ export const PRESETS_ROLES = [
       ...TACHES_PERSONNELLES,
       ...PLANNING_PERSONNEL,
       "messagerie.utiliser",
+      "meeting.participer",
     ],
   },
   {
@@ -1164,6 +1182,7 @@ export const PRESETS_ROLES = [
       ...TACHES_PERSONNELLES,
       ...PLANNING_PERSONNEL,
       "messagerie.utiliser",
+      "meeting.participer",
     ],
   },
   {
@@ -1181,6 +1200,7 @@ export const PRESETS_ROLES = [
       ...TACHES_PERSONNELLES,
       ...PLANNING_PERSONNEL,
       "messagerie.utiliser",
+      "meeting.participer",
     ],
   },
   {
@@ -1193,6 +1213,7 @@ export const PRESETS_ROLES = [
       ...TACHES_PERSONNELLES,
       ...PLANNING_PERSONNEL,
       "messagerie.utiliser",
+      "meeting.participer",
     ],
   },
   {
@@ -1212,6 +1233,7 @@ export const PRESETS_ROLES = [
       ...TACHES_PERSONNELLES,
       ...PLANNING_PERSONNEL,
       "messagerie.utiliser",
+      "meeting.participer",
     ],
   },
   {
@@ -1229,6 +1251,8 @@ export const PRESETS_ROLES = [
       ...TACHES_PERSONNELLES,
       ...PLANNING_PERSONNEL,
       "messagerie.utiliser",
+      "meeting.participer",
+      "meeting.organiser",
     ],
   },
   {
@@ -1258,6 +1282,7 @@ export const PRESETS_ROLES = [
       ...TACHES_PERSONNELLES,
       ...PLANNING_PERSONNEL,
       "messagerie.utiliser",
+      "meeting.participer",
     ],
   },
 ] as const satisfies readonly PresetRole[];

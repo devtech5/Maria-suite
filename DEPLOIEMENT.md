@@ -212,6 +212,31 @@ relancer go2rtc.
 512 kbit/s), plus le principal si la haute définition est cochée (environ
 2 Mbit/s). L'écran du site affiche le total à tenir sur la liaison montante.
 
+## Réunions à distance (module Meeting)
+
+Meeting emprunte le même serveur vidéo : rien de plus à installer. Chaque
+participant **publie** sa caméra et son micro en WebRTC (WHIP) et **lit** ceux
+des autres (WHEP), sous des chemins `m/<réunion>/<participant>/cam|ecran`.
+Chaque flux passe par `/api/video/autorisation`, qui vérifie un jeton signé
+valable deux minutes, la réunion (en cours) et l'invitation.
+
+```
+navigateur ──WHIP──▶ serveur vidéo (MediaMTX) ──WHEP──▶ navigateurs des autres
+                         │
+                         └── demande à Maria Suite : /api/video/autorisation
+```
+
+- `VIDEO_URL_PUBLIQUE` suffit ; `VIDEO_PUBLICATION` ne sert qu'aux relais des
+  caméras. Sans elle, la salle fonctionne sans image ni son : présence,
+  feuille de présence et compte rendu seulement.
+- `webrtcAllowOrigin` (dans `mediamtx.yml`) doit porter l'adresse exacte de
+  Maria Suite : c'est elle qui publie et lit depuis le navigateur.
+- **Débit.** Chacun envoie un seul flux (360p, environ 500 kbit/s, plus le
+  partage d'écran le cas échéant) et en reçoit un par participant présent.
+  À dix, prévoir environ 5 Mbit/s descendants par poste.
+- Caméra et micro exigent une page en **https** : en http, le navigateur les
+  refuse.
+
 ## Variables de `.env.production`
 
 | Variable | Rôle |

@@ -317,6 +317,18 @@ Un secret qu'il faut RELIRE (mot de passe d'application d'une boîte mail) se
 chiffre avec `src/lib/chiffrement.ts` (AES-256-GCM, clé dérivée
 d'`AUTH_SECRET` par usage) ; un mot de passe de connexion, lui, se hache.
 
+## Meeting : réunions à distance
+
+`src/modules/meeting/`. Images et son ne passent ni par l'application ni par
+la base : chaque navigateur publie son flux au serveur vidéo du module
+Sécurité (MediaMTX, WHIP) et lit ceux des autres (WHEP), sous
+`m/<réunion>/<participant>/cam|ecran`. `/api/video/autorisation` aiguille sur
+le préfixe du chemin (`s/` Sécurité, `m/` Meeting) ; un jeton de flux est
+signé, propre à la réunion, valable deux minutes, renouvelé à chaque signal.
+La salle se signale toutes les quatre secondes (`signalerPresence`, lu par
+`session()` comme toute interrogation de fond) : présence, micro, écran
+partagé, temps cumulé. La salle n'est PAS exemptée du verrou d'inactivité.
+
 ## Reprise de l'existant
 
 `/demarrage` (`src/modules/reprise/`) importe des CSV (articles, tiers avec

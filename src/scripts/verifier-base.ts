@@ -153,6 +153,8 @@ const TABLES_ATTENDUES = [
   "sync_mutations",
   "tables_salle",
   "taches",
+  "reunions",
+  "reunion_participants",
   "tiers",
   "users",
   "vehicules",

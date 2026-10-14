@@ -82,10 +82,11 @@ const schema = z.object({
   WHATSAPP_LANGUE: z.string().default("fr"),
 
   /**
-   * Serveur vidéo (MediaMTX) du module Sécurité.
+   * Serveur vidéo (MediaMTX) des modules Sécurité et Meeting.
    *
    * `VIDEO_URL_PUBLIQUE` — adresse où les navigateurs lisent les caméras en
-   * WebRTC (WHEP) : https://video.exemple.ci. `VIDEO_PUBLICATION` — hôte
+   * WebRTC (WHEP), et publient et lisent les flux des réunions (WHIP/WHEP) :
+   * https://video.exemple.ci. `VIDEO_PUBLICATION` — hôte
    * et port où les relais des sites publient en RTSPS : video.exemple.ci:8322.
    * Vides : le module se configure, mais aucune image ne s'affiche.
    */

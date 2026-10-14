@@ -217,6 +217,16 @@ const DESSINS: Record<CleIcone, ReactNode> = {
       ))}
     </>
   ),
+  meeting: (
+    <>
+      <rect x="3" y="11" width="30" height="26" rx="6" fill={BLEU} />
+      <path d="M33 21.5 44 15v18l-11-6.5Z" fill={VIOLET} />
+      <circle cx="13" cy="21" r="3.5" fill={BLANC} />
+      <path d="M7 31a6 6 0 0 1 12 0Z" fill={BLANC} opacity=".85" />
+      <circle cx="23.5" cy="21" r="3.5" fill={JAUNE} />
+      <path d="M17.5 31a6 6 0 0 1 12 0Z" fill={JAUNE} opacity=".9" />
+    </>
+  ),
   messagerie: (
     <>
       <path d="M17 12h22a5 5 0 0 1 5 5v13a5 5 0 0 1-5 5h-2v6l-7-6H17a5 5 0 0 1-5-5V17a5 5 0 0 1 5-5Z" fill={SARCELLE} />

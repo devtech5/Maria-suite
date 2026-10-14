@@ -351,6 +351,13 @@
       "when": 1791981793871,
       "tag": "0049_modules_coupes",
       "breakpoints": true
+    },
+    {
+      "idx": 50,
+      "version": "7",
+      "when": 1791982934845,
+      "tag": "0050_meeting",
+      "breakpoints": true
     }
   ]
 }

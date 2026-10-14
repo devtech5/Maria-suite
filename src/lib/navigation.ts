@@ -14,7 +14,7 @@ export const CLES_ICONE = [
   "commercial", "stock", "achats", "prestataires", "marches", "reservations",
   "projets", "missions", "actifs", "parc-auto", "parc-informatique", "billetterie",
   "comptabilite", "tresorerie", "guichet",
-  "personnel", "presences", "planning", "taches", "messagerie", "boite-mail", "documents", "archives",
+  "personnel", "presences", "planning", "taches", "meeting", "messagerie", "boite-mail", "documents", "archives",
   "utilisateurs", "entreprise", "demarrage", "communication", "rapports", "journal",
 ] as const;
 export type CleIcone = (typeof CLES_ICONE)[number];
@@ -79,6 +79,7 @@ export const GROUPES_MODULES: GroupeModules[] = [
       { href: "/presences", racine: "/presences", icone: "presences", libelle: "Présences et congés", description: "Pointage à la connexion, retards, congés et soldes.", droit: "conges.demander" },
       { href: "/planning", racine: "/planning", icone: "planning", libelle: "Planning", description: "Qui est disponible, occupé, en mission ou sur le terrain.", droit: "planning.utiliser" },
       { href: "/taches", racine: "/taches", icone: "taches", libelle: "Tâches", description: "Ce qui est à faire, par qui et pour quand.", droit: "taches.consulter" },
+      { href: "/meeting", racine: "/meeting", icone: "meeting", libelle: "Meeting", description: "Réunions d'équipe à distance, en vidéo.", droit: "meeting.participer" },
       { href: "/messagerie", racine: "/messagerie", icone: "messagerie", libelle: "Messagerie", description: "Discussions privées et groupes de l'équipe.", droit: "messagerie.utiliser" },
       { href: "/boite-mail", racine: "/boite-mail", icone: "boite-mail", libelle: "Boîte mail", description: "Vos e-mails, sans quitter Maria Suite.", droit: "boite_mail.utiliser" },
       { href: "/documents", racine: "/documents", icone: "documents", libelle: "Documents", description: "Pièces rattachées aux fiches et leurs échéances.", droit: "documents.consulter" },
@@ -109,6 +110,7 @@ export const GROUPES_MODULES: GroupeModules[] = [
 export const RACCOURCIS_COMPTE: { href: string; libelle: string; module: string }[] = [
   { href: "/taches", libelle: "Mes tâches", module: "taches" },
   { href: "/planning", libelle: "Mon planning", module: "planning" },
+  { href: "/meeting", libelle: "Mes réunions", module: "meeting" },
   { href: "/documents", libelle: "Mes documents", module: "documents" },
   { href: "/archives", libelle: "Mes archives", module: "archives" },
   { href: "/rh", libelle: "Ressources humaines", module: "personnes" },

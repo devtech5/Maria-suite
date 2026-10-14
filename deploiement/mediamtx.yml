@@ -1,9 +1,12 @@
-# Serveur vidéo du module Sécurité (MediaMTX).
+# Serveur vidéo des modules Sécurité et Meeting (MediaMTX).
 #
-# Il reçoit les flux publiés par les relais des sites (RTSPS, port 8322) et
-# les sert aux navigateurs en WebRTC (WHEP, port 8889 derrière le domaine
-# video.exemple.ci). Il ne décide de rien : chaque publication et chaque
-# lecture sont soumises à Maria Suite, sur /api/video/autorisation.
+# Sécurité : il reçoit les flux publiés par les relais des sites (RTSPS, port
+# 8322) et les sert aux navigateurs en WebRTC (WHEP, port 8889 derrière le
+# domaine video.exemple.ci).
+# Meeting : les navigateurs y publient caméra, micro et écran (WHIP) et lisent
+# ceux des autres participants (WHEP), sur le même port 8889.
+# Il ne décide de rien : chaque publication et chaque lecture sont soumises à
+# Maria Suite, sur /api/video/autorisation.
 #
 # Écrit pour MediaMTX 1.x. Les noms de clés changent parfois d'une version à
 # l'autre : comparez avec la configuration de référence de la version
@@ -44,5 +47,6 @@ webrtcAdditionalHosts: [video.exemple.ci]
 webrtcAllowOrigin: https://app.exemple.ci
 
 paths:
-  # Les chemins sont « s/<site>/<caméra>/<sd|hd> » ; Maria Suite vérifie le reste.
+  # Chemins « s/<site>/<caméra>/<sd|hd> » (Sécurité) et
+  # « m/<réunion>/<participant>/<cam|ecran> » (Meeting) ; Maria Suite vérifie le reste.
   all_others:
