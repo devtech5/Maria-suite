@@ -9,7 +9,7 @@
     "build:scripts": "esbuild src/scripts/installer.ts --bundle --platform=node --target=node22 --format=cjs --external:@node-rs/argon2 --external:@electric-sql/pglite --outfile=build/scripts/installer.cjs",
     "start": "next start",
     "lint": "eslint --max-warnings 0",
-    "typecheck": "tsc --noEmit",
+    "typecheck": "next typegen && tsc --noEmit",
     "verify": "pnpm lint && pnpm typecheck && pnpm test && pnpm test:base",
     "prepare": "git config core.hooksPath .githooks || exit 0",
     "db:generate": "drizzle-kit generate",
