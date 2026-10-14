@@ -7,15 +7,16 @@ import { peut } from "@/lib/droits/garde";
  * Quatre sections, pas dix.
  *
  * « Devis et factures » regroupe devis, factures et avoirs : ce sont trois
- * états d'un même flux commercial, pas trois métiers. « Caisse » garde les
- * ventes au comptoir, qui se règlent sur-le-champ. Le concurrent éclate le
+ * états d'un même flux commercial, pas trois métiers. Le concurrent éclate le
  * tout en huit onglets, abonnements, prestations et « meilleures ventes »
  * compris.
+ *
+ * Pas d'onglet « Caisse » chez MARIA GROUP SARL : les ventes au comptoir
+ * (`/commercial/ventes`) ne sont plus proposées depuis ce menu.
  */
 const SECTIONS = [
   { href: "/commercial", libelle: "Clients" },
   { href: "/commercial/factures", libelle: "Devis et factures" },
-  { href: "/commercial/ventes", libelle: "Caisse" },
   { href: "/commercial/commerciaux", libelle: "Commerciaux" },
   { href: "/commercial/fournisseurs", libelle: "Fournisseurs" },
 ];
