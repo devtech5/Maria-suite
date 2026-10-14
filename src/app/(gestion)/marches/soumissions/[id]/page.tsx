@@ -3,6 +3,7 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 
 import { AjoutPieceDossier, BoutonGeste, PieceDossier } from "@/components/marches/elements";
+import { SuitesMarche } from "@/components/marches/suites";
 import { FormulaireRepliable } from "@/components/ui/operations";
 import { CLASSE_CHAMP, CarteIndicateur, Champ, Pastille } from "@/components/ui/primitives";
 import { exigerEntreprise } from "@/lib/auth/dal";
@@ -11,6 +12,7 @@ import { fmt, fmtCompact } from "@/lib/format";
 import { changerStatutSoumission, modifierSoumission } from "@/modules/marches/actions";
 import { STATUTS_SOUMISSION, SUITES_SOUMISSION, TYPES_MARCHE, joursRestants } from "@/modules/marches/calcul";
 import { soumissionDe } from "@/modules/marches/creation";
+import { suitesDe } from "@/modules/marches/suites";
 
 export const metadata: Metadata = { title: "Appel d'offres" };
 
@@ -28,7 +30,12 @@ export default async function PageSoumission({ params }: { params: Promise<{ id:
   const session = await exigerEntreprise();
   const s = await soumissionDe(session.organizationId, id);
   if (!s) notFound();
-  const gerer = await peut("marches.soumission.gerer");
+  const [gerer, gererProjet, gererPieces, execution] = await Promise.all([
+    peut("marches.soumission.gerer"),
+    peut("projet.gerer"),
+    peut("commercial.piece.gerer"),
+    suitesDe(session.organizationId, s),
+  ]);
   const j = s.dateLimite ? joursRestants(s.dateLimite, new Date()) : null;
   const ouverte = s.statut === "veille" || s.statut === "en_preparation";
   const suites = SUITES_SOUMISSION[s.statut];
@@ -80,6 +87,10 @@ export default async function PageSoumission({ params }: { params: Promise<{ id:
         <CarteIndicateur libelle="Caution" valeur={s.caution ? fmtCompact(s.caution) : "—"} unite="FCFA" precision={s.caution ? (s.cautionRestituee ? "Restituée" : "Immobilisée") : "Aucune"} />
       </section>
 
+      {s.statut === "gagnee" && (
+        <SuitesMarche nature="soumission" id={s.id} projet={execution.projet} devis={execution.devis} peutProjet={gerer && gererProjet} peutDevis={gerer && gererPieces} />
+      )}
+
       <section className="mb-8">
         <h2 className="mb-3 text-base font-semibold">Dossier de soumission</h2>
         <ul className="divide-y divide-[var(--filet)] rounded-xl border border-[var(--filet)] bg-[var(--surface)]">
@@ -94,7 +105,7 @@ export default async function PageSoumission({ params }: { params: Promise<{ id:
         <section>
           <FormulaireRepliable libelle="Modifier l'offre et les dates" titre="Offre et caution" action={modifierSoumission.bind(null, s.id)}>
             <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-              <Champ libelle="Montant de l'offre (FCFA)">
+              <Champ libelle="Montant de l'offre HT (FCFA)">
                 <input name="montantPropose" inputMode="numeric" defaultValue={s.montantPropose ?? ""} className={`${CLASSE_CHAMP} chiffres`} />
               </Champ>
               <Champ libelle="Date limite de dépôt">

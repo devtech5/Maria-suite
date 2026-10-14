@@ -29,6 +29,7 @@ import {
   retirerPieceDossierPour,
   type FichierRecu,
 } from "./creation";
+import { creerProjetDepuisMarchePour, preparerDevisDepuisMarchePour, type OrigineMarche } from "./suites";
 
 export type Resultat = { ok: true; message: string; id?: string } | { ok: false; message: string };
 
@@ -290,6 +291,34 @@ export async function resilierConvention(id: string, date: string, motif?: strin
     if (!UUID.test(id) || !DATE_ISO.test(date)) return { ok: false, message: "Saisie invalide." };
     await resilierConventionPour(organizationId, userId, id, date, (motif ?? "").slice(0, 500));
     return { ok: true, message: "Convention résiliée." };
+  });
+}
+
+// ------------------------------------------------------------------ suites
+
+const DROIT_ORIGINE = { soumission: "marches.soumission.gerer", convention: "marches.convention.gerer" } as const;
+
+/** Ouvre le projet d'un marché gagné ou d'une convention signée, sans ressaisie. */
+export async function creerProjetDepuisMarche(nature: OrigineMarche["nature"], id: string): Promise<Resultat> {
+  return operer(DROIT_ORIGINE[nature] ?? "marches.soumission.gerer", async ({ organizationId, userId }) => {
+    if (!UUID.test(id) || !(nature in DROIT_ORIGINE)) return { ok: false, message: "Marché introuvable." };
+    const refus = await refusDroit("projet.gerer");
+    if (refus) return { ok: false, message: refus.erreur };
+    const projet = await creerProjetDepuisMarchePour(organizationId, { nature, id }, userId);
+    revalidatePath("/projets", "layout");
+    return { ok: true, message: `Projet ${projet.code} ouvert.`, id: projet.id };
+  });
+}
+
+/** Prépare le devis d'un marché gagné ou d'une convention signée, en brouillon. */
+export async function preparerDevisDepuisMarche(nature: OrigineMarche["nature"], id: string): Promise<Resultat> {
+  return operer(DROIT_ORIGINE[nature] ?? "marches.soumission.gerer", async ({ organizationId, userId }) => {
+    if (!UUID.test(id) || !(nature in DROIT_ORIGINE)) return { ok: false, message: "Marché introuvable." };
+    const refus = await refusDroit("commercial.piece.gerer");
+    if (refus) return { ok: false, message: refus.erreur };
+    const devis = await preparerDevisDepuisMarchePour(organizationId, { nature, id }, userId);
+    revalidatePath("/commercial", "layout");
+    return { ok: true, message: "Devis préparé en brouillon : relisez-le et émettez-le depuis la facturation.", id: devis.id };
   });
 }
 

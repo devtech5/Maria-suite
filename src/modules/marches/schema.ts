@@ -3,6 +3,8 @@ import { boolean, check, date, index, integer, pgEnum, pgTable, text, timestamp,
 
 import { money, primaryId, rowVersion, timestamps } from "@/db/schema/_shared";
 import { organizations } from "@/db/schema/tenancy";
+import { piecesCommerciales } from "@/modules/facturation/schema";
+import { projets } from "@/modules/projets/schema";
 import { tiers } from "@/modules/tiers/schema";
 
 /**
@@ -48,6 +50,10 @@ export const soumissions = pgTable(
     motifResultat: text("motif_resultat"),
     responsableId: uuid("responsable_id"),
     notes: text("notes"),
+    /** Projet ouvert depuis le marché gagné : client, objet et montant repris sans ressaisie. */
+    projetId: uuid("projet_id").references(() => projets.id, { onDelete: "set null" }),
+    /** Devis préparé depuis le marché gagné. */
+    devisId: uuid("devis_id").references(() => piecesCommerciales.id, { onDelete: "set null" }),
     userId: uuid("user_id"),
     ...timestamps,
     ...rowVersion,
@@ -188,6 +194,10 @@ export const conventions = pgTable(
     nomFichier: text("nom_fichier"),
     typeMime: text("type_mime"),
     notes: text("notes"),
+    /** Projet ouvert depuis la convention signée. */
+    projetId: uuid("projet_id").references(() => projets.id, { onDelete: "set null" }),
+    /** Devis préparé depuis la convention signée. */
+    devisId: uuid("devis_id").references(() => piecesCommerciales.id, { onDelete: "set null" }),
     userId: uuid("user_id"),
     ...timestamps,
     ...rowVersion,

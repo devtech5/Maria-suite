@@ -69,7 +69,7 @@ export default async function PageConventions() {
                 <Champ libelle="Préavis (jours)">
                   <input name="preavisJours" inputMode="numeric" defaultValue="30" className={`${CLASSE_CHAMP} chiffres`} />
                 </Champ>
-                <Champ libelle="Montant annuel ou plafond (FCFA)">
+                <Champ libelle="Montant annuel ou plafond HT (FCFA)">
                   <input name="montant" inputMode="numeric" className={`${CLASSE_CHAMP} chiffres`} />
                 </Champ>
                 <Champ libelle="Objet">

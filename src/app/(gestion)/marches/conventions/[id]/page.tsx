@@ -3,6 +3,7 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 
 import { BoutonFichier, BoutonGeste } from "@/components/marches/elements";
+import { SuitesMarche } from "@/components/marches/suites";
 import { FormulaireRepliable } from "@/components/ui/operations";
 import { CLASSE_CHAMP, CarteIndicateur, Champ, Pastille } from "@/components/ui/primitives";
 import { exigerEntreprise } from "@/lib/auth/dal";
@@ -11,6 +12,7 @@ import { fmt, fmtCompact } from "@/lib/format";
 import { ajouterAvenant, joindreConvention, resilierConvention } from "@/modules/marches/actions";
 import { ETATS_CONVENTION } from "@/modules/marches/calcul";
 import { listerConventions } from "@/modules/marches/creation";
+import { suitesDe } from "@/modules/marches/suites";
 
 export const metadata: Metadata = { title: "Convention" };
 
@@ -24,7 +26,14 @@ export default async function PageConvention({ params }: { params: Promise<{ id:
   const session = await exigerEntreprise();
   const c = (await listerConventions(session.organizationId)).find((x) => x.id === id);
   if (!c) notFound();
-  const gerer = await peut("marches.convention.gerer");
+  const [gerer, gererProjet, gererPieces, suites] = await Promise.all([
+    peut("marches.convention.gerer"),
+    peut("projet.gerer"),
+    peut("commercial.piece.gerer"),
+    suitesDe(session.organizationId, c),
+  ]);
+  // Une convention fournisseur n'ouvre ni projet client ni devis ; une convention résiliée, plus rien.
+  const executable = !c.resilieeLe && c.sens !== "fournisseur";
   const aujourdhui = new Date().toISOString().slice(0, 10);
 
   return (
@@ -57,6 +66,17 @@ export default async function PageConvention({ params }: { params: Promise<{ id:
         <CarteIndicateur libelle="Préavis" valeur={`${c.preavisJours} j`} precision="Pour dénoncer ou renégocier" />
         <CarteIndicateur libelle="Montant" valeur={c.montantEffectif !== null ? fmtCompact(c.montantEffectif) : "—"} unite="FCFA" precision={c.montant !== c.montantEffectif ? `Initial ${fmt(c.montant ?? 0)} F` : "Annuel ou plafond"} />
       </section>
+
+      {(executable || suites.projet || suites.devis) && (
+        <SuitesMarche
+          nature="convention"
+          id={c.id}
+          projet={suites.projet}
+          devis={suites.devis}
+          peutProjet={executable && gerer && gererProjet}
+          peutDevis={executable && c.sens === "client" && gerer && gererPieces}
+        />
+      )}
 
       <section className="mb-6">
         <div className="mb-3 flex flex-wrap items-end justify-between gap-3">
