@@ -14,6 +14,7 @@ import {
 import { money, primaryId, rowVersion, timestamps } from "@/db/schema/_shared";
 import { organizations } from "@/db/schema/tenancy";
 import { actifs } from "@/modules/actifs/schema";
+import { tiers } from "@/modules/tiers/schema";
 
 /**
  * Parc informatique.
@@ -103,6 +104,12 @@ export const licencesLogicielles = pgTable(
     expireLe: date("expire_le"),
     /** Coût de la période (abonnement) ou d'achat (perpétuelle), en francs entiers. */
     cout: money("cout").notNull().default(0),
+    /** Fournisseur de la licence, choisi parmi les tiers. */
+    fournisseurId: uuid("fournisseur_id").references(() => tiers.id, { onDelete: "set null" }),
+    /**
+     * Nom du fournisseur : recopié de la fiche à l'enregistrement, ou saisi
+     * pour un revendeur sans fiche (une boutique en ligne).
+     */
     fournisseur: text("fournisseur"),
     notes: text("notes"),
     userId: uuid("user_id"),

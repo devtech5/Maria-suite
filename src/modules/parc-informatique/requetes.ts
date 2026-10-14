@@ -1,9 +1,10 @@
 import "server-only";
 
-import { and, asc, eq, isNull } from "drizzle-orm";
+import { and, asc, eq, getTableColumns, isNull, sql } from "drizzle-orm";
 
 import { db } from "@/db";
 import { listerActifs, listerEcheances, type ActifSuivi, type LigneEcheance } from "@/modules/actifs/requetes";
+import { tiers } from "@/modules/tiers/schema";
 
 import { etatLicence, type EtatLicence } from "./calcul";
 import { equipementsInformatiques, licencesAttribuees, licencesLogicielles, type EquipementInformatique, type LicenceLogicielle } from "./schema";
@@ -46,6 +47,8 @@ export async function equipementDe(organizationId: string, actifId: string) {
 }
 
 export interface LicenceSuivie extends LicenceLogicielle {
+  /** Nom de la fiche fournisseur, à jour ; à défaut le nom saisi. */
+  fournisseurNom: string | null;
   utilises: number;
   postesInstalles: { actifId: string; code: string; designation: string }[];
   etat: EtatLicence;
@@ -56,8 +59,12 @@ export interface LicenceSuivie extends LicenceLogicielle {
 export async function listerLicences(organizationId: string, aujourdhui = new Date().toISOString().slice(0, 10)): Promise<LicenceSuivie[]> {
   const [licences, attributions, tous] = await Promise.all([
     db
-      .select()
+      .select({
+        ...getTableColumns(licencesLogicielles),
+        fournisseurNom: sql<string | null>`coalesce(${tiers.nom}, ${licencesLogicielles.fournisseur})`,
+      })
       .from(licencesLogicielles)
+      .leftJoin(tiers, eq(tiers.id, licencesLogicielles.fournisseurId))
       .where(and(eq(licencesLogicielles.organizationId, organizationId), isNull(licencesLogicielles.deletedAt)))
       .orderBy(asc(licencesLogicielles.logiciel)),
     db.select().from(licencesAttribuees).where(eq(licencesAttribuees.organizationId, organizationId)),
@@ -87,4 +94,13 @@ export async function etatLicences(organizationId: string): Promise<EtatLicences
     expirees: licences.filter((l) => l.etat === "expiree").length,
     bientot: licences.filter((l) => l.etat === "expire_bientot").length,
   };
+}
+
+/** Fournisseurs actifs, pour rattacher une licence à sa fiche plutôt que retaper le nom. */
+export async function fournisseursProposes(organizationId: string): Promise<{ id: string; nom: string }[]> {
+  return db
+    .select({ id: tiers.id, nom: tiers.nom })
+    .from(tiers)
+    .where(and(eq(tiers.organizationId, organizationId), eq(tiers.estFournisseur, true), eq(tiers.actif, true)))
+    .orderBy(asc(tiers.nom));
 }

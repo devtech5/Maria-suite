@@ -9,6 +9,7 @@ import type { Transaction } from "@/lib/sequences";
 import { creerActifDans, creerEcheanceDans } from "@/modules/actifs/creation";
 import { actifs } from "@/modules/actifs/schema";
 import { employees } from "@/modules/personnes/schema";
+import { tiers } from "@/modules/tiers/schema";
 
 import { adresseIpValide, normaliserMac, type CleCategorie } from "./calcul";
 import { equipementsInformatiques, licencesAttribuees, licencesLogicielles } from "./schema";
@@ -158,6 +159,9 @@ export interface NouvelleLicence {
   postes: number;
   expireLe?: string | null;
   cout?: number;
+  /** Fournisseur choisi parmi les tiers : son nom se recopie, il ne se tape pas. */
+  fournisseurId?: string | null;
+  /** Nom saisi, pour un revendeur sans fiche. Ignoré quand `fournisseurId` est donné. */
   fournisseur?: string | null;
   notes?: string | null;
 }
@@ -165,6 +169,22 @@ export interface NouvelleLicence {
 export async function creerLicencePour(organizationId: string, userId: string, saisie: NouvelleLicence): Promise<string> {
   if (!saisie.logiciel.trim()) throw new Error("Nommez le logiciel.");
   if (saisie.type === "abonnement" && !saisie.expireLe) throw new Error("Un abonnement a une date de fin : indiquez-la.");
+  let fournisseur = saisie.fournisseur?.trim() || null;
+  if (saisie.fournisseurId) {
+    const [fiche] = await db
+      .select({ nom: tiers.nom })
+      .from(tiers)
+      .where(
+        and(
+          eq(tiers.id, saisie.fournisseurId),
+          eq(tiers.organizationId, organizationId),
+          eq(tiers.estFournisseur, true),
+          eq(tiers.actif, true),
+        ),
+      );
+    if (!fiche) throw new Error("Ce fournisseur n'existe pas, ou plus.");
+    fournisseur = fiche.nom;
+  }
   const id = newId();
   await db.insert(licencesLogicielles).values({
     id,
@@ -176,7 +196,8 @@ export async function creerLicencePour(organizationId: string, userId: string, s
     postes: saisie.postes,
     expireLe: saisie.expireLe ?? null,
     cout: saisie.cout ?? 0,
-    fournisseur: saisie.fournisseur ?? null,
+    fournisseurId: saisie.fournisseurId ?? null,
+    fournisseur,
     notes: saisie.notes ?? null,
     userId,
   });

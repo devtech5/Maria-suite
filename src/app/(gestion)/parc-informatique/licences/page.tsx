@@ -7,7 +7,7 @@ import { exigerEntreprise } from "@/lib/auth/dal";
 import { peut } from "@/lib/droits/garde";
 import { fmt, fmtCompact, fmtEntier } from "@/lib/format";
 import type { EtatLicence } from "@/modules/parc-informatique/calcul";
-import { listerLicences } from "@/modules/parc-informatique/requetes";
+import { fournisseursProposes, listerLicences } from "@/modules/parc-informatique/requetes";
 
 export const metadata: Metadata = { title: "Licences logicielles" };
 
@@ -26,13 +26,14 @@ const ETAT: Record<EtatLicence, { ton: TonPastille; libelle: (j: number | null) 
 export default async function PageLicences() {
   const session = await exigerEntreprise();
   const [licences, gerer] = await Promise.all([listerLicences(session.organizationId), peut("parc_informatique.licence.gerer")]);
+  const fournisseurs = gerer ? await fournisseursProposes(session.organizationId) : [];
   const depassees = licences.filter((l) => l.etat === "depassee").length;
   const aRenouveler = licences.filter((l) => l.etat === "expiree" || l.etat === "expire_bientot").length;
   const cout = licences.reduce((s, l) => s + l.cout, 0);
 
   return (
     <>
-      <EnTetePage titre="Licences logicielles" sousTitre="Abonnements et licences perpétuelles, postes couverts et postes installés" actions={gerer ? <FormulaireLicence /> : undefined} />
+      <EnTetePage titre="Licences logicielles" sousTitre="Abonnements et licences perpétuelles, postes couverts et postes installés" actions={gerer ? <FormulaireLicence fournisseurs={fournisseurs} /> : undefined} />
       {licences.length === 0 ? (
         <EtatVide titre="Aucune licence" message="Enregistrez Microsoft 365, l'antivirus, le logiciel de comptabilité… avec leurs postes et leur date de fin, puis installez-les sur les postes depuis leur fiche." />
       ) : (
@@ -62,7 +63,11 @@ export default async function PageLicences() {
                 <tr key={l.id}>
                   <Td fort>
                     {l.logiciel}
-                    {l.editeur && <span className="block text-xs font-normal text-[var(--encre-douce)]">{l.editeur}</span>}
+                    {(l.editeur || l.fournisseurNom) && (
+                      <span className="block text-xs font-normal text-[var(--encre-douce)]">
+                        {[l.editeur, l.fournisseurNom && `chez ${l.fournisseurNom}`].filter(Boolean).join(" · ")}
+                      </span>
+                    )}
                   </Td>
                   <Td>{l.type === "abonnement" ? "Abonnement" : "Perpétuelle"}</Td>
                   <Td aligne="droite" chiffres>

@@ -150,6 +150,7 @@ export async function creerLicence(donnees: FormData): Promise<Resultat> {
       postes: z.number().int("Postes : nombre entier.").min(1, "Au moins un poste.").max(100_000),
       expireLe: z.string().regex(DATE_ISO).nullable(),
       cout: z.number().int("Coût en francs entiers.").min(0).nullable(),
+      fournisseurId: z.string().regex(UUID, "Fournisseur inconnu.").nullable(),
       fournisseur: facultatif(80),
       notes: facultatif(300),
     })
@@ -161,6 +162,7 @@ export async function creerLicence(donnees: FormData): Promise<Resultat> {
       postes: entier(donnees, "postes") ?? 1,
       expireLe: texte(donnees, "expireLe"),
       cout: entier(donnees, "cout"),
+      fournisseurId: texte(donnees, "fournisseurId"),
       fournisseur: texte(donnees, "fournisseur"),
       notes: texte(donnees, "notes"),
     });

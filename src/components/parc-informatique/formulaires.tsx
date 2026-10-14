@@ -203,9 +203,11 @@ export function FormulaireFicheEquipement({ actifId, initial, utilisateurs }: { 
   );
 }
 
-export function FormulaireLicence() {
+/** Saisie d'une licence. Le fournisseur se choisit parmi les tiers ; le nom libre ne sert qu'à défaut de fiche. */
+export function FormulaireLicence({ fournisseurs }: { fournisseurs: { id: string; nom: string }[] }) {
   const [ouvert, setOuvert] = useState(false);
   const [type, setType] = useState<"abonnement" | "perpetuelle">("abonnement");
+  const [fournisseurId, setFournisseurId] = useState("");
   const formulaire = useRef<HTMLFormElement>(null);
   const op = useOperation();
 
@@ -230,6 +232,7 @@ export function FormulaireLicence() {
           () => creerLicence(donnees),
           () => {
             formulaire.current?.reset();
+            setFournisseurId("");
             setOuvert(false);
           },
         );
@@ -265,8 +268,20 @@ export function FormulaireLicence() {
           <input name="cout" inputMode="numeric" className={`${CLASSE_CHAMP} chiffres`} />
         </Champ>
         <Champ libelle="Fournisseur">
-          <input name="fournisseur" className={CLASSE_CHAMP} />
+          <select name="fournisseurId" value={fournisseurId} onChange={(e) => setFournisseurId(e.target.value)} className={CLASSE_CHAMP}>
+            <option value="">{fournisseurs.length ? "Sans fiche : saisir le nom" : "Aucun fournisseur en fiche"}</option>
+            {fournisseurs.map((f) => (
+              <option key={f.id} value={f.id}>
+                {f.nom}
+              </option>
+            ))}
+          </select>
         </Champ>
+        {fournisseurId === "" && (
+          <Champ libelle="Nom du fournisseur">
+            <input name="fournisseur" placeholder="Revendeur en ligne…" className={CLASSE_CHAMP} />
+          </Champ>
+        )}
         <Champ libelle="Clé d'activation">
           <input name="cle" autoComplete="off" spellCheck={false} className={`${CLASSE_CHAMP} chiffres`} />
         </Champ>
