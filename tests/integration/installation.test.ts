@@ -53,6 +53,17 @@ describe("installation de MARIA GROUP SARL", () => {
     expect(await verify(password_hash, "provisoire-2026")).toBe(true);
   });
 
+  it("refuse un propriétaire hors de la règle des adresses", async () => {
+    await expect(installerEntreprise(requete, { ...options, email: "patron@gmail.com" })).rejects.toThrow(/refusée/);
+    const [{ comptes }] = await requete(`select count(*)::int as comptes from users`);
+    expect(comptes).toBe(0);
+  });
+
+  it("admet un propriétaire du domaine maria-groupe.com", async () => {
+    const resultat = await installerEntreprise(requete, { ...options, email: "direction@maria-groupe.com" });
+    expect(resultat.email).toBe("direction@maria-groupe.com");
+  });
+
   it("refuse une base qui porte une autre entreprise", async () => {
     await requete(`insert into organizations (name, slug) values ('Autre', 'autre')`);
     await expect(installerEntreprise(requete, options)).rejects.toThrow(/autre entreprise/);

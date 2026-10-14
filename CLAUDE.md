@@ -257,6 +257,14 @@ entreprise. Logique commune dans `src/db/installation.ts` : avec
 aussi au démarrage, sans jamais toucher un compte existant.
 Un compte sans rattachement actif aboutit sur `/sans-acces`.
 
+**Adresses admises — règle stricte.** Seules deux sortes d'adresses ouvrent
+la plateforme : `michael.kadio05@gmail.com`, seule adresse Gmail permise, et
+les adresses du domaine exact `@maria-groupe.com`. Une seule fonction en
+décide, `adresseAutorisee` (`src/lib/auth/identifiants.ts`), appliquée à la
+connexion, à la session en cours (`lireSession`), à l'invitation d'un
+membre, au « mot de passe oublié » et à l'installation. Tout nouveau chemin
+qui crée un compte ou ouvre une session passe par elle.
+
 Les colonnes d'abonnement d'`organizations` et la table
 `paiements_abonnement` sont des vestiges : plus rien ne les lit.
 

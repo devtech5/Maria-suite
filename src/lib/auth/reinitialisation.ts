@@ -16,6 +16,7 @@ import { newId } from "@/lib/ids";
 import {
   DEMANDES_REINIT_PAR_HEURE,
   DUREE_JETON_REINIT_MINUTES,
+  adresseAutorisee,
   formerJetonReinit,
   lireJetonReinit,
   motifRefusMotDePasse,
@@ -53,6 +54,8 @@ async function urlPublique(): Promise<string> {
 export async function demanderReinitialisation(_precedent: EtatDemande, donnees: FormData): Promise<EtatDemande> {
   const email = normaliserEmail(String(donnees.get("email") ?? ""));
   if (!email) return { erreur: "Adresse e-mail invalide." };
+  // Adresse hors de la règle d'accès : aucun lien ne part, la réponse reste neutre.
+  if (!adresseAutorisee(email)) return { message: REPONSE_NEUTRE };
 
   const [compte] = await db
     .select({ id: users.id, nom: users.fullName, statut: users.status, empreinte: users.passwordHash })

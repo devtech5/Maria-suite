@@ -29,7 +29,7 @@ export function FormulaireDemande() {
           spellCheck={false}
           autoFocus
           required
-          placeholder="vous@entreprise.ci"
+          placeholder="prenom.nom@maria-groupe.com"
           className={CLASSE_SAISIE}
         />
       </label>

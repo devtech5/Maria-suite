@@ -21,6 +21,33 @@ export function normaliserEmail(saisie: string): string | null {
   return /^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/.test(email) ? email : null;
 }
 
+/** Propriétaire et super administrateur du logiciel : la seule adresse Gmail admise. */
+export const ADRESSE_PROPRIETAIRE = "michael.kadio05@gmail.com";
+
+/** Domaine des adresses du personnel de MARIA GROUP. */
+export const DOMAINE_AUTORISE = "maria-groupe.com";
+
+export const MOTIF_ADRESSE_REFUSEE =
+  `Seules les adresses @${DOMAINE_AUTORISE} ont accès à Maria Suite.`;
+
+/**
+ * Vrai pour une adresse admise sur la plateforme : celle du propriétaire, ou
+ * une adresse du domaine `maria-groupe.com` — le domaine exact, pas un
+ * sous-domaine ni un domaine qui s'en approche (`maria-groupe.com.ci`,
+ * `faux-maria-groupe.com`).
+ *
+ * Règle d'accès, pas seulement d'inscription : la connexion, la session en
+ * cours, l'invitation, la réinitialisation et l'installation l'appliquent.
+ * Un compte créé avant elle avec une autre adresse ne s'ouvre plus.
+ */
+export function adresseAutorisee(email: string | null | undefined): boolean {
+  if (!email) return false;
+  const adresse = email.trim().toLowerCase();
+  if (adresse === ADRESSE_PROPRIETAIRE) return true;
+  const [locale, domaine, ...reste] = adresse.split("@");
+  return reste.length === 0 && locale.length > 0 && domaine === DOMAINE_AUTORISE;
+}
+
 export const LONGUEUR_MIN_MOT_DE_PASSE = 8;
 /** Au-delà, Argon2 travaille pour rien et une requête devient une arme. */
 export const LONGUEUR_MAX_MOT_DE_PASSE = 128;

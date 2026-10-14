@@ -1,14 +1,45 @@
 import { describe, expect, it } from "vitest";
 
 import {
+  ADRESSE_PROPRIETAIRE,
   DUREE_VERROU_MINUTES,
   ECHECS_AVANT_VERROU,
   apresEchec,
   estVerrouille,
   motDePasseProvisoire,
   motifRefusMotDePasse,
+  adresseAutorisee,
   normaliserEmail,
 } from "@/lib/auth/identifiants";
+
+describe("adresseAutorisee", () => {
+  it("admet le propriétaire, seule adresse Gmail", () => {
+    expect(adresseAutorisee(ADRESSE_PROPRIETAIRE)).toBe(true);
+    expect(adresseAutorisee("  Michael.Kadio05@Gmail.com ")).toBe(true);
+    expect(adresseAutorisee("awa@gmail.com")).toBe(false);
+  });
+
+  it("admet le domaine maria-groupe.com, quelle que soit la casse", () => {
+    expect(adresseAutorisee("awa.kone@maria-groupe.com")).toBe(true);
+    expect(adresseAutorisee("Awa.Kone@MARIA-GROUPE.COM")).toBe(true);
+  });
+
+  it("refuse les domaines qui s'en approchent", () => {
+    expect(adresseAutorisee("awa@maria-group.com")).toBe(false);
+    expect(adresseAutorisee("awa@compta.maria-groupe.com")).toBe(false);
+    expect(adresseAutorisee("awa@maria-groupe.com.ci")).toBe(false);
+    expect(adresseAutorisee("awa@faux-maria-groupe.com")).toBe(false);
+    expect(adresseAutorisee("awa@boutique.ci")).toBe(false);
+  });
+
+  it("refuse l'informe et le vide", () => {
+    expect(adresseAutorisee("@maria-groupe.com")).toBe(false);
+    expect(adresseAutorisee("a@b@maria-groupe.com")).toBe(false);
+    expect(adresseAutorisee("maria-groupe.com")).toBe(false);
+    expect(adresseAutorisee("")).toBe(false);
+    expect(adresseAutorisee(null)).toBe(false);
+  });
+});
 
 describe("normaliserEmail", () => {
   it("ramène une adresse en minuscules, sans espace", () => {

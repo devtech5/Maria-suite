@@ -39,7 +39,7 @@ export function FormulaireConnexion({ suite }: { suite?: string }) {
           autoFocus
           required
           defaultValue={etat.email}
-          placeholder="vous@entreprise.ci"
+          placeholder="prenom.nom@maria-groupe.com"
           className={CLASSE_SAISIE}
         />
       </label>

@@ -15,7 +15,7 @@ import {
   users,
 } from "@/db/schema";
 import { exigerEntreprise } from "@/lib/auth/dal";
-import { normaliserEmail } from "@/lib/auth/identifiants";
+import { MOTIF_ADRESSE_REFUSEE, adresseAutorisee, normaliserEmail } from "@/lib/auth/identifiants";
 import { compteExclusifA, rattachementDe } from "@/lib/auth/membres";
 import { genererMotDePasseProvisoire, hacherMotDePasse } from "@/lib/auth/mot-de-passe";
 import { exigerDroit, refusDroit } from "@/lib/droits/garde";
@@ -71,6 +71,7 @@ export async function ajouterMembre(
 
   const email = normaliserEmail(analyse.data.email);
   if (!email) return { erreur: "Adresse e-mail invalide." };
+  if (!adresseAutorisee(email)) return { erreur: MOTIF_ADRESSE_REFUSEE };
 
   // Le rôle vient du navigateur : il doit appartenir à cette entreprise, sinon
   // un identifiant deviné donnerait les droits d'un rôle d'ailleurs.

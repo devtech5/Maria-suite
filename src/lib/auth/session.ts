@@ -8,6 +8,7 @@ import { cookies } from "next/headers";
 import { db } from "@/db";
 import { memberships, organizations, roles, sessions, users } from "@/db/schema";
 import { newId } from "@/lib/ids";
+import { adresseAutorisee } from "./identifiants";
 import { DELAI_VERROUILLAGE_DEFAUT, MARGE_SERVEUR_MINUTES, sessionVerrouillee } from "./verrou";
 
 export const COOKIE_SESSION = "maria_session";
@@ -149,6 +150,8 @@ export async function lireSession(): Promise<SessionActive | null> {
 
   const ligne = lignes[0];
   if (!ligne || ligne.statut !== "actif") return null;
+  // Une session ouverte avant la règle des adresses ne lui survit pas.
+  if (!adresseAutorisee(ligne.email)) return null;
 
   // Rattachements actifs de l'utilisateur, tous confondus.
   const rattachements = await db

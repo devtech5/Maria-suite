@@ -10,6 +10,8 @@ import {
   DUREE_VERROU_MINUTES,
   apresEchec,
   estVerrouille,
+  MOTIF_ADRESSE_REFUSEE,
+  adresseAutorisee,
   motifRefusMotDePasse,
   normaliserEmail,
 } from "./identifiants";
@@ -53,6 +55,12 @@ export async function seConnecter(
 
   if (!email || motDePasse.length === 0) {
     return { email: saisie, erreur: "Indiquez votre adresse e-mail et votre mot de passe." };
+  }
+
+  // Avant toute lecture : la règle est publique, la refuser ne dit rien de
+  // l'existence d'un compte.
+  if (!adresseAutorisee(email)) {
+    return { email, erreur: MOTIF_ADRESSE_REFUSEE };
   }
 
   const [compte] = await db

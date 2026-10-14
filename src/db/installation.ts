@@ -4,6 +4,7 @@ import { hash } from "@node-rs/argon2";
 
 // Chemin relatif et non alias : ce module sert aussi au script
 // `pnpm installer`, que `tsx` lance sans résoudre les alias du tsconfig.
+import { ADRESSE_PROPRIETAIRE, MOTIF_ADRESSE_REFUSEE, adresseAutorisee } from "../lib/auth/identifiants";
 import { PRESETS_ROLES } from "../lib/droits/catalogue";
 
 /**
@@ -28,7 +29,7 @@ export const ENTREPRISE = {
 };
 
 /** Propriétaire et super administrateur du logiciel. */
-export const PROPRIETAIRE = "michael.kadio05@gmail.com";
+export const PROPRIETAIRE = ADRESSE_PROPRIETAIRE;
 
 export interface OptionsInstallation {
   email: string;
@@ -58,6 +59,7 @@ export async function installerEntreprise(
 ): Promise<ResultatInstallation> {
   const email = options.email.trim().toLowerCase();
   if (!email.includes("@")) throw new Error(`Adresse du propriétaire invalide : « ${email} ».`);
+  if (!adresseAutorisee(email)) throw new Error(`Adresse du propriétaire refusée : « ${email} ». ${MOTIF_ADRESSE_REFUSEE}`);
 
   const autres = await requete(`select name from organizations where slug <> $1 limit 1`, [ENTREPRISE.slug]);
   if (autres.length > 0) {

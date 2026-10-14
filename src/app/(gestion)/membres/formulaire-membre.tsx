@@ -109,7 +109,7 @@ export function FormulaireMembre({ roles }: { roles: RoleAttribuable[] }) {
 
         <Champ
           libelle="Adresse e-mail"
-          precision="C'est avec elle qu'elle se connectera."
+          precision="C'est avec elle qu'elle se connectera. Seules les adresses @maria-groupe.com sont admises."
         >
           <input
             name="email"
@@ -118,7 +118,7 @@ export function FormulaireMembre({ roles }: { roles: RoleAttribuable[] }) {
             inputMode="email"
             autoCapitalize="none"
             spellCheck={false}
-            placeholder="awa.kone@boutique.ci"
+            placeholder="awa.kone@maria-groupe.com"
             className={CLASSE_CHAMP}
           />
         </Champ>
