@@ -29,8 +29,13 @@ const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
 export type Resultat = { ok: true; message: string; id?: string } | { ok: false; message: string };
 
-async function acteur(): Promise<{ organizationId: string; acteur: Acteur }> {
-  const s = await exigerEntreprise();
+/**
+ * `salle` : l'appel vient de la salle de réunion, exemptée du verrou
+ * d'inactivité comme la caisse — on y écoute sans toucher la souris. Toute
+ * nouvelle action appelée depuis la salle passe par là ; nulle part ailleurs.
+ */
+async function acteur(salle = false): Promise<{ organizationId: string; acteur: Acteur }> {
+  const s = await exigerEntreprise({ malgreVerrou: salle });
   return { organizationId: s.organizationId, acteur: { userId: s.userId, organise: await peut("meeting.organiser") } };
 }
 
@@ -191,7 +196,7 @@ export async function entrerDansLaSalle(reunionId: string): Promise<EntreeSalle>
   const refus = await refusDroit("meeting.participer");
   if (refus) return { ok: false, message: refus.erreur };
   if (!UUID.test(reunionId)) return { ok: false, message: "Réunion introuvable." };
-  const { organizationId, acteur: qui } = await acteur();
+  const { organizationId, acteur: qui } = await acteur(true);
   try {
     await db.transaction((tx) => rejoindreDans(tx, organizationId, reunionId, qui));
     rafraichir(reunionId);
@@ -209,12 +214,13 @@ export type Signal =
 
 /**
  * Signal de présence, toutes les quatre secondes depuis la salle. Comme toute
- * interrogation de fond, il lit la session sans rediriger et se tait si
- * l'écran est verrouillé : une redirection ferait perdre la salle sous le voile.
+ * interrogation de fond, il lit la session sans rediriger : une redirection
+ * ferait perdre la salle. La salle étant exemptée du verrou d'inactivité, une
+ * session verrouillée continue d'y signaler sa présence.
  */
 export async function signalerPresence(reunionId: string, medias: { micro: boolean; camera: boolean; ecran: boolean }): Promise<Signal> {
   const s = await session();
-  if (!s?.organizationId || s.verrouillee || s.doitChangerMotDePasse) return { etat: "muet" };
+  if (!s?.organizationId || s.doitChangerMotDePasse) return { etat: "muet" };
   if (!UUID.test(reunionId) || !(await peut("meeting.participer"))) return { etat: "muet" };
   const organizationId = s.organizationId;
 
@@ -232,6 +238,21 @@ export async function signalerPresence(reunionId: string, medias: { micro: boole
   } catch (erreur) {
     console.error("Meeting : signal de présence", erreur);
     return { etat: "muet" };
+  }
+}
+
+/** « Terminer pour tous » depuis la salle, exemptée du verrou d'inactivité. */
+export async function terminerDepuisLaSalle(reunionId: string): Promise<Resultat> {
+  const refus = await refusDroit("meeting.participer");
+  if (refus) return { ok: false, message: refus.erreur };
+  if (!UUID.test(reunionId)) return { ok: false, message: "Réunion introuvable." };
+  const { organizationId, acteur: qui } = await acteur(true);
+  try {
+    const { numero } = await db.transaction((tx) => appliquerGesteDans(tx, organizationId, reunionId, "terminer", qui));
+    rafraichir(reunionId);
+    return { ok: true, message: MESSAGES.terminer(numero) };
+  } catch (erreur) {
+    return { ok: false, message: lisible(erreur) };
   }
 }
 

@@ -4,7 +4,7 @@ import { useCallback, useEffect, useRef, useState, type ReactNode } from "react"
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 
-import { agirSurReunion, entrerDansLaSalle, quitterLaSalle, signalerPresence, type Jetons } from "@/modules/meeting/actions";
+import { entrerDansLaSalle, quitterLaSalle, signalerPresence, terminerDepuisLaSalle, type Jetons } from "@/modules/meeting/actions";
 import { PAS_SIGNAL_MS, adresseFlux, cheminFlux, colonnesMosaique } from "@/modules/meeting/calcul";
 import type { ParticipantVue } from "@/modules/meeting/requetes";
 
@@ -522,7 +522,7 @@ function SalleOuverte({
   const terminer = async () => {
     if (!confirm("Terminer la réunion pour tous les participants ?")) return;
     arreterEcran();
-    await agirSurReunion(reunionId, "terminer");
+    await terminerDepuisLaSalle(reunionId);
     routeur.push(`/meeting/${reunionId}`);
   };
 
@@ -545,7 +545,7 @@ function SalleOuverte({
   const absents = participants.filter((p) => !p.present);
 
   return (
-    <div className="flex min-h-[calc(100dvh-9rem)] flex-col overflow-hidden rounded-xl bg-[#0b1220] text-white">
+    <div className="flex h-[calc(100dvh-1.5rem)] lg:h-[calc(100dvh-2rem)] flex-col overflow-hidden rounded-xl bg-[#0b1220] text-white">
       <header className="flex flex-wrap items-center justify-between gap-2 px-4 py-3">
         <div className="min-w-0">
           <h1 className="truncate text-base font-semibold">{titre}</h1>

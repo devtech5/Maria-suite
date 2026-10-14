@@ -282,10 +282,14 @@ qu'avec le mot de passe ; la page reste montée, la saisie est conservée.
 (`sessions.verrouillee_le`, ou `last_seen_at` plus vieux que délai + marge) :
 recharger ne contourne pas le voile. Règles pures : `src/lib/auth/verrou.ts`.
 
-**La caisse est exemptée** : elle passe `exigerEntreprise({ malgreVerrou: true })`
-— page, encaissement, ouverture et clôture de tiroir. Toute nouvelle action
-appelée depuis l'écran de caisse doit en faire autant, sinon un onglet de
-gestion voisin qui se voile bloque l'encaissement. Nulle part ailleurs.
+**La caisse et la salle Meeting sont exemptées** : elles passent
+`exigerEntreprise({ malgreVerrou: true })` — pour la caisse : page,
+encaissement, ouverture et clôture de tiroir ; pour la salle : page, entrée,
+signal de présence, « Terminer pour tous ». Toute nouvelle action appelée
+depuis l'un de ces écrans doit en faire autant, sinon un onglet de gestion
+voisin qui se voile bloque l'encaissement ou cache la réunion. Les deux
+vivent hors de la coque de gestion, avec `VerrouInactivite mode="presence"` :
+seul un verrou demandé à la main les voile. Nulle part ailleurs.
 
 ## Présences : pointage automatique
 
@@ -327,7 +331,8 @@ le préfixe du chemin (`s/` Sécurité, `m/` Meeting) ; un jeton de flux est
 signé, propre à la réunion, valable deux minutes, renouvelé à chaque signal.
 La salle se signale toutes les quatre secondes (`signalerPresence`, lu par
 `session()` comme toute interrogation de fond) : présence, micro, écran
-partagé, temps cumulé. La salle n'est PAS exemptée du verrou d'inactivité.
+partagé, temps cumulé. La salle (`src/app/(salle)/`, plein cadre) est exemptée
+du verrou d'inactivité, comme la caisse.
 
 ## Reprise de l'existant
 
