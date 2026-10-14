@@ -6,6 +6,7 @@ import { useRouter } from "next/navigation";
 import { Portrait, reduirePhoto } from "@/components/personnes/photo";
 import { Retour, useOperation, type Resultat } from "@/components/ui/operations";
 import { CLASSE_CHAMP, Champ, Pastille, type TonPastille } from "@/components/ui/primitives";
+import { LIENS_URGENCE } from "@/modules/personnes/calcul";
 import {
   ajouterPiece,
   changerPhoto,
@@ -276,6 +277,8 @@ export interface EtatCivilAffiche {
   situationFamiliale: string | null;
   enfantsACharge: number | null;
   contactUrgence: string | null;
+  contactUrgenceLien: string | null;
+  contactUrgenceTelephone: string | null;
   telephone: string | null;
   email: string | null;
   adresse: string | null;
@@ -345,8 +348,21 @@ export function FormulaireEtatCivil({ employeeId, initial }: { employeeId: strin
         <Champ libelle="Adresse">
           <input name="adresse" defaultValue={v("adresse")} placeholder="Commune, quartier, repère" className={CLASSE_CHAMP} />
         </Champ>
-        <Champ libelle="Personne à prévenir" precision="Nom, lien et téléphone.">
+        <Champ libelle="Personne à prévenir" precision="En cas d'urgence : nom et prénoms.">
           <input name="contactUrgence" defaultValue={v("contactUrgence")} className={CLASSE_CHAMP} />
+        </Champ>
+        <Champ libelle="Lien avec le salarié">
+          <select name="contactUrgenceLien" defaultValue={v("contactUrgenceLien")} className={CLASSE_CHAMP}>
+            <option value="">—</option>
+            {Object.entries(LIENS_URGENCE).map(([cle, libelle]) => (
+              <option key={cle} value={cle}>
+                {libelle}
+              </option>
+            ))}
+          </select>
+        </Champ>
+        <Champ libelle="Téléphone de la personne à prévenir">
+          <input name="contactUrgenceTelephone" type="tel" defaultValue={v("contactUrgenceTelephone")} placeholder="07 00 00 00 00" className={`${CLASSE_CHAMP} chiffres`} />
         </Champ>
       </div>
       <div className="flex items-center justify-end gap-3">

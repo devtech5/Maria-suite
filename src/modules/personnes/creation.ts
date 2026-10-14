@@ -1,6 +1,6 @@
 import "server-only";
 
-import { and, eq } from "drizzle-orm";
+import { and, eq, like } from "drizzle-orm";
 
 import { db } from "@/db";
 import { auditLogs } from "@/db/schema";
@@ -18,6 +18,7 @@ import {
   type ModeRemuneration,
   type TypeContrat,
 } from "./schema";
+import { finEssai, formaterMatricule } from "./calcul";
 
 /** Date nue d'un horodatage, pour la comptabilité. */
 function isoDe(date: Date): string {
@@ -57,7 +58,8 @@ export async function creerSalarieDans(
   userId?: string,
 ): Promise<{ id: string; matricule: string }> {
   const contrat = donnees.contrat ?? "cdi";
-  const fin = contrat === "cdi" ? null : (donnees.fin ?? null);
+  // Une période d'essai sans terme saisi dure `MOIS_ESSAI` mois.
+  const fin = contrat === "cdi" ? null : (donnees.fin ?? (contrat === "essai" ? finEssai(donnees.debut) : null));
 
   if (contrat !== "cdi" && !fin) {
     throw new Error("Un contrat à durée déterminée porte un terme.");
@@ -66,7 +68,7 @@ export async function creerSalarieDans(
     throw new Error("Le terme du contrat précède son début.");
   }
 
-  const matricule = donnees.matricule?.trim() || (await matriculeLibre(tx, organizationId));
+  const matricule = donnees.matricule?.trim() || (await matriculeLibre(tx, organizationId, donnees.debut));
 
   const id = newId();
 
@@ -103,19 +105,24 @@ export async function creerSalarieDans(
 }
 
 /**
- * Prochain matricule libre : un matricule imposé — reprise, démonstration —
- * ne fait pas avancer le compteur, et sans ce saut la première embauche
- * suivante recevait S0001, déjà pris.
+ * Prochain matricule libre : MG-2601-007, date d'entrée puis rang dans
+ * l'effectif (`formaterMatricule`). Le rang vient du compteur `matricule`,
+ * recalé sur l'effectif existant par la migration qui a renuméroté.
+ *
+ * Un matricule imposé — reprise, démonstration — ne fait pas avancer le
+ * compteur : sans ce saut, l'embauche suivante recevrait un rang déjà porté.
  */
-async function matriculeLibre(tx: Transaction, organizationId: string): Promise<string> {
-  return prochainNumeroLibre(tx, organizationId, { cle: "employe", prefix: "S", padding: 4 }, async (candidat) => {
+async function matriculeLibre(tx: Transaction, organizationId: string, debut: string): Promise<string> {
+  const rang = await prochainNumeroLibre(tx, organizationId, { cle: "matricule", padding: 1 }, async (candidat) => {
     const [pris] = await tx
       .select({ id: employees.id })
       .from(employees)
-      .where(and(eq(employees.organizationId, organizationId), eq(employees.matricule, candidat)))
+      // Le rang est pris quel que soit le mois : MG-2501-007 interdit MG-2601-007.
+      .where(and(eq(employees.organizationId, organizationId), like(employees.matricule, formaterMatricule(debut, Number(candidat)).replace(/-\d{4}-/, "-____-"))))
       .limit(1);
     return Boolean(pris);
   });
+  return formaterMatricule(debut, Number(rang));
 }
 
 /**

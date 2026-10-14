@@ -18,6 +18,7 @@ import { fmt } from "@/lib/format";
 import { stockageConfigure } from "@/lib/stockage";
 import { piecesDuSalarie, salarieDe } from "@/modules/personnes/dossier";
 import { etatsPieces, piecesManquantes } from "@/modules/personnes/pieces";
+import { LIENS_URGENCE, lienUrgenceConnu } from "@/modules/personnes/calcul";
 
 export const metadata: Metadata = { title: "Fiche salarié" };
 
@@ -76,6 +77,8 @@ export default async function PageFicheSalarie({ params }: { params: Promise<{ i
     situationFamiliale: salarie.situationFamiliale,
     enfantsACharge: salarie.enfantsACharge,
     contactUrgence: salarie.contactUrgence,
+    contactUrgenceLien: salarie.contactUrgenceLien,
+    contactUrgenceTelephone: salarie.contactUrgenceTelephone,
     telephone: salarie.telephone,
     email: salarie.email,
     adresse: salarie.adresse,
@@ -127,6 +130,8 @@ export default async function PageFicheSalarie({ params }: { params: Promise<{ i
               ["Numéro CNPS", etatCivil.numeroCnps],
               ["Adresse", etatCivil.adresse],
               ["Personne à prévenir", etatCivil.contactUrgence],
+              ["Lien avec le salarié", etatCivil.contactUrgenceLien && lienUrgenceConnu(etatCivil.contactUrgenceLien) ? LIENS_URGENCE[etatCivil.contactUrgenceLien] : null],
+              ["Téléphone de la personne à prévenir", etatCivil.contactUrgenceTelephone],
             ].map(([libelle, valeur]) => (
               <div key={libelle}>
                 <dt className="text-xs text-[var(--encre-faible)]">{libelle}</dt>

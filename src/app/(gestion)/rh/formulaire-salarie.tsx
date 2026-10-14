@@ -5,6 +5,7 @@ import { useActionState, useState } from "react";
 import { ChoixPhoto } from "@/components/personnes/photo";
 import { Champ, CLASSE_CHAMP } from "@/components/ui/primitives";
 import { embaucherSalarie, type EtatSalarie } from "@/modules/personnes/actions";
+import { finEssai, MOIS_ESSAI } from "@/modules/personnes/calcul";
 
 const CONTRATS = [
   {
@@ -19,8 +20,8 @@ const CONTRATS = [
   },
   {
     valeur: "essai",
-    libelle: "Période d'essai",
-    precision: "Une fin, donc une décision à prendre avant elle.",
+    libelle: `Période d'essai (${String(MOIS_ESSAI).padStart(2, "0")} mois)`,
+    precision: `${MOIS_ESSAI} mois : la fin se calcule depuis la date d'embauche. Une décision à prendre avant elle.`,
   },
   {
     valeur: "stage",
@@ -41,6 +42,16 @@ type Contrat = (typeof CONTRATS)[number]["valeur"];
 export function FormulaireSalarie({ premier = false, dossier = false }: { premier?: boolean; dossier?: boolean }) {
   const [ouvert, setOuvert] = useState(false);
   const [contrat, setContrat] = useState<Contrat>("cdi");
+  const [debut, setDebut] = useState("");
+  const [fin, setFin] = useState("");
+  // Vrai dès qu'on touche au terme à la main : le calcul ne l'écrase plus.
+  const [finSaisie, setFinSaisie] = useState(false);
+
+  /** Terme proposé : la fin de la période d'essai, tant qu'on ne l'a pas changé. */
+  function proposerFin(nouveauContrat: Contrat, nouveauDebut: string) {
+    if (finSaisie || nouveauContrat !== "essai" || !/^d{4}-d{2}-d{2}$/.test(nouveauDebut)) return;
+    setFin(finEssai(nouveauDebut));
+  }
   const [etat, action, enCours] = useActionState<EtatSalarie, FormData>(
     embaucherSalarie,
     {},
@@ -107,7 +118,11 @@ export function FormulaireSalarie({ premier = false, dossier = false }: { premie
           <select
             name="contrat"
             value={contrat}
-            onChange={(e) => setContrat(e.target.value as Contrat)}
+            onChange={(e) => {
+              const choisi = e.target.value as Contrat;
+              setContrat(choisi);
+              proposerFin(choisi, debut);
+            }}
             className={CLASSE_CHAMP}
           >
             {CONTRATS.map((c) => (
@@ -123,16 +138,29 @@ export function FormulaireSalarie({ premier = false, dossier = false }: { premie
             name="debut"
             type="date"
             required
+            value={debut}
+            onChange={(e) => {
+              setDebut(e.target.value);
+              proposerFin(contrat, e.target.value);
+            }}
             className={`${CLASSE_CHAMP} chiffres`}
           />
         </Champ>
 
         {aUnTerme && (
-          <Champ libelle="Terme du contrat" precision="Obligatoire hors CDI.">
+          <Champ
+            libelle={contrat === "essai" ? "Fin de la période d'essai" : "Terme du contrat"}
+            precision={contrat === "essai" ? "Calculée sur la date d'embauche, modifiable." : "Obligatoire hors CDI."}
+          >
             <input
               name="fin"
               type="date"
               required
+              value={fin}
+              onChange={(e) => {
+                setFin(e.target.value);
+                setFinSaisie(true);
+              }}
               className={`${CLASSE_CHAMP} chiffres`}
             />
           </Champ>

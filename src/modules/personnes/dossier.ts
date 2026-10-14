@@ -232,6 +232,8 @@ export interface EtatCivil {
   situationFamiliale: string | null;
   enfantsACharge: number | null;
   contactUrgence: string | null;
+  contactUrgenceLien: string | null;
+  contactUrgenceTelephone: string | null;
   telephone: string | null;
   email: string | null;
   adresse: string | null;

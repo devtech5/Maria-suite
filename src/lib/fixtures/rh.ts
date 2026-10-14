@@ -38,15 +38,15 @@ export interface SalarieDemo {
 }
 
 export const SALARIES_DEMO: SalarieDemo[] = [
-  { matricule: "S0001", nom: "Koffi Bernard", poste: "Gérant", contrat: "cdi", debut: "2023-03-01", salaireBase: 450_000, numeroCnps: "0123456789" },
-  { matricule: "S0002", nom: "Amani Tatiana", poste: "Caissière", contrat: "cdi", debut: "2024-06-15", salaireBase: 180_000, numeroCnps: "0123456790" },
-  { matricule: "S0003", nom: "Aya Danielle", poste: "Caissière", contrat: "cdd", debut: "2026-02-01", fin: "2026-08-31", salaireBase: 165_000, numeroCnps: "0123456791" },
-  { matricule: "S0004", nom: "Sékou Diarra", poste: "Magasinier", contrat: "cdi", debut: "2024-09-10", salaireBase: 210_000, numeroCnps: "0123456792" },
-  { matricule: "S0005", nom: "Konan Michel", poste: "Livreur", contrat: "cdd", debut: "2026-04-01", fin: "2026-09-30", salaireBase: 155_000, numeroCnps: "0123456793" },
-  { matricule: "S0006", nom: "Traoré Fatou", poste: "Comptable", contrat: "cdi", debut: "2025-01-05", salaireBase: 320_000, numeroCnps: "0123456794" },
+  { matricule: "MG-2303-001", nom: "Koffi Bernard", poste: "Gérant", contrat: "cdi", debut: "2023-03-01", salaireBase: 450_000, numeroCnps: "0123456789" },
+  { matricule: "MG-2406-002", nom: "Amani Tatiana", poste: "Caissière", contrat: "cdi", debut: "2024-06-15", salaireBase: 180_000, numeroCnps: "0123456790" },
+  { matricule: "MG-2602-003", nom: "Aya Danielle", poste: "Caissière", contrat: "cdd", debut: "2026-02-01", fin: "2026-08-31", salaireBase: 165_000, numeroCnps: "0123456791" },
+  { matricule: "MG-2409-004", nom: "Sékou Diarra", poste: "Magasinier", contrat: "cdi", debut: "2024-09-10", salaireBase: 210_000, numeroCnps: "0123456792" },
+  { matricule: "MG-2604-005", nom: "Konan Michel", poste: "Livreur", contrat: "cdd", debut: "2026-04-01", fin: "2026-09-30", salaireBase: 155_000, numeroCnps: "0123456793" },
+  { matricule: "MG-2501-006", nom: "Traoré Fatou", poste: "Comptable", contrat: "cdi", debut: "2025-01-05", salaireBase: 320_000, numeroCnps: "0123456794" },
   // Sans numéro CNPS : l'absence est un cas réel, et l'écran doit la signaler
   // plutôt que de laisser une case vide qu'on ne remarque pas.
-  { matricule: "S0007", nom: "Yao Prince", poste: "Stagiaire", contrat: "stage", debut: "2026-07-01", fin: "2026-09-30", salaireBase: 75_000 },
+  { matricule: "MG-2607-007", nom: "Yao Prince", poste: "Stagiaire", contrat: "stage", debut: "2026-07-01", fin: "2026-09-30", salaireBase: 75_000 },
 ];
 
 // -------------------------------------------------------------- intervenants

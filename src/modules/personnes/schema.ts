@@ -91,8 +91,12 @@ export const employees = pgTable(
     sexe: text("sexe"),
     situationFamiliale: text("situation_familiale"),
     enfantsACharge: integer("enfants_a_charge"),
-    /** Personne à prévenir : nom, lien et téléphone, tels que saisis. */
+    /** Personne à prévenir en cas d'urgence : son nom. */
     contactUrgence: text("contact_urgence"),
+    /** Son lien avec le salarié, clé de `LIENS_URGENCE` (personnes/calcul.ts). */
+    contactUrgenceLien: text("contact_urgence_lien"),
+    /** Le numéro où la joindre. */
+    contactUrgenceTelephone: text("contact_urgence_telephone"),
 
     /**
      * Photo d'identité, réduite dans le navigateur et gardée EN BASE (data

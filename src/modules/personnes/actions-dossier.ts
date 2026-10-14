@@ -15,6 +15,7 @@ import {
   ouvrirPiecePour,
   retirerPiecePour,
 } from "./dossier";
+import { lienUrgenceConnu } from "./calcul";
 import { NATURES_PIECE, photoValide } from "./pieces";
 
 export type Resultat = { ok: true; message: string } | { ok: false; message: string };
@@ -108,6 +109,8 @@ const schemaEtatCivil = z.object({
   situationFamiliale: z.enum(["celibataire", "marie", "divorce", "veuf", "union_libre"]).nullable(),
   enfantsACharge: z.coerce.number().int().min(0).max(30).nullable(),
   contactUrgence: facultatif(200),
+  contactUrgenceLien: z.string().refine(lienUrgenceConnu, "Lien avec le salarié inconnu.").nullable(),
+  contactUrgenceTelephone: facultatif(30),
   telephone: facultatif(30),
   email: z
     .string()
@@ -133,6 +136,8 @@ export async function modifierEtatCivil(employeeId: string, donnees: FormData): 
     situationFamiliale: texte(donnees, "situationFamiliale"),
     enfantsACharge: texte(donnees, "enfantsACharge"),
     contactUrgence: texte(donnees, "contactUrgence"),
+    contactUrgenceLien: texte(donnees, "contactUrgenceLien"),
+    contactUrgenceTelephone: texte(donnees, "contactUrgenceTelephone"),
     telephone: texte(donnees, "telephone"),
     email: texte(donnees, "email"),
     adresse: texte(donnees, "adresse"),

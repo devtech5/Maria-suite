@@ -74,10 +74,18 @@ describe("dossier du salarié en base", () => {
 
   it("un matricule imposé ne fait plus échouer l'embauche suivante", async () => {
     const { organizationId } = await semerEntreprise(db, "Reprise");
-    await creerSalariePour(organizationId, { nom: "Repris 1", poste: "A", debut: "2026-01-01", salaireBase: 0, matricule: "S0001" });
-    await creerSalariePour(organizationId, { nom: "Repris 2", poste: "A", debut: "2026-01-01", salaireBase: 0, matricule: "S0002" });
+    await creerSalariePour(organizationId, { nom: "Repris 1", poste: "A", debut: "2025-03-01", salaireBase: 0, matricule: "MG-2503-001" });
+    // Rang 2 imposé sur un autre mois : il reste pris pour toute embauche.
+    await creerSalariePour(organizationId, { nom: "Repris 2", poste: "A", debut: "2025-11-01", salaireBase: 0, matricule: "MG-2511-002" });
     const { matricule } = await creerSalariePour(organizationId, { nom: "Nouveau", poste: "A", debut: "2026-01-01", salaireBase: 0 });
-    expect(matricule).toBe("S0003");
+    expect(matricule).toBe("MG-2601-003");
+  });
+
+  it("le matricule dit le mois d'entrée puis le rang dans l'effectif", async () => {
+    const { organizationId } = await semerEntreprise(db, "Effectif");
+    const a = await creerSalariePour(organizationId, { nom: "Premier", poste: "A", debut: "2026-01-05", salaireBase: 0 });
+    const b = await creerSalariePour(organizationId, { nom: "Deuxième", poste: "A", debut: "2025-11-20", salaireBase: 0 });
+    expect([a.matricule, b.matricule]).toEqual(["MG-2601-001", "MG-2511-002"]);
   });
 
   it("la base refuse une photo qui n'est pas une image", async () => {
