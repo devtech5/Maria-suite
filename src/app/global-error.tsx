@@ -1,5 +1,7 @@
 "use client";
 
+import { DetailErreur } from "@/components/coque/detail-erreur";
+
 /**
  * Dernier filet : la coque racine elle-même a échoué.
  *
@@ -54,9 +56,18 @@ export default function ErreurGlobale({
           </p>
         )}
 
+        <div style={{ width: "100%", maxWidth: "72ch" }}>
+          <DetailErreur digest={error.digest} sombre />
+        </div>
+
         <button
           type="button"
-          onClick={() => retry()}
+          // Rechargement complet, pas `retry()` seul : après un déploiement,
+          // l'onglet garde l'ancien code et rejouerait la même erreur.
+          onClick={() => {
+            retry();
+            window.location.reload();
+          }}
           style={{
             marginTop: "0.5rem",
             height: "3rem",

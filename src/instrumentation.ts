@@ -1,5 +1,7 @@
 import type { Instrumentation } from "next";
 
+import { enregistrerErreur } from "./lib/erreurs-recentes";
+
 /**
  * Démarrage du serveur.
  *
@@ -71,4 +73,15 @@ export const onRequestError: Instrumentation.onRequestError = (
   // `console.error` et non `console.log` : les journaux séparent les deux flux, et une
   // erreur noyée dans les requêtes ordinaires n'est plus une alerte.
   console.error(JSON.stringify(details));
+
+  // Et pour l'écran d'erreur : le propriétaire y lit le message sans ouvrir
+  // Dokploy (`src/lib/erreurs-recentes.ts`).
+  if (details.digest) {
+    enregistrerErreur({
+      digest: details.digest,
+      message: details.message,
+      chemin: details.chemin,
+      horodatage: details.horodatage,
+    });
+  }
 };

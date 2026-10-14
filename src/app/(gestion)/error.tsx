@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 
+import { DetailErreur } from "@/components/coque/detail-erreur";
 import { BoutonPrincipal } from "@/components/ui/primitives";
 
 /**
@@ -44,6 +45,8 @@ export default function ErreurGestion({
           </code>
         </p>
       )}
+
+      <DetailErreur digest={error.digest} />
 
       <div className="mt-5 flex justify-center gap-2">
         <BoutonPrincipal onClick={() => retry()}>Réessayer</BoutonPrincipal>
