@@ -1,7 +1,6 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
-import Image from "next/image";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 
@@ -11,12 +10,19 @@ import type { Droit } from "@/lib/droits/catalogue";
 import { groupesVisibles, raccourcisCompte, type CleIcone, type EntreeModule } from "@/lib/navigation";
 
 import { IconeModule } from "./icone-module";
-import { SignatureMaria } from "./signature";
+import { EmblemeMaria, SignatureMaria } from "./signature";
 import { verrouillerMaintenant } from "./verrou-inactivite";
 
+/** Élément actif : un fond à peine plus soutenu que la barre, l'encre pleine. */
+const CLASSE_ACTIF = "bg-[var(--surface-creuse)] text-[var(--encre)]";
+/** Élément au repos : encre adoucie, qui se fonce au survol. */
+const CLASSE_REPOS =
+  "text-[var(--encre-douce)] hover:bg-[var(--surface-creuse)] hover:text-[var(--encre)]";
+/** Commun aux deux : 44 px au doigt, plus serré à la souris sur grand écran. */
+const CLASSE_LIEN =
+  "h-cible flex shrink-0 items-center gap-2.5 whitespace-nowrap rounded-lg px-3 text-sm font-medium transition-colors lg:h-9 lg:w-full";
+
 /** Hors groupes : l'accueil et le tableau de bord les traversent tous. */
-/** Élément actif : un ton plus clair que la barre, et le filet d'or de la charte à gauche. */
-const CLASSE_ACTIF = "bg-[var(--surface-creuse)] text-white shadow-[inset_3px_0_0_var(--color-or)]";
 
 const ACCUEILS: { href: string; libelle: string; icone: CleIcone }[] = [
   { href: "/accueil", libelle: "Accueil", icone: "accueil" },
@@ -33,6 +39,10 @@ const ACCUEILS: { href: string; libelle: string; icone: CleIcone }[] = [
  *
  * Un groupe replié le reste d'un écran à l'autre. Quelqu'un qui ne fait jamais
  * de comptabilité replie Finance une fois et ne la revoit plus.
+ *
+ * Sur grand écran, la barre est une carte posée sur le fond de page, bordée et
+ * arrondie, à la manière du tableau de bord Dokploy. Elle suit le thème :
+ * claire par défaut, sombre quand la page l'est.
  */
 export function BarreLaterale({
   nomUtilisateur,
@@ -78,38 +88,29 @@ export function BarreLaterale({
   return (
     <nav
       aria-label="Modules"
-      className="nav-sombre flex shrink-0 gap-1 overflow-x-auto border-b border-[var(--filet)] bg-[var(--surface)] px-3 py-2 lg:w-56 lg:flex-col lg:overflow-x-visible lg:overflow-y-auto lg:border-b-0 lg:border-r lg:px-2.5 lg:py-3"
+      className="flex shrink-0 gap-1 overflow-x-auto border-b border-[var(--filet)] bg-[var(--surface)] px-3 py-2 text-[var(--encre)] lg:m-2 lg:mr-0 lg:w-60 lg:flex-col lg:overflow-x-visible lg:overflow-y-auto lg:rounded-xl lg:border lg:px-2.5 lg:py-3 lg:shadow-sm"
     >
       <Link
         href="/accueil"
         aria-label="MARIA GROUP — accueil"
-        className="mb-3 hidden items-center gap-2.5 border-b border-[var(--filet)] px-2 pb-3 pt-1 lg:flex"
+        className="mb-4 hidden items-center gap-2.5 rounded-lg px-2 py-1.5 hover:bg-[var(--surface-creuse)] lg:flex"
       >
-        <Image
-          src="/marque/icone-blanc-or-detouree.png"
-          alt=""
-          width={230}
-          height={237}
-          unoptimized
-          className="size-9 shrink-0"
-        />
+        <EmblemeMaria className="size-8 shrink-0" />
         <span className="min-w-0 leading-tight">
-          <span className="block whitespace-nowrap text-[13px] font-bold tracking-[0.12em] text-white">MARIA GROUP</span>
-          <span className="block text-[10px] font-semibold uppercase tracking-[0.2em] text-or">Maria Suite</span>
+          <span className="block truncate text-sm font-semibold">
+            {entrepriseActive ?? "MARIA GROUP"}
+          </span>
+          <span className="block text-[11px] text-[var(--encre-faible)]">Maria Suite</span>
         </span>
       </Link>
 
-      <div className="contents lg:mb-2 lg:block">
+      <div className="contents lg:mb-3 lg:block">
         {ACCUEILS.map((entree) => (
           <Link
             key={entree.href}
             href={entree.href}
             aria-current={chemin === entree.href ? "page" : undefined}
-            className={`h-cible flex shrink-0 items-center gap-2.5 whitespace-nowrap rounded-lg px-3 text-sm font-medium lg:w-full ${
-              chemin === entree.href
-                ? CLASSE_ACTIF
-                : "text-[var(--encre-douce)] hover:bg-[var(--surface-creuse)]"
-            }`}
+            className={`${CLASSE_LIEN} ${chemin === entree.href ? CLASSE_ACTIF : CLASSE_REPOS}`}
           >
             <IconeModule cle={entree.icone} className="size-[18px] shrink-0" />
             {entree.libelle}
@@ -126,12 +127,12 @@ export function BarreLaterale({
         const contientActif = visibles.some((m) => chemin.startsWith(m.racine));
 
         return (
-          <div key={groupe.titre} className="contents lg:mb-2 lg:block">
+          <div key={groupe.titre} className="contents lg:mb-3 lg:block">
             <button
               type="button"
               onClick={() => basculerGroupe(groupe.titre)}
               aria-expanded={!replie || contientActif}
-              className="mb-0.5 hidden w-full items-center justify-between rounded px-2 py-1 text-[11px] font-semibold uppercase tracking-wider text-[var(--encre-faible)] hover:bg-[var(--surface-creuse)] lg:flex"
+              className="mb-1 hidden w-full items-center justify-between rounded px-2 py-1 text-xs font-medium text-[var(--encre-faible)] hover:text-[var(--encre-douce)] lg:flex"
             >
               {groupe.titre}
               <span
@@ -150,11 +151,7 @@ export function BarreLaterale({
                     key={module.href}
                     href={module.href}
                     aria-current={actif ? "page" : undefined}
-                    className={`h-cible flex shrink-0 items-center gap-2.5 whitespace-nowrap rounded-lg px-3 text-sm font-medium lg:w-full ${
-                      actif
-                        ? CLASSE_ACTIF
-                        : "text-[var(--encre-douce)] hover:bg-[var(--surface-creuse)]"
-                    }`}
+                    className={`${CLASSE_LIEN} ${actif ? CLASSE_ACTIF : CLASSE_REPOS}`}
                   >
                     <IconeModule cle={module.icone} className="size-[18px] shrink-0" />
                     {module.libelle}
@@ -165,7 +162,7 @@ export function BarreLaterale({
         );
       })}
 
-      <div className="ml-auto flex items-center gap-1 lg:ml-0 lg:mt-auto lg:flex-col lg:items-stretch lg:gap-2 lg:pt-3">
+      <div className="ml-auto flex items-center gap-1 lg:ml-0 lg:mt-auto lg:flex-col lg:items-stretch lg:gap-2 lg:border-t lg:border-[var(--filet)] lg:pt-3">
         <MenuCompte
           gereLesMembres={accordes.has("organisation.membre.gerer")}
           raccourcis={raccourcisCompte(modulesOuverts)}
@@ -251,17 +248,29 @@ export function MenuCompte({
         aria-haspopup="menu"
         className="flex h-cible w-full items-center gap-2 rounded-lg px-2 text-left hover:bg-[var(--surface-creuse)]"
       >
-        <span className="flex size-7 shrink-0 items-center justify-center rounded-full bg-marque-600 text-[11px] font-bold text-white">
+        <span className="flex size-8 shrink-0 items-center justify-center rounded-full border border-[var(--filet)] bg-[var(--surface-creuse)] text-[11px] font-semibold text-[var(--encre-douce)]">
           {initiales}
         </span>
         <span className="hidden min-w-0 flex-1 lg:block">
-          <span className="block truncate text-xs font-medium">
+          <span className="block truncate text-sm font-medium">
             {nomUtilisateur}
           </span>
-          <span className="block truncate text-[11px] text-[var(--encre-faible)]">
+          <span className="block truncate text-xs text-[var(--encre-faible)]">
             {entrepriseActive ?? "Aucune entreprise"}
           </span>
         </span>
+        <svg
+          viewBox="0 0 16 16"
+          aria-hidden
+          className="hidden size-4 shrink-0 text-[var(--encre-faible)] lg:block"
+          fill="none"
+          stroke="currentColor"
+          strokeWidth="1.5"
+          strokeLinecap="round"
+          strokeLinejoin="round"
+        >
+          <path d="m5 6 3-3 3 3M5 10l3 3 3-3" />
+        </svg>
       </button>
 
       {ouvert && (

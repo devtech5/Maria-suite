@@ -140,37 +140,6 @@
   --color-marque-700: #3f6a9c;
 }
 
-/**
- * Navigation sombre, dans les deux thèmes.
- *
- * La barre latérale redéfinit pour elle seule les couleurs de surface et
- * d'encre : tout ce qu'elle contient — liens, titres de groupe, menu de
- * compte — passe en sombre sans une classe de plus. La page reste claire, et
- * l'œil sépare d'un coup ce qui navigue de ce qui se lit.
- *
- * Sa surface est le bleu nuit exact de la charte : le logo blanc et or, à
- * fond opaque, s'y pose sans cadre. L'or y marque l'élément actif.
- */
-.nav-sombre {
-  --fond: #0f2236;
-  --surface: #162e49;
-  --surface-creuse: #213d5e;
-  --encre: #f4f6f9;
-  --encre-douce: #c9d4e2;
-  --encre-faible: #8fa2bb;
-  --filet: #2a4566;
-  --color-marque-50: #1d3756;
-  --color-marque-400: #d4bd8c;
-  --color-marque-600: #4a78ad;
-  --color-marque-700: #3f6a9c;
-  --color-danger-50: #3a1916;
-  --color-danger-600: #f2826f;
-  background: var(--surface);
-  color: var(--encre);
-  color-scheme: dark;
-  scrollbar-color: var(--filet) transparent;
-}
-
 /*
  * Un mot de passe masqué s'affiche en étoiles, pas en points.
  *
