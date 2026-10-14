@@ -18,7 +18,7 @@ import {
   type Statut,
 } from "@/modules/taches/calcul";
 
-import { ChampsTache, type Membre } from "./champs-tache";
+import { ChampsTache, valeurExecutant, type Salarie } from "./champs-tache";
 
 export interface TacheAffichee {
   id: string;
@@ -31,7 +31,10 @@ export interface TacheAffichee {
   creeParUserId: string;
   createur: string;
   assigneeUserId: string;
+  assigneeEmployeId: string | null;
   assignee: string;
+  /** Salarié sans compte : l'auteur suit la tâche pour lui. */
+  sansCompte: boolean;
   creeLeIso: string;
   termineeLeIso: string | null;
   terminateur: string | null;
@@ -66,14 +69,14 @@ export function ListeTaches({
   taches,
   moi,
   attribue,
-  membres,
+  personnel,
   aujourdhui,
   montrerAssignee,
 }: {
   taches: TacheAffichee[];
   moi: string;
   attribue: boolean;
-  membres: Membre[];
+  personnel: Salarie[];
   /** Jour ISO du serveur : le retard se juge à la même date pour tout le monde. */
   aujourdhui: string;
   montrerAssignee: boolean;
@@ -174,7 +177,10 @@ export function ListeTaches({
                     </p>
                     <p className="chiffres mt-0.5 text-xs text-[var(--encre-faible)]">
                       {t.numero}
-                      {montrerAssignee || t.assigneeUserId !== moi ? ` · pour ${t.assigneeUserId === moi ? "moi" : t.assignee}` : ""}
+                      {montrerAssignee || t.assigneeUserId !== moi || t.sansCompte
+                        ? ` · pour ${t.assigneeUserId === moi && !t.sansCompte ? "moi" : t.assignee}`
+                        : ""}
+                      {t.sansCompte && " (sans compte, suivie par son auteur)"}
                       {t.creeParUserId !== t.assigneeUserId && ` · confiée par ${t.creeParUserId === moi ? "moi" : t.createur}`}
                       {` · créée le ${MOMENT.format(new Date(t.creeLeIso))}`}
                     </p>
@@ -272,7 +278,7 @@ export function ListeTaches({
                     className="mt-3 rounded-lg border border-[var(--filet)] bg-[var(--surface-creuse)] p-3"
                   >
                     <ChampsTache
-                      membres={membres}
+                      personnel={personnel}
                       moi={moi}
                       attribue={attribue}
                       initial={{
@@ -280,7 +286,8 @@ export function ListeTaches({
                         description: t.description,
                         priorite: t.priorite,
                         echeance: t.echeance,
-                        assigneeUserId: t.assigneeUserId,
+                        executant: valeurExecutant(t, moi),
+                        executantNom: t.assignee,
                       }}
                     />
                     <div className="mt-3 flex justify-end gap-2">

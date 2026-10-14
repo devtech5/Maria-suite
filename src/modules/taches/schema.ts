@@ -3,6 +3,7 @@ import { check, date, index, pgEnum, pgTable, text, timestamp, unique, uuid } fr
 
 import { primaryId, rowVersion, timestamps } from "@/db/schema/_shared";
 import { organizations } from "@/db/schema/tenancy";
+import { employees } from "@/modules/personnes/schema";
 
 /**
  * Tâches.
@@ -12,8 +13,11 @@ import { organizations } from "@/db/schema/tenancy";
  * et le journal d'activité garde le reste — qui l'a créée, attribuée,
  * réattribuée, rouverte.
  *
- * L'exécutant est un UTILISATEUR (`users`) : une tâche s'exécute depuis
- * l'application. Un maçon sans compte reçoit une mission, pas une tâche.
+ * L'exécutant se choisit dans le Personnel (`employees`), pas dans une liste
+ * de comptes ressaisie à part. Celui qui commence et termine dans
+ * l'application reste un UTILISATEUR (`assignee_user_id`) : le compte du
+ * salarié quand il en a un, sinon le créateur, qui suit la tâche pour lui —
+ * un magasinier sans compte ne verra jamais l'écran.
  */
 export const statutTache = pgEnum("statut_tache", ["a_faire", "en_cours", "terminee", "annulee"]);
 
@@ -38,8 +42,10 @@ export const taches = pgTable(
     echeance: date("echeance"),
 
     creeParUserId: uuid("cree_par_user_id").notNull(),
-    /** Exécutant. Égal au créateur pour une tâche personnelle. */
+    /** Qui la fait avancer dans l'application. Égal au créateur pour une tâche personnelle. */
     assigneeUserId: uuid("assignee_user_id").notNull(),
+    /** Salarié du Personnel à qui la tâche est confiée. Nul : tâche pour soi, ou ancienne tâche. */
+    assigneeEmployeId: uuid("assignee_employe_id").references(() => employees.id, { onDelete: "set null" }),
     attribueeLe: timestamp("attribuee_le", { withTimezone: true }).notNull().defaultNow(),
 
     demarreeLe: timestamp("demarree_le", { withTimezone: true }),

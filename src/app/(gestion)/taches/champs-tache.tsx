@@ -1,28 +1,55 @@
 import { CLASSE_CHAMP } from "@/components/ui/primitives";
 import { LIBELLE_PRIORITE, type Priorite } from "@/modules/taches/calcul";
 
-export interface Membre {
-  userId: string;
+/** Un salarié du Personnel, avec sa fonction. */
+export interface Salarie {
+  id: string;
   nom: string;
+  poste: string;
+  userId: string | null;
+}
+
+/**
+ * Exécutant tel que le formulaire l'envoie : vide pour soi, `e:<salarié>`
+ * pour le Personnel, `u:<compte>` pour une tâche d'avant le Personnel.
+ */
+export function valeurExecutant(t: { assigneeEmployeId: string | null; assigneeUserId: string }, moi: string): string {
+  if (t.assigneeEmployeId) return `e:${t.assigneeEmployeId}`;
+  return t.assigneeUserId === moi ? "" : `u:${t.assigneeUserId}`;
 }
 
 /**
  * Champs d'une tâche, pour la créer comme pour la modifier.
  *
- * Sans le droit d'attribuer, pas de choix d'exécutant : la tâche est pour soi.
+ * L'exécutant se choisit dans le Personnel, avec sa fonction. Sans le droit
+ * d'attribuer, pas de choix : la tâche est pour soi.
  */
 export function ChampsTache({
-  membres,
+  personnel,
   moi,
   attribue,
   initial,
 }: {
-  membres: Membre[];
+  personnel: Salarie[];
   moi: string;
   attribue: boolean;
-  initial?: { titre: string; description: string | null; priorite: Priorite; echeance: string | null; assigneeUserId: string };
+  initial?: {
+    titre: string;
+    description: string | null;
+    priorite: Priorite;
+    echeance: string | null;
+    executant: string;
+    /** Nom de l'exécutant actuel, s'il n'est plus dans la liste. */
+    executantNom: string;
+  };
 }) {
   const libelle = "mb-1 block text-xs font-semibold text-[var(--encre-faible)]";
+  // Soi-même en tête : sa propre fiche du Personnel, si on en a une.
+  const monSalarie = personnel.find((p) => p.userId === moi);
+  const valeurMoi = monSalarie ? `e:${monSalarie.id}` : "";
+  const autres = personnel.filter((p) => p !== monSalarie);
+  const actuel = initial?.executant ?? valeurMoi;
+  const horsListe = actuel !== "" && actuel !== valeurMoi && !autres.some((p) => `e:${p.id}` === actuel);
   return (
     <div className="space-y-3">
       <label className="block">
@@ -65,16 +92,18 @@ export function ChampsTache({
         {attribue ? (
           <label className="block">
             <span className={libelle}>Exécutée par</span>
-            <select name="assigneeUserId" defaultValue={initial?.assigneeUserId ?? moi} className={CLASSE_CHAMP}>
-              {membres.map((m) => (
-                <option key={m.userId} value={m.userId}>
-                  {m.userId === moi ? `${m.nom} (moi)` : m.nom}
+            <select name="executant" defaultValue={actuel} className={CLASSE_CHAMP}>
+              <option value={valeurMoi}>Moi</option>
+              {horsListe && <option value={actuel}>{initial?.executantNom}</option>}
+              {autres.map((p) => (
+                <option key={p.id} value={`e:${p.id}`}>
+                  {p.nom} — {p.poste}
                 </option>
               ))}
             </select>
           </label>
         ) : (
-          <input type="hidden" name="assigneeUserId" value={initial?.assigneeUserId ?? moi} />
+          <input type="hidden" name="executant" value={initial?.executant ?? ""} />
         )}
       </div>
     </div>

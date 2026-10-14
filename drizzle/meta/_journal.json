@@ -365,6 +365,13 @@
       "when": 1791984745720,
       "tag": "0051_stock_coupe",
       "breakpoints": true
+    },
+    {
+      "idx": 52,
+      "version": "7",
+      "when": 1792003230993,
+      "tag": "0052_taches_personnel",
+      "breakpoints": true
     }
   ]
 }

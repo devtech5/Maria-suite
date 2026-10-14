@@ -8,7 +8,7 @@ import { exigerEntreprise } from "@/lib/auth/dal";
 import { peut, refusDroit } from "@/lib/droits/garde";
 
 import type { Acteur, Geste } from "./calcul";
-import { appliquerGesteDans, creerTacheDans, modifierTacheDans } from "./creation";
+import { appliquerGesteDans, creerTacheDans, modifierTacheDans, type Executant } from "./creation";
 import { notifier } from "@/modules/communication/notifications";
 
 const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
@@ -46,7 +46,16 @@ const schemaTache = z.object({
   description: z.string().max(2000).optional(),
   priorite: z.enum(["basse", "normale", "haute", "urgente"]),
   echeance: z.string().regex(DATE_ISO).optional(),
-  assigneeUserId: z.string().regex(UUID).optional(),
+  executant: z
+    .string()
+    .regex(/^(?:[eu]:[0-9a-f-]{36})?$/i, "Exécutant inconnu.")
+    .optional()
+    .transform((v): Executant | null => {
+      if (!v) return null;
+      const id = v.slice(2);
+      if (!UUID.test(id)) return null;
+      return v.startsWith("e:") ? { employeId: id } : { userId: id };
+    }),
 });
 
 function lireTache(donnees: FormData) {
@@ -55,7 +64,7 @@ function lireTache(donnees: FormData) {
     description: texte(donnees, "description"),
     priorite: donnees.get("priorite") ?? "normale",
     echeance: texte(donnees, "echeance"),
-    assigneeUserId: texte(donnees, "assigneeUserId"),
+    executant: texte(donnees, "executant"),
   });
 }
 
@@ -68,11 +77,11 @@ export async function creerTache(donnees: FormData): Promise<Resultat> {
   if (!analyse.success) return { ok: false, message: analyse.error.issues[0].message };
 
   try {
-    const { numero } = await db.transaction((tx) => creerTacheDans(tx, organizationId, analyse.data, qui));
+    const { numero, assigneeUserId, pourAutrui } = await db.transaction((tx) => creerTacheDans(tx, organizationId, analyse.data, qui));
     rafraichir();
-    const pourAutrui = analyse.data.assigneeUserId && analyse.data.assigneeUserId !== qui.userId;
-    if (pourAutrui && analyse.data.assigneeUserId) {
-      await notifier(organizationId, [analyse.data.assigneeUserId], {
+    // Un salarié sans compte n'a pas de cloche : c'est l'auteur qui suit sa tâche.
+    if (assigneeUserId !== qui.userId) {
+      await notifier(organizationId, [assigneeUserId], {
         categorie: "tache",
         titre: `Nouvelle tâche ${numero} : ${analyse.data.titre}`,
         corps: analyse.data.echeance ? `À faire avant le ${analyse.data.echeance}.` : null,
@@ -96,7 +105,7 @@ export async function modifierTache(tacheId: string, donnees: FormData): Promise
 
   try {
     const { numero } = await db.transaction((tx) =>
-      modifierTacheDans(tx, organizationId, tacheId, { ...analyse.data, assigneeUserId: analyse.data.assigneeUserId ?? qui.userId }, qui),
+      modifierTacheDans(tx, organizationId, tacheId, analyse.data, qui),
     );
     rafraichir();
     return { ok: true, message: `Tâche ${numero} mise à jour.` };

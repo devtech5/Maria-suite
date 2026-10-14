@@ -1,8 +1,8 @@
 import "server-only";
 
-import { and, eq, sql } from "drizzle-orm";
+import { and, eq, isNull, sql } from "drizzle-orm";
 
-import { auditLogs, memberships } from "@/db/schema";
+import { auditLogs, employees, memberships } from "@/db/schema";
 import { newId } from "@/lib/ids";
 import { prochainNumero, type Transaction } from "@/lib/sequences";
 
@@ -30,6 +30,20 @@ async function journaliser(
   });
 }
 
+async function estMembreActif(tx: Transaction, organizationId: string, userId: string): Promise<boolean> {
+  const [membre] = await tx
+    .select({ id: memberships.id })
+    .from(memberships)
+    .where(
+      and(
+        eq(memberships.organizationId, organizationId),
+        eq(memberships.userId, userId),
+        eq(memberships.status, "actif"),
+      ),
+    );
+  return Boolean(membre);
+}
+
 /** L'exécutant doit être un membre actif de l'entreprise. */
 async function verifierMembre(tx: Transaction, organizationId: string, userId: string): Promise<void> {
   const [membre] = await tx
@@ -45,13 +59,66 @@ async function verifierMembre(tx: Transaction, organizationId: string, userId: s
   if (!membre) throw new Error("Cette personne n'a pas d'accès actif à l'entreprise.");
 }
 
+/**
+ * À qui la tâche est confiée : un salarié du Personnel, ou un compte (les
+ * tâches d'avant le Personnel). Absent : la tâche est pour soi.
+ */
+export type Executant = { employeId: string } | { userId: string };
+
 export interface NouvelleTache {
   titre: string;
   description?: string | null;
   priorite: Priorite;
   echeance?: string | null;
-  /** Exécutant. Absent : la tâche est pour soi. */
-  assigneeUserId?: string | null;
+  executant?: Executant | null;
+}
+
+interface ExecutantResolu {
+  assigneeUserId: string;
+  assigneeEmployeId: string | null;
+  /** Vrai si la tâche part chez quelqu'un d'autre que son auteur. */
+  pourAutrui: boolean;
+}
+
+/**
+ * Ramène l'exécutant choisi au compte qui fera avancer la tâche.
+ *
+ * Un salarié avec un compte actif la reçoit dans sa liste. Sans compte — ou
+ * avec un accès révoqué —, c'est l'auteur qui la suit pour lui : la tâche
+ * reste rattachée au salarié, mais personne d'autre ne pourrait la terminer.
+ */
+async function resoudreExecutant(
+  tx: Transaction,
+  organizationId: string,
+  executant: Executant | null | undefined,
+  acteur: Acteur,
+): Promise<ExecutantResolu> {
+  if (!executant) return { assigneeUserId: acteur.userId, assigneeEmployeId: null, pourAutrui: false };
+
+  if ("userId" in executant) {
+    if (executant.userId !== acteur.userId) await verifierMembre(tx, organizationId, executant.userId);
+    return { assigneeUserId: executant.userId, assigneeEmployeId: null, pourAutrui: executant.userId !== acteur.userId };
+  }
+
+  const [salarie] = await tx
+    .select({ id: employees.id, userId: employees.userId })
+    .from(employees)
+    .where(
+      and(
+        eq(employees.id, executant.employeId),
+        eq(employees.organizationId, organizationId),
+        eq(employees.actif, true),
+        isNull(employees.deletedAt),
+      ),
+    );
+  if (!salarie) throw new Error("Ce salarié ne figure pas, ou plus, au Personnel.");
+
+  const compte = salarie.userId && (await estMembreActif(tx, organizationId, salarie.userId)) ? salarie.userId : null;
+  return {
+    assigneeUserId: compte ?? acteur.userId,
+    assigneeEmployeId: salarie.id,
+    pourAutrui: compte !== acteur.userId,
+  };
 }
 
 /**
@@ -63,12 +130,12 @@ export async function creerTacheDans(
   organizationId: string,
   donnees: NouvelleTache,
   acteur: Acteur,
-): Promise<{ id: string; numero: string }> {
-  const assignee = donnees.assigneeUserId ?? acteur.userId;
-  if (assignee !== acteur.userId) {
-    if (!acteur.attribue) throw new Error("Votre rôle ne permet pas d'attribuer une tâche à quelqu'un d'autre.");
-    await verifierMembre(tx, organizationId, assignee);
+): Promise<{ id: string; numero: string; assigneeUserId: string; pourAutrui: boolean }> {
+  const executant = await resoudreExecutant(tx, organizationId, donnees.executant, acteur);
+  if (executant.pourAutrui && !acteur.attribue) {
+    throw new Error("Votre rôle ne permet pas d'attribuer une tâche à quelqu'un d'autre.");
   }
+  const assignee = executant.assigneeUserId;
 
   const annee = String(new Date().getUTCFullYear());
   const numero = await prochainNumero(tx, organizationId, { cle: "tache", prefix: `TCH-${annee}-`, padding: 5, periode: annee });
@@ -83,6 +150,7 @@ export async function creerTacheDans(
     echeance: donnees.echeance ?? null,
     creeParUserId: acteur.userId,
     assigneeUserId: assignee,
+    assigneeEmployeId: executant.assigneeEmployeId,
   });
   await journaliser(tx, organizationId, acteur.userId, "tache.creer", id, {
     numero,
@@ -90,11 +158,16 @@ export async function creerTacheDans(
     priorite: donnees.priorite,
     echeance: donnees.echeance ?? null,
     assigneeUserId: assignee,
+    assigneeEmployeId: executant.assigneeEmployeId,
   });
-  if (assignee !== acteur.userId) {
-    await journaliser(tx, organizationId, acteur.userId, "tache.attribuer", id, { numero, assigneeUserId: assignee });
+  if (executant.pourAutrui) {
+    await journaliser(tx, organizationId, acteur.userId, "tache.attribuer", id, {
+      numero,
+      assigneeUserId: assignee,
+      assigneeEmployeId: executant.assigneeEmployeId,
+    });
   }
-  return { id, numero };
+  return { id, numero, assigneeUserId: assignee, pourAutrui: executant.pourAutrui };
 }
 
 async function tacheVerrouillee(tx: Transaction, organizationId: string, tacheId: string) {
@@ -165,7 +238,7 @@ export interface ModificationTache {
   description?: string | null;
   priorite: Priorite;
   echeance?: string | null;
-  assigneeUserId: string;
+  executant?: Executant | null;
 }
 
 /**
@@ -188,12 +261,11 @@ export async function modifierTacheDans(
     throw new Error(`${tache.numero} est close : rouvrez-la pour la modifier.`);
   }
 
-  const reattribuee = donnees.assigneeUserId !== tache.assigneeUserId;
-  if (reattribuee) {
-    if (!acteur.attribue && donnees.assigneeUserId !== acteur.userId) {
-      throw new Error("Votre rôle ne permet pas d'attribuer une tâche à quelqu'un d'autre.");
-    }
-    await verifierMembre(tx, organizationId, donnees.assigneeUserId);
+  const executant = await resoudreExecutant(tx, organizationId, donnees.executant, acteur);
+  const reattribuee =
+    executant.assigneeUserId !== tache.assigneeUserId || executant.assigneeEmployeId !== tache.assigneeEmployeId;
+  if (reattribuee && executant.pourAutrui && !acteur.attribue) {
+    throw new Error("Votre rôle ne permet pas d'attribuer une tâche à quelqu'un d'autre.");
   }
 
   const maintenant = new Date();
@@ -204,7 +276,8 @@ export async function modifierTacheDans(
       description: donnees.description?.trim() || null,
       priorite: donnees.priorite,
       echeance: donnees.echeance ?? null,
-      assigneeUserId: donnees.assigneeUserId,
+      assigneeUserId: executant.assigneeUserId,
+      assigneeEmployeId: executant.assigneeEmployeId,
       ...(reattribuee ? { attribueeLe: maintenant, statut: "a_faire" as const, demarreeLe: null } : {}),
       updatedAt: maintenant,
       version: sql`${taches.version} + 1`,
@@ -216,13 +289,15 @@ export async function modifierTacheDans(
     priorite: tache.priorite,
     echeance: tache.echeance,
     assigneeUserId: tache.assigneeUserId,
+    assigneeEmployeId: tache.assigneeEmployeId,
   };
   const apres = {
     numero: tache.numero,
     titre: donnees.titre,
     priorite: donnees.priorite,
     echeance: donnees.echeance ?? null,
-    assigneeUserId: donnees.assigneeUserId,
+    assigneeUserId: executant.assigneeUserId,
+    assigneeEmployeId: executant.assigneeEmployeId,
   };
   await journaliser(tx, organizationId, acteur.userId, reattribuee ? "tache.attribuer" : "tache.modifier", tacheId, apres, avant);
   return { numero: tache.numero };

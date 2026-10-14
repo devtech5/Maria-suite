@@ -8,7 +8,7 @@ import { peut } from "@/lib/droits/garde";
 import { fmtEntier } from "@/lib/format";
 import { creerTache } from "@/modules/taches/actions";
 import { enRetard } from "@/modules/taches/calcul";
-import { listerTaches, membresActifs, type VueTaches } from "@/modules/taches/requetes";
+import { listerTaches, personnelActif, type VueTaches } from "@/modules/taches/requetes";
 
 import { ChampsTache } from "./champs-tache";
 import { ListeTaches, type TacheAffichee } from "./liste-taches";
@@ -35,9 +35,9 @@ export default async function PageTaches({ searchParams }: PageProps<"/taches">)
   const vue: VueTaches =
     demandee === "confiees" ? "confiees" : demandee === "toutes" && attribue ? "toutes" : "miennes";
 
-  const [taches, membres] = await Promise.all([
+  const [taches, personnel] = await Promise.all([
     listerTaches(session.organizationId, session.userId, vue),
-    membresActifs(session.organizationId),
+    attribue ? personnelActif(session.organizationId) : Promise.resolve([]),
   ]);
 
   // Le jour se juge à Abidjan, en UTC : une échéance n'a pas d'heure.
@@ -57,7 +57,9 @@ export default async function PageTaches({ searchParams }: PageProps<"/taches">)
     creeParUserId: t.creeParUserId,
     createur: t.createur,
     assigneeUserId: t.assigneeUserId,
+    assigneeEmployeId: t.assigneeEmployeId,
     assignee: t.assignee,
+    sansCompte: t.sansCompte,
     creeLeIso: t.creeLe.toISOString(),
     termineeLeIso: t.termineeLe?.toISOString() ?? null,
     terminateur: t.terminateur,
@@ -72,8 +74,8 @@ export default async function PageTaches({ searchParams }: PageProps<"/taches">)
         sousTitre={attribue ? "Vos tâches, et celles que vous confiez à l'équipe" : "Votre liste de tâches"}
         actions={
           executer ? (
-            <FormulaireRepliable libelle="Nouvelle tâche" titre={attribue ? "Nouvelle tâche, pour vous ou un membre" : "Nouvelle tâche"} action={creerTache}>
-              <ChampsTache membres={membres} moi={session.userId} attribue={attribue} />
+            <FormulaireRepliable libelle="Nouvelle tâche" titre={attribue ? "Nouvelle tâche, pour vous ou un membre du personnel" : "Nouvelle tâche"} action={creerTache}>
+              <ChampsTache personnel={personnel} moi={session.userId} attribue={attribue} />
             </FormulaireRepliable>
           ) : undefined
         }
@@ -111,7 +113,7 @@ export default async function PageTaches({ searchParams }: PageProps<"/taches">)
           titre={vue === "confiees" ? "Aucune tâche confiée" : "Aucune tâche"}
           message={
             vue === "confiees"
-              ? "Les tâches que vous attribuez à d'autres membres apparaîtront ici, avec leur avancement."
+              ? "Les tâches que vous confiez au personnel apparaîtront ici, avec leur avancement."
               : "Notez ce que vous avez à faire : chaque tâche se commence, se termine avec un compte rendu, et reste tracée au journal."
           }
         />
@@ -120,7 +122,7 @@ export default async function PageTaches({ searchParams }: PageProps<"/taches">)
           taches={affichees}
           moi={session.userId}
           attribue={attribue}
-          membres={membres}
+          personnel={personnel}
           aujourdhui={aujourdhui}
           montrerAssignee={vue !== "miennes"}
         />
