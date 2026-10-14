@@ -6,7 +6,7 @@ import { drizzle } from "drizzle-orm/pglite";
 import { migrate } from "drizzle-orm/pglite/migrator";
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
 
-import { installerEntreprise, PROPRIETAIRE, type Requete } from "@/db/installation";
+import { installerEntreprise, MODULES_COUPES_A_LA_NAISSANCE, PROPRIETAIRE, type Requete } from "@/db/installation";
 
 let client: PGlite;
 let requete: Requete;
@@ -62,6 +62,17 @@ describe("installation de MARIA GROUP SARL", () => {
   it("admet un propriétaire du domaine maria-groupe.com", async () => {
     const resultat = await installerEntreprise(requete, { ...options, email: "direction@maria-groupe.com" });
     expect(resultat.email).toBe("direction@maria-groupe.com");
+  });
+
+  it("coupe les modules hors périmètre, sans recouper ce que le propriétaire a rallumé", async () => {
+    await installerEntreprise(requete, options);
+    const coupes = async () =>
+      (await requete(`select module_key from organization_modules where not enabled order by module_key`)).map((l) => l.module_key);
+    expect(await coupes()).toEqual([...MODULES_COUPES_A_LA_NAISSANCE].sort());
+
+    await requete(`update organization_modules set enabled = true where module_key = 'enquetes'`);
+    await installerEntreprise(requete, options);
+    expect(await coupes()).not.toContain("enquetes");
   });
 
   it("refuse une base qui porte une autre entreprise", async () => {

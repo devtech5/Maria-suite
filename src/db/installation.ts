@@ -28,6 +28,24 @@ export const ENTREPRISE = {
   fuseau: "Africa/Abidjan",
 };
 
+/**
+ * Modules coupés à la naissance de l'entreprise : MARIA GROUP SARL ne tient
+ * ni commerce de détail, ni restaurant, ni maquis, ni hôtel, ni billetterie,
+ * ni point de vente mobile money. Le propriétaire en rallume un depuis
+ * « Utilisateurs › Modules » ; l'installation, relancée, ne le recoupe pas.
+ * Même liste que la migration 0049, qui les coupe sur une base existante.
+ */
+export const MODULES_COUPES_A_LA_NAISSANCE = [
+  "boutique",
+  "restaurant",
+  "maquis",
+  "hotellerie",
+  "reservation",
+  "enquetes",
+  "billetterie",
+  "valeur_electronique",
+] as const;
+
 /** Propriétaire et super administrateur du logiciel. */
 export const PROPRIETAIRE = ADRESSE_PROPRIETAIRE;
 
@@ -85,6 +103,15 @@ export async function installerEntreprise(
       values ($1, $2, $3, $4, true)
       on conflict (organization_id, key) do nothing`,
       [entreprise.id, preset.cle, preset.nom, preset.description],
+    );
+  }
+
+  for (const cle of MODULES_COUPES_A_LA_NAISSANCE) {
+    await requete(
+      `insert into organization_modules (organization_id, module_key, enabled)
+      values ($1, $2, false)
+      on conflict (organization_id, module_key) do nothing`,
+      [entreprise.id, cle],
     );
   }
 
