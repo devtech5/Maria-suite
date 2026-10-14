@@ -16,6 +16,7 @@ export interface AvanceAffichee {
   numero: string;
   caisse: string;
   beneficiaire: string;
+  beneficiaireQualite: string | null;
   montant: number;
   reste: number;
   motif: string;
@@ -56,7 +57,10 @@ export function ListeAvances({ avances, caisses, regulariser, aujourdhui }: { av
               <div className="flex flex-wrap items-start gap-3">
                 <div className="min-w-0 flex-1">
                   <p className="flex flex-wrap items-center gap-x-2 gap-y-1">
-                    <span className="text-sm font-semibold">{a.beneficiaire}</span>
+                    <span className="text-sm font-semibold">
+                      {a.beneficiaire}
+                      {a.beneficiaireQualite && <span className="font-normal text-[var(--encre-faible)]"> — {a.beneficiaireQualite}</span>}
+                    </span>
                     <span className="chiffres text-sm">
                       {fmt(a.montant)} F remis · reste <strong className={a.reste > 0 ? "text-alerte-600" : "text-valide-600"}>{fmt(a.reste)} F</strong>
                     </span>

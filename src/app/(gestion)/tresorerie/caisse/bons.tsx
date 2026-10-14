@@ -17,6 +17,7 @@ export interface BonAffiche {
   nature: NatureBon;
   montant: number;
   beneficiaire: string;
+  beneficiaireQualite: string | null;
   motif: string;
   statut: "demande" | "approuve" | "rejete" | "decaisse" | "annule";
   demandeParUserId: string;
@@ -99,7 +100,8 @@ export function ListeBons({
                     <Pastille ton={STATUT[b.statut].ton}>{STATUT[b.statut].libelle}</Pastille>
                   </p>
                   <p className="mt-0.5 text-sm text-[var(--encre-douce)]">
-                    {b.beneficiaire} — {b.motif}
+                    {b.beneficiaire}
+                    {b.beneficiaireQualite && <span className="text-[var(--encre-faible)]"> ({b.beneficiaireQualite})</span>} — {b.motif}
                   </p>
                   <p className="chiffres mt-0.5 text-xs text-[var(--encre-faible)]">
                     {b.numero} · {b.caisse} · demandé par {b.demandeParUserId === moi ? "vous" : b.demandeur} le {MOMENT.format(new Date(b.demandeLeIso))}

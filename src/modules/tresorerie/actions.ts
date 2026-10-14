@@ -32,6 +32,9 @@ import {
   regulariserAvanceDans,
   remettreAvanceDans,
   reprendreComptesExistants,
+  type FicheBeneficiaire,
+  type NouveauBon,
+  type NouvelleAvance,
 } from "./creation";
 import { bonsCaisse, comptesTresorerie } from "./schema";
 import { notifierDetenteurs } from "@/modules/communication/notifications";
@@ -76,6 +79,22 @@ const montant = (d: FormData, champ: string) => {
   return /^\d+$/.test(propre) ? Number(propre) : Number.NaN;
 };
 const fr = (n: number) => n.toLocaleString("fr-FR");
+
+/**
+ * Fiche du bénéficiaire, telle que l'envoie le sélecteur : « t: » tiers,
+ * « e: » salarié, « w: » intervenant, « u: » compte. Vide : nom saisi.
+ * `undefined` si la valeur est vide, `null` si elle est illisible.
+ */
+function lireFiche(d: FormData, admis: string): FicheBeneficiaire | null | undefined {
+  const v = texte(d, "beneficiaireRef");
+  if (!v) return undefined;
+  const [genre, id] = [v.slice(0, 1), v.slice(2)];
+  if (v[1] !== ":" || !admis.includes(genre) || !UUID.test(id)) return null;
+  if (genre === "t") return { tiersId: id };
+  if (genre === "e") return { employeId: id };
+  if (genre === "w") return { workerId: id };
+  return { userId: id };
+}
 const NATURES = Object.keys(NATURES_BON) as [NatureBon, ...NatureBon[]];
 
 // ------------------------------------------------------------------ comptes
@@ -205,7 +224,7 @@ const schemaBon = z.object({
   caisseId: z.string().regex(UUID, "Choisissez la caisse qui paie."),
   nature: z.enum(NATURES),
   montant: z.number().int().positive("Indiquez le montant."),
-  beneficiaire: z.string().trim().min(2, "Indiquez qui reçoit l'argent.").max(120),
+  beneficiaire: z.string().trim().max(120).optional(),
   motif: z.string().trim().min(3, "Dites à quoi sert la dépense.").max(500),
 });
 
@@ -215,18 +234,22 @@ export async function demanderBon(donnees: FormData): Promise<Resultat> {
       caisseId: donnees.get("caisseId") ?? "",
       nature: donnees.get("nature"),
       montant: montant(donnees, "montant"),
-      beneficiaire: donnees.get("beneficiaire") ?? "",
+      beneficiaire: texte(donnees, "beneficiaire"),
       motif: donnees.get("motif") ?? "",
     });
     if (!analyse.success) return { ok: false, message: analyse.error.issues[0].message };
-    const { numero } = await db.transaction((tx) => demanderBonDans(tx, organizationId, analyse.data, userId));
+    const fiche = lireFiche(donnees, "tew");
+    if (fiche === null) return { ok: false, message: "Bénéficiaire inconnu." };
+    const { numero, beneficiaire } = await db.transaction((tx) =>
+      demanderBonDans(tx, organizationId, { ...analyse.data, fiche: fiche as NouveauBon["fiche"] }, userId),
+    );
     await notifierDetenteurs(
       organizationId,
       "tresorerie.bon.approuver",
       {
         categorie: "bon",
         titre: `Bon de caisse ${numero} à approuver`,
-        corps: `${analyse.data.beneficiaire} — ${analyse.data.montant.toLocaleString("fr-FR")} FCFA : ${analyse.data.motif}`,
+        corps: `${beneficiaire} — ${analyse.data.montant.toLocaleString("fr-FR")} FCFA : ${analyse.data.motif}`,
         lien: "/tresorerie/caisse",
       },
       userId,
@@ -293,8 +316,7 @@ export async function ouvrirJustificatif(bonId: string): Promise<string | null> 
 
 const schemaAvance = z.object({
   caisseId: z.string().regex(UUID, "Choisissez la caisse qui avance l'argent."),
-  beneficiaireUserId: z.string().regex(UUID).optional(),
-  beneficiaire: z.string().trim().min(2, "Indiquez à qui l'avance est remise.").max(120),
+  beneficiaire: z.string().trim().max(120).optional(),
   montant: z.number().int().positive("Indiquez le montant."),
   motif: z.string().trim().min(3, "Dites à quoi sert l'avance.").max(500),
   echeance: z.string().regex(DATE_ISO).optional(),
@@ -304,15 +326,18 @@ export async function remettreAvance(donnees: FormData): Promise<Resultat> {
   return operer("tresorerie.caisse.tenir", async ({ organizationId, userId }) => {
     const analyse = schemaAvance.safeParse({
       caisseId: donnees.get("caisseId") ?? "",
-      beneficiaireUserId: texte(donnees, "beneficiaireUserId"),
-      beneficiaire: donnees.get("beneficiaire") ?? "",
+      beneficiaire: texte(donnees, "beneficiaire"),
       montant: montant(donnees, "montant"),
       motif: donnees.get("motif") ?? "",
       echeance: texte(donnees, "echeance"),
     });
     if (!analyse.success) return { ok: false, message: analyse.error.issues[0].message };
-    const { numero } = await db.transaction((tx) => remettreAvanceDans(tx, organizationId, analyse.data, userId));
-    return { ok: true, message: `Avance ${numero} remise : ${fr(analyse.data.montant)} F à ${analyse.data.beneficiaire}.` };
+    const fiche = lireFiche(donnees, "eu");
+    if (fiche === null) return { ok: false, message: "Bénéficiaire inconnu." };
+    const { numero, beneficiaire } = await db.transaction((tx) =>
+      remettreAvanceDans(tx, organizationId, { ...analyse.data, fiche: fiche as NouvelleAvance["fiche"] }, userId),
+    );
+    return { ok: true, message: `Avance ${numero} remise : ${fr(analyse.data.montant)} F à ${beneficiaire}.` };
   });
 }
 

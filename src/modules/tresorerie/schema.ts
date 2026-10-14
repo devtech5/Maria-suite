@@ -3,6 +3,7 @@ import { bigint, boolean, check, date, index, integer, pgEnum, pgTable, text, ti
 
 import { money, primaryId, rowVersion, timestamps } from "@/db/schema/_shared";
 import { organizations } from "@/db/schema/tenancy";
+import { employees, workers } from "@/modules/personnes/schema";
 import { depenses } from "@/modules/projets/schema";
 import { tiers } from "@/modules/tiers/schema";
 
@@ -131,7 +132,18 @@ export const bonsCaisse = pgTable(
       .references(() => comptesTresorerie.id, { onDelete: "restrict" }),
     nature: natureBonCaisse("nature").notNull(),
     montant: money("montant").notNull(),
-    /** Qui reçoit l'argent : le fournisseur, le taxi, le collaborateur. */
+    /**
+     * Qui reçoit l'argent, quand il a une fiche : un fournisseur, un salarié du
+     * Personnel, un intervenant. Une seule des trois, ou aucune pour le taxi
+     * de passage.
+     */
+    beneficiaireTiersId: uuid("beneficiaire_tiers_id").references(() => tiers.id, { onDelete: "set null" }),
+    beneficiaireEmployeId: uuid("beneficiaire_employe_id").references(() => employees.id, { onDelete: "set null" }),
+    beneficiaireWorkerId: uuid("beneficiaire_worker_id").references(() => workers.id, { onDelete: "set null" }),
+    /**
+     * Nom du bénéficiaire au jour de la demande : recopié de la fiche, ou saisi
+     * pour qui n'en a pas. C'est lui que porte l'écriture.
+     */
     beneficiaire: text("beneficiaire").notNull(),
     motif: text("motif").notNull(),
     statut: statutBonCaisse("statut").notNull().default("demande"),
@@ -153,6 +165,10 @@ export const bonsCaisse = pgTable(
     check("bons_caisse_montant", sql`${t.montant} > 0`),
     check("bons_caisse_rejet_motive", sql`${t.statut} <> 'rejete' OR ${t.motifRejet} IS NOT NULL`),
     check("bons_caisse_decaisse_ecrit", sql`${t.statut} <> 'decaisse' OR ${t.ecriture} IS NOT NULL`),
+    check(
+      "bons_caisse_une_fiche",
+      sql`num_nonnulls(${t.beneficiaireTiersId}, ${t.beneficiaireEmployeId}, ${t.beneficiaireWorkerId}) <= 1`,
+    ),
     index("bons_caisse_statut_idx").on(t.organizationId, t.statut),
   ],
 );
@@ -175,8 +191,11 @@ export const avancesTresorerie = pgTable(
     caisseId: uuid("caisse_id")
       .notNull()
       .references(() => comptesTresorerie.id, { onDelete: "restrict" }),
-    /** Membre bénéficiaire, s'il a un compte ; sinon le nom seul. */
+    /** Salarié du Personnel qui reçoit l'avance. */
+    beneficiaireEmployeId: uuid("beneficiaire_employe_id").references(() => employees.id, { onDelete: "set null" }),
+    /** Compte du bénéficiaire : celui du salarié, ou un membre sans fiche au Personnel. */
     beneficiaireUserId: uuid("beneficiaire_user_id"),
+    /** Nom au jour de la remise : recopié de la fiche, ou saisi à défaut. */
     beneficiaire: text("beneficiaire").notNull(),
     montant: money("montant").notNull(),
     motif: text("motif").notNull(),

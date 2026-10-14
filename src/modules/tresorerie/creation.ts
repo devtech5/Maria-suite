@@ -3,13 +3,15 @@ import "server-only";
 import { and, eq, isNull, sql } from "drizzle-orm";
 
 import { db } from "@/db";
-import { auditLogs } from "@/db/schema";
+import { auditLogs, memberships, users } from "@/db/schema";
 import type { Ecriture } from "@/lib/comptabilite/ecritures";
 import { contrepasser } from "@/lib/comptabilite/ecritures";
 import { newId } from "@/lib/ids";
 import { prochainNumero, type Transaction } from "@/lib/sequences";
 import { cheminDe, deposer, supprimer } from "@/lib/stockage";
 import { enregistrerEcritureDans, type OrigineEcriture } from "@/modules/comptabilite/enregistrement";
+import { employees, workers } from "@/modules/personnes/schema";
+import { tiers } from "@/modules/tiers/schema";
 
 import {
   compteTresorerieValide,
@@ -346,19 +348,103 @@ export async function annulerVirementDans(tx: Transaction, organizationId: strin
   return { numero: v.numero };
 }
 
+// ------------------------------------------------------------ bénéficiaires
+
+/**
+ * Fiche de celui qui reçoit l'argent : un fournisseur (tiers), un salarié du
+ * Personnel, un intervenant, ou un compte sans fiche au Personnel. Absente,
+ * le nom saisi en tient lieu — le taxi de passage n'a pas de fiche.
+ */
+export type FicheBeneficiaire = { tiersId: string } | { employeId: string } | { workerId: string } | { userId: string };
+
+interface BeneficiaireResolu {
+  nom: string;
+  tiersId: string | null;
+  employeId: string | null;
+  workerId: string | null;
+  userId: string | null;
+}
+
+/**
+ * Ramène le bénéficiaire choisi à son nom, recopié de la fiche : rien ne se
+ * retape. Le nom saisi ne sert qu'à défaut de fiche.
+ */
+export async function resoudreBeneficiaire(
+  tx: Executant,
+  organizationId: string,
+  fiche: FicheBeneficiaire | null | undefined,
+  saisi: string | null | undefined,
+): Promise<BeneficiaireResolu> {
+  const vide = { tiersId: null, employeId: null, workerId: null, userId: null };
+  if (!fiche) {
+    const nom = saisi?.trim() ?? "";
+    if (nom.length < 2) throw new Error("Choisissez le bénéficiaire, ou saisissez son nom.");
+    return { ...vide, nom };
+  }
+  if ("tiersId" in fiche) {
+    const [t] = await tx
+      .select({ id: tiers.id, nom: tiers.nom })
+      .from(tiers)
+      .where(and(eq(tiers.id, fiche.tiersId), eq(tiers.organizationId, organizationId), eq(tiers.actif, true)));
+    if (!t) throw new Error("Ce tiers n'existe pas, ou plus.");
+    return { ...vide, nom: t.nom, tiersId: t.id };
+  }
+  if ("employeId" in fiche) {
+    const [e] = await tx
+      .select({ id: employees.id, nom: employees.nom, userId: employees.userId })
+      .from(employees)
+      .where(
+        and(
+          eq(employees.id, fiche.employeId),
+          eq(employees.organizationId, organizationId),
+          eq(employees.actif, true),
+          isNull(employees.deletedAt),
+        ),
+      );
+    if (!e) throw new Error("Ce salarié ne figure pas, ou plus, au Personnel.");
+    return { ...vide, nom: e.nom, employeId: e.id, userId: e.userId };
+  }
+  if ("workerId" in fiche) {
+    const [w] = await tx
+      .select({ id: workers.id, nom: workers.nom })
+      .from(workers)
+      .where(
+        and(eq(workers.id, fiche.workerId), eq(workers.organizationId, organizationId), eq(workers.actif, true), isNull(workers.deletedAt)),
+      );
+    if (!w) throw new Error("Cet intervenant n'existe pas, ou plus.");
+    return { ...vide, nom: w.nom, workerId: w.id };
+  }
+  const [m] = await tx
+    .select({ nom: users.fullName })
+    .from(memberships)
+    .innerJoin(users, eq(users.id, memberships.userId))
+    .where(and(eq(memberships.organizationId, organizationId), eq(memberships.userId, fiche.userId), eq(memberships.status, "actif")));
+  if (!m) throw new Error("Cette personne n'a pas d'accès actif à l'entreprise.");
+  return { ...vide, nom: m.nom, userId: fiche.userId };
+}
+
 // ------------------------------------------------------------ bons de caisse
 
 export interface NouveauBon {
   caisseId: string;
   nature: NatureBon;
   montant: number;
-  beneficiaire: string;
+  /** Tiers, salarié ou intervenant. Un compte seul n'est pas un bénéficiaire de bon. */
+  fiche?: Exclude<FicheBeneficiaire, { userId: string }> | null;
+  /** Nom saisi, quand le bénéficiaire n'a pas de fiche. */
+  beneficiaire?: string | null;
   motif: string;
 }
 
-export async function demanderBonDans(tx: Transaction, organizationId: string, b: NouveauBon, userId: string): Promise<{ id: string; numero: string }> {
+export async function demanderBonDans(
+  tx: Transaction,
+  organizationId: string,
+  b: NouveauBon,
+  userId: string,
+): Promise<{ id: string; numero: string; beneficiaire: string }> {
   const caisse = await compteDe(tx, organizationId, b.caisseId);
   if (caisse.nature === "banque") throw new Error("Un bon de caisse se paie en espèces ou en mobile money, pas depuis la banque.");
+  const qui = await resoudreBeneficiaire(tx, organizationId, b.fiche, b.beneficiaire);
   const numero = await numeroter(tx, organizationId, "bon_caisse", "BC", aujourdhui());
   const id = newId();
   await tx.insert(bonsCaisse).values({
@@ -368,12 +454,21 @@ export async function demanderBonDans(tx: Transaction, organizationId: string, b
     caisseId: caisse.id,
     nature: b.nature,
     montant: b.montant,
-    beneficiaire: b.beneficiaire.trim(),
+    beneficiaireTiersId: qui.tiersId,
+    beneficiaireEmployeId: qui.employeId,
+    beneficiaireWorkerId: qui.workerId,
+    beneficiaire: qui.nom,
     motif: b.motif.trim(),
     demandeParUserId: userId,
   });
-  await journaliser(tx, organizationId, userId, "bon_caisse.demander", id, { numero, montant: b.montant, nature: b.nature, caisse: caisse.nom });
-  return { id, numero };
+  await journaliser(tx, organizationId, userId, "bon_caisse.demander", id, {
+    numero,
+    montant: b.montant,
+    nature: b.nature,
+    caisse: caisse.nom,
+    beneficiaire: qui.nom,
+  });
+  return { id, numero, beneficiaire: qui.nom };
 }
 
 async function bonVerrouille(tx: Transaction, organizationId: string, id: string) {
@@ -496,35 +591,43 @@ export async function annulerBonDans(
 
 export interface NouvelleAvance {
   caisseId: string;
-  beneficiaireUserId?: string | null;
-  beneficiaire: string;
+  /** Salarié du Personnel, ou membre sans fiche. Absent : le nom saisi. */
+  fiche?: Extract<FicheBeneficiaire, { employeId: string } | { userId: string }> | null;
+  beneficiaire?: string | null;
   montant: number;
   motif: string;
   echeance?: string | null;
 }
 
-export async function remettreAvanceDans(tx: Transaction, organizationId: string, a: NouvelleAvance, userId: string): Promise<{ numero: string }> {
+export async function remettreAvanceDans(
+  tx: Transaction,
+  organizationId: string,
+  a: NouvelleAvance,
+  userId: string,
+): Promise<{ numero: string; beneficiaire: string }> {
+  const qui = await resoudreBeneficiaire(tx, organizationId, a.fiche, a.beneficiaire);
   const caisse = await compteDe(tx, organizationId, a.caisseId);
   await exigerProvision(tx, organizationId, caisse, a.montant);
   const date = aujourdhui();
   const numero = await numeroter(tx, organizationId, "avance", "AV", date);
   const id = newId();
-  const ecriture = await passer(tx, organizationId, userId, "avance", id, ecritureAvance({ numero, date, caisse, montant: a.montant, beneficiaire: a.beneficiaire }));
+  const ecriture = await passer(tx, organizationId, userId, "avance", id, ecritureAvance({ numero, date, caisse, montant: a.montant, beneficiaire: qui.nom }));
   await tx.insert(avancesTresorerie).values({
     id,
     organizationId,
     numero,
     caisseId: caisse.id,
-    beneficiaireUserId: a.beneficiaireUserId ?? null,
-    beneficiaire: a.beneficiaire.trim(),
+    beneficiaireEmployeId: qui.employeId,
+    beneficiaireUserId: qui.userId,
+    beneficiaire: qui.nom,
     montant: a.montant,
     motif: a.motif.trim(),
     echeance: a.echeance ?? null,
     ecriture,
     remiseParUserId: userId,
   });
-  await journaliser(tx, organizationId, userId, "avance.remettre", id, { numero, beneficiaire: a.beneficiaire, montant: a.montant });
-  return { numero };
+  await journaliser(tx, organizationId, userId, "avance.remettre", id, { numero, beneficiaire: qui.nom, montant: a.montant });
+  return { numero, beneficiaire: qui.nom };
 }
 
 export type Regularisation =

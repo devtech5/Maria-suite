@@ -161,7 +161,10 @@ export interface BonVue {
   caisse: string;
   nature: NatureBon;
   montant: number;
+  /** Nom de la fiche quand le bénéficiaire en a une, sinon le nom saisi. */
   beneficiaire: string;
+  /** Fonction du salarié, métier de l'intervenant, « Fournisseur » ; nul sans fiche. */
+  beneficiaireQualite: string | null;
   motif: string;
   statut: "demande" | "approuve" | "rejete" | "decaisse" | "annule";
   demandeParUserId: string;
@@ -186,6 +189,7 @@ export async function listerBons(organizationId: string, userId: string, tous: b
     nature: NatureBon;
     montant: string;
     beneficiaire: string;
+    beneficiaire_qualite: string | null;
     motif: string;
     statut: BonVue["statut"];
     demande_par_user_id: string;
@@ -199,11 +203,17 @@ export async function listerBons(organizationId: string, userId: string, tous: b
     justificatif_chemin: string | null;
     justificatif_nom: string | null;
   }>(sql`
-    select b.id, b.numero, b.caisse_id, c.nom as caisse, b.nature, b.montant, b.beneficiaire, b.motif, b.statut,
+    select b.id, b.numero, b.caisse_id, c.nom as caisse, b.nature, b.montant,
+           coalesce(bt.nom, be.nom, bw.nom, b.beneficiaire) as beneficiaire,
+           case when bt.id is not null then 'Fournisseur' when be.id is not null then be.poste when bw.id is not null then bw.qualification end as beneficiaire_qualite,
+           b.motif, b.statut,
            b.demande_par_user_id, d.full_name as demandeur, b.created_at as cree_le, a.full_name as approbateur,
            b.approuve_le, b.motif_rejet, b.decaisse_le, b.ecriture, b.justificatif_chemin, b.justificatif_nom
     from bons_caisse b
     join comptes_tresorerie c on c.id = b.caisse_id
+    left join tiers bt on bt.id = b.beneficiaire_tiers_id
+    left join employees be on be.id = b.beneficiaire_employe_id
+    left join workers bw on bw.id = b.beneficiaire_worker_id
     left join users d on d.id = b.demande_par_user_id
     left join users a on a.id = b.approuve_par_user_id
     where b.organization_id = ${organizationId} and (${tous} or b.demande_par_user_id = ${userId})
@@ -219,6 +229,7 @@ export async function listerBons(organizationId: string, userId: string, tous: b
     nature: l.nature,
     montant: Number(l.montant),
     beneficiaire: l.beneficiaire,
+    beneficiaireQualite: l.beneficiaire_qualite,
     motif: l.motif,
     statut: l.statut,
     demandeParUserId: l.demande_par_user_id,
@@ -239,6 +250,8 @@ export interface AvanceVue {
   numero: string;
   caisse: string;
   beneficiaire: string;
+  /** Fonction au Personnel, quand l'avance est remise à un salarié. */
+  beneficiaireQualite: string | null;
   montant: number;
   reste: number;
   motif: string;
@@ -255,6 +268,7 @@ export async function listerAvances(organizationId: string): Promise<AvanceVue[]
     numero: string;
     caisse: string;
     beneficiaire: string;
+    beneficiaire_qualite: string | null;
     montant: string;
     motif: string;
     echeance: string | Date | null;
@@ -263,12 +277,13 @@ export async function listerAvances(organizationId: string): Promise<AvanceVue[]
     ecriture: string;
     regularisations: AvanceVue["regularisations"] | string | null;
   }>(sql`
-    select a.id, a.numero, c.nom as caisse, a.beneficiaire, a.montant, a.motif, a.echeance, a.statut,
+    select a.id, a.numero, c.nom as caisse, coalesce(e.nom, a.beneficiaire) as beneficiaire, e.poste as beneficiaire_qualite, a.montant, a.motif, a.echeance, a.statut,
            a.created_at as cree_le, a.ecriture,
            (select coalesce(json_agg(json_build_object('type', r.type, 'montant', r.montant, 'nature', r.nature,
                     'libelle', r.libelle, 'ecriture', r.ecriture, 'le', r.created_at) order by r.created_at), '[]'::json)
               from regularisations_avance r where r.avance_id = a.id) as regularisations
     from avances_tresorerie a join comptes_tresorerie c on c.id = a.caisse_id
+      left join employees e on e.id = a.beneficiaire_employe_id
     where a.organization_id = ${organizationId}
       and (a.statut = 'ouverte' or a.updated_at > now() - interval '60 days')
     order by case a.statut when 'ouverte' then 0 else 1 end, a.echeance nulls last, a.created_at desc
@@ -290,6 +305,7 @@ export async function listerAvances(organizationId: string): Promise<AvanceVue[]
       numero: l.numero,
       caisse: l.caisse,
       beneficiaire: l.beneficiaire,
+      beneficiaireQualite: l.beneficiaire_qualite,
       montant,
       reste: montant - regularisations.reduce((s, r) => s + r.montant, 0),
       motif: l.motif,
@@ -420,7 +436,12 @@ export async function fluxPrevus(organizationId: string, aujourdhui: string): Pr
       where organization_id = ${organizationId} and statut = 'approuvee' and deleted_at is null
     `),
     db.execute<{ numero: string; beneficiaire: string; montant: string }>(sql`
-      select numero, beneficiaire, montant from bons_caisse where organization_id = ${organizationId} and statut = 'approuve'
+      select b.numero, coalesce(t.nom, e.nom, w.nom, b.beneficiaire) as beneficiaire, b.montant
+      from bons_caisse b
+        left join tiers t on t.id = b.beneficiaire_tiers_id
+        left join employees e on e.id = b.beneficiaire_employe_id
+        left join workers w on w.id = b.beneficiaire_worker_id
+      where b.organization_id = ${organizationId} and b.statut = 'approuve'
     `),
     db.execute<{ nom: string; du: string }>(sql`
       select w.nom,
@@ -521,4 +542,60 @@ export async function membresActifs(organizationId: string): Promise<{ userId: s
     order by u.full_name
   `);
   return lignes.map((l) => ({ userId: l.user_id, nom: l.nom }));
+}
+
+/** Une fiche proposée comme bénéficiaire : `valeur` est ce que renvoie le sélecteur. */
+export interface FicheProposee {
+  valeur: string;
+  nom: string;
+  qualite: string;
+}
+
+export interface BeneficiairesProposes {
+  fournisseurs: FicheProposee[];
+  personnel: FicheProposee[];
+  intervenants: FicheProposee[];
+  /** Membres sans fiche au Personnel : le propriétaire, un associé. */
+  comptes: FicheProposee[];
+}
+
+/**
+ * Ceux qui peuvent recevoir l'argent de la caisse, tirés de leurs fiches :
+ * fournisseurs, Personnel avec sa fonction, intervenants avec leur métier.
+ * Rien ne se retape ; le nom saisi reste pour qui n'a pas de fiche.
+ */
+export async function beneficiairesProposes(organizationId: string): Promise<BeneficiairesProposes> {
+  const [fournisseurs, personnel, intervenants, comptes] = await Promise.all([
+    db.execute<{ id: string; nom: string }>(sql`
+      select id, nom from tiers
+      where organization_id = ${organizationId} and est_fournisseur and actif
+      order by nom
+    `),
+    db.execute<{ id: string; nom: string; poste: string }>(sql`
+      select id, nom, poste from employees
+      where organization_id = ${organizationId} and actif and deleted_at is null
+      order by nom
+    `),
+    db.execute<{ id: string; nom: string; qualification: string }>(sql`
+      select id, nom, qualification from workers
+      where organization_id = ${organizationId} and actif and deleted_at is null
+      order by nom
+    `),
+    db.execute<{ user_id: string; nom: string }>(sql`
+      select m.user_id, u.full_name as nom
+      from memberships m join users u on u.id = m.user_id
+      where m.organization_id = ${organizationId} and m.status = 'actif'
+        and not exists (
+          select 1 from employees e
+          where e.organization_id = m.organization_id and e.user_id = m.user_id and e.actif and e.deleted_at is null
+        )
+      order by u.full_name
+    `),
+  ]);
+  return {
+    fournisseurs: fournisseurs.map((t) => ({ valeur: `t:${t.id}`, nom: t.nom, qualite: "Fournisseur" })),
+    personnel: personnel.map((e) => ({ valeur: `e:${e.id}`, nom: e.nom, qualite: e.poste })),
+    intervenants: intervenants.map((w) => ({ valeur: `w:${w.id}`, nom: w.nom, qualite: w.qualification })),
+    comptes: comptes.map((m) => ({ valeur: `u:${m.user_id}`, nom: m.nom, qualite: "Compte" })),
+  };
 }

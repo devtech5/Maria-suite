@@ -7,12 +7,13 @@ import { peut } from "@/lib/droits/garde";
 import { fmt, fmtEntier } from "@/lib/format";
 import { arreterCaisse, demanderBon, remettreAvance } from "@/modules/tresorerie/actions";
 import { NATURES_BON, type NatureBon } from "@/modules/tresorerie/calcul";
-import { listerArretes, listerAvances, listerBons, listerComptes, membresActifs } from "@/modules/tresorerie/requetes";
+import { beneficiairesProposes, listerArretes, listerAvances, listerBons, listerComptes } from "@/modules/tresorerie/requetes";
 
 import { libelleChamp, OptionsComptes } from "../champs";
 import { ListeAvances } from "./avances";
 import { ListeBons } from "./bons";
 import { ChampsArrete } from "./champs-arrete";
+import { ChoixBeneficiaire } from "./choix-beneficiaire";
 
 export const metadata: Metadata = { title: "Caisse de dépenses" };
 
@@ -34,12 +35,14 @@ export default async function PageCaisseDepenses() {
   ]);
   const voitTout = consulter || approuver;
 
-  const [comptes, bons, avances, arretes, membres] = await Promise.all([
+  const [comptes, bons, avances, arretes, beneficiaires] = await Promise.all([
     listerComptes(session.organizationId),
     listerBons(session.organizationId, session.userId, voitTout),
     consulter ? listerAvances(session.organizationId) : Promise.resolve([]),
     consulter ? listerArretes(session.organizationId) : Promise.resolve([]),
-    tenir ? membresActifs(session.organizationId) : Promise.resolve([]),
+    demander || tenir
+      ? beneficiairesProposes(session.organizationId)
+      : Promise.resolve({ fournisseurs: [], personnel: [], intervenants: [], comptes: [] }),
   ]);
   const choix = comptes.filter((c) => c.actif).map((c) => ({ id: c.id, nom: c.nom, nature: c.nature, solde: c.solde }));
   const caisses = choix.filter((c) => c.nature !== "banque");
@@ -76,10 +79,15 @@ export default async function PageCaisseDepenses() {
                     <span className={libelleChamp}>Montant (F)</span>
                     <input name="montant" required inputMode="numeric" className={`${CLASSE_CHAMP} chiffres`} />
                   </label>
-                  <label className="block">
-                    <span className={libelleChamp}>Payé à</span>
-                    <input name="beneficiaire" required minLength={2} maxLength={120} placeholder="Station Total Plateau, taxi, Konan Michel…" className={CLASSE_CHAMP} />
-                  </label>
+                  <ChoixBeneficiaire
+                    libelle="Payé à"
+                    groupes={[
+                      { libelle: "Fournisseurs", fiches: beneficiaires.fournisseurs },
+                      { libelle: "Personnel", fiches: beneficiaires.personnel },
+                      { libelle: "Intervenants", fiches: beneficiaires.intervenants },
+                    ]}
+                    exemple="Taxi, station de passage…"
+                  />
                   <label className="block">
                     <span className={libelleChamp}>Caisse qui paie</span>
                     <select name="caisseId" required defaultValue={caisses.length === 1 ? caisses[0].id : ""} className={CLASSE_CHAMP}>
@@ -99,21 +107,14 @@ export default async function PageCaisseDepenses() {
             {tenir && caisses.length > 0 && (
               <FormulaireRepliable libelle="Remettre une avance" titre="Avance au personnel" action={remettreAvance}>
                 <div className="grid gap-3 sm:grid-cols-2">
-                  <label className="block">
-                    <span className={libelleChamp}>Bénéficiaire (membre)</span>
-                    <select name="beneficiaireUserId" defaultValue="" className={CLASSE_CHAMP}>
-                      <option value="">Quelqu&apos;un sans compte : nom ci-contre</option>
-                      {membres.map((m) => (
-                        <option key={m.userId} value={m.userId}>
-                          {m.nom}
-                        </option>
-                      ))}
-                    </select>
-                  </label>
-                  <label className="block">
-                    <span className={libelleChamp}>Nom tel qu&apos;il apparaîtra</span>
-                    <input name="beneficiaire" required minLength={2} maxLength={120} placeholder="Konan Michel, livreur" className={CLASSE_CHAMP} />
-                  </label>
+                  <ChoixBeneficiaire
+                    libelle="Bénéficiaire"
+                    groupes={[
+                      { libelle: "Personnel", fiches: beneficiaires.personnel },
+                      { libelle: "Comptes hors Personnel", fiches: beneficiaires.comptes },
+                    ]}
+                    exemple="Konan Michel, livreur"
+                  />
                   <label className="block">
                     <span className={libelleChamp}>Montant (F)</span>
                     <input name="montant" required inputMode="numeric" className={`${CLASSE_CHAMP} chiffres`} />
@@ -173,6 +174,7 @@ export default async function PageCaisseDepenses() {
                 nature: b.nature,
                 montant: b.montant,
                 beneficiaire: b.beneficiaire,
+                beneficiaireQualite: b.beneficiaireQualite,
                 motif: b.motif,
                 statut: b.statut,
                 demandeParUserId: b.demandeParUserId,
@@ -198,6 +200,7 @@ export default async function PageCaisseDepenses() {
                   numero: a.numero,
                   caisse: a.caisse,
                   beneficiaire: a.beneficiaire,
+                  beneficiaireQualite: a.beneficiaireQualite,
                   montant: a.montant,
                   reste: a.reste,
                   motif: a.motif,
