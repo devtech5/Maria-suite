@@ -3,7 +3,6 @@
 import { useActionState, useEffect, useRef, useState } from "react";
 
 import { IconeCadenas } from "@/components/ui/icone-cadenas";
-import { seDeconnecter } from "@/lib/auth/actions";
 import { deverrouiller, type EtatDeverrouillage } from "@/lib/auth/actions-verrou";
 
 /**
@@ -254,24 +253,7 @@ export function EcranVerrouillage({
         </form>
       </div>
 
-      {/* Bas d'écran : un autre utilisateur à gauche, l'état du réseau à droite. */}
-      {saisie && (
-        <form action={seDeconnecter} className="absolute bottom-6 left-6">
-          <button
-            type="submit"
-            className="flex items-center gap-3 rounded-md px-3 py-2 text-left text-sm hover:bg-white/10"
-          >
-            <span className="flex size-9 items-center justify-center rounded-full bg-white/15 ring-1 ring-white/25" aria-hidden>
-              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.75} strokeLinecap="round" className="size-5">
-                <circle cx="12" cy="8.5" r="3.5" />
-                <path d="M5 19.5c1.2-3.3 3.8-5 7-5s5.8 1.7 7 5" />
-              </svg>
-            </span>
-            Changer d&apos;utilisateur
-          </button>
-        </form>
-      )}
-
+      {/* Bas d'écran : l'état du réseau, à droite. */}
       <div
         className="pointer-events-none absolute right-6 bottom-6 flex items-center gap-2 text-white/85"
         title={enLigne ? "En ligne" : "Hors ligne"}
