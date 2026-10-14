@@ -34,9 +34,6 @@ export default async function PageConnexion({ searchParams }: PageProps<"/connex
           Mot de passe oublié ?
         </Link>
       </p>
-      <p className="mt-8 border-t border-[var(--filet)] pt-5 text-center text-sm text-[var(--encre-douce)] lg:text-left">
-        Pas encore de compte ? Demandez une invitation à l&apos;administrateur.
-      </p>
     </CoqueAcces>
   );
 }
