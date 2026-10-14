@@ -257,9 +257,9 @@ entreprise. Logique commune dans `src/db/installation.ts` : avec
 aussi au démarrage, sans jamais toucher un compte existant.
 Un compte sans rattachement actif aboutit sur `/sans-acces`.
 
-Commerce, restaurant, maquis, hôtel, réservation, enquêtes, billetterie et
-point de vente sont coupés pour l'entreprise (`organization_modules`,
-migration 0049, `MODULES_COUPES_A_LA_NAISSANCE`) : code et données restent,
+Commerce, restaurant, maquis, hôtel, réservation, enquêtes, billetterie,
+point de vente et stock sont coupés pour l'entreprise (`organization_modules`,
+migrations 0049 et 0051, `MODULES_COUPES_A_LA_NAISSANCE`) : code et données restent,
 le propriétaire les rallume dans « Utilisateurs › Modules ».
 
 **Adresses admises — règle stricte.** Seules deux sortes d'adresses ouvrent

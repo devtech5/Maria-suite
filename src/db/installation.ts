@@ -31,9 +31,10 @@ export const ENTREPRISE = {
 /**
  * Modules coupés à la naissance de l'entreprise : MARIA GROUP SARL ne tient
  * ni commerce de détail, ni restaurant, ni maquis, ni hôtel, ni billetterie,
- * ni point de vente mobile money. Le propriétaire en rallume un depuis
+ * ni point de vente mobile money, ni stock. Le propriétaire en rallume un depuis
  * « Utilisateurs › Modules » ; l'installation, relancée, ne le recoupe pas.
- * Même liste que la migration 0049, qui les coupe sur une base existante.
+ * Mêmes modules que les migrations 0049 et 0051, qui les coupent sur une
+ * base existante.
  */
 export const MODULES_COUPES_A_LA_NAISSANCE = [
   "boutique",
@@ -44,6 +45,7 @@ export const MODULES_COUPES_A_LA_NAISSANCE = [
   "enquetes",
   "billetterie",
   "valeur_electronique",
+  "stock",
 ] as const;
 
 /** Propriétaire et super administrateur du logiciel. */

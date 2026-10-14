@@ -358,6 +358,13 @@
       "when": 1791982934845,
       "tag": "0050_meeting",
       "breakpoints": true
+    },
+    {
+      "idx": 51,
+      "version": "7",
+      "when": 1791984745720,
+      "tag": "0051_stock_coupe",
+      "breakpoints": true
     }
   ]
 }
