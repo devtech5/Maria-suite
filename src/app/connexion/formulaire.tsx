@@ -8,6 +8,10 @@ import { ChampMotDePasse } from "@/components/ui/mot-de-passe";
 export const CLASSE_SAISIE =
   "h-touche w-full rounded-xl border border-[var(--filet)] bg-[var(--fond)] px-4 text-base outline-none focus:border-marque-500";
 
+/** Saisie de la page de connexion, aux couleurs de MARIA GROUP : l'or entoure, le bleu nuit trace. */
+const CLASSE_SAISIE_MARQUE =
+  "h-touche w-full rounded-xl border border-[var(--filet)] bg-[var(--surface)] px-4 text-base outline-none transition-shadow focus:border-nuit focus:ring-4 focus:ring-or/30";
+
 /**
  * Connexion par adresse e-mail et mot de passe.
  *
@@ -39,7 +43,7 @@ export function FormulaireConnexion({ suite }: { suite?: string }) {
           required
           defaultValue={etat.email}
           placeholder="vous@entreprise.ci"
-          className={CLASSE_SAISIE}
+          className={CLASSE_SAISIE_MARQUE}
         />
       </label>
 
@@ -49,7 +53,7 @@ export function FormulaireConnexion({ suite }: { suite?: string }) {
           name="motDePasse"
           autoComplete="current-password"
           required
-          className={CLASSE_SAISIE}
+          className={CLASSE_SAISIE_MARQUE}
         />
       </label>
 
@@ -65,7 +69,7 @@ export function FormulaireConnexion({ suite }: { suite?: string }) {
       <button
         type="submit"
         disabled={enCours}
-        className="sans-selection h-touche w-full rounded-xl bg-marque-600 text-base font-bold text-white hover:bg-marque-700 disabled:opacity-50"
+        className="sans-selection mt-2 h-touche w-full rounded-xl bg-nuit text-base font-bold text-white ring-1 ring-or/40 transition-colors hover:bg-nuit-profond focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-or/50 disabled:opacity-50"
       >
         {enCours ? "Un instant…" : "Se connecter"}
       </button>

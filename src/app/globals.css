@@ -25,6 +25,12 @@
   --color-marque-800: #0f3d46;
   --color-marque-900: #0f333a;
 
+  /* Charte MARIA GROUP : bleu nuit et or. L'or ne porte jamais de texte sur
+     fond clair (contraste 2,4:1) ; il souligne, ou s'écrit sur le bleu nuit. */
+  --color-nuit: #162e49;
+  --color-nuit-profond: #0f2236;
+  --color-or: #bfa169;
+
   /* Neutres légèrement froids, accordés à la teinte de marque */
   --color-ardoise-50: #f7f9f9;
   --color-ardoise-100: #eef2f3;
