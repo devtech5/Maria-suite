@@ -1,16 +1,16 @@
 /**
  * Registre des modules de Maria Suite.
  *
- * Les 28 modules du périmètre ne sont pas 28 développements. Ils se répartissent
- * en trois couches :
+ * Les modules du périmètre ne sont pas autant de développements. Ils se
+ * répartissent en trois couches :
  *
  *   · socle    — commun à tout métier, toujours présent
  *   · moteur   — construit une fois, servi à plusieurs métiers
  *   · metier   — préréglage posé sur un socle et des moteurs : écrans,
  *                catalogue de départ, comptes pré-affectés. Pas de code neuf.
  *
- * `key` est la valeur stockée dans `organization_modules.module_key` : c'est à
- * la fois le périmètre visible par l'entreprise et l'assiette de facturation.
+ * `key` est la valeur stockée dans `organization_modules.module_key` : ce qui y
+ * est activé est ce que l'entreprise voit.
  */
 
 export type ModuleLayer = "socle" | "moteur" | "metier";
@@ -46,10 +46,12 @@ export const MODULES: ModuleDefinition[] = [
     key: "tiers",
     name: "Tiers & Commercial",
     layer: "socle",
-    // Fichier tiers en base, avec comptes auxiliaires et soldes déduits des
-    // écritures. Devis, factures, avoirs et règlements en base : l'émission
-    // numérote, sort le stock et passe l'écriture dans une transaction. Restent
-    // les achats fournisseurs et l'avoir partiel.
+    // Fichier tiers en base, avec contacts, comptes auxiliaires et soldes
+    // déduits des écritures. Devis, factures, avoirs et règlements en base :
+    // l'émission numérote, sort le stock et passe l'écriture dans une
+    // transaction. Commerciaux et commissions à paliers. Les achats
+    // fournisseurs ont leur module. Reste l'avoir partiel : une facture ne
+    // s'annule aujourd'hui que par un avoir total.
     status: "en_cours",
     requires: [],
     description:
@@ -59,8 +61,9 @@ export const MODULES: ModuleDefinition[] = [
     key: "stock",
     name: "Catalogue & Stock",
     layer: "socle",
-    // En base : articles, familles, unités, codes scannables, dépôts,
-    // mouvements typés et valorisation au coût moyen pondéré. Restent
+    // En base : articles, familles, unités, modèles et variantes, codes
+    // scannables, dépôts, mouvements typés dont l'ajustement d'inventaire,
+    // valorisation au coût moyen pondéré, réapprovisionnement. Restent
     // l'inventaire tournant, les lots et les dates de péremption.
     status: "en_cours",
     requires: [],
@@ -74,7 +77,9 @@ export const MODULES: ModuleDefinition[] = [
     // En base : postes de caisse, tickets, lignes avec prestation rattachée,
     // règlements multiples. Un encaissement sort son stock et pose son écriture
     // dans la même transaction, et la file locale encaisse sans réseau.
-    // Restent la session de caisse — ouverture, fond, comptage — et l'avoir.
+    // Session de caisse : ouverture avec fond, comptage par moyen de paiement,
+    // écart passé en écriture. Un ticket s'annule par un avoir qui remet le
+    // stock et contrepasse l'écriture. Reste le retour partiel d'un ticket.
     status: "en_cours",
     requires: ["stock"],
     description:
@@ -101,10 +106,12 @@ export const MODULES: ModuleDefinition[] = [
     layer: "socle",
     // En base : salariés et contrats, intervenants, pointages et bons de
     // paiement — le versement à un intervenant pose son écriture en 637.
-    // Paie émise : barème par entreprise attesté vérifié, bulletins numérotés
-    // et figés, écriture de paie, salaires payés depuis la trésorerie,
-    // versements CNPS et impôt, état mensuel des cotisations. Restent les
-    // congés, la DISA annuelle et les rappels de salaire.
+    // Dossier du salarié avec ses pièces. Paie émise : barème par entreprise
+    // attesté vérifié, bulletins numérotés et figés, écriture de paie,
+    // salaires payés depuis la trésorerie, versements CNPS et impôt, état
+    // mensuel des cotisations. Restent les congés dans le bulletin (les
+    // soldes vivent dans Présences), la DISA annuelle et les rappels de
+    // salaire.
     status: "en_cours",
     requires: [],
     description:
@@ -204,8 +211,10 @@ export const MODULES: ModuleDefinition[] = [
     // classe 5, soldes lus dans les écritures ; virements internes en deux
     // temps par le 585 ; bons de caisse approuvés puis décaissés ; avances au
     // personnel (4251) justifiées ou remboursées ; arrêtés de caisse ;
-    // rapprochement bancaire par import CSV ; plan de trésorerie à 13
-    // semaines. Restent l'import OFX et les relevés mobile money.
+    // mouvements libres (apport, emprunt, virement sans facture) ; charges
+    // lues dans la classe 6, charges récurrentes ; rapprochement bancaire par
+    // import CSV ; plan de trésorerie à 13 semaines. Restent l'import OFX et
+    // les relevés mobile money.
     status: "en_cours",
     requires: ["comptabilite"],
     description: "Caisses, banques, mobile money, virements internes, petite caisse, avances, rapprochement bancaire, prévisions.",
@@ -322,9 +331,9 @@ export const MODULES: ModuleDefinition[] = [
     name: "Missions & Terrain",
     layer: "moteur",
     // En base : missions, étapes validées dans l'ordre, preuves horodatées sur
-    // l'appareil (photo, position, signature, note), formulaires de collecte.
-    // Restent la file hors connexion de l'appareil du livreur, le téléversement
-    // des photos hors réseau et la facturation des missions.
+    // l'appareil (photo, position, signature, note), formulaires de collecte,
+    // file hors connexion de l'appareil rejouée dans l'ordre. Restent le
+    // téléversement des photos hors réseau et la facturation des missions.
     status: "en_cours",
     requires: ["personnes"],
     description:
@@ -338,7 +347,8 @@ export const MODULES: ModuleDefinition[] = [
     // En base : lignes, départs à tarif figé, plan de places protégé par un
     // index unique, billets nominatifs avec écriture, contrôle à la montée,
     // non-présentés au départ, annulation contrepassée. Restent la vente en
-    // ligne et le billet imprimé avec son code.
+    // ligne (le canal est prévu en base, aucune page ne vend encore) et le
+    // billet imprimé avec son code.
     status: "en_cours",
     requires: [],
     description:
@@ -349,9 +359,10 @@ export const MODULES: ModuleDefinition[] = [
     key: "valeur_electronique",
     name: "Valeur électronique",
     layer: "moteur",
-    // En base : sessions de guichet, floats par réseau, opérations contrôlées
-    // contre les deux réserves, clôture avec rapprochement et écriture.
-    // Restent les barèmes de commission par opérateur et le reçu imprimé.
+    // Écrans « Point de vente ». En base : sessions, floats par réseau,
+    // opérations contrôlées contre les deux réserves, commission saisie à
+    // l'opération, clôture avec rapprochement et écriture. Restent les
+    // barèmes de commission par opérateur et le reçu imprimé.
     status: "en_cours",
     requires: [],
     description:

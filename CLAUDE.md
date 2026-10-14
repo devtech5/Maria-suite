@@ -126,7 +126,7 @@ src/
     schema/            socle transverse uniquement
   lib/                 money, ids — utilitaires sans dépendance métier
   modules/
-    registry.ts        les 28 modules en 3 couches : socle, moteur, métier
+    registry.ts        les modules en 3 couches : socle, moteur, métier
 ```
 
 Le schéma sous `db/schema` ne contient que le socle : entreprises, comptes,
