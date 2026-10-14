@@ -50,7 +50,7 @@ const schemaConnexion = z.object({
   adresse: z.string().trim().toLowerCase().regex(/^[^@\s]+@[^@\s]+\.[^@\s]+$/, "Adresse e-mail invalide."),
   nomAffiche: z.string().trim().max(80).nullable(),
   identifiant: z.string().trim().min(3).max(200),
-  motDePasse: z.string().min(1, "Saisissez le mot de passe d'application.").max(500),
+  motDePasse: z.string().min(1, "Saisissez le mot de passe de la boîte.").max(500),
   imapHote: z.string().trim().min(3, "Serveur IMAP manquant.").max(200),
   imapPort: z.number().int().min(1).max(65535),
   imapSecurise: z.boolean(),

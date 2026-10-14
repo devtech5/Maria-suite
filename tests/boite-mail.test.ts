@@ -8,6 +8,19 @@ describe("réglages de boîte mail", () => {
     expect(deviner("Awa@Yahoo.FR").imapHote).toBe("imap.mail.yahoo.com");
     expect(deviner("x@hotmail.com")).toMatchObject({ smtpPort: 587, smtpSecurise: false });
   });
+  it("envoie les adresses de MARIA GROUP chez Hostinger, avec le mot de passe de la boîte", () => {
+    expect(deviner("Awa.Kone@Maria-Groupe.com")).toMatchObject({
+      fournisseur: "Hostinger",
+      imapHote: "imap.hostinger.com",
+      imapPort: 993,
+      imapSecurise: true,
+      smtpHote: "smtp.hostinger.com",
+      smtpPort: 465,
+      smtpSecurise: true,
+      motDePasse: "boite",
+    });
+    expect(deviner("awa@gmail.com").motDePasse).toBe("application");
+  });
   it("devine l'hébergeur d'un domaine d'entreprise", () => {
     expect(deviner("contact@quincaillerie.ci")).toMatchObject({ imapHote: "mail.quincaillerie.ci", smtpHote: "mail.quincaillerie.ci", fournisseur: "Hébergeur" });
   });

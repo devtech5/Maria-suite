@@ -48,9 +48,9 @@ export function ConnexionBoite({ adresseInitiale }: { adresseInitiale?: string }
           />
         </Champ>
         <Champ libelle="Nom affiché">
-          <input name="nomAffiche" placeholder="Awa Koné — Quincaillerie Essai" className={CLASSE_CHAMP} />
+          <input name="nomAffiche" placeholder="Awa Koné — MARIA GROUP SARL" className={CLASSE_CHAMP} />
         </Champ>
-        <Champ libelle="Mot de passe d'application">
+        <Champ libelle={r.motDePasse === "application" ? "Mot de passe d'application" : "Mot de passe de la boîte"}>
           <ChampMotDePasse name="motDePasse" required autoComplete="off" className={CLASSE_CHAMP} />
         </Champ>
         <Champ libelle="Identifiant (si différent de l'adresse)">

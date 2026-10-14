@@ -274,10 +274,11 @@ export const MODULES: ModuleDefinition[] = [
     layer: "socle",
     // En base : la connexion IMAP/SMTP de chaque utilisateur, mot de passe
     // d'application chiffré. Les messages restent chez le fournisseur et se
-    // lisent en direct ; affichage isolé, images distantes bloquées.
+    // lisent en direct ; affichage isolé, images distantes bloquées. Les
+    // adresses @maria-groupe.com prennent d'elles-mêmes les serveurs Hostinger.
     status: "en_cours",
     requires: [],
-    description: "Consulter et envoyer ses e-mails sans quitter Maria Suite (Gmail, Yahoo, hébergeur…).",
+    description: "Consulter et envoyer ses e-mails @maria-groupe.com (Hostinger) sans quitter Maria Suite.",
   },
 
   {

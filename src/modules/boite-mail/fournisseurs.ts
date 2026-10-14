@@ -14,7 +14,30 @@ export interface Reglages {
   /** Ce qu'il faut savoir avant de se connecter. */
   conseil: string;
   fournisseur: string;
+  /**
+   * Le mot de passe attendu : celui de la boîte elle-même (hébergeur), ou un
+   * « mot de passe d'application » que le fournisseur fait créer à part.
+   */
+  motDePasse: "boite" | "application";
 }
+
+/**
+ * Hostinger héberge les boîtes de MARIA GROUP SARL (@maria-groupe.com). IMAP
+ * et SMTP chiffrés dès la connexion ; le mot de passe est celui de la boîte,
+ * choisi dans hPanel — pas de mot de passe d'application.
+ */
+const HOSTINGER: Reglages = {
+  fournisseur: "Hostinger",
+  imapHote: "imap.hostinger.com",
+  imapPort: 993,
+  imapSecurise: true,
+  smtpHote: "smtp.hostinger.com",
+  smtpPort: 465,
+  smtpSecurise: true,
+  motDePasse: "boite",
+  conseil:
+    "Saisissez le mot de passe de votre boîte @maria-groupe.com. Oublié ? L'administrateur le réinitialise dans hPanel (E-mails › Comptes de messagerie).",
+};
 
 const GMAIL: Reglages = {
   fournisseur: "Gmail",
@@ -24,6 +47,7 @@ const GMAIL: Reglages = {
   smtpHote: "smtp.gmail.com",
   smtpPort: 465,
   smtpSecurise: true,
+  motDePasse: "application",
   conseil:
     "Gmail refuse le mot de passe habituel : activez la validation en deux étapes, puis créez un « mot de passe d'application » (Compte Google › Sécurité) et saisissez-le ici.",
 };
@@ -36,6 +60,7 @@ const YAHOO: Reglages = {
   smtpHote: "smtp.mail.yahoo.com",
   smtpPort: 465,
   smtpSecurise: true,
+  motDePasse: "application",
   conseil: "Yahoo demande un « mot de passe d'application » (Sécurité du compte › Générer un mot de passe d'application).",
 };
 
@@ -47,11 +72,13 @@ const OUTLOOK: Reglages = {
   smtpHote: "smtp-mail.outlook.com",
   smtpPort: 587,
   smtpSecurise: false,
+  motDePasse: "boite",
   conseil:
     "Microsoft n'accepte plus le mot de passe seul pour les comptes Outlook.com et Hotmail personnels, et le refuse souvent sur Microsoft 365. Si la connexion échoue, utilisez une boîte de votre hébergeur ou Gmail.",
 };
 
 const DOMAINES: Record<string, Reglages> = {
+  "maria-groupe.com": HOSTINGER,
   "gmail.com": GMAIL,
   "googlemail.com": GMAIL,
   "yahoo.com": YAHOO,
@@ -81,6 +108,7 @@ export function deviner(adresse: string): Reglages {
       smtpHote: domaine ? `mail.${domaine}` : "",
       smtpPort: 465,
       smtpSecurise: true,
+      motDePasse: "boite",
       conseil: "Réglages habituels d'un hébergeur : vérifiez-les dans l'espace client de votre hébergement (rubrique e-mail).",
     }
   );
