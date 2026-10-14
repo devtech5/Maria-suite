@@ -386,6 +386,13 @@
       "when": 1792004036896,
       "tag": "0054_licences_fournisseur",
       "breakpoints": true
+    },
+    {
+      "idx": 55,
+      "version": "7",
+      "when": 1792004218064,
+      "tag": "0055_commerciaux_fiche",
+      "breakpoints": true
     }
   ]
 }

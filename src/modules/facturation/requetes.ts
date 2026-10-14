@@ -267,9 +267,12 @@ export async function optionsPiece(organizationId: string, userId?: string): Pro
         and statut not in ('termine', 'annule')
       order by code desc`),
     db.execute<{ id: string; nom: string; user_id: string | null }>(sql`
-      select id, nom, user_id from commerciaux
-      where organization_id = ${organizationId} and actif and deleted_at is null
-      order by nom`),
+      select c.id, coalesce(e.nom, u.full_name, c.nom) as nom, c.user_id
+      from commerciaux c
+        left join employees e on e.id = c.employee_id
+        left join users u on u.id = c.user_id
+      where c.organization_id = ${organizationId} and c.actif and c.deleted_at is null
+      order by 2`),
     db.execute<{ id: string; tiers_id: string; nom: string; fonction: string | null; principal: boolean }>(sql`
       select id, tiers_id, nom, fonction, principal from contacts_tiers
       where organization_id = ${organizationId} and actif

@@ -1,19 +1,33 @@
 import "server-only";
 
-import { and, asc, eq, isNull } from "drizzle-orm";
+import { and, eq, getTableColumns, isNull, sql } from "drizzle-orm";
 
 import { db } from "@/db";
+import { users } from "@/db/schema";
+import { employees } from "@/modules/personnes/schema";
 
 import { atteinteObjectif, calculerCommission } from "./calcul";
 import { realisationsDuMois } from "./creation";
 import { commerciaux, commissions } from "./schema";
 
+/**
+ * Commerciaux, avec le nom et le téléphone lus à leur fiche — le salarié,
+ * sinon le compte — : un salarié renommé au Personnel l'est ici aussi. Le
+ * nom enregistré ne sert plus que pour l'apporteur sans fiche.
+ */
 export async function listerCommerciaux(organizationId: string) {
+  const nom = sql<string>`coalesce(${employees.nom}, ${users.fullName}, ${commerciaux.nom})`;
   return db
-    .select()
+    .select({
+      ...getTableColumns(commerciaux),
+      nom,
+      telephone: sql<string | null>`coalesce(${employees.telephone}, ${users.phone}, ${commerciaux.telephone})`,
+    })
     .from(commerciaux)
+    .leftJoin(employees, eq(employees.id, commerciaux.employeeId))
+    .leftJoin(users, eq(users.id, commerciaux.userId))
     .where(and(eq(commerciaux.organizationId, organizationId), isNull(commerciaux.deletedAt)))
-    .orderBy(asc(commerciaux.nom));
+    .orderBy(nom);
 }
 
 /**

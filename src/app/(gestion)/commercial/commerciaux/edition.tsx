@@ -62,6 +62,8 @@ function FormulaireFiche({ initiale, membres, salaries, onFerme }: { initiale: F
   });
   const [mode, setMode] = useState<"unique" | "paliers">(initiale.paliers.length ? "paliers" : "unique");
   const maj = (champ: Partial<typeof f>) => setF((p) => ({ ...p, ...champ }));
+  // Lié à un salarié ou à un compte, le commercial prend le nom de sa fiche.
+  const sansFiche = !f.employeeId && !f.userId;
 
   return (
     <form
@@ -71,8 +73,8 @@ function FormulaireFiche({ initiale, membres, salaries, onFerme }: { initiale: F
         op.lancer(
           () =>
             enregistrerCommercial(initiale.id ?? null, {
-              nom: f.nom,
-              telephone: f.telephone || null,
+              nom: sansFiche ? f.nom : null,
+              telephone: sansFiche ? f.telephone || null : null,
               userId: f.userId || null,
               employeeId: f.employeeId || null,
               base: f.base,
@@ -88,14 +90,22 @@ function FormulaireFiche({ initiale, membres, salaries, onFerme }: { initiale: F
       className="space-y-3 rounded-xl border border-[var(--filet)] bg-[var(--surface-creuse)] p-4 text-left text-sm"
     >
       <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
-        <label>
-          <span className="mb-1 block font-medium">Nom</span>
-          <input required value={f.nom} onChange={(e) => maj({ nom: e.target.value })} className={`${CLASSE_CHAMP_COMPACT} h-9 w-full`} />
-        </label>
-        <label>
-          <span className="mb-1 block font-medium">Téléphone</span>
-          <input value={f.telephone} onChange={(e) => maj({ telephone: e.target.value })} className={`${CLASSE_CHAMP_COMPACT} h-9 w-full`} />
-        </label>
+        {sansFiche ? (
+          <>
+            <label>
+              <span className="mb-1 block font-medium">Nom</span>
+              <input required value={f.nom} onChange={(e) => maj({ nom: e.target.value })} className={`${CLASSE_CHAMP_COMPACT} h-9 w-full`} />
+            </label>
+            <label>
+              <span className="mb-1 block font-medium">Téléphone</span>
+              <input value={f.telephone} onChange={(e) => maj({ telephone: e.target.value })} className={`${CLASSE_CHAMP_COMPACT} h-9 w-full`} />
+            </label>
+          </>
+        ) : (
+          <p className="self-end pb-2 text-xs text-[var(--encre-faible)] sm:col-span-2">
+            Nom et téléphone repris de la fiche {f.employeeId ? "du salarié" : "du compte"} : rien à ressaisir.
+          </p>
+        )}
         <label>
           <span className="mb-1 block font-medium">Utilisateur (caisse)</span>
           <select value={f.userId} onChange={(e) => maj({ userId: e.target.value })} className={`${CLASSE_CHAMP_COMPACT} h-9 w-full`}>

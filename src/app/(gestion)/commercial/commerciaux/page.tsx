@@ -57,7 +57,7 @@ export default async function PageCommerciaux({ searchParams }: { searchParams: 
 
       <FicheCommercial
         membres={membres.filter((m) => m.statut === "actif").map((m) => ({ id: m.userId, nom: m.nom }))}
-        salaries={salaries.map((s) => ({ id: s.id, nom: `${s.nom} (${s.matricule})` }))}
+        salaries={salaries.map((s) => ({ id: s.id, nom: `${s.nom} — ${s.poste}` }))}
       />
 
       {lignes.length === 0 ? (
@@ -143,7 +143,7 @@ export default async function PageCommerciaux({ searchParams }: { searchParams: 
                         actif: c.actif,
                       }}
                       membres={membres.filter((m) => m.statut === "actif").map((m) => ({ id: m.userId, nom: m.nom }))}
-                      salaries={salaries.map((s) => ({ id: s.id, nom: `${s.nom} (${s.matricule})` }))}
+                      salaries={salaries.map((s) => ({ id: s.id, nom: `${s.nom} — ${s.poste}` }))}
                     />
                   </Td>
                 </tr>

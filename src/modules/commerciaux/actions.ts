@@ -33,6 +33,7 @@ async function operer(droit: Droit, travail: (organizationId: string, userId: st
     const message = erreur instanceof Error ? erreur.message : "";
     if (/commerciaux_nom_unique/.test(message)) return { ok: false, message: "Un commercial porte déjà ce nom." };
     if (/commerciaux_user_unique/.test(message)) return { ok: false, message: "Cet utilisateur est déjà lié à un autre commercial." };
+    if (/commerciaux_employe_unique/.test(message)) return { ok: false, message: "Ce salarié est déjà lié à un autre commercial." };
     const lisible = message && !message.startsWith("Failed query") && message.length < 240;
     if (!lisible) console.error("Commissions : opération refusée", erreur);
     return { ok: false, message: lisible ? message : "L'opération n'a pas abouti. Réessayez." };
@@ -40,7 +41,7 @@ async function operer(droit: Droit, travail: (organizationId: string, userId: st
 }
 
 const schemaFiche = z.object({
-  nom: z.string().trim().min(2, "Nom requis.").max(80),
+  nom: z.string().trim().max(80).nullable().optional(),
   telephone: z.string().trim().max(40).nullable().optional(),
   userId: z.string().regex(UUID).nullable().optional(),
   employeeId: z.string().regex(UUID).nullable().optional(),
@@ -57,8 +58,10 @@ export async function enregistrerCommercial(id: string | null, fiche: z.input<ty
     if (id && !UUID.test(id)) return { ok: false, message: "Commercial introuvable." };
     const analyse = schemaFiche.safeParse(fiche);
     if (!analyse.success) return { ok: false, message: analyse.error.issues[0].message };
-    await db.transaction((tx) => enregistrerCommercialDans(tx, organizationId, id, analyse.data, userId));
-    return { ok: true, message: `${analyse.data.nom} enregistré.` };
+    const { employeeId, userId: compte, nom } = analyse.data;
+    if (!employeeId && !compte && (nom ?? "").length < 2) return { ok: false, message: "Choisissez le salarié ou le compte, ou saisissez le nom." };
+    const enregistre = await db.transaction((tx) => enregistrerCommercialDans(tx, organizationId, id, analyse.data, userId));
+    return { ok: true, message: `${enregistre.nom} enregistré.` };
   });
 }
 

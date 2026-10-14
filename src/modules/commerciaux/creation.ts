@@ -1,13 +1,14 @@
 import "server-only";
 
-import { and, asc, eq, sql } from "drizzle-orm";
+import { and, asc, eq, isNull, sql } from "drizzle-orm";
 
-import { auditLogs } from "@/db/schema";
+import { auditLogs, memberships, users } from "@/db/schema";
 import { newId } from "@/lib/ids";
 import { prochainNumero, type Transaction } from "@/lib/sequences";
 import { enregistrerEcritureDans } from "@/modules/comptabilite/enregistrement";
 import { baremeDe, modifierElementsDans } from "@/modules/paie/creation";
 import { bulletinsPaie, periodesPaie } from "@/modules/paie/schema";
+import { employees } from "@/modules/personnes/schema";
 import { exigerProvision } from "@/modules/tresorerie/creation";
 import { comptesTresorerie } from "@/modules/tresorerie/schema";
 
@@ -21,7 +22,8 @@ async function journaliser(tx: Transaction, organizationId: string, userId: stri
 }
 
 export interface FicheCommercial {
-  nom: string;
+  /** Nom saisi : ne sert que pour un commercial sans fiche (apporteur externe). */
+  nom?: string | null;
   telephone?: string | null;
   userId?: string | null;
   employeeId?: string | null;
@@ -33,14 +35,50 @@ export interface FicheCommercial {
   actif?: boolean;
 }
 
-export async function enregistrerCommercialDans(tx: Transaction, organizationId: string, id: string | null, f: FicheCommercial, userId: string): Promise<{ id: string }> {
+/**
+ * Nom et téléphone du commercial, pris à sa fiche : le salarié du Personnel
+ * d'abord, sinon le compte qui encaisse. Rien ne se recopie à la main ; le
+ * nom saisi ne vaut que pour un apporteur sans fiche.
+ */
+async function identiteDe(tx: Transaction, organizationId: string, f: FicheCommercial): Promise<{ nom: string; telephone: string | null }> {
+  if (f.userId) {
+    const [membre] = await tx
+      .select({ id: memberships.id })
+      .from(memberships)
+      .where(and(eq(memberships.organizationId, organizationId), eq(memberships.userId, f.userId)));
+    if (!membre) throw new Error("Ce compte n'appartient pas à l'entreprise.");
+  }
+  if (f.employeeId) {
+    const [e] = await tx
+      .select({ nom: employees.nom, telephone: employees.telephone })
+      .from(employees)
+      .where(and(eq(employees.id, f.employeeId), eq(employees.organizationId, organizationId), isNull(employees.deletedAt)));
+    if (!e) throw new Error("Ce salarié ne figure pas au Personnel.");
+    return { nom: e.nom, telephone: e.telephone };
+  }
+  if (f.userId) {
+    const [u] = await tx.select({ nom: users.fullName, telephone: users.phone }).from(users).where(eq(users.id, f.userId));
+    if (u) return { nom: u.nom, telephone: u.telephone };
+  }
+  const nom = f.nom?.trim() ?? "";
+  if (!nom) throw new Error("Le nom du commercial est requis.");
+  return { nom, telephone: f.telephone?.trim() || null };
+}
+
+export async function enregistrerCommercialDans(
+  tx: Transaction,
+  organizationId: string,
+  id: string | null,
+  f: FicheCommercial,
+  userId: string,
+): Promise<{ id: string; nom: string }> {
   const regle: RegleCommission = { base: f.base, tauxBp: f.tauxBp, paliers: f.paliers?.length ? f.paliers : null, fixeMensuel: f.fixeMensuel };
   const refus = refusRegle(regle);
   if (refus) throw new Error(refus);
-  if (!f.nom.trim()) throw new Error("Le nom du commercial est requis.");
+  const identite = await identiteDe(tx, organizationId, f);
   const valeurs = {
-    nom: f.nom.trim(),
-    telephone: f.telephone?.trim() || null,
+    nom: identite.nom,
+    telephone: identite.telephone,
     userId: f.userId || null,
     employeeId: f.employeeId || null,
     base: f.base,
@@ -62,7 +100,7 @@ export async function enregistrerCommercialDans(tx: Transaction, organizationId:
     await tx.insert(commerciaux).values({ id, organizationId, ...valeurs });
   }
   await journaliser(tx, organizationId, userId, "commercial.enregistrer", id, { nom: valeurs.nom, base: f.base, tauxBp: f.tauxBp, paliers: valeurs.paliers, fixe: f.fixeMensuel });
-  return { id };
+  return { id, nom: valeurs.nom };
 }
 
 /**

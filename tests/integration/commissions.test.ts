@@ -2,6 +2,7 @@ import { eq } from "drizzle-orm";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
 
 import type { db as Db } from "@/db";
+import { memberships, roles } from "@/db/schema";
 import { newId } from "@/lib/ids";
 import { creerArticleDans } from "@/modules/catalogue/creation";
 import { enregistrerCommercialDans, payerCommissionDans, realisationsDuMois, validerCommissionDans } from "@/modules/commerciaux/creation";
@@ -21,6 +22,10 @@ let user: string;
 beforeAll(async () => {
   ({ db, fermer } = await ouvrirBaseDeTest());
   ({ organizationId: org, userId: user } = await semerEntreprise(db));
+  // Le commercial lié à un compte en reprend le nom : le compte doit appartenir à l'entreprise.
+  const roleId = newId();
+  await db.insert(roles).values({ id: roleId, organizationId: org, key: "vente", name: "Vente" });
+  await db.insert(memberships).values({ id: newId(), organizationId: org, userId: user, roleId, status: "actif" });
 });
 afterAll(async () => fermer());
 

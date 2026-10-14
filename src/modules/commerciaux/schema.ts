@@ -31,6 +31,11 @@ export const commerciaux = pgTable(
     organizationId: uuid("organization_id")
       .notNull()
       .references(() => organizations.id, { onDelete: "cascade" }),
+    /**
+     * Nom et téléphone : ceux de la fiche salarié, ou du compte, recopiés à
+     * l'enregistrement et relus à jour à l'affichage. Saisis seulement pour
+     * un apporteur sans fiche.
+     */
     nom: text("nom").notNull(),
     telephone: text("telephone"),
     userId: uuid("user_id"),
@@ -57,6 +62,7 @@ export const commerciaux = pgTable(
   (t) => [
     unique("commerciaux_nom_unique").on(t.organizationId, t.nom),
     unique("commerciaux_user_unique").on(t.organizationId, t.userId),
+    unique("commerciaux_employe_unique").on(t.organizationId, t.employeeId),
     check("commerciaux_montants", sql`${t.tauxBp} BETWEEN 0 AND 10000 AND ${t.fixeMensuel} >= 0 AND ${t.objectifMensuel} >= 0`),
   ],
 );

@@ -1,0 +1,1 @@
+ALTER TABLE "commerciaux" ADD CONSTRAINT "commerciaux_employe_unique" UNIQUE("organization_id","employee_id");
