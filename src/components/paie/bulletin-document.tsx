@@ -84,9 +84,13 @@ export function BulletinDocument({ detail, identite }: { detail: Detail; identit
           {absences.length > 1 && <p>Jours non payés : {absences.map(([libelle, jours]) => `${libelle.toLowerCase()} ${formatJours(jours)}`).join(" · ")}.</p>}
           {(b.congesPris > 0 || b.soldeConges !== null) && (
             <p>
-              Congés payés{b.congesPris > 0 ? ` pris ce mois : ${formatJours(b.congesPris)}` : ""}
-              {b.congesPris > 0 && b.soldeConges !== null ? " · " : " "}
-              {b.soldeConges !== null ? `solde au ${new Date(`${finDeMois(periode.mois)}T00:00:00Z`).toLocaleDateString("fr-FR", { timeZone: "UTC" })} : ${formatJours(b.soldeConges)}` : ""}
+              Congés payés —{" "}
+              {[
+                b.congesPris > 0 ? `pris ce mois : ${formatJours(b.congesPris)}` : null,
+                b.soldeConges !== null ? `solde au ${new Date(`${finDeMois(periode.mois)}T00:00:00Z`).toLocaleDateString("fr-FR", { timeZone: "UTC" })} : ${formatJours(b.soldeConges)}` : null,
+              ]
+                .filter(Boolean)
+                .join(" · ")}
             </p>
           )}
         </section>
