@@ -3,9 +3,11 @@ import Link from "next/link";
 
 import { FormulaireRepliable } from "@/components/ui/operations";
 import { CLASSE_CHAMP, CarteIndicateur, Champ, EnTetePage, EtatVide, Pastille, Tableau, Td, Th, type TonPastille } from "@/components/ui/primitives";
+import { Recherche } from "@/components/ui/recherche";
 import { exigerEntreprise } from "@/lib/auth/dal";
 import { peut } from "@/lib/droits/garde";
 import { fmt, fmtCompact, fmtEntier } from "@/lib/format";
+import { correspond, dansPeriode, lireFiltresListe } from "@/lib/recherche";
 import { creerSoumission } from "@/modules/marches/actions";
 import { STATUTS_SOUMISSION, TYPES_MARCHE, joursRestants, type StatutSoumission } from "@/modules/marches/calcul";
 import { listerSoumissions } from "@/modules/marches/creation";
@@ -27,8 +29,9 @@ const HEURE = new Intl.DateTimeFormat("fr-FR", { dateStyle: "short", timeStyle: 
  * Appels d'offres auxquels l'entreprise répond : de la veille au résultat,
  * avec le dossier administratif à compléter avant la date limite.
  */
-export default async function PageAppelsOffres() {
+export default async function PageAppelsOffres({ searchParams }: PageProps<"/marches">) {
   const session = await exigerEntreprise();
+  const filtres = lireFiltresListe(await searchParams);
   const [liste, gerer] = await Promise.all([listerSoumissions(session.organizationId), peut("marches.soumission.gerer")]);
   const maintenant = new Date();
   const enCours = liste.filter((s) => s.statut === "veille" || s.statut === "en_preparation");
@@ -36,6 +39,12 @@ export default async function PageAppelsOffres() {
   const tranchees = liste.filter((s) => s.statut === "gagnee" || s.statut === "perdue");
   const gagnees = liste.filter((s) => s.statut === "gagnee");
   const tauxSucces = tranchees.length > 0 ? Math.round((gagnees.length * 100) / tranchees.length) : null;
+  // Les indicateurs portent sur tous les appels d'offres ; seul le tableau suit la recherche.
+  const affiches = liste.filter(
+    (s) =>
+      correspond(filtres.q, [s.numero, s.intitule, s.autorite, s.reference, s.lots, s.notes, TYPES_MARCHE[s.type], STATUTS_SOUMISSION[s.statut]]) &&
+      dansPeriode(s.dateLimite, filtres.periode),
+  );
 
   return (
     <>
@@ -98,58 +107,69 @@ export default async function PageAppelsOffres() {
             <CarteIndicateur libelle="Taux de succès" valeur={tauxSucces === null ? "—" : `${tauxSucces} %`} precision={`${gagnees.length} gagnée${gagnees.length > 1 ? "s" : ""} sur ${tranchees.length}`} />
             <CarteIndicateur libelle="Montant gagné" valeur={fmtCompact(gagnees.reduce((s, x) => s + (x.montantPropose ?? 0), 0))} unite="FCFA" precision="Offres retenues" />
           </section>
-          <Tableau>
-            <thead>
-              <tr>
-                <Th>N°</Th>
-                <Th>Marché</Th>
-                <Th>Date limite</Th>
-                <Th>Dossier</Th>
-                <Th aligne="droite">Offre</Th>
-                <Th>État</Th>
-              </tr>
-            </thead>
-            <tbody>
-              {liste.map((s) => {
-                const j = s.dateLimite ? joursRestants(s.dateLimite, maintenant) : null;
-                return (
-                  <tr key={s.id}>
-                    <Td chiffres>{s.numero}</Td>
-                    <Td fort>
-                      <Link href={`/marches/soumissions/${s.id}`} className="hover:underline">
-                        {s.intitule}
-                      </Link>
-                      <span className="block text-xs font-normal text-[var(--encre-douce)]">
-                        {s.autorite} · {TYPES_MARCHE[s.type]}
-                        {s.reference ? ` · ${s.reference}` : ""}
-                      </span>
-                    </Td>
-                    <Td chiffres>
-                      {s.dateLimite ? (
-                        <>
-                          {HEURE.format(s.dateLimite)}
-                          {(s.statut === "veille" || s.statut === "en_preparation") && j !== null && (
-                            <span className={`block text-xs ${j < 0 ? "text-danger-600" : j <= 7 ? "text-alerte-600" : "text-[var(--encre-faible)]"}`}>{j < 0 ? "Dépassée" : `Dans ${j} j`}</span>
-                          )}
-                        </>
-                      ) : (
-                        "—"
-                      )}
-                    </Td>
-                    <Td>
-                      {s.manquantes === 0 ? <Pastille ton="valide">Complet</Pastille> : <Pastille ton={s.enDanger ? "danger" : "alerte"}>{s.manquantes} manquante{s.manquantes > 1 ? "s" : ""}</Pastille>}
-                    </Td>
-                    <Td aligne="droite" chiffres>
-                      {s.montantPropose !== null ? fmt(s.montantPropose) : "—"}
-                    </Td>
-                    <Td>
-                      <Pastille ton={TON[s.statut]}>{STATUTS_SOUMISSION[s.statut]}</Pastille>
-                    </Td>
-                  </tr>
-                );
-              })}
-            </tbody>
-          </Tableau>
+          <Recherche
+            chemin="/marches"
+            valeur={filtres.q}
+            placeholder="Numéro, objet, autorité, référence…"
+            periode={{ ...filtres.periode, libelle: "Date limite" }}
+            resultats={filtres.actif ? `${fmtEntier(affiches.length)} sur ${fmtEntier(liste.length)}` : undefined}
+          />
+          {affiches.length === 0 ? (
+            <EtatVide titre="Aucun appel d'offres ne répond" message="Élargissez la période ou retirez un mot de la recherche." />
+          ) : (
+            <Tableau>
+              <thead>
+                <tr>
+                  <Th>N°</Th>
+                  <Th>Marché</Th>
+                  <Th>Date limite</Th>
+                  <Th>Dossier</Th>
+                  <Th aligne="droite">Offre</Th>
+                  <Th>État</Th>
+                </tr>
+              </thead>
+              <tbody>
+                {affiches.map((s) => {
+                  const j = s.dateLimite ? joursRestants(s.dateLimite, maintenant) : null;
+                  return (
+                    <tr key={s.id}>
+                      <Td chiffres>{s.numero}</Td>
+                      <Td fort>
+                        <Link href={`/marches/soumissions/${s.id}`} className="hover:underline">
+                          {s.intitule}
+                        </Link>
+                        <span className="block text-xs font-normal text-[var(--encre-douce)]">
+                          {s.autorite} · {TYPES_MARCHE[s.type]}
+                          {s.reference ? ` · ${s.reference}` : ""}
+                        </span>
+                      </Td>
+                      <Td chiffres>
+                        {s.dateLimite ? (
+                          <>
+                            {HEURE.format(s.dateLimite)}
+                            {(s.statut === "veille" || s.statut === "en_preparation") && j !== null && (
+                              <span className={`block text-xs ${j < 0 ? "text-danger-600" : j <= 7 ? "text-alerte-600" : "text-[var(--encre-faible)]"}`}>{j < 0 ? "Dépassée" : `Dans ${j} j`}</span>
+                            )}
+                          </>
+                        ) : (
+                          "—"
+                        )}
+                      </Td>
+                      <Td>
+                        {s.manquantes === 0 ? <Pastille ton="valide">Complet</Pastille> : <Pastille ton={s.enDanger ? "danger" : "alerte"}>{s.manquantes} manquante{s.manquantes > 1 ? "s" : ""}</Pastille>}
+                      </Td>
+                      <Td aligne="droite" chiffres>
+                        {s.montantPropose !== null ? fmt(s.montantPropose) : "—"}
+                      </Td>
+                      <Td>
+                        <Pastille ton={TON[s.statut]}>{STATUTS_SOUMISSION[s.statut]}</Pastille>
+                      </Td>
+                    </tr>
+                  );
+                })}
+              </tbody>
+            </Tableau>
+          )}
         </>
       )}
     </>

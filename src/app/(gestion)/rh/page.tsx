@@ -13,9 +13,11 @@ import {
   Th,
   type TonPastille,
 } from "@/components/ui/primitives";
+import { Recherche } from "@/components/ui/recherche";
 import { exigerEntreprise } from "@/lib/auth/dal";
 import { peut } from "@/lib/droits/garde";
 import { fmt, fmtCompact, fmtEntier } from "@/lib/format";
+import { correspond, dansPeriode, lireFiltresListe } from "@/lib/recherche";
 import { naturesParSalarie } from "@/modules/personnes/dossier";
 import { calculerBulletin, joursAvantTerme } from "@/modules/personnes/paie";
 import { piecesManquantes } from "@/modules/personnes/pieces";
@@ -40,8 +42,9 @@ const TON_CONTRAT: Record<TypeContrat, TonPastille> = {
   essai: "alerte",
 };
 
-export default async function PageSalaries() {
+export default async function PageSalaries({ searchParams }: PageProps<"/rh">) {
   const session = await exigerEntreprise();
+  const filtres = lireFiltresListe(await searchParams);
   const [salaries, voitLesDossiers, tientLesDossiers] = await Promise.all([
     listerSalaries(session.organizationId),
     peut("personnes.dossier.consulter"),
@@ -77,6 +80,22 @@ export default async function PageSalaries() {
   const sansCnps = salaries.filter((salarie) => !salarie.numeroCnps);
 
   const indetermines = salaries.filter((salarie) => salarie.contrat === "cdi");
+
+  // Les indicateurs portent sur tout l'effectif ; seul le tableau suit la
+  // recherche (la barre du haut y renvoie par `?q=`) et la date d'entrée.
+  const affiches = echeances.filter(
+    ({ salarie }) =>
+      correspond(filtres.q, [
+        salarie.nom,
+        salarie.matricule,
+        salarie.poste,
+        salarie.service,
+        salarie.telephone,
+        salarie.emailProfessionnel,
+        salarie.numeroCnps,
+        LIBELLE_CONTRAT[salarie.contrat],
+      ]) && dansPeriode(salarie.debut, filtres.periode),
+  );
 
   return (
     <>
@@ -125,78 +144,90 @@ export default async function PageSalaries() {
             />
           </section>
 
-          <Tableau>
-            <thead>
-              <tr>
-                <Th>Matricule</Th>
-                <Th>Salarié</Th>
-                <Th>Poste</Th>
-                <Th>Contrat</Th>
-                <Th>Échéance</Th>
-                <Th>N° CNPS</Th>
-                {natures && <Th>Dossier</Th>}
-                <Th aligne="droite">Salaire de base</Th>
-              </tr>
-            </thead>
-            <tbody>
-              {echeances.map(({ salarie, jours }) => (
-                <tr key={salarie.id}>
-                  <Td chiffres>{salarie.matricule}</Td>
-                  <Td fort>
-                    <Link href={`/rh/salaries/${salarie.id}`} className="flex items-center gap-2 hover:underline">
-                      <Portrait photo={salarie.photo} nom={salarie.nom} taille="petite" />
-                      {salarie.nom}
-                    </Link>
-                  </Td>
-                  <Td>
-                    <span className="text-xs text-[var(--encre-douce)]">
-                      {salarie.poste}
-                    </span>
-                  </Td>
-                  <Td>
-                    <Pastille ton={TON_CONTRAT[salarie.contrat]}>
-                      {LIBELLE_CONTRAT[salarie.contrat]}
-                    </Pastille>
-                  </Td>
-                  <Td>
-                    {jours === null ? (
-                      <span className="text-xs text-[var(--encre-faible)]">
-                        Indéterminée
-                      </span>
-                    ) : jours < 0 ? (
-                      <Pastille ton="danger">Expiré</Pastille>
-                    ) : jours <= 60 ? (
-                      <Pastille ton="alerte">Dans {jours} j</Pastille>
-                    ) : (
-                      <span className="chiffres text-xs">{salarie.fin}</span>
-                    )}
-                  </Td>
-                  <Td chiffres>
-                    {/* Sans numéro CNPS, aucune déclaration n'est possible :
-                        l'absence est signalée, pas laissée vide. */}
-                    {salarie.numeroCnps ?? <Pastille ton="alerte">Manquant</Pastille>}
-                  </Td>
-                  {natures && (
-                    <Td>
-                      {(() => {
-                        const manque = piecesManquantes(natures.get(salarie.id) ?? new Set(), Boolean(salarie.photo));
-                        return manque.length === 0 ? (
-                          <Pastille ton="valide">Complet</Pastille>
-                        ) : (
-                          <span title={`À compléter : ${manque.join(", ")}`}>
-                            <Pastille ton="alerte">{manque.length} à compléter</Pastille>
-                          </span>
-                        );
-                      })()}
-                    </Td>
-                  )}
-                  <Td aligne="droite" chiffres fort>
-                    {fmt(salarie.salaireBase)}
-                  </Td>
+          <Recherche
+            chemin="/rh"
+            valeur={filtres.q}
+            placeholder="Nom, matricule, poste, service, n° CNPS…"
+            periode={{ ...filtres.periode, libelle: "Entrée" }}
+            resultats={filtres.actif ? `${fmtEntier(affiches.length)} sur ${fmtEntier(salaries.length)}` : undefined}
+          />
+
+          {affiches.length === 0 ? (
+            <EtatVide titre="Aucun résultat" message="Aucun salarié ne répond à cette recherche. Élargissez la période ou retirez un mot." />
+          ) : (
+            <Tableau>
+              <thead>
+                <tr>
+                  <Th>Matricule</Th>
+                  <Th>Salarié</Th>
+                  <Th>Poste</Th>
+                  <Th>Contrat</Th>
+                  <Th>Échéance</Th>
+                  <Th>N° CNPS</Th>
+                  {natures && <Th>Dossier</Th>}
+                  <Th aligne="droite">Salaire de base</Th>
                 </tr>
-              ))}
-            </tbody>
-          </Tableau>
+              </thead>
+              <tbody>
+                {affiches.map(({ salarie, jours }) => (
+                  <tr key={salarie.id}>
+                    <Td chiffres>{salarie.matricule}</Td>
+                    <Td fort>
+                      <Link href={`/rh/salaries/${salarie.id}`} className="flex items-center gap-2 hover:underline">
+                        <Portrait photo={salarie.photo} nom={salarie.nom} taille="petite" />
+                        {salarie.nom}
+                      </Link>
+                    </Td>
+                    <Td>
+                      <span className="text-xs text-[var(--encre-douce)]">
+                        {salarie.poste}
+                      </span>
+                    </Td>
+                    <Td>
+                      <Pastille ton={TON_CONTRAT[salarie.contrat]}>
+                        {LIBELLE_CONTRAT[salarie.contrat]}
+                      </Pastille>
+                    </Td>
+                    <Td>
+                      {jours === null ? (
+                        <span className="text-xs text-[var(--encre-faible)]">
+                          Indéterminée
+                        </span>
+                      ) : jours < 0 ? (
+                        <Pastille ton="danger">Expiré</Pastille>
+                      ) : jours <= 60 ? (
+                        <Pastille ton="alerte">Dans {jours} j</Pastille>
+                      ) : (
+                        <span className="chiffres text-xs">{salarie.fin}</span>
+                      )}
+                    </Td>
+                    <Td chiffres>
+                      {/* Sans numéro CNPS, aucune déclaration n'est possible :
+                          l'absence est signalée, pas laissée vide. */}
+                      {salarie.numeroCnps ?? <Pastille ton="alerte">Manquant</Pastille>}
+                    </Td>
+                    {natures && (
+                      <Td>
+                        {(() => {
+                          const manque = piecesManquantes(natures.get(salarie.id) ?? new Set(), Boolean(salarie.photo));
+                          return manque.length === 0 ? (
+                            <Pastille ton="valide">Complet</Pastille>
+                          ) : (
+                            <span title={`À compléter : ${manque.join(", ")}`}>
+                              <Pastille ton="alerte">{manque.length} à compléter</Pastille>
+                            </span>
+                          );
+                        })()}
+                      </Td>
+                    )}
+                    <Td aligne="droite" chiffres fort>
+                      {fmt(salarie.salaireBase)}
+                    </Td>
+                  </tr>
+                ))}
+              </tbody>
+            </Tableau>
+          )}
 
           {sansCnps.length > 0 && (
             <p className="mt-4 max-w-[70ch] text-xs text-[var(--encre-faible)]">

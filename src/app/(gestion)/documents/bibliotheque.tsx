@@ -2,8 +2,9 @@
 
 import { useMemo, useState, useTransition } from "react";
 
-import { Pastille, type TonPastille } from "@/components/ui/primitives";
+import { CLASSE_CHAMP_COMPACT, Pastille, type TonPastille } from "@/components/ui/primitives";
 import { fmtEntier } from "@/lib/format";
+import { correspond, dansPeriode, lirePeriode, type Periode } from "@/lib/recherche";
 import { ouvrirDocument } from "@/modules/documents/actions";
 import type {
   TypeEntiteDocument,
@@ -20,6 +21,8 @@ export interface DocumentAffiche {
   avecFichier: boolean;
   tailleOctets: number | null;
   joursAvantExpiration: number | null;
+  /** Date d'expiration `AAAA-MM-JJ`, nulle pour une pièce sans échéance. */
+  expireLe: string | null;
   deposeLeIso: string;
 }
 
@@ -68,27 +71,40 @@ function taille(octets: number | null): string {
  * qu'on se pose réellement devant l'écran : « quels papiers ai-je sur ce
  * client, ce véhicule, cet employé ? »
  */
-export function Bibliotheque({ documents }: { documents: DocumentAffiche[] }) {
-  const [recherche, setRecherche] = useState("");
+export function Bibliotheque({
+  documents,
+  rechercheInitiale = "",
+  periodeInitiale = { du: null, au: null },
+}: {
+  documents: DocumentAffiche[];
+  /** `?q=` de l'adresse : la recherche globale y renvoie avec le mot déjà posé. */
+  rechercheInitiale?: string;
+  periodeInitiale?: Periode;
+}) {
+  const [recherche, setRecherche] = useState(rechercheInitiale);
+  const [du, setDu] = useState(periodeInitiale.du ?? "");
+  const [au, setAu] = useState(periodeInitiale.au ?? "");
   const [entite, setEntite] = useState<string | null>(null);
   const [erreur, setErreur] = useState<string | null>(null);
   const [enCours, demarrer] = useTransition();
 
+  // La période porte sur l'expiration, pas sur le dépôt : la question posée
+  // devant cet écran est « que dois-je renouveler d'ici fin juin ? ». Une
+  // pièce sans échéance ne répond qu'à une période vide.
   const resultats = useMemo(() => {
-    const terme = recherche.trim().toLowerCase();
+    const periode = lirePeriode(du, au);
     return documents.filter((doc) => {
       if (entite === NON_RATTACHE && doc.entiteType !== null) return false;
       if (entite && entite !== NON_RATTACHE && doc.entiteType !== entite) {
         return false;
       }
-      if (!terme) return true;
       return (
-        doc.nom.toLowerCase().includes(terme) ||
-        (doc.entiteLibelle ?? "").toLowerCase().includes(terme) ||
-        (doc.categorie ?? "").toLowerCase().includes(terme)
+        correspond(recherche, [doc.nom, doc.entiteLibelle, doc.categorie]) &&
+        dansPeriode(doc.expireLe, periode)
       );
     });
-  }, [documents, recherche, entite]);
+  }, [documents, recherche, entite, du, au]);
+  const cherche = recherche.trim() !== "" || du !== "" || au !== "";
 
   // Seules les entités effectivement représentées sont proposées au filtre.
   const entitesPresentes = useMemo(() => {
@@ -128,8 +144,30 @@ export function Bibliotheque({ documents }: { documents: DocumentAffiche[] }) {
           value={recherche}
           onChange={(e) => setRecherche(e.target.value)}
           placeholder="Nom du document, client, véhicule, employé…"
+          aria-label="Rechercher un document"
           className="h-cible w-full rounded-lg border border-[var(--filet)] bg-[var(--surface)] px-3.5 text-sm outline-none focus:border-marque-500"
         />
+
+        <fieldset className="flex flex-wrap items-center gap-1.5 text-sm">
+          <legend className="sr-only">Expiration</legend>
+          <span className="text-[var(--encre-faible)]">Expire du</span>
+          <input type="date" value={du} onChange={(e) => setDu(e.target.value)} aria-label="Expiration : du" className={`${CLASSE_CHAMP_COMPACT} chiffres`} />
+          <span className="text-[var(--encre-faible)]">au</span>
+          <input type="date" value={au} onChange={(e) => setAu(e.target.value)} aria-label="Expiration : au" className={`${CLASSE_CHAMP_COMPACT} chiffres`} />
+          {cherche && (
+            <button
+              type="button"
+              onClick={() => {
+                setRecherche("");
+                setDu("");
+                setAu("");
+              }}
+              className="text-xs font-semibold text-marque-600 hover:underline"
+            >
+              Tout afficher
+            </button>
+          )}
+        </fieldset>
 
         <div className="flex gap-1.5 overflow-x-auto pb-0.5">
           <button

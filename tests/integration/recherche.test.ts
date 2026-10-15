@@ -1,3 +1,4 @@
+import { eq } from "drizzle-orm";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
 
 import type { db as Db } from "@/db";
@@ -8,7 +9,12 @@ import { creerActifPour, enregistrerInterventionPour } from "@/modules/actifs/cr
 import { listerInterventions } from "@/modules/actifs/requetes";
 import { journalEcritures } from "@/modules/comptabilite/requetes";
 import { creerFourniturePour, derniersMouvements, enregistrerMouvementPour } from "@/modules/moyens-generaux/creation";
+import { creerReunionDans } from "@/modules/meeting/creation";
+import { listerReunions } from "@/modules/meeting/requetes";
+import { reunions } from "@/modules/meeting/schema";
 import { creerSalariePour } from "@/modules/personnes/creation";
+import { demanderCongePour } from "@/modules/presences/creation";
+import { listerConges } from "@/modules/presences/requetes";
 import { rechercherPartout } from "@/modules/recherche/globale";
 import { creerTiersPour } from "@/modules/tiers/creation";
 import { creerCompteDans, demanderBonDans, envoyerVirementDans } from "@/modules/tresorerie/creation";
@@ -144,5 +150,40 @@ describe("trésorerie et journal : recherche en base, avant la limite", () => {
     expect(janvier.map((e) => e.date)).toEqual(["2026-01-02"]);
     const versements = await journalEcritures(org, { limite: 50, filtres: lireFiltresListe({ q: "5212", du: "2026-03-11", au: "2026-03-11" }) });
     expect(versements.map((e) => e.date)).toEqual(["2026-03-11"]);
+  });
+});
+
+describe("personnel : recherche en base, avant la limite", () => {
+  it("congés : nature cherchée par son libellé, période par chevauchement", async () => {
+    const { id } = await creerSalariePour(org, { nom: "Mariam Ouattara", poste: "Secrétaire", debut: "2026-01-05", salaireBase: 150_000 }, user);
+    const conge = (nature: "maladie" | "maternite", debut: string, fin: string) =>
+      demanderCongePour(org, user, { employeeId: id, nature, debut, fin, debutDemi: false, finDemi: false, motif: null }, { accorder: true });
+    await conge("maladie", "2026-03-30", "2026-04-02");
+    await conge("maternite", "2026-06-01", "2026-06-30");
+
+    // « Maternité » n'est en base que la clé `maternite` : le libellé répond quand même.
+    expect((await listerConges(org, { filtres: lireFiltresListe({ q: "MATERNITÉ ouattara" }) })).map((c) => c.debut)).toEqual(["2026-06-01"]);
+    // Un congé à cheval sur la borne compte des deux côtés.
+    expect((await listerConges(org, { filtres: lireFiltresListe({ du: "2026-04-01", au: "2026-04-30" }) })).map((c) => c.debut)).toEqual(["2026-03-30"]);
+    expect((await listerConges(org, { filtres: lireFiltresListe({ du: "2026-03-01", au: "2026-03-30" }) })).map((c) => c.debut)).toEqual(["2026-03-30"]);
+    expect(await listerConges(org, { filtres: lireFiltresListe({ du: "2026-04-03", au: "2026-05-31" }) })).toEqual([]);
+  });
+
+  it("réunions : la recherche dépasse la fenêtre des 90 jours, jamais l'invitation", async () => {
+    const organisateur = { userId: user, organise: true };
+    const { id } = await db.transaction((tx) =>
+      creerReunionDans(tx, org, { titre: "Bilan du chantier de Bingerville", debutPrevu: new Date("2025-11-03T09:00:00Z"), dureeMinutes: 60, participants: [] }, organisateur),
+    );
+    // Close depuis près d'un an : hors de la liste ordinaire.
+    await db
+      .update(reunions)
+      .set({ statut: "terminee", ouverteLe: new Date("2025-11-03T09:00:00Z"), termineeLe: new Date("2025-11-03T10:00:00Z") })
+      .where(eq(reunions.id, id));
+
+    expect(await listerReunions(org, user)).toEqual([]);
+    expect((await listerReunions(org, user, new Date(), lireFiltresListe({ q: "bingerville" }))).map((r) => r.titre)).toEqual(["Bilan du chantier de Bingerville"]);
+    expect(await listerReunions(org, user, new Date(), lireFiltresListe({ du: "2025-11-04" }))).toEqual([]);
+    // Qui n'est pas invité ne la trouve pas, recherche ou non.
+    expect(await listerReunions(org, crypto.randomUUID(), new Date(), lireFiltresListe({ q: "bingerville" }))).toEqual([]);
   });
 });

@@ -2,8 +2,11 @@ import type { Metadata } from "next";
 
 import { ActionsBrouillon, NouvelleCampagne } from "@/components/communication/campagnes";
 import { EnTetePage, EtatVide, Pastille } from "@/components/ui/primitives";
+import { Recherche } from "@/components/ui/recherche";
 import { exigerEntreprise } from "@/lib/auth/dal";
 import { peut } from "@/lib/droits/garde";
+import { fmtEntier } from "@/lib/format";
+import { lireFiltresListe } from "@/lib/recherche";
 import { listerCampagnes } from "@/modules/communication/campagnes";
 
 export const metadata: Metadata = { title: "Messages groupés" };
@@ -16,18 +19,35 @@ const CANAL: Record<string, string> = { email: "E-mail", whatsapp: "WhatsApp", a
  * ou aux clients (e-mail, WhatsApp). Un brouillon d'abord, l'envoi ensuite,
  * et le compte rendu reste : remis, échecs, retenus.
  */
-export default async function PageCampagnes() {
+export default async function PageCampagnes({ searchParams }: PageProps<"/communication/campagnes">) {
   const session = await exigerEntreprise();
-  const [liste, gerer] = await Promise.all([listerCampagnes(session.organizationId), peut("communication.campagne.gerer")]);
+  const filtres = lireFiltresListe(await searchParams);
+  const [tout, trouvees, gerer] = await Promise.all([
+    listerCampagnes(session.organizationId),
+    filtres.actif ? listerCampagnes(session.organizationId, filtres) : null,
+    peut("communication.campagne.gerer"),
+  ]);
+  const liste = trouvees ?? tout;
 
   return (
     <>
       <EnTetePage titre="Messages groupés" sousTitre="Au personnel ou aux clients, en un envoi" actions={gerer ? <NouvelleCampagne /> : undefined} />
-      {liste.length === 0 ? (
+      {tout.length > 0 && (
+        <Recherche
+          chemin="/communication/campagnes"
+          valeur={filtres.q}
+          placeholder="Titre, numéro, objet, texte du message…"
+          periode={{ ...filtres.periode, libelle: "Envoyé" }}
+          resultats={filtres.actif ? `${fmtEntier(liste.length)} message${liste.length > 1 ? "s" : ""}` : undefined}
+        />
+      )}
+      {tout.length === 0 ? (
         <EtatVide
           titre="Aucun message groupé"
           message="Prévenez tout le personnel d'une fermeture, rappelez aux clients une promotion ou leurs factures en retard. Les destinataires désinscrits ne reçoivent rien."
         />
+      ) : liste.length === 0 ? (
+        <EtatVide titre="Aucun résultat" message="Aucun message groupé ne répond. Un brouillon, jamais envoyé, n'a pas de date d'envoi : retirez la période pour le retrouver." />
       ) : (
         <ul className="space-y-3">
           {liste.map((c) => (

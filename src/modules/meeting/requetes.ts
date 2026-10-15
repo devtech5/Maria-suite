@@ -1,8 +1,10 @@
 import "server-only";
 
-import { sql } from "drizzle-orm";
+import { and, sql } from "drizzle-orm";
 
 import { db } from "@/db";
+import { motsRecherche, type FiltresListe } from "@/lib/recherche";
+import { dansPeriodeSql, motsDans } from "@/lib/recherche-sql";
 
 import { present, type Statut } from "./calcul";
 
@@ -29,8 +31,18 @@ const RANG: Record<Statut, number> = { en_cours: 0, planifiee: 1, terminee: 2, a
  * d'abord, puis les prochaines dans l'ordre du calendrier, puis les closes
  * des 90 derniers jours, la plus récente en tête. Le filtre sur l'entreprise
  * est posé ici, jamais par l'appelant.
+ *
+ * Avec `filtres`, la recherche se fait en base, et la fenêtre des 90 jours
+ * tombe : chercher la réunion de mars doit la retrouver. L'invitation, elle,
+ * reste exigée — la recherche ne montre jamais une réunion où l'on n'est pas.
  */
-export async function listerReunions(organizationId: string, userId: string, maintenant = new Date()): Promise<ReunionListee[]> {
+export async function listerReunions(organizationId: string, userId: string, maintenant = new Date(), filtres?: FiltresListe): Promise<ReunionListee[]> {
+  const recherche =
+    filtres?.actif &&
+    and(
+      motsDans([sql`r.numero`, sql`r.titre`, sql`r.ordre_du_jour`, sql`o.full_name`], motsRecherche(filtres.q)),
+      dansPeriodeSql(sql`r.debut_prevu`, filtres.periode),
+    );
   const lignes = await db.execute<{
     id: string;
     numero: string;
@@ -51,7 +63,8 @@ export async function listerReunions(organizationId: string, userId: string, mai
     join reunion_participants moi on moi.reunion_id = r.id and moi.user_id = ${userId}
     left join users o on o.id = r.organisateur_user_id
     where r.organization_id = ${organizationId} and r.deleted_at is null
-      and (r.statut in ('planifiee', 'en_cours') or r.debut_prevu > now() - interval '90 days')
+      and ${recherche ? recherche : sql`(r.statut in ('planifiee', 'en_cours') or r.debut_prevu > now() - interval '90 days')`}
+    order by r.debut_prevu desc
     limit 300
   `);
 

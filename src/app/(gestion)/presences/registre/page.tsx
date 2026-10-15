@@ -2,9 +2,12 @@ import type { Metadata } from "next";
 import Link from "next/link";
 
 import { AccesRefuse } from "@/components/coque/acces-refuse";
-import { EnTetePage } from "@/components/ui/primitives";
+import { EnTetePage, EtatVide } from "@/components/ui/primitives";
+import { Recherche } from "@/components/ui/recherche";
 import { exigerEntreprise } from "@/lib/auth/dal";
 import { peut } from "@/lib/droits/garde";
+import { fmtEntier } from "@/lib/format";
+import { correspond, lireFiltresListe } from "@/lib/recherche";
 import { NATURES_CONGE, ajouterJours, heureLocale, jourLocal, jourSemaine, type EtatJour } from "@/modules/presences/calcul";
 import { reglagesDe } from "@/modules/presences/creation";
 import { registre } from "@/modules/presences/requetes";
@@ -67,10 +70,14 @@ export default async function PageRegistre({ searchParams }: PageProps<"/presenc
   const r = await reglagesDe(session.organizationId);
   const maintenant = new Date();
   const aujourdhui = jourLocal(maintenant, r.fuseau);
-  const { mois: brut } = await searchParams;
+  const parametres = await searchParams;
+  const { mois: brut } = parametres;
+  // Recherche seule : le mois affiché tient lieu de période.
+  const filtres = lireFiltresListe(parametres);
   const mois = typeof brut === "string" && MOIS.test(brut) ? brut : aujourdhui.slice(0, 7);
   const { debut, fin } = bornes(mois);
   const { jours, feries, lignes } = await registre(session.organizationId, debut, fin, r, aujourdhui, heureLocale(maintenant, r.fuseau));
+  const affichees = lignes.filter((l) => correspond(filtres.q, [l.salarie.nom, l.salarie.matricule, l.salarie.poste]));
   const libelle = new Date(`${debut}T00:00:00Z`).toLocaleDateString("fr-FR", { month: "long", year: "numeric", timeZone: "UTC" });
 
   return (
@@ -80,11 +87,11 @@ export default async function PageRegistre({ searchParams }: PageProps<"/presenc
         sousTitre="P présent · R en retard · C congé · F férié · A absent, ni pointé ni en congé"
         actions={
           <div className="flex gap-1">
-            <Link href={`/presences/registre?mois=${decaler(mois, -1)}`} className="h-cible flex items-center rounded-lg border border-[var(--filet)] px-3 text-sm hover:bg-[var(--surface-creuse)]">
+            <Link href={`/presences/registre?mois=${decaler(mois, -1)}${filtres.q ? `&q=${encodeURIComponent(filtres.q)}` : ""}`} className="h-cible flex items-center rounded-lg border border-[var(--filet)] px-3 text-sm hover:bg-[var(--surface-creuse)]">
               ← Mois précédent
             </Link>
             {mois < aujourdhui.slice(0, 7) && (
-              <Link href={`/presences/registre?mois=${decaler(mois, 1)}`} className="h-cible flex items-center rounded-lg border border-[var(--filet)] px-3 text-sm hover:bg-[var(--surface-creuse)]">
+              <Link href={`/presences/registre?mois=${decaler(mois, 1)}${filtres.q ? `&q=${encodeURIComponent(filtres.q)}` : ""}`} className="h-cible flex items-center rounded-lg border border-[var(--filet)] px-3 text-sm hover:bg-[var(--surface-creuse)]">
                 Mois suivant →
               </Link>
             )}
@@ -94,43 +101,56 @@ export default async function PageRegistre({ searchParams }: PageProps<"/presenc
       {lignes.length === 0 ? (
         <p className="rounded-xl border border-dashed border-[var(--filet)] bg-[var(--surface)] p-6 text-sm text-[var(--encre-douce)]">Aucun salarié en poste sur ce mois.</p>
       ) : (
-        <div className="overflow-x-auto rounded-xl border border-[var(--filet)] bg-[var(--surface)]">
-          <table className="border-collapse text-xs">
-            <thead>
-              <tr>
-                <th className="sticky left-0 z-10 bg-[var(--surface-creuse)] px-3 py-2 text-left font-semibold">Salarié</th>
-                {jours.map((j) => (
-                  <th key={j} title={feries.get(j)} className={`px-0.5 py-2 text-center font-medium ${jourSemaine(j) >= 6 ? "text-[var(--encre-faible)]" : ""} ${j === aujourdhui ? "text-marque-600" : ""}`}>
-                    {Number(j.slice(8))}
-                  </th>
-                ))}
-                <th className="px-2 py-2 text-right font-semibold">Présent</th>
-                <th className="px-2 py-2 text-right font-semibold">Retards</th>
-                <th className="px-2 py-2 text-right font-semibold">Absent</th>
-                <th className="px-2 py-2 text-right font-semibold">Congé</th>
-              </tr>
-            </thead>
-            <tbody>
-              {lignes.map((l) => (
-                <tr key={l.salarie.id} className="border-t border-[var(--filet)]">
-                  <td className="sticky left-0 z-10 whitespace-nowrap bg-[var(--surface)] px-3 py-1.5 font-medium">
-                    {l.salarie.nom}
-                    <span className="block text-[10px] font-normal text-[var(--encre-faible)]">{l.salarie.matricule}</span>
-                  </td>
-                  {l.jours.map((e, i) => (
-                    <td key={jours[i]} className="px-0.5 py-1.5">
-                      <Case e={e} />
-                    </td>
+        <>
+          <Recherche
+            chemin={`/presences/registre?mois=${mois}`}
+            valeur={filtres.q}
+            placeholder="Salarié, matricule, poste…"
+            filtres={<input type="hidden" name="mois" value={mois} />}
+            resultats={filtres.q ? `${fmtEntier(affichees.length)} sur ${fmtEntier(lignes.length)}` : undefined}
+          />
+          {affichees.length === 0 ? (
+            <EtatVide titre="Aucun résultat" message="Aucun salarié en poste sur ce mois ne répond à cette recherche." />
+          ) : (
+            <div className="overflow-x-auto rounded-xl border border-[var(--filet)] bg-[var(--surface)]">
+              <table className="border-collapse text-xs">
+                <thead>
+                  <tr>
+                    <th className="sticky left-0 z-10 bg-[var(--surface-creuse)] px-3 py-2 text-left font-semibold">Salarié</th>
+                    {jours.map((j) => (
+                      <th key={j} title={feries.get(j)} className={`px-0.5 py-2 text-center font-medium ${jourSemaine(j) >= 6 ? "text-[var(--encre-faible)]" : ""} ${j === aujourdhui ? "text-marque-600" : ""}`}>
+                        {Number(j.slice(8))}
+                      </th>
+                    ))}
+                    <th className="px-2 py-2 text-right font-semibold">Présent</th>
+                    <th className="px-2 py-2 text-right font-semibold">Retards</th>
+                    <th className="px-2 py-2 text-right font-semibold">Absent</th>
+                    <th className="px-2 py-2 text-right font-semibold">Congé</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {affichees.map((l) => (
+                    <tr key={l.salarie.id} className="border-t border-[var(--filet)]">
+                      <td className="sticky left-0 z-10 whitespace-nowrap bg-[var(--surface)] px-3 py-1.5 font-medium">
+                        {l.salarie.nom}
+                        <span className="block text-[10px] font-normal text-[var(--encre-faible)]">{l.salarie.matricule}</span>
+                      </td>
+                      {l.jours.map((e, i) => (
+                        <td key={jours[i]} className="px-0.5 py-1.5">
+                          <Case e={e} />
+                        </td>
+                      ))}
+                      <td className="chiffres px-2 text-right">{l.presents}</td>
+                      <td className="chiffres px-2 text-right">{l.retards}</td>
+                      <td className="chiffres px-2 text-right">{l.absences}</td>
+                      <td className="chiffres px-2 text-right">{l.conges}</td>
+                    </tr>
                   ))}
-                  <td className="chiffres px-2 text-right">{l.presents}</td>
-                  <td className="chiffres px-2 text-right">{l.retards}</td>
-                  <td className="chiffres px-2 text-right">{l.absences}</td>
-                  <td className="chiffres px-2 text-right">{l.conges}</td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
+                </tbody>
+              </table>
+            </div>
+          )}
+        </>
       )}
     </>
   );

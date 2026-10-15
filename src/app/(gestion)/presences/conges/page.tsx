@@ -2,8 +2,11 @@ import type { Metadata } from "next";
 
 import { ActionsConge, FormulaireConge } from "@/components/presences/formulaires";
 import { CarteIndicateur, EnTetePage, Pastille, Tableau, Td, Th, type TonPastille } from "@/components/ui/primitives";
+import { Recherche } from "@/components/ui/recherche";
 import { exigerEntreprise } from "@/lib/auth/dal";
 import { droitsActifs } from "@/lib/droits/garde";
+import { fmtEntier } from "@/lib/format";
+import { lireFiltresListe } from "@/lib/recherche";
 import { STATUTS_CONGE, formatJours, jourLocal } from "@/modules/presences/calcul";
 import { reglagesDe, salarieDuCompte } from "@/modules/presences/creation";
 import { listerConges, salariesSur, soldesConges, type LigneConge } from "@/modules/presences/requetes";
@@ -68,8 +71,11 @@ function TableConges({ lignes, avecNom, peutDecider, userId, aujourdhui }: { lig
   );
 }
 
-export default async function PageConges() {
+export default async function PageConges({ searchParams }: PageProps<"/presences/conges">) {
   const session = await exigerEntreprise();
+  const filtres = lireFiltresListe(await searchParams);
+  // Recherche et période valent pour les trois listes ; le solde, lui, reste entier.
+  const cherche = filtres.actif ? filtres : undefined;
   const droits = await droitsActifs();
   const r = await reglagesDe(session.organizationId);
   const aujourdhui = jourLocal(new Date(), r.fuseau);
@@ -77,12 +83,15 @@ export default async function PageConges() {
   const moi = await salarieDuCompte(session.organizationId, session.userId);
 
   const [mesConges, [monSolde], aDecider, tous, salaries] = await Promise.all([
-    moi ? listerConges(session.organizationId, { employeeId: moi.id }) : Promise.resolve([]),
+    moi ? listerConges(session.organizationId, { employeeId: moi.id, filtres: cherche }) : Promise.resolve([]),
     moi ? soldesConges(session.organizationId, r, aujourdhui, [moi.id]) : Promise.resolve([]),
-    valideur ? listerConges(session.organizationId, { statuts: ["demande"] }) : Promise.resolve([]),
-    valideur ? listerConges(session.organizationId, { statuts: ["approuve", "refuse", "annule"], limite: 100 }) : Promise.resolve([]),
+    valideur ? listerConges(session.organizationId, { statuts: ["demande"], filtres: cherche }) : Promise.resolve([]),
+    valideur ? listerConges(session.organizationId, { statuts: ["approuve", "refuse", "annule"], limite: 100, filtres: cherche }) : Promise.resolve([]),
     valideur ? salariesSur(session.organizationId, aujourdhui, aujourdhui) : Promise.resolve([]),
   ]);
+
+  // Une demande à moi en attente figure dans deux listes : comptée une fois.
+  const trouvees = new Set([...aDecider, ...mesConges, ...tous].map((c) => c.id)).size;
 
   return (
     <>
@@ -111,6 +120,16 @@ export default async function PageConges() {
         </p>
       )}
 
+      {(moi || valideur) && (
+        <Recherche
+          chemin="/presences/conges"
+          valeur={filtres.q}
+          placeholder="N°, salarié, nature, motif…"
+          periode={{ ...filtres.periode, libelle: "Congé" }}
+          resultats={filtres.actif ? `${fmtEntier(trouvees)} demande${trouvees > 1 ? "s" : ""} trouvée${trouvees > 1 ? "s" : ""}` : undefined}
+        />
+      )}
+
       {valideur && (
         <section className="mb-8">
           <h2 className="mb-2 text-sm font-semibold">
@@ -119,7 +138,7 @@ export default async function PageConges() {
           {aDecider.length ? (
             <TableConges lignes={aDecider} avecNom peutDecider userId={session.userId} aujourdhui={aujourdhui} />
           ) : (
-            <p className="text-sm text-[var(--encre-faible)]">Aucune demande en attente.</p>
+            <p className="text-sm text-[var(--encre-faible)]">{cherche ? "Aucun résultat parmi les demandes en attente." : "Aucune demande en attente."}</p>
           )}
         </section>
       )}
@@ -130,15 +149,19 @@ export default async function PageConges() {
           {mesConges.length ? (
             <TableConges lignes={mesConges} avecNom={false} peutDecider={false} userId={session.userId} aujourdhui={aujourdhui} />
           ) : (
-            <p className="text-sm text-[var(--encre-faible)]">Aucune demande pour l&apos;instant.</p>
+            <p className="text-sm text-[var(--encre-faible)]">{cherche ? "Aucun résultat parmi vos demandes." : "Aucune demande pour l'instant."}</p>
           )}
         </section>
       )}
 
-      {valideur && tous.length > 0 && (
+      {valideur && (tous.length > 0 || cherche) && (
         <section>
           <h2 className="mb-2 text-sm font-semibold">Historique de l&apos;équipe</h2>
-          <TableConges lignes={tous} avecNom peutDecider userId={session.userId} aujourdhui={aujourdhui} />
+          {tous.length ? (
+            <TableConges lignes={tous} avecNom peutDecider userId={session.userId} aujourdhui={aujourdhui} />
+          ) : (
+            <p className="text-sm text-[var(--encre-faible)]">Aucun résultat dans l&apos;historique.</p>
+          )}
         </section>
       )}
     </>

@@ -2,9 +2,11 @@ import type { Metadata } from "next";
 
 import { FormulaireRepliable } from "@/components/ui/operations";
 import { CarteIndicateur, CLASSE_CHAMP, EnTetePage, EtatVide, Tableau, Td, Th } from "@/components/ui/primitives";
+import { Recherche } from "@/components/ui/recherche";
 import { exigerEntreprise } from "@/lib/auth/dal";
 import { peut } from "@/lib/droits/garde";
 import { fmt, fmtEntier } from "@/lib/format";
+import { lireFiltresListe } from "@/lib/recherche";
 import { arreterCaisse, demanderBon, remettreAvance } from "@/modules/tresorerie/actions";
 import { NATURES_BON, type NatureBon } from "@/modules/tresorerie/calcul";
 import { beneficiairesProposes, listerArretes, listerAvances, listerBons, listerComptes } from "@/modules/tresorerie/requetes";
@@ -25,8 +27,9 @@ const JOUR = new Intl.DateTimeFormat("fr-FR", { day: "2-digit", month: "2-digit"
  *
  * Qui ne fait que demander des bons ne voit que les siens.
  */
-export default async function PageCaisseDepenses() {
+export default async function PageCaisseDepenses({ searchParams }: PageProps<"/tresorerie/caisse">) {
   const session = await exigerEntreprise();
+  const filtres = lireFiltresListe(await searchParams);
   const [consulter, demander, approuver, tenir] = await Promise.all([
     peut("tresorerie.consulter"),
     peut("tresorerie.bon.demander"),
@@ -35,9 +38,11 @@ export default async function PageCaisseDepenses() {
   ]);
   const voitTout = consulter || approuver;
 
-  const [comptes, bons, avances, arretes, beneficiaires] = await Promise.all([
+  // Les indicateurs portent sur les bons en cours ; seul le tableau des bons suit la recherche.
+  const [comptes, bons, trouves, avances, arretes, beneficiaires] = await Promise.all([
     listerComptes(session.organizationId),
     listerBons(session.organizationId, session.userId, voitTout),
+    filtres.actif ? listerBons(session.organizationId, session.userId, voitTout, filtres) : null,
     consulter ? listerAvances(session.organizationId) : Promise.resolve([]),
     consulter ? listerArretes(session.organizationId) : Promise.resolve([]),
     demander || tenir
@@ -51,6 +56,7 @@ export default async function PageCaisseDepenses() {
   const aApprouver = bons.filter((b) => b.statut === "demande");
   const aDecaisser = bons.filter((b) => b.statut === "approuve");
   const ouvertes = avances.filter((a) => a.statut === "ouverte");
+  const bonsAffiches = trouves ?? bons;
 
   return (
     <>
@@ -166,29 +172,42 @@ export default async function PageCaisseDepenses() {
 
           <section className="mb-6">
             <h2 className="mb-2 text-base font-semibold">Bons de caisse</h2>
-            <ListeBons
-              bons={bons.map((b) => ({
-                id: b.id,
-                numero: b.numero,
-                caisse: b.caisse,
-                nature: b.nature,
-                montant: b.montant,
-                beneficiaire: b.beneficiaire,
-                beneficiaireQualite: b.beneficiaireQualite,
-                motif: b.motif,
-                statut: b.statut,
-                demandeParUserId: b.demandeParUserId,
-                demandeur: b.demandeur,
-                demandeLeIso: b.demandeLe.toISOString(),
-                approbateur: b.approbateur,
-                motifRejet: b.motifRejet,
-                decaisseLeIso: b.decaisseLe?.toISOString() ?? null,
-                ecriture: b.ecriture,
-                avecJustificatif: Boolean(b.justificatifChemin),
-              }))}
-              moi={session.userId}
-              droits={{ approuver, decaisser: tenir, estProprietaire: session.estProprietaire }}
-            />
+            {(bons.length > 0 || filtres.actif) && (
+              <Recherche
+                chemin="/tresorerie/caisse"
+                valeur={filtres.q}
+                placeholder="Numéro, bénéficiaire, motif, caisse, demandeur…"
+                periode={{ ...filtres.periode, libelle: "Demandé" }}
+                resultats={filtres.actif ? `${fmtEntier(bonsAffiches.length)} bon${bonsAffiches.length > 1 ? "s" : ""}` : undefined}
+              />
+            )}
+            {filtres.actif && bonsAffiches.length === 0 ? (
+              <EtatVide titre="Aucun bon ne répond" message="Élargissez la période ou retirez un mot de la recherche." />
+            ) : (
+              <ListeBons
+                bons={bonsAffiches.map((b) => ({
+                  id: b.id,
+                  numero: b.numero,
+                  caisse: b.caisse,
+                  nature: b.nature,
+                  montant: b.montant,
+                  beneficiaire: b.beneficiaire,
+                  beneficiaireQualite: b.beneficiaireQualite,
+                  motif: b.motif,
+                  statut: b.statut,
+                  demandeParUserId: b.demandeParUserId,
+                  demandeur: b.demandeur,
+                  demandeLeIso: b.demandeLe.toISOString(),
+                  approbateur: b.approbateur,
+                  motifRejet: b.motifRejet,
+                  decaisseLeIso: b.decaisseLe?.toISOString() ?? null,
+                  ecriture: b.ecriture,
+                  avecJustificatif: Boolean(b.justificatifChemin),
+                }))}
+                moi={session.userId}
+                droits={{ approuver, decaisser: tenir, estProprietaire: session.estProprietaire }}
+              />
+            )}
           </section>
 
           {consulter && (

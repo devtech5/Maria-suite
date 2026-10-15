@@ -3,6 +3,8 @@ import "server-only";
 import { and, desc, eq, isNull, sql } from "drizzle-orm";
 
 import { db } from "@/db";
+import { motsRecherche, type FiltresListe } from "@/lib/recherche";
+import { dansPeriodeSql, motsDans } from "@/lib/recherche-sql";
 import { urlSignee } from "@/lib/stockage";
 
 import {
@@ -65,7 +67,17 @@ export async function listerDocuments(
   organizationId: string,
   aujourdhui = new Date(),
   limite = 200,
+  filtres?: FiltresListe,
 ): Promise<LigneDocument[]> {
+  // Filtrés en base quand l'adresse porte une recherche : sinon une pièce
+  // au-delà des deux cents dernières ne se retrouverait jamais. Mêmes champs
+  // que la bibliothèque, et la période porte sur l'expiration.
+  const recherche = filtres
+    ? and(
+        motsDans([sql`d.nom`, sql`d.entite_libelle`, sql`d.categorie`], motsRecherche(filtres.q)),
+        dansPeriodeSql(sql`d.expire_le`, filtres.periode),
+      )
+    : undefined;
   const lignes = await db.execute<{
     id: string;
     nom: string;
@@ -99,6 +111,7 @@ export async function listerDocuments(
       left join users u on u.id = d.depose_par_user_id
     where d.organization_id = ${organizationId}
       and d.deleted_at is null
+      and ${recherche ?? sql`true`}
     order by d.created_at desc
     limit ${limite}
   `);
@@ -200,7 +213,24 @@ export interface LigneDemandeSignature {
 export async function listerDemandesSignature(
   organizationId: string,
   limite = 40,
+  filtres?: FiltresListe,
 ): Promise<LigneDemandeSignature[]> {
+  // Filtrés en base : la liste s'arrête aux quarante dernières demandes. Un
+  // signataire se cherche par son nom ; la période porte sur la date de demande.
+  const recherche = filtres
+    ? and(
+        motsDans(
+          [
+            sql`s.reference`,
+            sql`d.nom`,
+            sql`(select string_agg(g.nom, ' ') from signataires g
+                  where g.demande_id = s.id and g.organization_id = s.organization_id and g.deleted_at is null)`,
+          ],
+          motsRecherche(filtres.q),
+        ),
+        dansPeriodeSql(sql`s.created_at`, filtres.periode),
+      )
+    : undefined;
   const demandes = await db.execute<{
     id: string;
     reference: string;
@@ -226,6 +256,7 @@ export async function listerDemandesSignature(
       join documents d on d.id = s.document_id
     where s.organization_id = ${organizationId}
       and s.deleted_at is null
+      and ${recherche ?? sql`true`}
     order by s.created_at desc
     limit ${limite}
   `);

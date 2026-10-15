@@ -3,9 +3,11 @@ import Link from "next/link";
 
 import { FormulaireReunion } from "@/components/meeting/formulaire-reunion";
 import { CarteIndicateur, EnTetePage, EtatVide, Pastille, type TonPastille } from "@/components/ui/primitives";
+import { Recherche } from "@/components/ui/recherche";
 import { exigerEntreprise } from "@/lib/auth/dal";
 import { peut } from "@/lib/droits/garde";
 import { fmtEntier } from "@/lib/format";
+import { lireFiltresListe } from "@/lib/recherche";
 import { LIBELLE_STATUT, rejoignable, type Statut } from "@/modules/meeting/calcul";
 import { fuseauDe, listerReunions, membresInvitables, type ReunionListee } from "@/modules/meeting/requetes";
 import { jourLocal } from "@/modules/presences/calcul";
@@ -63,13 +65,17 @@ function Section({ titre, liste, jour, heure }: { titre: string; liste: ReunionL
  * En cours d'abord — on y entre d'un clic —, puis les prochaines, puis les
  * closes des trois derniers mois avec leur compte rendu.
  */
-export default async function PageMeeting() {
+export default async function PageMeeting({ searchParams }: PageProps<"/meeting">) {
   const session = await exigerEntreprise();
-  const [organise, reunions, fuseau] = await Promise.all([
+  const filtres = lireFiltresListe(await searchParams);
+  // Les indicateurs portent sur toutes mes réunions ; seules les listes suivent la recherche.
+  const [organise, reunions, trouvees, fuseau] = await Promise.all([
     peut("meeting.organiser"),
     listerReunions(session.organizationId, session.userId),
+    filtres.actif ? listerReunions(session.organizationId, session.userId, new Date(), filtres) : null,
     fuseauDe(session.organizationId),
   ]);
+  const listees = trouvees ?? reunions;
   const membres = organise ? await membresInvitables(session.organizationId) : [];
 
   const maintenant = new Date();
@@ -79,8 +85,8 @@ export default async function PageMeeting() {
 
   const enCours = reunions.filter((r) => r.statut === "en_cours");
   const aVenir = reunions.filter((r) => r.statut === "planifiee");
-  const closes = reunions.filter((r) => r.statut === "terminee" || r.statut === "annulee");
   const aujourdhuiPrevues = aVenir.filter((r) => jourLocal(r.debutPrevu, fuseau) === aujourdhui).length;
+  const section = (statuts: Statut[]) => listees.filter((r) => statuts.includes(r.statut));
 
   return (
     <>
@@ -107,9 +113,22 @@ export default async function PageMeeting() {
         />
       ) : (
         <>
-          <Section titre="En cours" liste={enCours} jour={jour} heure={heure} />
-          <Section titre="À venir" liste={aVenir} jour={jour} heure={heure} />
-          <Section titre="Passées" liste={closes} jour={jour} heure={heure} />
+          <Recherche
+            chemin="/meeting"
+            valeur={filtres.q}
+            placeholder="Titre, numéro, organisateur, ordre du jour…"
+            periode={{ ...filtres.periode, libelle: "Réunion" }}
+            resultats={filtres.actif ? `${fmtEntier(listees.length)} réunion${listees.length > 1 ? "s" : ""}` : undefined}
+          />
+          {listees.length === 0 ? (
+            <EtatVide titre="Aucun résultat" message="Aucune réunion où vous êtes invité ne répond. Élargissez la période ou retirez un mot." />
+          ) : (
+            <>
+              <Section titre="En cours" liste={section(["en_cours"])} jour={jour} heure={heure} />
+              <Section titre="À venir" liste={section(["planifiee"])} jour={jour} heure={heure} />
+              <Section titre="Passées" liste={section(["terminee", "annulee"])} jour={jour} heure={heure} />
+            </>
+          )}
         </>
       )}
     </>

@@ -2,10 +2,13 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { redirect } from "next/navigation";
 
-import { CarteIndicateur, CLASSE_CHAMP_COMPACT, EnTetePage, EtatVide } from "@/components/ui/primitives";
+import { CarteIndicateur, EnTetePage, EtatVide } from "@/components/ui/primitives";
+import { Recherche } from "@/components/ui/recherche";
 import { exigerEntreprise } from "@/lib/auth/dal";
 import { peut } from "@/lib/droits/garde";
-import { fmt } from "@/lib/format";
+import { fmt, fmtEntier } from "@/lib/format";
+import { correspond, lireFiltresListe } from "@/lib/recherche";
+import { NATURES_MOUVEMENT } from "@/modules/tresorerie/mouvements";
 import { listerTiers } from "@/modules/tiers/requetes";
 import { LIBELLE_NATURE_COMPTE } from "@/modules/tresorerie/calcul";
 import { listerComptes } from "@/modules/tresorerie/requetes";
@@ -26,7 +29,7 @@ const LIEN_SECONDAIRE =
  * de ce qui entre ou sort sans facture ni dépense — versement d'un client,
  * ordre de virement à un prestataire, apport, prêt, frais.
  */
-export default async function PageMouvements({ searchParams }: { searchParams: Promise<{ compte?: string; du?: string; au?: string }> }) {
+export default async function PageMouvements({ searchParams }: { searchParams: Promise<{ compte?: string; du?: string; au?: string; q?: string }> }) {
   const session = await exigerEntreprise();
   if (!(await peut("tresorerie.consulter"))) redirect("/tresorerie/caisse");
 
@@ -34,6 +37,8 @@ export default async function PageMouvements({ searchParams }: { searchParams: P
   const aujourdhui = new Date().toISOString().slice(0, 10);
   const au = params.au && ISO.test(params.au) ? params.au : aujourdhui;
   const du = params.du && ISO.test(params.du) && params.du <= au ? params.du : `${au.slice(0, 7)}-01`;
+  // La période a ses propres règles (le mois en cours par défaut) ; seule la recherche texte vient de la règle commune.
+  const { q } = lireFiltresListe({ q: params.q });
 
   const [comptes, saisir, rapprocher] = await Promise.all([
     listerComptes(session.organizationId),
@@ -66,6 +71,10 @@ export default async function PageMouvements({ searchParams }: { searchParams: P
   ]);
   if (!releve) redirect("/tresorerie/mouvements");
   const banque = compte.nature === "banque";
+  // Le solde de chaque ligne reste celui du relevé complet : la recherche masque des lignes, elle ne refait pas le compte.
+  const lignes = releve.lignes.filter((l) =>
+    correspond(q, [l.piece, l.libelle, l.origine, l.mouvement?.numero, l.mouvement ? NATURES_MOUVEMENT[l.mouvement.nature].libelle : null]),
+  );
 
   return (
     <>
@@ -100,7 +109,7 @@ export default async function PageMouvements({ searchParams }: { searchParams: P
         {actifs.map((c) => (
           <Link
             key={c.id}
-            href={`/tresorerie/mouvements?compte=${c.id}&du=${du}&au=${au}`}
+            href={`/tresorerie/mouvements?compte=${c.id}&du=${du}&au=${au}${q ? `&q=${encodeURIComponent(q)}` : ""}`}
             aria-current={c.id === compte.id ? "page" : undefined}
             className={`rounded-lg border px-3 py-1.5 text-sm ${
               c.id === compte.id ? "border-marque-600 bg-marque-600 font-semibold text-white" : "border-[var(--filet)] bg-[var(--surface)] hover:bg-[var(--surface-creuse)]"
@@ -112,20 +121,14 @@ export default async function PageMouvements({ searchParams }: { searchParams: P
         ))}
       </nav>
 
-      <form className="mb-4 flex flex-wrap items-end gap-2" action="/tresorerie/mouvements">
-        <input type="hidden" name="compte" value={compte.id} />
-        <label className="text-sm">
-          <span className="mb-1 block text-xs text-[var(--encre-faible)]">Du</span>
-          <input type="date" name="du" defaultValue={du} max={aujourdhui} className={CLASSE_CHAMP_COMPACT} />
-        </label>
-        <label className="text-sm">
-          <span className="mb-1 block text-xs text-[var(--encre-faible)]">Au</span>
-          <input type="date" name="au" defaultValue={au} max={aujourdhui} className={CLASSE_CHAMP_COMPACT} />
-        </label>
-        <button type="submit" className="h-cible rounded-lg border border-[var(--filet)] bg-[var(--surface)] px-3.5 text-sm font-medium hover:bg-[var(--surface-creuse)]">
-          Afficher
-        </button>
-      </form>
+      <Recherche
+        chemin={`/tresorerie/mouvements?compte=${compte.id}`}
+        valeur={q}
+        placeholder="Pièce, libellé, numéro de mouvement…"
+        filtres={<input type="hidden" name="compte" value={compte.id} />}
+        periode={{ du, au, libelle: "Période" }}
+        resultats={q ? `${fmtEntier(lignes.length)} sur ${fmtEntier(releve.lignes.length)}` : undefined}
+      />
 
       <section className="mb-5 grid grid-cols-2 gap-2 sm:gap-3 xl:grid-cols-4">
         <CarteIndicateur libelle="Solde au début" valeur={fmt(releve.ouverture)} unite="FCFA" />
@@ -142,8 +145,10 @@ export default async function PageMouvements({ searchParams }: { searchParams: P
 
       {releve.lignes.length === 0 ? (
         <EtatVide titre="Aucune opération sur la période" message="Changez les dates, ou enregistrez le premier mouvement de ce compte." />
+      ) : lignes.length === 0 ? (
+        <EtatVide titre="Aucune opération ne répond" message="Élargissez la période ou retirez un mot de la recherche." />
       ) : (
-        <Releve lignes={releve.lignes} ouverture={releve.ouverture} annuler={saisir} banque={banque} />
+        <Releve lignes={lignes} ouverture={releve.ouverture} annuler={saisir} banque={banque} />
       )}
     </>
   );

@@ -4,8 +4,8 @@ import { useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 
 import { Retour, type Resultat } from "@/components/ui/operations";
-import { CLASSE_CHAMP, Pastille, type TonPastille } from "@/components/ui/primitives";
-import { correspond } from "@/components/ui/recherche";
+import { CLASSE_CHAMP, CLASSE_CHAMP_COMPACT, Pastille, type TonPastille } from "@/components/ui/primitives";
+import { correspond, dansPeriode, lirePeriode, type Periode } from "@/lib/recherche";
 import { agirSurTache, modifierTache } from "@/modules/taches/actions";
 import {
   comparerTaches,
@@ -72,6 +72,8 @@ export function ListeTaches({
   personnel,
   aujourdhui,
   montrerAssignee,
+  rechercheInitiale = "",
+  periodeInitiale = { du: null, au: null },
 }: {
   taches: TacheAffichee[];
   moi: string;
@@ -80,21 +82,34 @@ export function ListeTaches({
   /** Jour ISO du serveur : le retard se juge à la même date pour tout le monde. */
   aujourdhui: string;
   montrerAssignee: boolean;
+  /** `?q=` de l'adresse : la recherche globale y renvoie avec le mot déjà posé. */
+  rechercheInitiale?: string;
+  periodeInitiale?: Periode;
 }) {
   const [filtre, setFiltre] = useState<Filtre>("ouvertes");
-  const [recherche, setRecherche] = useState("");
+  const [recherche, setRecherche] = useState(rechercheInitiale);
+  const [du, setDu] = useState(periodeInitiale.du ?? "");
+  const [au, setAu] = useState(periodeInitiale.au ?? "");
   const [saisie, setSaisie] = useState<{ id: string; geste: "terminer" | "annuler"; texte: string } | null>(null);
   const [edition, setEdition] = useState<string | null>(null);
   const [resultat, setResultat] = useState<Resultat | null>(null);
   const [enCours, demarrer] = useTransition();
   const routeur = useRouter();
 
-  const compte = (f: Filtre) =>
-    taches.filter((t) => (f === "ouvertes" ? t.statut === "a_faire" || t.statut === "en_cours" : t.statut === f)).length;
+  // Période sur l'échéance : une tâche sans échéance ne passe qu'une période vide.
+  const periode = lirePeriode(du, au);
+  const cherche = recherche.trim() !== "" || !!periode.du || !!periode.au;
+  const trouvees = taches.filter(
+    (t) => correspond(recherche, [t.titre, t.numero, t.description, t.assignee, t.createur]) && dansPeriode(t.echeance, periode),
+  );
 
-  const visibles = taches
+  // Les compteurs des pastilles suivent la recherche : une tâche trouvée parmi
+  // les terminées se voit au chiffre, sans changer d'onglet à l'aveugle.
+  const compte = (f: Filtre) =>
+    trouvees.filter((t) => (f === "ouvertes" ? t.statut === "a_faire" || t.statut === "en_cours" : t.statut === f)).length;
+
+  const visibles = trouvees
     .filter((t) => (filtre === "ouvertes" ? t.statut === "a_faire" || t.statut === "en_cours" : t.statut === filtre))
-    .filter((t) => correspond(recherche, [t.titre, t.numero, t.description, t.assignee, t.createur]))
     .sort((a, b) => comparerTaches({ ...a, creeLe: a.creeLeIso }, { ...b, creeLe: b.creeLeIso }));
 
   function lancer(action: () => Promise<Resultat>) {
@@ -127,6 +142,26 @@ export function ListeTaches({
           aria-label="Rechercher une tâche"
           className={CLASSE_CHAMP}
         />
+        <fieldset className="flex flex-wrap items-center gap-1.5 text-sm">
+          <legend className="sr-only">Échéance</legend>
+          <span className="text-[var(--encre-faible)]">Échéance du</span>
+          <input type="date" value={du} onChange={(e) => setDu(e.target.value)} aria-label="Échéance : du" className={`${CLASSE_CHAMP_COMPACT} chiffres`} />
+          <span className="text-[var(--encre-faible)]">au</span>
+          <input type="date" value={au} onChange={(e) => setAu(e.target.value)} aria-label="Échéance : au" className={`${CLASSE_CHAMP_COMPACT} chiffres`} />
+          {cherche && (
+            <button
+              type="button"
+              onClick={() => {
+                setRecherche("");
+                setDu("");
+                setAu("");
+              }}
+              className="text-xs font-semibold text-marque-600 hover:underline"
+            >
+              Tout afficher
+            </button>
+          )}
+        </fieldset>
         <div className="flex gap-1.5 overflow-x-auto pb-0.5">
           {filtres.map((f) => (
             <button
@@ -152,7 +187,7 @@ export function ListeTaches({
 
       {visibles.length === 0 ? (
         <p className="py-10 text-center text-sm text-[var(--encre-faible)]">
-          {filtre === "ouvertes" ? "Rien à faire pour l'instant." : "Aucune tâche ici."}
+          {cherche ? "Aucun résultat : aucune tâche ne répond à cette recherche ici." : filtre === "ouvertes" ? "Rien à faire pour l'instant." : "Aucune tâche ici."}
         </p>
       ) : (
         <ul className="divide-y divide-[var(--filet)] overflow-hidden rounded-xl border border-[var(--filet)] bg-[var(--surface)]">

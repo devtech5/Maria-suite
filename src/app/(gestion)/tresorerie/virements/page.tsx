@@ -3,8 +3,11 @@ import { redirect } from "next/navigation";
 
 import { FormulaireRepliable } from "@/components/ui/operations";
 import { CLASSE_CHAMP, EnTetePage, EtatVide } from "@/components/ui/primitives";
+import { Recherche } from "@/components/ui/recherche";
 import { exigerEntreprise } from "@/lib/auth/dal";
 import { peut } from "@/lib/droits/garde";
+import { fmtEntier } from "@/lib/format";
+import { lireFiltresListe } from "@/lib/recherche";
 import { envoyerVirement } from "@/modules/tresorerie/actions";
 import { listerComptes, listerVirements } from "@/modules/tresorerie/requetes";
 
@@ -17,11 +20,17 @@ export const metadata: Metadata = { title: "Virements internes" };
  * Virements internes : alimenter une caisse, verser en banque, recharger un
  * portefeuille. L'argent passe par le 585 tant qu'il n'est pas arrivé.
  */
-export default async function PageVirements() {
+export default async function PageVirements({ searchParams }: PageProps<"/tresorerie/virements">) {
   const session = await exigerEntreprise();
   if (!(await peut("tresorerie.consulter"))) redirect("/tresorerie/caisse");
   const saisir = await peut("tresorerie.virement.saisir");
-  const [comptes, virements] = await Promise.all([listerComptes(session.organizationId), listerVirements(session.organizationId)]);
+  const filtres = lireFiltresListe(await searchParams);
+  const [comptes, virements, trouves] = await Promise.all([
+    listerComptes(session.organizationId),
+    listerVirements(session.organizationId),
+    filtres.actif ? listerVirements(session.organizationId, 500, filtres) : null,
+  ]);
+  const lignes = trouves ?? virements;
   const actifs = comptes.filter((c) => c.actif).map((c) => ({ id: c.id, nom: c.nom, nature: c.nature, solde: c.solde }));
   const aujourdhui = new Date().toISOString().slice(0, 10);
 
@@ -96,7 +105,20 @@ export default async function PageVirements() {
       ) : virements.length === 0 ? (
         <EtatVide titre="Aucun virement" message="Alimentez une caisse depuis la banque, versez la recette en banque, rechargez un portefeuille mobile money : chaque mouvement est numéroté et passe son écriture." />
       ) : (
-        <ListeVirements virements={virements.map((v) => ({ ...v }))} saisir={saisir} aujourdhui={aujourdhui} />
+        <>
+          <Recherche
+            chemin="/tresorerie/virements"
+            valeur={filtres.q}
+            placeholder="Numéro, compte, référence, motif…"
+            periode={{ ...filtres.periode, libelle: "Envoyé" }}
+            resultats={filtres.actif ? `${fmtEntier(lignes.length)} virement${lignes.length > 1 ? "s" : ""}` : undefined}
+          />
+          {lignes.length === 0 ? (
+            <EtatVide titre="Aucun virement ne répond" message="Élargissez la période ou retirez un mot de la recherche." />
+          ) : (
+            <ListeVirements virements={lignes.map((v) => ({ ...v }))} saisir={saisir} aujourdhui={aujourdhui} />
+          )}
+        </>
       )}
     </>
   );

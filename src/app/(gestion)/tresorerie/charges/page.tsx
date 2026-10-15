@@ -3,10 +3,12 @@ import Link from "next/link";
 import { redirect } from "next/navigation";
 
 import { CarteIndicateur, EnTetePage, EtatVide, Pastille, Tableau, Td, Th } from "@/components/ui/primitives";
+import { Recherche } from "@/components/ui/recherche";
 import { exigerEntreprise } from "@/lib/auth/dal";
 import { peut } from "@/lib/droits/garde";
-import { fmt, fmtTauxBp } from "@/lib/format";
+import { fmt, fmtEntier, fmtTauxBp } from "@/lib/format";
 import { divideMoney } from "@/lib/money";
+import { correspond, lireFiltresListe } from "@/lib/recherche";
 import { listerTiers } from "@/modules/tiers/requetes";
 import {
   consommationBudget,
@@ -64,7 +66,7 @@ const DATE = new Intl.DateTimeFormat("fr-FR", { day: "2-digit", month: "2-digit"
  * pas encore : les dépenses décidées mais pas payées, et les charges qui
  * reviennent chaque mois.
  */
-export default async function PageCharges({ searchParams }: { searchParams: Promise<{ mois?: string; famille?: string }> }) {
+export default async function PageCharges({ searchParams }: { searchParams: Promise<{ mois?: string; famille?: string; q?: string }> }) {
   const session = await exigerEntreprise();
   if (!(await peut("tresorerie.consulter"))) redirect("/tresorerie/caisse");
 
@@ -73,6 +75,8 @@ export default async function PageCharges({ searchParams }: { searchParams: Prom
   const params = await searchParams;
   const mois = params.mois && /^\d{4}-\d{2}$/.test(params.mois) && params.mois <= courant ? params.mois : courant;
   const famille = params.famille && familleConnue(params.famille) ? params.famille : undefined;
+  // Le mois se choisit par la navigation : la recherche ne porte que sur le texte du détail.
+  const recherche = lireFiltresListe({ q: params.q }).q;
 
   // Douze mois finissant au mois choisi : le graphique suit la navigation.
   const periode = moisGlissants(mois, 12);
@@ -111,6 +115,9 @@ export default async function PageCharges({ searchParams }: { searchParams: Prom
       conso: consommationBudget(reel, budget),
     };
   });
+
+  // Le graphique, les totaux et les natures gardent tout le mois ; seul le détail suit la recherche.
+  const detailAffiche = detail.filter((d) => correspond(recherche, [d.piece, d.libelle, d.compte, d.libelleCompte, ORIGINE[d.origine] ?? d.origine]));
 
   const lien = (p: { mois?: string; famille?: FamilleCharge | null }) => {
     const q = new URLSearchParams();
@@ -272,10 +279,26 @@ export default async function PageCharges({ searchParams }: { searchParams: Prom
             </Link>
           )}
         </div>
+        {detail.length > 0 && (
+          <Recherche
+            chemin={lien({})}
+            valeur={recherche}
+            placeholder="Pièce, libellé, compte, origine…"
+            filtres={
+              <>
+                {mois !== courant && <input type="hidden" name="mois" value={mois} />}
+                {famille && <input type="hidden" name="famille" value={famille} />}
+              </>
+            }
+            resultats={recherche ? `${fmtEntier(detailAffiche.length)} sur ${fmtEntier(detail.length)}` : undefined}
+          />
+        )}
         {detail.length === 0 ? (
           <p className="rounded-xl border border-dashed border-[var(--filet)] bg-[var(--surface)] px-4 py-6 text-center text-sm text-[var(--encre-douce)]">
             Aucune charge comptabilisée {famille ? "dans cette nature " : ""}ce mois-ci.
           </p>
+        ) : detailAffiche.length === 0 ? (
+          <EtatVide titre="Aucune charge ne répond" message="Retirez un mot de la recherche, ou changez de mois." />
         ) : (
           <Tableau>
             <thead>
@@ -289,7 +312,7 @@ export default async function PageCharges({ searchParams }: { searchParams: Prom
               </tr>
             </thead>
             <tbody>
-              {detail.map((d, i) => (
+              {detailAffiche.map((d, i) => (
                 <tr key={`${d.piece}-${d.compte}-${i}`}>
                   <Td chiffres>{DATE.format(new Date(`${d.date}T00:00:00Z`))}</Td>
                   <Td chiffres>{d.piece}</Td>
