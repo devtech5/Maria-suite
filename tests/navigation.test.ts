@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
 
 import { definitionDroit } from "@/lib/droits/catalogue";
-import { destinationApresConnexion, GROUPES_MODULES, groupesVisibles } from "@/lib/navigation";
+import { destinationApresConnexion, domaineDe, GROUPES_MODULES, groupesVisibles } from "@/lib/navigation";
 
 const tous = GROUPES_MODULES.flatMap((g) => g.modules);
 const modulesDe = (droits: string[]) => droits.map((d) => definitionDroit(d as never).moduleKey);
@@ -9,8 +9,8 @@ const modulesDe = (droits: string[]) => droits.map((d) => definitionDroit(d as n
 describe("groupesVisibles", () => {
   it("ne montre que les modules dont le rôle a le droit", () => {
     const groupes = groupesVisibles(["taches.consulter", "messagerie.utiliser"], ["taches", "messagerie"]);
-    expect(groupes.map((g) => g.titre)).toEqual(["Ressources humaines", "Collaboration"]);
-    expect(groupes.flatMap((g) => g.modules.map((m) => m.href))).toEqual(["/taches", "/messagerie"]);
+    expect(groupes.map((g) => g.titre)).toEqual(["Équipe", "Ressources humaines"]);
+    expect(groupes.flatMap((g) => g.modules.map((m) => m.href))).toEqual(["/messagerie", "/taches"]);
   });
 
   it("cache un module fermé sur l'instance, même si le rôle a le droit", () => {
@@ -40,6 +40,18 @@ describe("groupesVisibles", () => {
       expect(m.description.trim()).not.toBe("");
       expect(m.href.startsWith(m.racine)).toBe(true);
     }
+  });
+});
+
+describe("domaineDe", () => {
+  it("allume l'entrée la plus précise", () => {
+    expect(domaineDe("/rh/intervenants", GROUPES_MODULES)).toBe("terrain");
+    expect(domaineDe("/rh/intervenants/abc", GROUPES_MODULES)).toBe("terrain");
+    expect(domaineDe("/rh/paie", GROUPES_MODULES)).toBe("rh");
+    expect(domaineDe("/archives/dossiers", GROUPES_MODULES)).toBe("archives");
+    expect(domaineDe("/archives", GROUPES_MODULES)).toBe("equipe");
+    expect(domaineDe("/", GROUPES_MODULES)).toBe("pilotage");
+    expect(domaineDe("/mot-de-passe", GROUPES_MODULES)).toBeNull();
   });
 });
 
