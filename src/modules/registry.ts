@@ -319,7 +319,7 @@ export const MODULES: ModuleDefinition[] = [
   // --------------------------------------------------------------- moteurs
   {
     key: "actifs",
-    name: "Actifs & Maintenance",
+    name: "Actifs / Biens & Maintenance",
     layer: "moteur",
     // En base : fiches d'actifs, interventions, relevés de compteur et
     // échéances à double déclencheur. Le coût d'entretien est la somme des
