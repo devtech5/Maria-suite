@@ -6,13 +6,9 @@ import { db } from "@/db";
 
 import { refusCloture, type ObligationTva } from "./calcul";
 import { calendrierTva } from "./creation";
-import { declarationsTva, exercicesClotures } from "./schema";
+import { exercicesClotures } from "./schema";
 
 export { calendrierTva };
-
-export async function declarationsDeposees(organizationId: string) {
-  return db.select().from(declarationsTva).where(eq(declarationsTva.organizationId, organizationId));
-}
 
 export interface EtatExercice {
   exercice: string;

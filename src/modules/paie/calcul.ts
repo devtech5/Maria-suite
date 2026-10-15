@@ -185,9 +185,6 @@ const C = {
   cnps: { numero: "431", libelle: "Sécurité sociale (CNPS)" },
   impot: { numero: "447", libelle: "État, impôts retenus à la source" },
 } as const;
-
-export const COMPTES_PAIE = C;
-
 const ligne = (c: { numero: string; libelle: string }, debit: number, credit: number): LigneEcriture => ({ compte: c.numero, libelleCompte: c.libelle, debit, credit });
 
 /**

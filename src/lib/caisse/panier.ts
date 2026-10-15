@@ -1,4 +1,3 @@
-import { allocateByWeights } from "@/lib/money";
 import {
   ECHELLE_QUANTITE,
   montantLigne,
@@ -89,20 +88,6 @@ export function totaliser(lignes: LignePanier[], remisePied = 0): TotauxPanier {
     net: netAvantPied - remiseAppliquee,
     lignes: lignes.length,
   };
-}
-
-/**
- * Répartit une remise de pied sur les lignes, au prorata de leur net.
- *
- * Sert à l'impression et à la comptabilité : une remise globale doit finir
- * imputée ligne par ligne, sinon la ventilation par compte de vente est fausse.
- */
-export function ventilerRemisePied(
-  lignes: LignePanier[],
-  remisePied: number,
-): number[] {
-  if (remisePied <= 0) return lignes.map(() => 0);
-  return allocateByWeights(remisePied, lignes.map(netLigne));
 }
 
 /**

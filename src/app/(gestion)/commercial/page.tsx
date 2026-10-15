@@ -1,6 +1,5 @@
 import type { Metadata } from "next";
 
-import { BoutonDemonstration } from "@/components/bouton-demonstration";
 import { EnTetePage, EtatVide } from "@/components/ui/primitives";
 import { exigerEntreprise } from "@/lib/auth/dal";
 import { peut } from "@/lib/droits/garde";
@@ -39,7 +38,6 @@ export default async function PageClients({ searchParams }: PageProps<"/commerci
         <EtatVide
           titre="Le fichier clients est vide"
           message="Chaque client reçoit sa référence et son compte auxiliaire 411 à la création : c'est ce qui permet de lui rattacher une facture, puis de lettrer son règlement."
-          actions={<BoutonDemonstration libelle="Installer le fichier de démonstration" />}
         />
       ) : (
         <ListeClients key={filtres.q} clients={clients} modifiable={gerer} rechercheInitiale={filtres.q} />

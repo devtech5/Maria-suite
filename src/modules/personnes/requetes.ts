@@ -187,68 +187,6 @@ export interface LignePointage {
   auteur: string | null;
 }
 
-/**
- * Journal des pointages, du plus récent au plus ancien.
- *
- * Borné, comme le journal des mouvements de stock : un chantier de six mois
- * dépasse les dix mille lignes, et personne ne lit au-delà des dernières.
- */
-export async function listerPointages(
-  organizationId: string,
-  limite = 60,
-): Promise<LignePointage[]> {
-  const lignes = await db.execute<{
-    id: string;
-    piece: string;
-    intervenant_nom: string;
-    intervenant_code: string;
-    quantite: string;
-    taux: string;
-    unite_libelle: string;
-    montant: string;
-    affectation: string | null;
-    motif: string | null;
-    effectue_le: Date;
-    auteur: string | null;
-  }>(sql`
-    select
-      p.id,
-      p.piece,
-      w.nom as intervenant_nom,
-      w.code as intervenant_code,
-      p.quantite,
-      p.taux,
-      p.unite_libelle,
-      p.montant,
-      p.affectation,
-      p.motif,
-      p.effectue_le,
-      u.full_name as auteur
-    from pointages p
-      join workers w on w.id = p.worker_id
-      left join users u on u.id = p.user_id
-    where p.organization_id = ${organizationId}
-      and p.deleted_at is null
-    order by p.effectue_le desc, p.created_at desc
-    limit ${limite}
-  `);
-
-  return lignes.map((ligne) => ({
-    id: ligne.id,
-    piece: ligne.piece,
-    intervenantNom: ligne.intervenant_nom,
-    intervenantCode: ligne.intervenant_code,
-    quantite: Number(ligne.quantite),
-    taux: Number(ligne.taux),
-    uniteLibelle: ligne.unite_libelle,
-    montant: Number(ligne.montant),
-    affectation: ligne.affectation,
-    motif: ligne.motif,
-    effectueLe: new Date(ligne.effectue_le),
-    auteur: ligne.auteur,
-  }));
-}
-
 // ------------------------------------------------------------ bons de paiement
 
 export interface LigneBonPaiement {
@@ -260,49 +198,6 @@ export interface LigneBonPaiement {
   reference: string | null;
   ecritureNumero: string | null;
   payeLe: Date;
-}
-
-export async function listerBonsPaiement(
-  organizationId: string,
-  limite = 30,
-): Promise<LigneBonPaiement[]> {
-  const lignes = await db.execute<{
-    id: string;
-    numero: string;
-    intervenant_nom: string;
-    montant: string;
-    moyen: string;
-    reference: string | null;
-    ecriture_numero: string | null;
-    paye_le: Date;
-  }>(sql`
-    select
-      b.id,
-      b.numero,
-      w.nom as intervenant_nom,
-      b.montant,
-      b.moyen,
-      b.reference,
-      b.ecriture_numero,
-      b.paye_le
-    from bons_paiement b
-      join workers w on w.id = b.worker_id
-    where b.organization_id = ${organizationId}
-      and b.deleted_at is null
-    order by b.paye_le desc, b.created_at desc
-    limit ${limite}
-  `);
-
-  return lignes.map((ligne) => ({
-    id: ligne.id,
-    numero: ligne.numero,
-    intervenantNom: ligne.intervenant_nom,
-    montant: Number(ligne.montant),
-    moyen: ligne.moyen,
-    reference: ligne.reference,
-    ecritureNumero: ligne.ecriture_numero,
-    payeLe: new Date(ligne.paye_le),
-  }));
 }
 
 /**

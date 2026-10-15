@@ -337,9 +337,6 @@ const SOURCES: Source[] = [
 
 const NATURE: Record<"devis" | "facture" | "avoir", string> = { devis: "Devis", facture: "Facture", avoir: "Avoir" };
 
-/** Clés des sources, pour vérifier qu'aucune n'est oubliée par les tests. */
-export const CLES_SOURCES = SOURCES.map((s) => s.cle);
-
 /**
  * Cherche dans toutes les sources visibles, en parallèle.
  *

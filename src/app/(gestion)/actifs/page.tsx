@@ -1,6 +1,5 @@
 import type { Metadata } from "next";
 
-import { BoutonDemonstration } from "@/components/bouton-demonstration";
 import {
   CarteIndicateur,
   EnTetePage,
@@ -100,7 +99,6 @@ export default async function PageParc({ searchParams }: PageProps<"/actifs">) {
         <EtatVide
           titre="Aucun actif suivi"
           message="Un actif est une chose qui coûte, s'use et s'entretient : un véhicule, un ordinateur, une bétonnière, une chambre froide. Le même écran suit le véhicule d'un client confié à l'atelier — c'est le propriétaire qui décide si l'intervention est une charge ou une facture."
-          actions={<BoutonDemonstration libelle="Installer le jeu de démonstration" />}
         />
       ) : (
         <>

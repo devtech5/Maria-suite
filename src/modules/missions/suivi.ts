@@ -109,10 +109,6 @@ export function versMicroDegres(degres: number): number {
   return Math.round(degres * 1_000_000);
 }
 
-export function depuisMicroDegres(micro: number): number {
-  return micro / 1_000_000;
-}
-
 /** Latitude et longitude valides, en micro-degrés. */
 export function positionValide(latitudeMicro: number, longitudeMicro: number): boolean {
   return (

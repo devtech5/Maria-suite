@@ -1,6 +1,5 @@
 import type { Metadata } from "next";
 
-import { BoutonDemonstration } from "@/components/bouton-demonstration";
 import {
   CarteIndicateur,
   EnTetePage,
@@ -58,7 +57,6 @@ export default async function PageFournisseurs({ searchParams }: PageProps<"/com
         <EtatVide
           titre="Aucun fournisseur"
           message="Le délai de livraison saisi ici alimente le réapprovisionnement : sans lui, la quantité suggérée arrive après la rupture."
-          actions={<BoutonDemonstration libelle="Installer le fichier de démonstration" />}
         />
       ) : (
         <>

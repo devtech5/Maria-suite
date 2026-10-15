@@ -1,7 +1,6 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 
-import { BoutonDemonstration } from "@/components/bouton-demonstration";
 import { Portrait } from "@/components/personnes/photo";
 import {
   CarteIndicateur,
@@ -112,8 +111,7 @@ export default async function PageSalaries({ searchParams }: PageProps<"/rh">) {
       {salaries.length === 0 ? (
         <EtatVide
           titre="Aucun salarié"
-          message="Un salarié porte un contrat, un numéro CNPS et un bulletin — à ne pas confondre avec l'intervenant payé à la journée, qui se tient dans l'onglet voisin. Vous pouvez aussi installer le jeu de démonstration."
-          actions={<BoutonDemonstration libelle="Installer le jeu de démonstration" />}
+          message="Un salarié porte un contrat, un numéro CNPS et un bulletin — à ne pas confondre avec l'intervenant payé à la journée, qui se tient dans l'onglet voisin."
         />
       ) : (
         <>

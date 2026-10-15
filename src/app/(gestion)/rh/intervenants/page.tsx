@@ -1,6 +1,5 @@
 import type { Metadata } from "next";
 
-import { BoutonDemonstration } from "@/components/bouton-demonstration";
 import {
   CarteIndicateur,
   EnTetePage,
@@ -94,8 +93,7 @@ export default async function PageIntervenants({ searchParams }: PageProps<"/rh/
       {intervenants.length === 0 ? (
         <EtatVide
           titre="Aucun intervenant"
-          message="Le maçon, le manœuvre, le chauffeur occasionnel ou le serveur extra n'ouvrent pas le logiciel et n'ont pas de bulletin : ils ont un pointage, un taux et un bon de paiement. Ouvrez une fiche, ou installez le jeu de démonstration."
-          actions={<BoutonDemonstration libelle="Installer le jeu de démonstration" />}
+          message="Le maçon, le manœuvre, le chauffeur occasionnel ou le serveur extra n'ouvrent pas le logiciel et n'ont pas de bulletin : ils ont un pointage, un taux et un bon de paiement. Ouvrez une fiche."
         />
       ) : (
         <>

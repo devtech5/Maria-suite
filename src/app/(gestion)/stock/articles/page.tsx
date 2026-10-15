@@ -1,6 +1,5 @@
 import type { Metadata } from "next";
 
-import { BoutonDemonstration } from "@/components/bouton-demonstration";
 import {
   CarteIndicateur,
   CLASSE_CHAMP_COMPACT,
@@ -91,8 +90,7 @@ export default async function PageArticles({
       {catalogue.length === 0 ? (
         <EtatVide
           titre="Aucun article"
-          message="Créez votre premier article, ou installez le catalogue de démonstration — une supérette d'Abidjan avec son rayon frais au poids — pour voir l'écran en fonctionnement."
-          actions={<BoutonDemonstration libelle="Installer le catalogue de démonstration" />}
+          message="Créez votre premier article : désignation, prix, unité de vente et code-barres."
         />
       ) : (
         <>

@@ -284,16 +284,6 @@ export async function creerDemandeSignatureDans(
   return { id, reference };
 }
 
-export async function creerDemandeSignaturePour(
-  organizationId: string,
-  donnees: NouvelleDemandeSignature,
-  userId?: string,
-): Promise<{ id: string; reference: string }> {
-  return db.transaction((tx) =>
-    creerDemandeSignatureDans(tx, organizationId, donnees, userId),
-  );
-}
-
 /**
  * Enregistre la signature d'un signataire, et solde la demande si c'est le
  * dernier.

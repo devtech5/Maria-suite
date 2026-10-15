@@ -34,10 +34,6 @@ export const STATUTS: Record<StatutPlanning, { libelle: string; couleur: string;
 
 export const LISTE_STATUTS = Object.keys(STATUTS) as StatutPlanning[];
 
-export function statutConnu(s: string): s is StatutPlanning {
-  return s in STATUTS;
-}
-
 export interface Creneau {
   id: string;
   userId: string;
@@ -72,10 +68,6 @@ export function minutesEnHeure(minutes: number): string {
 /** Lundi de la semaine qui contient ce jour. */
 export function lundiDe(jour: string): string {
   return ajouterJours(jour, 1 - jourSemaine(jour));
-}
-
-export function joursDeLaSemaine(lundi: string): string[] {
-  return Array.from({ length: 7 }, (_, i) => ajouterJours(lundi, i));
 }
 
 /** Début du jour local, comme instant. */

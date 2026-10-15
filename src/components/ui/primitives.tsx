@@ -162,24 +162,6 @@ export function Td({
   );
 }
 
-export function BoutonSecondaire({
-  children,
-  onClick,
-}: {
-  children: ReactNode;
-  onClick?: () => void;
-}) {
-  return (
-    <button
-      type="button"
-      onClick={onClick}
-      className="h-cible rounded-lg border border-[var(--filet)] bg-[var(--surface)] px-3.5 text-sm font-medium hover:bg-[var(--surface-creuse)]"
-    >
-      {children}
-    </button>
-  );
-}
-
 export function BoutonPrincipal({
   children,
   onClick,

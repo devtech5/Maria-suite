@@ -6,25 +6,6 @@ import { drizzle } from "drizzle-orm/pglite";
 import { migrate } from "drizzle-orm/pglite/migrator";
 
 import * as schema from "./schema";
-
-/**
- * Base locale PGlite : un vrai PostgreSQL, compilé en WebAssembly, qui tourne
- * DANS le processus Node.
- *
- * Sert au développement sur un poste sans serveur PostgreSQL : ni service à
- * installer, ni mot de passe, ni port. Les données vivent dans un dossier
- * (`.pglite/` par défaut, ignoré par git). Les migrations, contraintes,
- * transactions et numérotations sont celles de la production — c'est le
- * moteur qui change de forme, pas les règles.
- *
- * Activée par `DATABASE_URL="pglite:./.pglite"`. Jamais en production : un
- * seul processus peut ouvrir le dossier, et les requêtes y passent une à une.
- */
-
-export function estPglite(url: string | undefined): url is string {
-  return Boolean(url?.startsWith("pglite:"));
-}
-
 const globalPglite = globalThis as unknown as {
   mariaPglite?: Promise<unknown>;
 };

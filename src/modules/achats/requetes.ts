@@ -303,17 +303,3 @@ export async function etatAchats(organizationId: string): Promise<EtatAchats> {
     livraisonsEnRetard: Number(l?.retard ?? 0),
   };
 }
-
-/** Dettes fournisseurs ouvertes, pour le plan de trésorerie : chacune à son échéance. */
-export async function dettesOuvertes(organizationId: string): Promise<{ numero: string; fournisseur: string; echeance: string; reste: number }[]> {
-  const lignes = await db.execute<{ numero: string; fournisseur_nom: string; reference_fournisseur: string; echeance: string | Date; reste: string }>(sql`
-    select f.numero, f.fournisseur_nom, f.reference_fournisseur, f.echeance,
-           f.total_ttc - coalesce((select sum(r.montant) from reglements_fournisseur r where r.facture_id = f.id), 0) as reste
-    from factures_fournisseur f
-    where f.organization_id = ${organizationId} and f.statut = 'comptabilisee'
-  `);
-  return lignes
-    .map((l) => ({ numero: `${l.numero} (${l.reference_fournisseur})`, fournisseur: l.fournisseur_nom, echeance: jour(l.echeance)!, reste: Number(l.reste) }))
-    .filter((l) => l.reste > 0);
-}
-

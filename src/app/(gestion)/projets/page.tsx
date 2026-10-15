@@ -1,7 +1,6 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 
-import { BoutonDemonstration } from "@/components/bouton-demonstration";
 import { FormulaireRepliable } from "@/components/ui/operations";
 import {
   CarteIndicateur,
@@ -67,7 +66,6 @@ export default async function PageProjets({ searchParams }: PageProps<"/projets"
         actions={
           gerer ? (
             <div className="flex flex-col items-end gap-2">
-              {projets.length === 0 && <BoutonDemonstration libelle="Installer le jeu de démonstration" />}
               <FormulaireRepliable libelle="Nouveau projet" titre="Nouveau projet" presentation="tiroir" action={creerProjet}>
                 <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
                   <Champ libelle="Nom du projet">

@@ -1,6 +1,5 @@
 import type { Metadata } from "next";
 
-import { BoutonDemonstration } from "@/components/bouton-demonstration";
 import { CarteIndicateur, EnTetePage, EtatVide } from "@/components/ui/primitives";
 import { exigerEntreprise } from "@/lib/auth/dal";
 import { fmtEntier } from "@/lib/format";
@@ -125,7 +124,6 @@ export default async function PageDocuments({ searchParams }: PageProps<"/docume
         <EtatVide
           titre="Aucun document"
           message="Un document se range par ce à quoi il se rattache : le contrat de son client, l'assurance de son véhicule, l'attestation de son salarié. Un fichier qui ne pointe vers rien n'est qu'un fichier."
-          actions={<BoutonDemonstration libelle="Installer le jeu de démonstration" />}
         />
       ) : (
         <>

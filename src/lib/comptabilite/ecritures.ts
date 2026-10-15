@@ -1,4 +1,4 @@
-import { allocateByWeights, percentOf } from "@/lib/money";
+import { percentOf } from "@/lib/money";
 
 /**
  * Génération des écritures comptables à partir des pièces commerciales.
@@ -417,16 +417,6 @@ export function decomposerTTC(
   // La TVA se déduit du HT plutôt qu'elle ne se recalcule : ainsi les deux
   // parts retombent toujours exactement sur le TTC encaissé.
   return { ht, tva: montantTTC - ht };
-}
-
-/**
- * Ventile un montant TTC global sur plusieurs bases, en préservant le total.
- *
- * Utile à la clôture de caisse : on connaît le TTC encaissé par taux, il faut
- * le répartir sur les comptes de produit sans qu'un franc se perde en route.
- */
-export function ventilerTTC(montantTTC: number, poids: number[]): number[] {
-  return allocateByWeights(montantTTC, poids);
 }
 
 // ------------------------------------------------------- vente au comptoir

@@ -45,6 +45,3 @@ export function remplir(gabarit: string, valeurs: Record<string, string | null |
     return v === undefined || v === null ? tout : v;
   });
 }
-
-/** Variables proposées dans un message groupé. */
-export const VARIABLES = ["nom", "entreprise"] as const;

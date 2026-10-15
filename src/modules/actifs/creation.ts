@@ -381,11 +381,3 @@ export async function creerEcheanceDans(
 
   return id;
 }
-
-export async function creerEcheancePour(
-  organizationId: string,
-  donnees: NouvelleEcheance,
-  userId?: string,
-): Promise<string> {
-  return db.transaction((tx) => creerEcheanceDans(tx, organizationId, donnees, userId));
-}

@@ -2,7 +2,6 @@ import "server-only";
 
 import { and, eq, inArray, sql } from "drizzle-orm";
 
-import { db } from "@/db";
 import { auditLogs } from "@/db/schema";
 import {
   decomposerTTC,
@@ -386,15 +385,6 @@ export async function enregistrerVenteDans(
   });
 
   return { id: vente.id, numero, totalTtc, deja: false, ecriture: numeroEcriture };
-}
-
-/** Même chose, hors d'une transaction existante. */
-export async function enregistrerVentePour(
-  organizationId: string,
-  vente: VenteAEnregistrer,
-  userId: string,
-): Promise<ResultatVente> {
-  return db.transaction((tx) => enregistrerVenteDans(tx, organizationId, vente, userId));
 }
 
 // ------------------------------------------------------------------ postes
