@@ -46,7 +46,7 @@ export function moduleOuvert(cle: string): boolean {
 /**
  * Les clés ouvertes sur cette instance.
  *
- * Calculé sur le serveur et descendu à la barre latérale : `env` n'existe pas
+ * Calculé sur le serveur et descendu à la barre du haut : `env` n'existe pas
  * dans le navigateur, et la liste des modules livrés n'a pas à faire l'aller-
  * retour dans le paquet client.
  */

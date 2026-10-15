@@ -13,7 +13,7 @@
  * rechargement ne les touchent. Ils repartiront à la prochaine ouverture, la
  * file se vidant d'elle-même toutes les trente secondes.
  *
- * Pas de coque, pas de barre latérale : la caisse occupe tout l'écran, et son
+ * Pas de coque, pas de barre du haut : la caisse occupe tout l'écran, et son
  * écran d'erreur aussi. Une seule action, en grand, atteignable au pouce sur
  * une tablette posée sur un comptoir.
  */
