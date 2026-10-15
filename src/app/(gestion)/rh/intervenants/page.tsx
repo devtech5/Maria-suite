@@ -10,9 +10,11 @@ import {
   Td,
   Th,
 } from "@/components/ui/primitives";
+import { Recherche } from "@/components/ui/recherche";
 import { exigerEntreprise } from "@/lib/auth/dal";
 import { fmt, fmtCompact, fmtEntier } from "@/lib/format";
 import { depuisQuantite } from "@/lib/quantite";
+import { correspond, lireFiltresListe } from "@/lib/recherche";
 import { LIBELLE_MODE } from "@/modules/personnes/paie";
 import {
   listerIntervenants,
@@ -43,12 +45,20 @@ const SANS_CHANTIER = "Sans affectation";
  * livraison, serveurs extra au maquis, coiffeuses à la commission, ouvriers
  * saisonniers, mécaniciens à la tâche.
  */
-export default async function PageIntervenants() {
+export default async function PageIntervenants({ searchParams }: PageProps<"/rh/intervenants">) {
   const session = await exigerEntreprise();
+  // Ni pointage ni bon n'est listé ici : pas de date utile, la recherche seule.
+  const { q } = lireFiltresListe(await searchParams);
   const intervenants = await listerIntervenants(session.organizationId);
 
+  // Indicateurs et formulaires portent sur tous les intervenants ; seuls les tableaux suivent la recherche.
+  const affiches = intervenants.filter((i) =>
+    correspond(q, [i.nom, i.code, i.qualification, i.telephone, i.affectation, LIBELLE_MODE[i.mode]]),
+  );
+  const chantiers = new Set(intervenants.map((i) => i.affectation ?? SANS_CHANTIER)).size;
+
   const parChantier = new Map<string, IntervenantAvecCompte[]>();
-  for (const intervenant of intervenants) {
+  for (const intervenant of affiches) {
     const cle = intervenant.affectation ?? SANS_CHANTIER;
     const equipe = parChantier.get(cle) ?? [];
     equipe.push(intervenant);
@@ -93,7 +103,7 @@ export default async function PageIntervenants() {
             <CarteIndicateur
               libelle="Intervenants actifs"
               valeur={fmtEntier(intervenants.length)}
-              precision={`Sur ${parChantier.size} chantiers`}
+              precision={`Sur ${chantiers} chantiers`}
             />
             <CarteIndicateur
               libelle="Main-d'œuvre engagée"
@@ -113,6 +123,17 @@ export default async function PageIntervenants() {
           <div className="mb-5">
             <FormulaireBonPaiement intervenants={options} />
           </div>
+
+          <Recherche
+            chemin="/rh/intervenants"
+            valeur={q}
+            placeholder="Nom, code, qualification, chantier, téléphone…"
+            resultats={q ? `${fmtEntier(affiches.length)} sur ${fmtEntier(intervenants.length)}` : undefined}
+          />
+
+          {affiches.length === 0 && (
+            <EtatVide titre="Aucun intervenant ne répond" message="Retirez un mot de la recherche, ou cherchez par chantier ou qualification." />
+          )}
 
           <div className="space-y-5">
             {[...parChantier.entries()].map(([chantier, equipe]) => {
