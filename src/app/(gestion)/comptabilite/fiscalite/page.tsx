@@ -15,13 +15,14 @@ import { exigerEntreprise } from "@/lib/auth/dal";
 import { peut } from "@/lib/droits/garde";
 import { fmt, fmtCompact } from "@/lib/format";
 import type { ObligationTva, StatutTva } from "@/modules/fiscalite/calcul";
+import { affectationsDe, elementsImpotDe, fractionsDe, impotsConstates, regleImpotDe } from "@/modules/fiscalite/exercice";
 import { calendrierTva, exercicesFiscaux } from "@/modules/fiscalite/requetes";
 import { db } from "@/db";
 import { echeanceDeclarations, libelleMois } from "@/modules/paie/calcul";
 import { listerPeriodes } from "@/modules/paie/requetes";
 import { listerComptes } from "@/modules/tresorerie/requetes";
 
-import { ActionTva, CloturerExercice } from "./actions-fiscalite";
+import { ActionTva, AffecterResultat, AnnulerImpot, CloturerExercice, ConstaterImpot, PayerFraction, RouvrirExercice } from "./actions-fiscalite";
 
 export const metadata: Metadata = { title: "Fiscalité" };
 
@@ -61,11 +62,26 @@ export default async function PageFiscalite() {
     peut("personnes.consulter"),
   ]);
   const calendrier = await calendrierTva(db, session.organizationId, aujourdhui);
-  const [exercices, periodes, comptes] = await Promise.all([
+  const [exercices, periodes, comptes, impots, fractions, affectations, regle] = await Promise.all([
     exercicesFiscaux(session.organizationId, aujourdhui, calendrier),
     voitPaie ? listerPeriodes(session.organizationId) : Promise.resolve([]),
     declarer ? listerComptes(session.organizationId) : Promise.resolve([]),
+    impotsConstates(session.organizationId),
+    fractionsDe(session.organizationId),
+    affectationsDe(session.organizationId),
+    regleImpotDe(session.organizationId),
   ]);
+  const impotDe = new Map(impots.map((i) => [i.exercice, i]));
+  const affectationDe = new Map(affectations.map((a) => [a.exercice, a]));
+  const fractionPayee = new Set(fractions.filter((f) => f.payeeLe).map((f) => f.exercice));
+  // Exercices terminés, ouverts, sans impôt : ce que les écritures donnent à constater.
+  const aConstater = new Map(
+    await Promise.all(
+      exercices
+        .filter((e) => !e.clos && !e.impotConstate && `${e.exercice}-12-31` < aujourdhui)
+        .map(async (e) => [e.exercice, await elementsImpotDe(db, session.organizationId, e.exercice)] as const),
+    ),
+  );
   const comptesActifs = comptes.filter((c) => c.actif).map((c) => ({ id: c.id, nom: c.nom, nature: c.nature, solde: c.solde }));
 
   const aDeclarer = calendrier.filter((o) => o.statut === "a_declarer" || o.statut === "en_retard");
@@ -221,29 +237,119 @@ export default async function PageFiscalite() {
             <tr>
               <Th>Exercice</Th>
               <Th aligne="droite">Résultat</Th>
+              <Th aligne="droite">Impôt</Th>
               <Th>État</Th>
-              <Th aligne="droite">{cloturer ? "Clôture" : ""}</Th>
+              <Th aligne="droite">{cloturer ? "Fin d'exercice" : ""}</Th>
             </tr>
           </thead>
           <tbody>
-            {exercices.map((e) => (
-              <tr key={e.exercice}>
-                <Td fort>{e.exercice}</Td>
-                <Td aligne="droite" chiffres fort>
-                  <span className={e.resultat < 0 ? "text-danger-600" : ""}>{fmt(e.resultat)}</span>
-                </Td>
-                <Td>
-                  {e.clos ? (
-                    <Pastille ton="valide">Clôturé{e.clotureLe ? ` le ${date(e.clotureLe)}` : ""} · {e.ecriture}</Pastille>
-                  ) : (
-                    <Pastille ton="neutre">Ouvert</Pastille>
-                  )}
-                </Td>
-                <Td aligne="droite">
-                  {cloturer && !e.clos && (e.refus ? <span className="block max-w-[38ch] text-right text-xs text-[var(--encre-faible)]">{e.refus}</span> : <CloturerExercice exercice={e.exercice} resultat={e.resultat} />)}
-                </Td>
-              </tr>
-            ))}
+            {exercices.map((e) => {
+              const impot = impotDe.get(e.exercice);
+              const affectation = affectationDe.get(e.exercice);
+              const elements = aConstater.get(e.exercice);
+              return (
+                <tr key={e.exercice}>
+                  <Td fort>
+                    {e.exercice}
+                    <a href={`/imprimer/dsf/${e.exercice}`} target="_blank" rel="noopener" className="block text-[11px] font-normal text-marque-600 hover:underline">
+                      Liasse (DSF)
+                    </a>
+                  </Td>
+                  <Td aligne="droite" chiffres fort>
+                    <span className={e.resultat < 0 ? "text-danger-600" : ""}>{fmt(e.resultat)}</span>
+                  </Td>
+                  <Td aligne="droite" chiffres>
+                    {impot ? (
+                      <>
+                        {fmt(impot.impotDu)}
+                        {impot.imf > impot.impotTheorique && <span className="block text-[11px] text-[var(--encre-faible)]">minimum forfaitaire</span>}
+                      </>
+                    ) : (
+                      "—"
+                    )}
+                  </Td>
+                  <Td>
+                    {e.clos ? (
+                      <span className="flex flex-col items-start gap-1">
+                        <Pastille ton="valide">Clôturé{e.clotureLe ? ` le ${date(e.clotureLe)}` : ""} · {e.ecriture}</Pastille>
+                        {affectation ? (
+                          <Pastille ton="neutre">Affecté le {date(affectation.dateDecision)} · {affectation.ecriture}</Pastille>
+                        ) : (
+                          e.resultat !== 0 && <Pastille ton="alerte">Résultat à affecter</Pastille>
+                        )}
+                      </span>
+                    ) : (
+                      <Pastille ton="neutre">Ouvert</Pastille>
+                    )}
+                  </Td>
+                  <Td aligne="droite">
+                    {cloturer && (
+                      <span className="flex flex-col items-end gap-2">
+                        {!e.clos && elements && (regle.verifie ? (
+                          <ConstaterImpot exercice={e.exercice} resultatAvantImpot={elements.resultatComptable} chiffreAffaires={elements.chiffreAffaires} />
+                        ) : (
+                          <Link href="/comptabilite/fiscalite/impot" className="text-xs font-semibold text-alerte-600 hover:underline">
+                            Attestez la règle d&apos;impôt pour constater l&apos;impôt {e.exercice}
+                          </Link>
+                        ))}
+                        {!e.clos && impot && !fractionPayee.has(e.exercice) && <AnnulerImpot exercice={e.exercice} />}
+                        {!e.clos && (e.refus ? <span className="block max-w-[38ch] text-right text-xs text-[var(--encre-faible)]">{e.refus}</span> : <CloturerExercice exercice={e.exercice} resultat={e.resultat} />)}
+                        {e.clos && !affectation && <AffecterResultat exercice={e.exercice} resultat={e.resultat} aujourdhui={aujourdhui} />}
+                        {e.clos && <RouvrirExercice exercice={e.exercice} affecte={Boolean(affectation)} />}
+                      </span>
+                    )}
+                  </Td>
+                </tr>
+              );
+            })}
+          </tbody>
+        </Tableau>
+      )}
+
+      <div className="mb-2 mt-6 flex flex-wrap items-baseline justify-between gap-2">
+        <h2 className="text-sm font-semibold">Impôt sur les bénéfices</h2>
+        <Link href="/comptabilite/fiscalite/impot" className="text-xs font-semibold text-marque-600 hover:underline">
+          Règle d&apos;impôt {regle.verifie ? "· attestée" : "· à vérifier"}
+        </Link>
+      </div>
+      {fractions.length === 0 ? (
+        <EtatVide
+          titre="Aucune fraction à payer"
+          message="L'impôt d'un exercice se constate une fois l'année terminée, avant la clôture. Ses fractions se paient l'année suivante, aux échéances de la règle."
+        />
+      ) : (
+        <Tableau>
+          <thead>
+            <tr>
+              <Th>Impôt</Th>
+              <Th>Fraction</Th>
+              <Th>Échéance</Th>
+              <Th aligne="droite">Montant</Th>
+              <Th>Statut</Th>
+              <Th aligne="droite">{declarer ? "Action" : ""}</Th>
+            </tr>
+          </thead>
+          <tbody>
+            {fractions.map((f) => {
+              const echeance = String(f.echeance).slice(0, 10);
+              const retard = !f.payeeLe && echeance < aujourdhui;
+              return (
+                <tr key={f.id}>
+                  <Td fort>Exercice {f.exercice}</Td>
+                  <Td chiffres>{f.rang}</Td>
+                  <Td chiffres>
+                    <span className={retard ? "font-semibold text-danger-600" : ""}>{date(echeance)}</span>
+                  </Td>
+                  <Td aligne="droite" chiffres fort>
+                    {fmt(f.montant)}
+                  </Td>
+                  <Td>
+                    {f.payeeLe ? <Pastille ton="valide">Payée le {date(f.payeeLe)}</Pastille> : <Pastille ton={retard ? "danger" : "alerte"}>{retard ? "En retard" : "À payer"}</Pastille>}
+                  </Td>
+                  <Td aligne="droite">{declarer && !f.payeeLe && <PayerFraction id={f.id} montant={f.montant} comptes={comptesActifs} aujourdhui={aujourdhui} />}</Td>
+                </tr>
+              );
+            })}
           </tbody>
         </Tableau>
       )}
@@ -251,7 +357,8 @@ export default async function PageFiscalite() {
       <p className="mt-4 max-w-[70ch] text-xs text-[var(--encre-faible)]">
         Les montants de TVA sont calculés depuis les écritures, jamais ressaisis. Une déclaration déposée passe la liquidation (443 et 445 soldés en 4441 ou 4449) et
         verrouille le mois : aucune écriture portant de la TVA ne peut plus y être datée. L&apos;échéance indiquée est le 15 du mois suivant — à confirmer selon votre régime
-        auprès de la DGI. Un exercice clôturé n&apos;accepte plus aucune écriture.
+        auprès de la DGI. Un exercice se clôture une fois sa TVA déclarée et son impôt sur les bénéfices constaté ; clôturé, il n&apos;accepte plus aucune
+        écriture, sauf à le rouvrir, motif à l&apos;appui : la clôture est alors contrepassée, jamais effacée.
       </p>
     </>
   );

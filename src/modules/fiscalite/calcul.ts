@@ -113,7 +113,7 @@ export const COMPTE_PERTE = { numero: "139", libelle: "Résultat net : perte" } 
  * la différence va en 131 (bénéfice) ou 139 (perte). Datée du dernier jour de
  * l'exercice ; c'est elle qui met le résultat au bilan.
  */
-export function ecritureCloture(p: { exercice: string; soldes: readonly SoldeGestion[] }): Ecriture {
+export function ecritureCloture(p: { exercice: string; soldes: readonly SoldeGestion[]; piece?: string }): Ecriture {
   const gestion = p.soldes.filter((s) => /^[678]/.test(s.compte) && s.solde !== 0);
   if (gestion.length === 0) throw new Error("Aucun compte de charge ni de produit à solder sur cet exercice.");
   const lignes: LigneEcriture[] = gestion.map((s) => ligne(s.compte, s.libelle, s.solde < 0 ? -s.solde : 0, s.solde > 0 ? s.solde : 0));
@@ -126,7 +126,7 @@ export function ecritureCloture(p: { exercice: string; soldes: readonly SoldeGes
   return {
     journal: "OD",
     date: `${p.exercice}-12-31`,
-    piece: `CLO-${p.exercice}`,
+    piece: p.piece ?? `CLO-${p.exercice}`,
     libelle: `Détermination du résultat de l'exercice ${p.exercice} — ${resultat >= 0 ? "bénéfice" : "perte"}`,
     lignes,
   };
@@ -134,14 +134,15 @@ export function ecritureCloture(p: { exercice: string; soldes: readonly SoldeGes
 
 /**
  * Un exercice se clôture une fois terminé — jamais l'année en cours —, après
- * le précédent, et une fois toute sa TVA déclarée : la liquidation de décembre
- * est datée du 31, elle ne pourrait plus y entrer.
+ * le précédent, une fois toute sa TVA déclarée et son impôt sur les bénéfices
+ * constaté : la liquidation de décembre comme l'impôt sont datés du 31, ils ne
+ * pourraient plus y entrer.
  */
 export function refusCloture(
   exercice: string,
   aujourdhui: string,
   dejaClos: boolean,
-  autres: { moisTvaEnAttente?: readonly string[]; exercicePrecedentOuvert?: string | null } = {},
+  autres: { moisTvaEnAttente?: readonly string[]; exercicePrecedentOuvert?: string | null; impotNonConstate?: boolean } = {},
 ): string | null {
   if (!/^\d{4}$/.test(exercice)) return "Exercice invalide.";
   if (dejaClos) return `L'exercice ${exercice} est déjà clôturé.`;
@@ -149,6 +150,7 @@ export function refusCloture(
   if (autres.exercicePrecedentOuvert) return `Clôturez d'abord l'exercice ${autres.exercicePrecedentOuvert}.`;
   const tva = autres.moisTvaEnAttente ?? [];
   if (tva.length > 0) return `Déclarez d'abord la TVA de ${tva.length > 1 ? `${tva.length} mois (à partir de ${tva[0]})` : tva[0]} : sa liquidation tombe dans l'exercice.`;
+  if (autres.impotNonConstate) return `Constatez d'abord l'impôt sur les bénéfices de ${exercice} : il entre dans le résultat net.`;
   return null;
 }
 

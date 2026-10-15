@@ -56,6 +56,26 @@ export async function soldesParCompte(
 }
 
 /**
+ * Soldes cumulés de tous les comptes au soir d'une date : toutes les
+ * écritures datées jusqu'à elle, tous exercices et toutes origines confondus,
+ * clôtures comprises. C'est la matière du bilan, et des à-nouveaux : la
+ * situation d'ouverture d'un exercice est celle de la veille de son premier
+ * jour.
+ */
+export async function soldesAuJour(organizationId: string, date: string): Promise<SoldeCompte[]> {
+  const lignes = await db.execute<{ compte: string; libelle: string; debit: string; credit: string }>(sql`
+    select l.compte, min(l.libelle_compte) as libelle,
+           coalesce(sum(l.debit), 0) as debit, coalesce(sum(l.credit), 0) as credit
+    from lignes_ecriture l
+    join ecritures e on e.id = l.ecriture_id
+    where l.organization_id = ${organizationId} and e.date_ecriture <= ${date}
+    group by l.compte
+    order by l.compte
+  `);
+  return lignes.map((l) => ({ compte: l.compte, libelle: l.libelle, debit: Number(l.debit), credit: Number(l.credit) }));
+}
+
+/**
  * Les exercices sur lesquels l'entreprise a écrit, du plus récent au plus ancien.
  *
  * Déduits des écritures et non d'une table d'exercices : tant que la clôture

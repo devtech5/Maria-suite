@@ -23,6 +23,7 @@ const ORIGINE: Record<Flux["origine"], { libelle: string; ton: TonPastille }> = 
   fournisseur: { libelle: "Facture fournisseur", ton: "danger" },
   paie: { libelle: "Paie", ton: "alerte" },
   tva: { libelle: "TVA", ton: "alerte" },
+  impot: { libelle: "Impôt sur les bénéfices", ton: "alerte" },
   commission: { libelle: "Commission", ton: "alerte" },
   recurrente: { libelle: "Charge récurrente", ton: "alerte" },
 };

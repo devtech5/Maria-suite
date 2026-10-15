@@ -421,6 +421,13 @@
       "when": 1792065830241,
       "tag": "0059_paie_rappels",
       "breakpoints": true
+    },
+    {
+      "idx": 60,
+      "version": "7",
+      "when": 1792067975162,
+      "tag": "0060_cloture_impot_affectation",
+      "breakpoints": true
     }
   ]
 }

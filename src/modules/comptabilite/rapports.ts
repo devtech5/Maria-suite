@@ -3,10 +3,50 @@ import "server-only";
 import { sql } from "drizzle-orm";
 
 import { db } from "@/db";
+import { estCompteDeBilan } from "@/lib/comptabilite/etats";
 import { jourIso, type DefinitionRapport } from "@/lib/rapports/types";
 
+import { soldesAuJour } from "./requetes";
 
 export const RAPPORTS_COMPTABILITE: DefinitionRapport[] = [
+  {
+    cle: "balance-ouverture",
+    module: "comptabilite",
+    rubrique: "Comptabilité",
+    titre: "À-nouveaux (balance d'ouverture)",
+    description: "Solde de chaque compte de bilan au premier jour de l'exercice : ce que l'exercice précédent lui transmet.",
+    droit: "comptabilite.ecriture.consulter",
+    periode: "situation",
+    async executer(organizationId, { au }) {
+      const exercice = au.slice(0, 4);
+      const veille = `${Number(exercice) - 1}-12-31`;
+      const soldes = await soldesAuJour(organizationId, veille);
+      const lignes: Record<string, string | number | null>[] = [];
+      for (const s of soldes) {
+        const solde = s.debit - s.credit;
+        if (!estCompteDeBilan(s.compte) || solde === 0) continue;
+        lignes.push({ compte: s.compte, libelle: s.libelle, debit: solde > 0 ? solde : null, credit: solde < 0 ? -solde : null });
+      }
+      // Un exercice précédent non clôturé laisse son résultat en classes 6 à 8.
+      const enInstance = -soldes.filter((s) => /^[678]/.test(s.compte)).reduce((t, s) => t + s.debit - s.credit, 0);
+      if (enInstance !== 0) {
+        lignes.push({ compte: "13", libelle: "Résultat d'un exercice non clôturé", debit: enInstance < 0 ? -enInstance : null, credit: enInstance > 0 ? enInstance : null });
+      }
+      return {
+        colonnes: [
+          { cle: "compte", libelle: "Compte", type: "texte" },
+          { cle: "libelle", libelle: "Intitulé", type: "texte" },
+          { cle: "debit", libelle: "Débit", type: "montant" },
+          { cle: "credit", libelle: "Crédit", type: "montant" },
+        ],
+        lignes,
+        note:
+          `Situation au ${veille.split("-").reverse().join("/")}, report de l'exercice ${Number(exercice) - 1} sur ${exercice}. ` +
+          "Les à-nouveaux ne sont pas recopiés en écritures : ils se lisent dans les soldes cumulés, qui ne peuvent donc pas diverger. " +
+          (enInstance !== 0 ? "L'exercice précédent n'est pas clôturé : son résultat figure sur une ligne à part, à porter en 13 par la clôture." : ""),
+      };
+    },
+  },
   {
     cle: "balance-generale",
     module: "comptabilite",

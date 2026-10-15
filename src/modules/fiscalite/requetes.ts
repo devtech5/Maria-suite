@@ -6,7 +6,7 @@ import { db } from "@/db";
 
 import { refusCloture, type ObligationTva } from "./calcul";
 import { calendrierTva } from "./creation";
-import { declarationsTva, exercicesClotures } from "./schema";
+import { declarationsTva, exercicesClotures, impotsBenefices } from "./schema";
 
 export { calendrierTva };
 
@@ -20,6 +20,8 @@ export interface EtatExercice {
   /** Figé à la clôture ; sinon le résultat provisoire des écritures. */
   resultat: number;
   ecriture: string | null;
+  /** L'impôt sur les bénéfices de l'exercice est constaté. */
+  impotConstate: boolean;
   clotureLe: Date | null;
   /** Pourquoi la clôture n'est pas possible aujourd'hui ; nul si elle l'est. */
   refus: string | null;
@@ -27,7 +29,7 @@ export interface EtatExercice {
 
 /** Les exercices écrits, du plus récent au plus ancien, avec leur résultat et leur état. */
 export async function exercicesFiscaux(organizationId: string, aujourdhui: string, calendrier: readonly ObligationTva[]): Promise<EtatExercice[]> {
-  const [resultats, clotures] = await Promise.all([
+  const [resultats, clotures, impots] = await Promise.all([
     db.execute<{ exercice: string; resultat: string }>(sql`
       select e.exercice,
              coalesce(sum(case when l.compte ~ '^[678]' then l.credit - l.debit else 0 end), 0) as resultat
@@ -38,7 +40,9 @@ export async function exercicesFiscaux(organizationId: string, aujourdhui: strin
       order by e.exercice
     `),
     db.select().from(exercicesClotures).where(eq(exercicesClotures.organizationId, organizationId)),
+    db.select({ exercice: impotsBenefices.exercice }).from(impotsBenefices).where(eq(impotsBenefices.organizationId, organizationId)),
   ]);
+  const impotConstate = new Set(impots.map((i) => i.exercice));
   const closParExercice = new Map(clotures.map((c) => [c.exercice, c]));
   const liste: EtatExercice[] = [];
   let precedent: string | null = null;
@@ -47,8 +51,17 @@ export async function exercicesFiscaux(organizationId: string, aujourdhui: strin
     const refus = refusCloture(r.exercice, aujourdhui, Boolean(c), {
       exercicePrecedentOuvert: precedent && !closParExercice.has(precedent) ? precedent : null,
       moisTvaEnAttente: calendrier.filter((o) => !o.declaree && o.mois.startsWith(`${r.exercice}-`)).map((o) => o.mois),
+      impotNonConstate: !impotConstate.has(r.exercice),
     });
-    liste.push({ exercice: r.exercice, clos: Boolean(c), resultat: c ? c.resultat : Number(r.resultat), ecriture: c?.ecriture ?? null, clotureLe: c?.clotureLe ?? null, refus: c ? null : refus });
+    liste.push({
+      exercice: r.exercice,
+      clos: Boolean(c),
+      resultat: c ? c.resultat : Number(r.resultat),
+      ecriture: c?.ecriture ?? null,
+      clotureLe: c?.clotureLe ?? null,
+      impotConstate: impotConstate.has(r.exercice),
+      refus: c ? null : refus,
+    });
     precedent = r.exercice;
   }
   return liste.reverse();
