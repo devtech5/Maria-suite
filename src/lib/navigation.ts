@@ -50,10 +50,9 @@ export interface GroupeModules {
  * module en pastilles (Écritures, Balance). Un domaine reste court — au-delà
  * de six ou sept modules, la rangée d'onglets se lit mal et il faut le couper.
  *
- * Communication réunit ce qui sert à se parler : Meeting, Messagerie, Boîte
- * mail, Messages groupés. Documents, Archives, Journal et Projets sont chacun
- * leur propre domaine d'un seul module : ils s'ouvrent d'un clic depuis la
- * barre, sans détour par un regroupement qu'il faudrait deviner.
+ * Une entrée n'est pas forcément un module entier : « Clients », « Bons » ou
+ * « Intervenants / manœuvres » ouvrent directement une section d'un module.
+ * La barre allume l'entrée dont l'adresse correspond le plus précisément.
  *
  * Le tableau de bord n'est pas un module : la barre l'ajoute en tête du
  * Pilotage.
@@ -66,6 +65,20 @@ export const GROUPES_MODULES: GroupeModules[] = [
     icone: "tableau-de-bord",
     modules: [
       { href: "/rapports", racine: "/rapports", icone: "rapports", libelle: "Rapports", description: "Ventes, stock, trésorerie, paie : chaque module en chiffres, imprimable et exportable vers Excel.", droit: "rapports.consulter" },
+      { href: "/journal", racine: "/journal", icone: "journal", libelle: "Journal d'activité", description: "Qui a fait quoi, et quand.", droit: "organisation.journal.consulter" },
+    ],
+  },
+  {
+    cle: "equipe",
+    titre: "Équipe",
+    court: "Équipe",
+    icone: "messagerie",
+    modules: [
+      { href: "/boite-mail", racine: "/boite-mail", icone: "boite-mail", libelle: "Boîte mail", description: "Vos e-mails, sans quitter Maria Suite.", droit: "boite_mail.utiliser" },
+      { href: "/messagerie", racine: "/messagerie", icone: "messagerie", libelle: "Messagerie", description: "Discussions privées et groupes de l'équipe.", droit: "messagerie.utiliser" },
+      { href: "/communication", racine: "/communication", icone: "communication", libelle: "Messages groupés", description: "Envois aux clients et messages groupés.", droit: "communication.consulter" },
+      { href: "/archives", racine: "/archives", icone: "archives", libelle: "Archives", description: "Votre espace d'archivage personnel, intègre et tracé.", droit: "archives.consulter" },
+      { href: "/meeting", racine: "/meeting", icone: "meeting", libelle: "Meeting", description: "Réunions d'équipe à distance, en vidéo.", droit: "meeting.participer" },
     ],
   },
   {
@@ -74,52 +87,31 @@ export const GROUPES_MODULES: GroupeModules[] = [
     court: "Commerce",
     icone: "commercial",
     modules: [
+      { href: "/commercial", racine: "/commercial", icone: "commercial", libelle: "Clients", description: "Clients, devis, factures et encaissements.", droit: "tiers.fiche.consulter" },
+      { href: "/commercial/commerciaux", racine: "/commercial/commerciaux", icone: "commercial", libelle: "Commerciaux", description: "Commerciaux, objectifs et commissions.", droit: "commercial.commission.gerer" },
+      { href: "/commercial/fournisseurs", racine: "/commercial/fournisseurs", icone: "achats", libelle: "Fournisseurs", description: "Fiches fournisseurs, leurs factures et ce qui leur est dû.", droit: "tiers.fiche.consulter" },
+      { href: "/commercial/factures", racine: "/commercial/factures", icone: "commercial", libelle: "Devis et factures", description: "Devis, factures et avoirs clients.", droit: "tiers.fiche.consulter" },
+      { href: "/achats", racine: "/achats", icone: "achats", libelle: "Achats", description: "Commandes et factures fournisseurs.", droit: "achats.consulter" },
       { href: "/boutique", racine: "/boutique", icone: "boutique", libelle: "Commerce", description: "Le jour en chiffres : ventes, affluence, marge et ruptures.", droit: "boutique.consulter" },
       { href: "/restaurant", racine: "/restaurant", icone: "restaurant", libelle: "Restaurant", description: "Plan de salle, commandes, cuisine et encaissement des tables.", droit: "restaurant.consulter" },
       { href: "/maquis", racine: "/maquis", icone: "maquis", libelle: "Maquis", description: "Tables et tournées, grill et bar, encaissement à la table.", droit: "maquis.consulter" },
       { href: "/hotel", racine: "/hotel", icone: "hotel", libelle: "Hôtel et résidences", description: "Chambres du jour, séjours, note de chambre et ménage.", droit: "hotellerie.consulter" },
-      { href: "/commercial", racine: "/commercial", icone: "commercial", libelle: "Commercial", description: "Clients, devis, factures et encaissements.", droit: "tiers.fiche.consulter" },
       { href: "/reservations", racine: "/reservations", icone: "reservations", libelle: "Réservations", description: "Locations, chambres et salles : calendrier, caution, retour.", droit: "reservation.consulter" },
-    ],
-  },
-  {
-    cle: "achats",
-    titre: "Service Achat",
-    court: "Achat",
-    icone: "achats",
-    modules: [
-      { href: "/achats", racine: "/achats", icone: "achats", libelle: "Achats", description: "Commandes et factures fournisseurs.", droit: "achats.consulter" },
-      { href: "/commercial/fournisseurs", racine: "/commercial/fournisseurs", icone: "achats", libelle: "Fournisseurs", description: "Fiches fournisseurs, leurs factures et ce qui leur est dû.", droit: "tiers.fiche.consulter" },
-    ],
-  },
-  {
-    cle: "stocks",
-    titre: "Stocks et prestataires",
-    court: "Stocks",
-    icone: "stock",
-    modules: [
       { href: "/stock", racine: "/stock", icone: "stock", libelle: "Stock", description: "Articles, mouvements, inventaires et réapprovisionnement.", droit: "stock.article.consulter" },
-      { href: "/prestataires", racine: "/prestataires", icone: "prestataires", libelle: "Prestataires", description: "Plombiers, photographes, monteurs : annuaire et prestations.", droit: "prestataires.consulter" },
     ],
   },
   {
     cle: "terrain",
     titre: "Terrain",
     court: "Terrain",
-    icone: "missions",
-    modules: [
-      { href: "/missions", racine: "/missions", icone: "missions", libelle: "Missions", description: "Missions assignées, étapes et preuves de terrain.", droit: "missions.consulter" },
-      { href: "/enquetes", racine: "/enquetes", icone: "enquetes", libelle: "Enquêtes", description: "Satisfaction des clients et enquêtes de terrain.", droit: "enquetes.consulter" },
-      { href: "/billetterie", racine: "/billetterie", icone: "billetterie", libelle: "Billetterie", description: "Départs programmés, places, billets et contrôle.", droit: "billetterie.consulter" },
-    ],
-  },
-  {
-    cle: "projets",
-    titre: "Projets",
-    court: "Projets",
     icone: "projets",
     modules: [
       { href: "/projets", racine: "/projets", icone: "projets", libelle: "Projets", description: "Projets, budgets, dépenses, photos et preuves.", droit: "projet.consulter" },
+      { href: "/missions", racine: "/missions", icone: "missions", libelle: "Missions", description: "Missions assignées, étapes et preuves de terrain.", droit: "missions.consulter" },
+      { href: "/prestataires", racine: "/prestataires", icone: "prestataires", libelle: "Prestataires", description: "Plombiers, photographes, monteurs : annuaire et prestations.", droit: "prestataires.consulter" },
+      { href: "/rh/intervenants", racine: "/rh/intervenants", icone: "personnel", libelle: "Intervenants / manœuvres", description: "Maçons, manœuvres, tâcherons : pointage et bons de paiement.", droit: "personnes.consulter" },
+      { href: "/enquetes", racine: "/enquetes", icone: "enquetes", libelle: "Enquêtes", description: "Satisfaction des clients et enquêtes de terrain.", droit: "enquetes.consulter" },
+      { href: "/billetterie", racine: "/billetterie", icone: "billetterie", libelle: "Billetterie", description: "Départs programmés, places, billets et contrôle.", droit: "billetterie.consulter" },
     ],
   },
   {
@@ -128,20 +120,9 @@ export const GROUPES_MODULES: GroupeModules[] = [
     court: "Actifs / Biens",
     icone: "actifs",
     modules: [
-      { href: "/actifs", racine: "/actifs", icone: "actifs", libelle: "Actifs / Biens", description: "Engins et matériel : interventions et échéances.", droit: "actifs.consulter" },
       { href: "/parc-auto", racine: "/parc-auto", icone: "parc-auto", libelle: "Parc auto", description: "Véhicules, pleins, consommation et vignettes.", droit: "parc_auto.consulter" },
       { href: "/parc-informatique", racine: "/parc-informatique", icone: "parc-informatique", libelle: "Parc informatique", description: "Ordinateurs, attributions et licences.", droit: "parc_informatique.consulter" },
-    ],
-  },
-  {
-    cle: "finance",
-    titre: "Finance",
-    court: "Finance",
-    icone: "comptabilite",
-    modules: [
-      { href: "/comptabilite", racine: "/comptabilite", icone: "comptabilite", libelle: "Comptabilité", description: "Écritures SYSCOHADA, balance et déclarations.", droit: "comptabilite.ecriture.consulter" },
-      { href: "/tresorerie", racine: "/tresorerie", icone: "tresorerie", libelle: "Trésorerie", description: "Caisses, banques, bons et plan de trésorerie.", droit: "tresorerie.bon.demander" },
-      { href: "/monnaie", racine: "/monnaie", icone: "guichet", libelle: "Point de vente", description: "Mobile money : floats, opérations et commissions.", droit: "valeur_electronique.consulter" },
+      { href: "/actifs", racine: "/actifs", icone: "actifs", libelle: "Matériels", description: "Engins et matériel : interventions et échéances.", droit: "actifs.consulter" },
     ],
   },
   {
@@ -157,24 +138,15 @@ export const GROUPES_MODULES: GroupeModules[] = [
     ],
   },
   {
-    cle: "communication",
-    titre: "Communication",
-    court: "Communication",
-    icone: "communication",
+    cle: "finance",
+    titre: "Finance",
+    court: "Finance",
+    icone: "comptabilite",
     modules: [
-      { href: "/meeting", racine: "/meeting", icone: "meeting", libelle: "Meeting", description: "Réunions d'équipe à distance, en vidéo.", droit: "meeting.participer" },
-      { href: "/messagerie", racine: "/messagerie", icone: "messagerie", libelle: "Messagerie", description: "Discussions privées et groupes de l'équipe.", droit: "messagerie.utiliser" },
-      { href: "/boite-mail", racine: "/boite-mail", icone: "boite-mail", libelle: "Boîte mail", description: "Vos e-mails, sans quitter Maria Suite.", droit: "boite_mail.utiliser" },
-      { href: "/communication", racine: "/communication", icone: "communication", libelle: "Messages groupés", description: "Envois aux clients et messages groupés.", droit: "communication.consulter" },
-    ],
-  },
-  {
-    cle: "documents",
-    titre: "Documents",
-    court: "Documents",
-    icone: "documents",
-    modules: [
-      { href: "/documents", racine: "/documents", icone: "documents", libelle: "Documents", description: "Pièces rattachées aux fiches et leurs échéances.", droit: "documents.consulter" },
+      { href: "/comptabilite", racine: "/comptabilite", icone: "comptabilite", libelle: "Comptabilité", description: "Écritures SYSCOHADA, balance et déclarations.", droit: "comptabilite.ecriture.consulter" },
+      { href: "/tresorerie", racine: "/tresorerie", icone: "tresorerie", libelle: "Trésorerie", description: "Caisses, banques, bons et plan de trésorerie.", droit: "tresorerie.bon.demander" },
+      { href: "/tresorerie/caisse", racine: "/tresorerie/caisse", icone: "tresorerie", libelle: "Bons", description: "Bons de caisse : demande, validation et décaissement.", droit: "tresorerie.bon.demander" },
+      { href: "/monnaie", racine: "/monnaie", icone: "guichet", libelle: "Point de vente", description: "Mobile money : floats, opérations et commissions.", droit: "valeur_electronique.consulter" },
     ],
   },
   {
@@ -183,16 +155,17 @@ export const GROUPES_MODULES: GroupeModules[] = [
     court: "Archives",
     icone: "archives",
     modules: [
-      { href: "/archives", racine: "/archives", icone: "archives", libelle: "Archives", description: "Votre espace d'archivage personnel, intègre et tracé.", droit: "archives.consulter" },
+      { href: "/archives/dossiers", racine: "/archives/dossiers", icone: "archives", libelle: "Dossiers", description: "Dossiers partagés de l'entreprise.", droit: "archives.consulter" },
+      { href: "/documents", racine: "/documents", icone: "documents", libelle: "Fichiers", description: "Pièces rattachées aux fiches et leurs échéances.", droit: "documents.consulter" },
     ],
   },
   {
-    cle: "journal",
-    titre: "Journal d'activité",
-    court: "Journal",
-    icone: "journal",
+    cle: "securite",
+    titre: "Sécurité",
+    court: "Sécurité",
+    icone: "securite",
     modules: [
-      { href: "/journal", racine: "/journal", icone: "journal", libelle: "Journal d'activité", description: "Qui a fait quoi, et quand.", droit: "organisation.journal.consulter" },
+      { href: "/securite", racine: "/securite", icone: "securite", libelle: "Caméras", description: "Caméras des magasins, entrepôts et bureaux en direct.", droit: "securite.consulter" },
     ],
   },
   {
@@ -201,13 +174,12 @@ export const GROUPES_MODULES: GroupeModules[] = [
     court: "Admin",
     icone: "entreprise",
     modules: [
-      { href: "/membres", racine: "/membres", icone: "utilisateurs", libelle: "Utilisateurs", description: "Comptes, rôles et accès.", droit: "organisation.membre.gerer" },
       { href: "/entreprise", racine: "/entreprise", icone: "entreprise", libelle: "Entreprise", description: "Identité, numérotation et sécurité.", droit: "organisation.parametres.gerer" },
+      { href: "/marches", racine: "/marches", icone: "marches", libelle: "Marchés et conventions", description: "Appels d'offres, consultations et conventions.", droit: "marches.consulter" },
+      { href: "/membres", racine: "/membres", icone: "utilisateurs", libelle: "Utilisateurs", description: "Comptes, rôles et accès.", droit: "organisation.membre.gerer" },
       ...(REPRISE_OUVERTE
         ? [{ href: "/demarrage", racine: "/demarrage", icone: "demarrage", libelle: "Démarrage", description: "Reprise de l'existant : articles, tiers, soldes.", droit: "organisation.reprise.importer" } satisfies EntreeModule]
         : []),
-      { href: "/marches", racine: "/marches", icone: "marches", libelle: "Marchés et conventions", description: "Appels d'offres, consultations et conventions.", droit: "marches.consulter" },
-      { href: "/securite", racine: "/securite", icone: "securite", libelle: "Sécurité", description: "Caméras des magasins, entrepôts et bureaux en direct.", droit: "securite.consulter" },
     ],
   },
 ];

@@ -174,12 +174,16 @@ export function OngletsSection({
   const domaines = domainesVisibles(droits, modulesOuverts);
   const actif = domaineDe(chemin, groupesVisibles(droits, modulesOuverts));
   const domaine = domaines.find((d) => d.cle === actif);
+  // L'onglet le plus précis : sur /tresorerie/caisse, « Bons » et non « Trésorerie ».
+  const courante = domaine?.onglets
+    .filter((o) => relevDe(chemin, o.racine))
+    .sort((a, b) => b.racine.length - a.racine.length)[0]?.href;
 
   return (
     <div className="flex shrink-0 items-center gap-3 border-b border-[var(--filet)] bg-[var(--surface)] px-3 py-1.5 print:hidden">
       <nav aria-label={domaine ? `Sections — ${domaine.titre}` : "Sections"} className="flex min-w-0 flex-1 items-center gap-1 overflow-x-auto">
         {domaine?.onglets.map((o) => {
-          const courant = relevDe(chemin, o.racine);
+          const courant = o.href === courante;
           return (
             <Link
               key={o.href}

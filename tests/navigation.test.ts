@@ -9,8 +9,8 @@ const modulesDe = (droits: string[]) => droits.map((d) => definitionDroit(d as n
 describe("groupesVisibles", () => {
   it("ne montre que les modules dont le rôle a le droit", () => {
     const groupes = groupesVisibles(["taches.consulter", "messagerie.utiliser"], ["taches", "messagerie"]);
-    expect(groupes.map((g) => g.titre)).toEqual(["Ressources humaines", "Communication"]);
-    expect(groupes.flatMap((g) => g.modules.map((m) => m.href))).toEqual(["/taches", "/messagerie"]);
+    expect(groupes.map((g) => g.titre)).toEqual(["Équipe", "Ressources humaines"]);
+    expect(groupes.flatMap((g) => g.modules.map((m) => m.href))).toEqual(["/messagerie", "/taches"]);
   });
 
   it("cache un module fermé sur l'instance, même si le rôle a le droit", () => {
@@ -45,9 +45,11 @@ describe("groupesVisibles", () => {
 
 describe("domaineDe", () => {
   it("allume l'entrée la plus précise", () => {
-    expect(domaineDe("/commercial/fournisseurs", GROUPES_MODULES)).toBe("achats");
-    expect(domaineDe("/commercial/fournisseurs/abc", GROUPES_MODULES)).toBe("achats");
-    expect(domaineDe("/commercial/factures", GROUPES_MODULES)).toBe("commerce");
+    expect(domaineDe("/rh/intervenants", GROUPES_MODULES)).toBe("terrain");
+    expect(domaineDe("/rh/intervenants/abc", GROUPES_MODULES)).toBe("terrain");
+    expect(domaineDe("/rh/paie", GROUPES_MODULES)).toBe("rh");
+    expect(domaineDe("/archives/dossiers", GROUPES_MODULES)).toBe("archives");
+    expect(domaineDe("/archives", GROUPES_MODULES)).toBe("equipe");
     expect(domaineDe("/", GROUPES_MODULES)).toBe("pilotage");
     expect(domaineDe("/mot-de-passe", GROUPES_MODULES)).toBeNull();
   });
