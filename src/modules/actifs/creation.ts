@@ -24,6 +24,7 @@ const PREFIXE: Record<TypeActif, string> = {
   informatique: "INF-",
   engin: "ENG-",
   mobilier: "MOB-",
+  local: "LOC-",
 };
 
 /** Unité de compteur usuelle, quand la saisie ne la précise pas. */

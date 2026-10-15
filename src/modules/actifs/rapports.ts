@@ -13,6 +13,7 @@ const TYPES: Record<TypeActif, string> = {
   informatique: "Informatique",
   engin: "Engin",
   mobilier: "Mobilier",
+  local: "Local",
 };
 
 const NATURES_ECHEANCE: Record<NatureEcheance, string> = {

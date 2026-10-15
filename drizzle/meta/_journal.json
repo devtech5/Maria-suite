@@ -428,6 +428,13 @@
       "when": 1792082647029,
       "tag": "0060_personnel_etat_professionnel",
       "breakpoints": true
+    },
+    {
+      "idx": 61,
+      "version": "7",
+      "when": 1792100413098,
+      "tag": "0061_moyens_generaux",
+      "breakpoints": true
     }
   ]
 }

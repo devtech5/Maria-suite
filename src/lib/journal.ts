@@ -470,6 +470,7 @@ const MODULES: Record<string, string> = {
   actif: "Actifs / Biens",
   intervention: "Actifs / Biens",
   echeance: "Actifs / Biens",
+  fourniture: "Moyens généraux",
   document: "Documents",
   signature: "Documents",
   mission: "Missions",

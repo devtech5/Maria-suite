@@ -469,6 +469,18 @@ export const MODULES: ModuleDefinition[] = [
     requires: ["actifs"],
     description: "Ordinateurs, imprimantes, réseau, téléphones : utilisateur, garantie, pannes, licences logicielles.",
   },
+  {
+    key: "moyens_generaux",
+    name: "Moyens généraux",
+    layer: "metier",
+    // En base : fournitures de bureau (catalogue, entrées chiffrées, remises
+    // à un salarié ou un service, stock tiré des mouvements, alerte au seuil).
+    // L'entretien des locaux passe par le moteur : un local est un actif de
+    // type « local », avec ses interventions et ses échéances.
+    status: "en_cours",
+    requires: ["actifs", "personnes"],
+    description: "Fournitures de bureau et entretien des locaux : stock, remises, nettoyage, réparations, contrôles.",
+  },
   { key: "fitness", name: "Fitness", layer: "metier", status: "planifie", requires: ["reservation", "pos"], description: "Adhérents, formules, contrôle d'accès." },
   {
     key: "projet",
