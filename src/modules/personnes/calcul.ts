@@ -138,3 +138,43 @@ export function formeUneBoucle(employeeId: string, superieurId: string | null, s
   }
   return false;
 }
+
+/** État du contrat d'un salarié, vu depuis l'écran Contrats. */
+export type EtatContratSalarie = "a_venir" | "en_cours" | "a_echeance" | "echu" | "sorti";
+
+export const ETATS_CONTRAT_SALARIE: Record<EtatContratSalarie, string> = {
+  a_venir: "À venir",
+  en_cours: "En cours",
+  a_echeance: "À échéance",
+  echu: "Échu",
+  sorti: "Sorti",
+};
+
+/** Jours d'avance avec lesquels un terme de contrat s'annonce : de quoi renouveler ou préparer le départ. */
+export const ALERTE_TERME_JOURS = 30;
+
+function joursEntre(de: string, a: string): number {
+  return Math.round((Date.parse(`${a}T12:00:00Z`) - Date.parse(`${de}T12:00:00Z`)) / 86_400_000);
+}
+
+/**
+ * Où en est un contrat de travail un jour donné.
+ *
+ * Un CDI n'a pas de terme : il est en cours tant que le salarié est en poste.
+ * Un CDD, un stage ou un essai l'est jusqu'à son terme, annoncé
+ * `ALERTE_TERME_JOURS` à l'avance ; passé ce terme sans sortie enregistrée,
+ * il est échu — un salarié qui travaille sur un contrat expiré, c'est un CDI
+ * de fait, et l'écran doit le montrer.
+ */
+export function etatContratSalarie(
+  c: { debut: string; fin: string | null; actif: boolean },
+  aujourdhui: string,
+): { etat: EtatContratSalarie; jours: number | null } {
+  if (!c.actif) return { etat: "sorti", jours: null };
+  if (c.debut > aujourdhui) return { etat: "a_venir", jours: joursEntre(aujourdhui, c.debut) };
+  if (!c.fin) return { etat: "en_cours", jours: null };
+  const restant = joursEntre(aujourdhui, c.fin);
+  if (restant < 0) return { etat: "echu", jours: restant };
+  if (restant <= ALERTE_TERME_JOURS) return { etat: "a_echeance", jours: restant };
+  return { etat: "en_cours", jours: restant };
+}

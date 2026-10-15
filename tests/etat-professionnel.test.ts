@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 
-import { anciennete, formeUneBoucle, libelleAnciennete } from "@/modules/personnes/calcul";
+import { anciennete, etatContratSalarie, formeUneBoucle, libelleAnciennete } from "@/modules/personnes/calcul";
 
 describe("anciennete", () => {
   it("compte les mois révolus au quantième d'entrée", () => {
@@ -47,5 +47,28 @@ describe("formeUneBoucle", () => {
   it("ne tourne pas sans fin sur une chaîne déjà bouclée", () => {
     const bouclee = new Map<string, string | null>([["x", "y"], ["y", "x"]]);
     expect(formeUneBoucle("z", "x", bouclee)).toBe(true);
+  });
+});
+
+describe("etatContratSalarie", () => {
+  const jour = "2026-10-15";
+
+  it("un CDI en poste est en cours, sans terme", () => {
+    expect(etatContratSalarie({ debut: "2024-01-02", fin: null, actif: true }, jour)).toEqual({ etat: "en_cours", jours: null });
+  });
+
+  it("un CDD s'annonce trente jours avant son terme", () => {
+    expect(etatContratSalarie({ debut: "2026-01-01", fin: "2026-11-14", actif: true }, jour)).toEqual({ etat: "a_echeance", jours: 30 });
+    expect(etatContratSalarie({ debut: "2026-01-01", fin: "2026-11-15", actif: true }, jour)).toEqual({ etat: "en_cours", jours: 31 });
+    expect(etatContratSalarie({ debut: "2026-01-01", fin: "2026-10-15", actif: true }, jour)).toEqual({ etat: "a_echeance", jours: 0 });
+  });
+
+  it("un terme passé sans sortie est échu", () => {
+    expect(etatContratSalarie({ debut: "2026-01-01", fin: "2026-08-31", actif: true }, jour)).toEqual({ etat: "echu", jours: -45 });
+  });
+
+  it("une embauche future est à venir ; un salarié sorti, sorti", () => {
+    expect(etatContratSalarie({ debut: "2026-11-01", fin: null, actif: true }, jour)).toEqual({ etat: "a_venir", jours: 17 });
+    expect(etatContratSalarie({ debut: "2024-01-01", fin: "2026-08-31", actif: false }, jour)).toEqual({ etat: "sorti", jours: null });
   });
 });

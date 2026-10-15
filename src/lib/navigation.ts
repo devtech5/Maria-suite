@@ -176,6 +176,7 @@ export const GROUPES_MODULES: GroupeModules[] = [
     modules: [
       { href: "/entreprise", racine: "/entreprise", icone: "entreprise", libelle: "Entreprise", description: "Identité, numérotation et sécurité.", droit: "organisation.parametres.gerer" },
       { href: "/marches", racine: "/marches", icone: "marches", libelle: "Marchés et conventions", description: "Appels d'offres, consultations et conventions.", droit: "marches.consulter" },
+      { href: "/contrats", racine: "/contrats", icone: "documents", libelle: "Contrats", description: "Contrats des salariés et des fournisseurs, échéances en tête.", droit: "personnes.consulter" },
       { href: "/membres", racine: "/membres", icone: "utilisateurs", libelle: "Utilisateurs", description: "Comptes, rôles et accès.", droit: "organisation.membre.gerer" },
       ...(REPRISE_OUVERTE
         ? [{ href: "/demarrage", racine: "/demarrage", icone: "demarrage", libelle: "Démarrage", description: "Reprise de l'existant : articles, tiers, soldes.", droit: "organisation.reprise.importer" } satisfies EntreeModule]
