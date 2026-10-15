@@ -37,6 +37,14 @@ const DESSINS: Record<CleIcone, ReactNode> = {
       <rect x="26" y="26" width="16" height="16" rx="5" fill={JAUNE} />
     </>
   ),
+  /** Retour à l'écran d'accueil, qui présente tous les modules. */
+  maison: (
+    <>
+      <path d="M24 5 L44 22 Q45.5 24 43 24 H5 Q2.5 24 4 22 Z" fill={ORANGE} />
+      <rect x="9" y="22" width="30" height="21" rx="3" fill={BLEU} />
+      <rect x="20" y="29" width="8" height="14" rx="2" fill={JAUNE} />
+    </>
+  ),
   "tableau-de-bord": (
     <>
       <rect x="7" y="24" width="9" height="17" rx="2.5" fill={SARCELLE} />

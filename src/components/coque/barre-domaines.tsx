@@ -103,6 +103,15 @@ export function BarreDomaines({
       <span className="hidden h-8 w-px shrink-0 bg-[var(--filet)] 2xl:block" aria-hidden />
 
       <nav aria-label="Domaines" className="flex min-w-0 flex-1 items-stretch overflow-x-auto">
+        {/* L'accueil n'est pas un domaine : il les présente tous, en grille. */}
+        <Link
+          href="/accueil"
+          title="Accueil : tous les modules"
+          className="flex min-w-[3.25rem] shrink-0 flex-col items-center justify-center gap-1 rounded-xl px-1 py-1.5 text-[10px] font-bold uppercase whitespace-nowrap text-[var(--encre-douce)] transition-colors hover:bg-[var(--surface-creuse)] hover:text-white 2xl:px-2"
+        >
+          <IconeModule cle="maison" className="size-5 shrink-0" />
+          Accueil
+        </Link>
         {domaines.map((d) => {
           const courant = d.cle === actif;
           return (

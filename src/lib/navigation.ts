@@ -10,7 +10,7 @@ import { REPRISE_OUVERTE } from "@/modules/reprise/calcul";
  */
 
 export const CLES_ICONE = [
-  "accueil", "tableau-de-bord", "caisse",
+  "accueil", "maison", "tableau-de-bord", "caisse",
   "boutique", "restaurant", "maquis", "hotel", "enquetes", "securite",
   "commercial", "stock", "achats", "prestataires", "marches", "reservations",
   "projets", "missions", "actifs", "parc-auto", "parc-informatique", "billetterie",
