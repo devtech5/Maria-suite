@@ -5,14 +5,17 @@ import { EnTetePage, EtatVide } from "@/components/ui/primitives";
 import { exigerEntreprise } from "@/lib/auth/dal";
 import { peut } from "@/lib/droits/garde";
 import { fmt } from "@/lib/format";
+import { lireFiltresListe } from "@/lib/recherche";
 import { fichesTiers } from "@/modules/tiers/requetes";
 import { FormulaireTiers } from "./formulaire-tiers";
 import { ListeClients } from "./liste-clients";
 
 export const metadata: Metadata = { title: "Clients" };
 
-export default async function PageClients() {
+export default async function PageClients({ searchParams }: PageProps<"/commercial">) {
   const session = await exigerEntreprise();
+  // `?q=` arrive de la recherche globale : il pré-remplit la recherche de la liste, qui filtre ensuite au clavier.
+  const filtres = lireFiltresListe(await searchParams);
   const [clients, gerer] = await Promise.all([fichesTiers(session.organizationId, "client"), peut("tiers.fiche.gerer")]);
 
   const encoursTotal = clients.reduce(
@@ -39,7 +42,7 @@ export default async function PageClients() {
           actions={<BoutonDemonstration libelle="Installer le fichier de démonstration" />}
         />
       ) : (
-        <ListeClients clients={clients} modifiable={gerer} />
+        <ListeClients key={filtres.q} clients={clients} modifiable={gerer} rechercheInitiale={filtres.q} />
       )}
     </>
   );

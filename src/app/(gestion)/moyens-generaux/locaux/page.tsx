@@ -4,9 +4,11 @@ import { FormulaireIntervention } from "@/components/actifs/formulaire-intervent
 import { STATUT_ACTIF } from "@/components/actifs/statut";
 import { FormulaireRepliable } from "@/components/ui/operations";
 import { CLASSE_CHAMP, CarteIndicateur, Champ, EnTetePage, EtatVide, Pastille, Tableau, Td, Th } from "@/components/ui/primitives";
+import { Recherche } from "@/components/ui/recherche";
 import { exigerEntreprise } from "@/lib/auth/dal";
 import { peut } from "@/lib/droits/garde";
 import { fmt, fmtEntier } from "@/lib/format";
+import { correspond, lireFiltresListe } from "@/lib/recherche";
 import { listerActifs, listerInterventions } from "@/modules/actifs/requetes";
 import { creerLocal } from "@/modules/moyens-generaux/actions";
 
@@ -23,8 +25,9 @@ const JOUR = new Intl.DateTimeFormat("fr-FR", { day: "2-digit", month: "2-digit"
  * sont prévues, correctives quand elles sont subies — et les contrôles
  * périodiques (extincteurs, désinfection) comme échéances, dans Actifs.
  */
-export default async function PageEntretienLocaux() {
+export default async function PageEntretienLocaux({ searchParams }: PageProps<"/moyens-generaux/locaux">) {
   const session = await exigerEntreprise();
+  const filtres = lireFiltresListe(await searchParams);
   const [tous, interventions, gerer, saisir] = await Promise.all([
     listerActifs(session.organizationId),
     listerInterventions(session.organizationId, 200),
@@ -37,6 +40,11 @@ export default async function PageEntretienLocaux() {
   const cout = locaux.reduce((s, l) => s + l.coutMaintenance, 0);
   const correctifs = surLocaux.filter((i) => i.nature === "correctif").length;
   const horsService = locaux.filter((l) => l.statut === "immobilise" || l.statut === "entretien").length;
+  // Les indicateurs portent sur tous les locaux ; les deux tableaux suivent la
+  // recherche : le local trouvé, et ses seules interventions.
+  const trouves = locaux.filter((l) => correspond(filtres.q, [l.code, l.designation, l.site, STATUT_ACTIF[l.statut].libelle]));
+  const codesTrouves = new Set(trouves.map((l) => l.code));
+  const interventionsTrouvees = filtres.q ? surLocaux.filter((i) => codesTrouves.has(i.actifCode)) : surLocaux;
 
   return (
     <>
@@ -80,40 +88,53 @@ export default async function PageEntretienLocaux() {
             <CarteIndicateur libelle="Hors service" valeur={fmtEntier(horsService)} ton={horsService > 0 ? "danger" : "valide"} precision="En travaux ou fermés" />
           </section>
 
-          <Tableau>
-            <thead>
-              <tr>
-                <Th>Code</Th>
-                <Th>Local</Th>
-                <Th>Site</Th>
-                <Th aligne="droite">Interventions</Th>
-                <Th aligne="droite">Coût d&apos;entretien</Th>
-                <Th>État</Th>
-              </tr>
-            </thead>
-            <tbody>
-              {locaux.map((l) => (
-                <tr key={l.id}>
-                  <Td chiffres>{l.code}</Td>
-                  <Td fort>{l.designation}</Td>
-                  <Td>{l.site ?? "—"}</Td>
-                  <Td aligne="droite" chiffres>
-                    {fmtEntier(l.interventions)}
-                  </Td>
-                  <Td aligne="droite" chiffres>
-                    {fmt(l.coutMaintenance)}
-                  </Td>
-                  <Td>
-                    <Pastille ton={STATUT_ACTIF[l.statut].ton}>{STATUT_ACTIF[l.statut].libelle}</Pastille>
-                  </Td>
+          <Recherche
+            chemin="/moyens-generaux/locaux"
+            valeur={filtres.q}
+            placeholder="Code, local, site…"
+            resultats={filtres.q ? `${fmtEntier(trouves.length)} sur ${fmtEntier(locaux.length)}` : undefined}
+          />
+
+          {trouves.length === 0 ? (
+            <EtatVide titre="Aucun résultat" message="Aucun local ne répond à cette recherche. Retirez un mot ou cherchez par site." />
+          ) : (
+            <Tableau>
+              <thead>
+                <tr>
+                  <Th>Code</Th>
+                  <Th>Local</Th>
+                  <Th>Site</Th>
+                  <Th aligne="droite">Interventions</Th>
+                  <Th aligne="droite">Coût d&apos;entretien</Th>
+                  <Th>État</Th>
                 </tr>
-              ))}
-            </tbody>
-          </Tableau>
+              </thead>
+              <tbody>
+                {trouves.map((l) => (
+                  <tr key={l.id}>
+                    <Td chiffres>{l.code}</Td>
+                    <Td fort>{l.designation}</Td>
+                    <Td>{l.site ?? "—"}</Td>
+                    <Td aligne="droite" chiffres>
+                      {fmtEntier(l.interventions)}
+                    </Td>
+                    <Td aligne="droite" chiffres>
+                      {fmt(l.coutMaintenance)}
+                    </Td>
+                    <Td>
+                      <Pastille ton={STATUT_ACTIF[l.statut].ton}>{STATUT_ACTIF[l.statut].libelle}</Pastille>
+                    </Td>
+                  </tr>
+                ))}
+              </tbody>
+            </Tableau>
+          )}
 
           <h2 className="mb-3 mt-8 text-base font-semibold">Dernières interventions</h2>
-          {surLocaux.length === 0 ? (
-            <p className="text-sm text-[var(--encre-douce)]">Aucune intervention enregistrée sur les locaux.</p>
+          {interventionsTrouvees.length === 0 ? (
+            <p className="text-sm text-[var(--encre-douce)]">
+              {filtres.q ? "Aucune intervention enregistrée sur les locaux trouvés." : "Aucune intervention enregistrée sur les locaux."}
+            </p>
           ) : (
             <Tableau>
               <thead>
@@ -127,7 +148,7 @@ export default async function PageEntretienLocaux() {
                 </tr>
               </thead>
               <tbody>
-                {surLocaux.slice(0, 30).map((i) => (
+                {interventionsTrouvees.slice(0, 30).map((i) => (
                   <tr key={i.id}>
                     <Td chiffres>{JOUR.format(i.effectueeLe)}</Td>
                     <Td>{i.actifDesignation}</Td>

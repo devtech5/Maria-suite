@@ -10,8 +10,10 @@ import {
   Th,
   type TonPastille,
 } from "@/components/ui/primitives";
+import { Recherche } from "@/components/ui/recherche";
 import { exigerEntreprise } from "@/lib/auth/dal";
 import { fmt, fmtCompact, fmtEntier } from "@/lib/format";
+import { lireFiltresListe } from "@/lib/recherche";
 import { listerActifs, listerInterventions } from "@/modules/actifs/requetes";
 import type { NatureIntervention } from "@/modules/actifs/schema";
 
@@ -49,13 +51,18 @@ const dateCourte = new Intl.DateTimeFormat("fr-FR", {
  * sur l'actif d'un client, qui est facturable. C'est ce qui permet au moteur de
  * porter aussi bien un parc automobile qu'un garage.
  */
-export default async function PageInterventions() {
+export default async function PageInterventions({ searchParams }: PageProps<"/actifs/interventions">) {
   const session = await exigerEntreprise();
+  const filtres = lireFiltresListe(await searchParams);
 
-  const [lignes, parc] = await Promise.all([
+  // Les indicateurs portent sur les dernières interventions ; seul le tableau
+  // suit la recherche, filtrée en base pour atteindre les plus anciennes.
+  const [lignes, parc, trouvees] = await Promise.all([
     listerInterventions(session.organizationId),
     listerActifs(session.organizationId),
+    filtres.actif ? listerInterventions(session.organizationId, 500, filtres) : null,
   ]);
+  const affichees = trouvees ?? lignes;
 
   const interne = lignes.filter((i) => !i.facturable);
   const facturable = lignes.filter((i) => i.facturable);
@@ -119,57 +126,69 @@ export default async function PageInterventions() {
             />
           </section>
 
-          <Tableau>
-            <thead>
-              <tr>
-                <Th>Numéro</Th>
-                <Th>Date</Th>
-                <Th>Actif</Th>
-                <Th>Nature</Th>
-                <Th>Travaux</Th>
-                <Th>Prestataire</Th>
-                <Th aligne="droite">Compteur</Th>
-                <Th aligne="droite">Montant</Th>
-              </tr>
-            </thead>
-            <tbody>
-              {lignes.map((ligne) => (
-                <tr key={ligne.id}>
-                  <Td chiffres>{ligne.numero}</Td>
-                  <Td chiffres>{dateCourte.format(ligne.effectueeLe)}</Td>
-                  <Td fort>
-                    {ligne.actifCode}
-                    <span className="block text-xs font-normal text-[var(--encre-faible)]">
-                      {ligne.client ? `Client — ${ligne.client}` : ligne.actifDesignation}
-                    </span>
-                  </Td>
-                  <Td>
-                    <Pastille ton={TON[ligne.nature]}>
-                      {LIBELLE_NATURE[ligne.nature]}
-                    </Pastille>
-                  </Td>
-                  <Td>{ligne.libelle}</Td>
-                  <Td>
-                    <span className="text-xs text-[var(--encre-douce)]">
-                      {ligne.prestataire ?? "—"}
-                    </span>
-                  </Td>
-                  <Td aligne="droite" chiffres>
-                    {ligne.compteur !== null
-                      ? `${fmtEntier(ligne.compteur)} ${ligne.uniteCompteur ?? ""}`
-                      : "—"}
-                  </Td>
-                  <Td aligne="droite" chiffres fort>
-                    {/* Le montant d'une intervention facturable est un produit
-                        à venir, pas une charge : il se distingue à l'œil. */}
-                    <span className={ligne.facturable ? "text-marque-600" : ""}>
-                      {fmt(ligne.cout)}
-                    </span>
-                  </Td>
+          <Recherche
+            chemin="/actifs/interventions"
+            valeur={filtres.q}
+            placeholder="Numéro, actif, travaux, prestataire, client…"
+            periode={{ ...filtres.periode, libelle: "Date d'intervention" }}
+            resultats={filtres.actif ? `${fmtEntier(affichees.length)} intervention${affichees.length > 1 ? "s" : ""}` : undefined}
+          />
+
+          {affichees.length === 0 ? (
+            <EtatVide titre="Aucune intervention ne répond" message="Élargissez la période ou retirez un mot de la recherche." />
+          ) : (
+            <Tableau>
+              <thead>
+                <tr>
+                  <Th>Numéro</Th>
+                  <Th>Date</Th>
+                  <Th>Actif</Th>
+                  <Th>Nature</Th>
+                  <Th>Travaux</Th>
+                  <Th>Prestataire</Th>
+                  <Th aligne="droite">Compteur</Th>
+                  <Th aligne="droite">Montant</Th>
                 </tr>
-              ))}
-            </tbody>
-          </Tableau>
+              </thead>
+              <tbody>
+                {affichees.map((ligne) => (
+                  <tr key={ligne.id}>
+                    <Td chiffres>{ligne.numero}</Td>
+                    <Td chiffres>{dateCourte.format(ligne.effectueeLe)}</Td>
+                    <Td fort>
+                      {ligne.actifCode}
+                      <span className="block text-xs font-normal text-[var(--encre-faible)]">
+                        {ligne.client ? `Client — ${ligne.client}` : ligne.actifDesignation}
+                      </span>
+                    </Td>
+                    <Td>
+                      <Pastille ton={TON[ligne.nature]}>
+                        {LIBELLE_NATURE[ligne.nature]}
+                      </Pastille>
+                    </Td>
+                    <Td>{ligne.libelle}</Td>
+                    <Td>
+                      <span className="text-xs text-[var(--encre-douce)]">
+                        {ligne.prestataire ?? "—"}
+                      </span>
+                    </Td>
+                    <Td aligne="droite" chiffres>
+                      {ligne.compteur !== null
+                        ? `${fmtEntier(ligne.compteur)} ${ligne.uniteCompteur ?? ""}`
+                        : "—"}
+                    </Td>
+                    <Td aligne="droite" chiffres fort>
+                      {/* Le montant d'une intervention facturable est un produit
+                          à venir, pas une charge : il se distingue à l'œil. */}
+                      <span className={ligne.facturable ? "text-marque-600" : ""}>
+                        {fmt(ligne.cout)}
+                      </span>
+                    </Td>
+                  </tr>
+                ))}
+              </tbody>
+            </Tableau>
+          )}
 
           <p className="mt-5 max-w-[70ch] text-xs text-[var(--encre-faible)]">
             Une intervention ne pose pas d&apos;écriture comptable. Le coût

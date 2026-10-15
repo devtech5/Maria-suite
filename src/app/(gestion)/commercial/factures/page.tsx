@@ -2,9 +2,11 @@ import type { Metadata } from "next";
 
 import { AccesRefuse } from "@/components/coque/acces-refuse";
 import { CarteIndicateur, EnTetePage } from "@/components/ui/primitives";
+import { Recherche } from "@/components/ui/recherche";
 import { exigerEntreprise } from "@/lib/auth/dal";
 import { peut } from "@/lib/droits/garde";
 import { fmtCompact, fmtEntier } from "@/lib/format";
+import { correspond, dansPeriode, lireFiltresListe } from "@/lib/recherche";
 import { resteDu } from "@/modules/facturation/calcul";
 import { detailsPieces, listerPieces, optionsPiece } from "@/modules/facturation/requetes";
 
@@ -19,17 +21,16 @@ export const metadata: Metadata = { title: "Devis et factures" };
  * facture, une facture se corrige par un avoir. Les séparer en trois onglets
  * obligerait à traverser l'application pour suivre une seule affaire.
  */
-export default async function PageFactures({
-  searchParams,
-}: {
-  searchParams: Promise<{ nouvelle?: string; client?: string }>;
-}) {
+export default async function PageFactures({ searchParams }: PageProps<"/commercial/factures">) {
   const session = await exigerEntreprise();
   // Depuis la fiche client : « Devis » ou « Facture » ouvre l'éditeur déjà
   // adressé au client, au lieu de laisser chercher son nom une seconde fois.
   const demande = await searchParams;
+  const filtres = lireFiltresListe(demande);
   const nouvelle =
-    (demande.nouvelle === "devis" || demande.nouvelle === "facture") && demande.client && /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(demande.client)
+    (demande.nouvelle === "devis" || demande.nouvelle === "facture") &&
+    typeof demande.client === "string" &&
+    /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(demande.client)
       ? { nature: demande.nouvelle as "devis" | "facture", clientId: demande.client }
       : undefined;
 
@@ -46,6 +47,16 @@ export default async function PageFactures({
     peut("commercial.reglement.encaisser"),
     peut("communication.client.notifier"),
   ]);
+
+  // Toutes les pièces sont déjà là, sans limite : la recherche filtre la liste en
+  // mémoire, les indicateurs restent ceux de toute l'entreprise.
+  const trouvees = filtres.actif
+    ? pieces.filter(
+        (p) =>
+          correspond(filtres.q, [p.numero, p.clientNom, p.contactNom, p.origineNumero, p.ecritureNumero, p.notes]) &&
+          dansPeriode(p.datePiece, filtres.periode),
+      )
+    : pieces;
 
   const factures = pieces.filter((p) => p.nature === "facture" && p.statut === "emise");
   const aEncaisser = factures.reduce((s, f) => s + resteDu(f.totalTtc, f.regle), 0);
@@ -92,7 +103,19 @@ export default async function PageFactures({
       </section>
 
       <PiecesCommerciales
-        pieces={pieces}
+        pieces={trouvees}
+        filtrees={filtres.actif}
+        recherche={
+          pieces.length > 0 || filtres.actif ? (
+            <Recherche
+              chemin="/commercial/factures"
+              valeur={filtres.q}
+              placeholder="Numéro, client, contact, note…"
+              periode={{ ...filtres.periode, libelle: "Date de pièce" }}
+              resultats={filtres.actif ? `${fmtEntier(trouvees.length)} sur ${fmtEntier(pieces.length)}` : undefined}
+            />
+          ) : undefined
+        }
         lignes={Object.fromEntries(details.lignes)}
         reglements={Object.fromEntries(details.reglements)}
         options={options}

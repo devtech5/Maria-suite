@@ -1,8 +1,10 @@
 import "server-only";
 
-import { eq, sql } from "drizzle-orm";
+import { and, eq, sql } from "drizzle-orm";
 
 import { db } from "@/db";
+import { motsRecherche, type FiltresListe } from "@/lib/recherche";
+import { dansPeriodeSql, motsDans } from "@/lib/recherche-sql";
 
 import { jugerEcheance, type Jugement } from "./echeance";
 import {
@@ -166,7 +168,20 @@ export interface LigneIntervention {
 export async function listerInterventions(
   organizationId: string,
   limite = 60,
+  filtres?: FiltresListe,
 ): Promise<LigneIntervention[]> {
+  // Filtrées en base, pas après coup : sinon la recherche ne verrait que les
+  // soixante dernières.
+  const recherche =
+    filtres &&
+    and(
+      motsDans(
+        [sql`i.numero`, sql`a.code`, sql`a.designation`, sql`i.libelle`, sql`i.nature::text`, sql`p.nom`, sql`i.prestataire`, sql`t.nom`],
+        motsRecherche(filtres.q),
+      ),
+      dansPeriodeSql(sql`i.effectuee_le`, filtres.periode),
+    );
+
   const lignes = await db.execute<{
     id: string;
     numero: string;
@@ -205,6 +220,7 @@ export async function listerInterventions(
       left join releves_compteur r on r.intervention_id = i.id
     where i.organization_id = ${organizationId}
       and i.deleted_at is null
+      and ${recherche ?? sql`true`}
     order by i.effectuee_le desc, i.created_at desc
     limit ${limite}
   `);

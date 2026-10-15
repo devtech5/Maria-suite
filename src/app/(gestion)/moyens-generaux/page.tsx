@@ -2,9 +2,11 @@ import type { Metadata } from "next";
 
 import { FormulaireRepliable } from "@/components/ui/operations";
 import { CLASSE_CHAMP, CarteIndicateur, Champ, EnTetePage, EtatVide, Pastille, Tableau, Td, Th, type TonPastille } from "@/components/ui/primitives";
+import { Recherche } from "@/components/ui/recherche";
 import { exigerEntreprise } from "@/lib/auth/dal";
 import { peut } from "@/lib/droits/garde";
 import { fmt, fmtEntier } from "@/lib/format";
+import { correspond, lireFiltresListe } from "@/lib/recherche";
 import { creerFourniture, enregistrerEntree, enregistrerSortie } from "@/modules/moyens-generaux/actions";
 import { ETATS_FOURNITURE, type EtatFourniture } from "@/modules/moyens-generaux/calcul";
 import { listerFournitures } from "@/modules/moyens-generaux/creation";
@@ -15,13 +17,16 @@ export const metadata: Metadata = { title: "Fournitures de bureau" };
 const TON: Record<EtatFourniture, TonPastille> = { rupture: "danger", a_racheter: "alerte", suffisant: "valide" };
 
 /** Le placard : ce qu'il contient, ce qui manque, et les gestes du quotidien. */
-export default async function PageFournitures() {
+export default async function PageFournitures({ searchParams }: PageProps<"/moyens-generaux">) {
   const session = await exigerEntreprise();
+  const filtres = lireFiltresListe(await searchParams);
   const [liste, gerer] = await Promise.all([listerFournitures(session.organizationId), peut("moyens_generaux.gerer")]);
   const salaries = gerer ? await salariesEnPoste(session.organizationId) : [];
   const aujourdhui = new Date().toISOString().slice(0, 10);
   const compte = (e: EtatFourniture) => liste.filter((f) => f.etat === e).length;
   const valeur = liste.reduce((s, f) => s + (f.coutMoyen ?? 0) * Math.max(f.stock, 0), 0);
+  // Les indicateurs et les formulaires portent sur tout le placard ; seul le tableau suit la recherche.
+  const lignes = liste.filter((f) => correspond(filtres.q, [f.designation, f.unite, ETATS_FOURNITURE[f.etat]]));
 
   const choixFourniture = (
     <Champ libelle="Fourniture">
@@ -121,36 +126,47 @@ export default async function PageFournitures() {
             <CarteIndicateur libelle="Valeur du placard" valeur={fmt(valeur)} unite="FCFA" ton="marque" precision="Au coût moyen d'achat" />
           </section>
 
-          <Tableau>
-            <thead>
-              <tr>
-                <Th>Fourniture</Th>
-                <Th aligne="droite">Stock</Th>
-                <Th aligne="droite">Seuil</Th>
-                <Th aligne="droite">Coût moyen</Th>
-                <Th>État</Th>
-              </tr>
-            </thead>
-            <tbody>
-              {liste.map((f) => (
-                <tr key={f.id}>
-                  <Td fort>{f.designation}</Td>
-                  <Td aligne="droite" chiffres>
-                    {fmtEntier(f.stock)} <span className="text-xs text-[var(--encre-faible)]">{f.unite}</span>
-                  </Td>
-                  <Td aligne="droite" chiffres>
-                    {f.seuil > 0 ? fmtEntier(f.seuil) : "—"}
-                  </Td>
-                  <Td aligne="droite" chiffres>
-                    {f.coutMoyen === null ? "—" : `${fmt(f.coutMoyen)} FCFA`}
-                  </Td>
-                  <Td>
-                    <Pastille ton={TON[f.etat]}>{ETATS_FOURNITURE[f.etat]}</Pastille>
-                  </Td>
+          <Recherche
+            chemin="/moyens-generaux"
+            valeur={filtres.q}
+            placeholder="Ramette, cartouche, stylo, à racheter…"
+            resultats={filtres.q ? `${fmtEntier(lignes.length)} sur ${fmtEntier(liste.length)}` : undefined}
+          />
+
+          {lignes.length === 0 ? (
+            <EtatVide titre="Aucun résultat" message="Aucune fourniture ne répond à cette recherche. Retirez un mot de la recherche." />
+          ) : (
+            <Tableau>
+              <thead>
+                <tr>
+                  <Th>Fourniture</Th>
+                  <Th aligne="droite">Stock</Th>
+                  <Th aligne="droite">Seuil</Th>
+                  <Th aligne="droite">Coût moyen</Th>
+                  <Th>État</Th>
                 </tr>
-              ))}
-            </tbody>
-          </Tableau>
+              </thead>
+              <tbody>
+                {lignes.map((f) => (
+                  <tr key={f.id}>
+                    <Td fort>{f.designation}</Td>
+                    <Td aligne="droite" chiffres>
+                      {fmtEntier(f.stock)} <span className="text-xs text-[var(--encre-faible)]">{f.unite}</span>
+                    </Td>
+                    <Td aligne="droite" chiffres>
+                      {f.seuil > 0 ? fmtEntier(f.seuil) : "—"}
+                    </Td>
+                    <Td aligne="droite" chiffres>
+                      {f.coutMoyen === null ? "—" : `${fmt(f.coutMoyen)} FCFA`}
+                    </Td>
+                    <Td>
+                      <Pastille ton={TON[f.etat]}>{ETATS_FOURNITURE[f.etat]}</Pastille>
+                    </Td>
+                  </tr>
+                ))}
+              </tbody>
+            </Tableau>
+          )}
         </>
       )}
     </>
