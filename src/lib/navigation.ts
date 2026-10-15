@@ -50,6 +50,11 @@ export interface GroupeModules {
  * module en pastilles (Écritures, Balance). Un domaine reste court — au-delà
  * de six ou sept modules, la rangée d'onglets se lit mal et il faut le couper.
  *
+ * Communication réunit ce qui sert à se parler : Meeting, Messagerie, Boîte
+ * mail, Messages groupés. Documents, Archives, Journal et Projets sont chacun
+ * leur propre domaine d'un seul module : ils s'ouvrent d'un clic depuis la
+ * barre, sans détour par un regroupement qu'il faudrait deviner.
+ *
  * Le tableau de bord n'est pas un module : la barre l'ajoute en tête du
  * Pilotage.
  */
@@ -61,7 +66,6 @@ export const GROUPES_MODULES: GroupeModules[] = [
     icone: "tableau-de-bord",
     modules: [
       { href: "/rapports", racine: "/rapports", icone: "rapports", libelle: "Rapports", description: "Ventes, stock, trésorerie, paie : chaque module en chiffres, imprimable et exportable vers Excel.", droit: "rapports.consulter" },
-      { href: "/journal", racine: "/journal", icone: "journal", libelle: "Journal d'activité", description: "Qui a fait quoi, et quand.", droit: "organisation.journal.consulter" },
     ],
   },
   {
@@ -79,13 +83,22 @@ export const GROUPES_MODULES: GroupeModules[] = [
     ],
   },
   {
+    cle: "achats",
+    titre: "Service Achat",
+    court: "Achat",
+    icone: "achats",
+    modules: [
+      { href: "/achats", racine: "/achats", icone: "achats", libelle: "Achats", description: "Commandes et factures fournisseurs.", droit: "achats.consulter" },
+      { href: "/commercial/fournisseurs", racine: "/commercial/fournisseurs", icone: "achats", libelle: "Fournisseurs", description: "Fiches fournisseurs, leurs factures et ce qui leur est dû.", droit: "tiers.fiche.consulter" },
+    ],
+  },
+  {
     cle: "stocks",
-    titre: "Stocks et achats",
+    titre: "Stocks et prestataires",
     court: "Stocks",
     icone: "stock",
     modules: [
       { href: "/stock", racine: "/stock", icone: "stock", libelle: "Stock", description: "Articles, mouvements, inventaires et réapprovisionnement.", droit: "stock.article.consulter" },
-      { href: "/achats", racine: "/achats", icone: "achats", libelle: "Achats", description: "Commandes et factures fournisseurs.", droit: "achats.consulter" },
       { href: "/prestataires", racine: "/prestataires", icone: "prestataires", libelle: "Prestataires", description: "Plombiers, photographes, monteurs : annuaire et prestations.", droit: "prestataires.consulter" },
     ],
   },
@@ -93,12 +106,20 @@ export const GROUPES_MODULES: GroupeModules[] = [
     cle: "terrain",
     titre: "Terrain",
     court: "Terrain",
-    icone: "projets",
+    icone: "missions",
     modules: [
-      { href: "/projets", racine: "/projets", icone: "projets", libelle: "Projets", description: "Projets, budgets, dépenses, photos et preuves.", droit: "projet.consulter" },
       { href: "/missions", racine: "/missions", icone: "missions", libelle: "Missions", description: "Missions assignées, étapes et preuves de terrain.", droit: "missions.consulter" },
       { href: "/enquetes", racine: "/enquetes", icone: "enquetes", libelle: "Enquêtes", description: "Satisfaction des clients et enquêtes de terrain.", droit: "enquetes.consulter" },
       { href: "/billetterie", racine: "/billetterie", icone: "billetterie", libelle: "Billetterie", description: "Départs programmés, places, billets et contrôle.", droit: "billetterie.consulter" },
+    ],
+  },
+  {
+    cle: "projets",
+    titre: "Projets",
+    court: "Projets",
+    icone: "projets",
+    modules: [
+      { href: "/projets", racine: "/projets", icone: "projets", libelle: "Projets", description: "Projets, budgets, dépenses, photos et preuves.", droit: "projet.consulter" },
     ],
   },
   {
@@ -136,16 +157,42 @@ export const GROUPES_MODULES: GroupeModules[] = [
     ],
   },
   {
-    cle: "equipe",
-    titre: "Collaboration",
-    court: "Équipe",
-    icone: "messagerie",
+    cle: "communication",
+    titre: "Communication",
+    court: "Communication",
+    icone: "communication",
     modules: [
       { href: "/meeting", racine: "/meeting", icone: "meeting", libelle: "Meeting", description: "Réunions d'équipe à distance, en vidéo.", droit: "meeting.participer" },
       { href: "/messagerie", racine: "/messagerie", icone: "messagerie", libelle: "Messagerie", description: "Discussions privées et groupes de l'équipe.", droit: "messagerie.utiliser" },
       { href: "/boite-mail", racine: "/boite-mail", icone: "boite-mail", libelle: "Boîte mail", description: "Vos e-mails, sans quitter Maria Suite.", droit: "boite_mail.utiliser" },
+      { href: "/communication", racine: "/communication", icone: "communication", libelle: "Messages groupés", description: "Envois aux clients et messages groupés.", droit: "communication.consulter" },
+    ],
+  },
+  {
+    cle: "documents",
+    titre: "Documents",
+    court: "Documents",
+    icone: "documents",
+    modules: [
       { href: "/documents", racine: "/documents", icone: "documents", libelle: "Documents", description: "Pièces rattachées aux fiches et leurs échéances.", droit: "documents.consulter" },
+    ],
+  },
+  {
+    cle: "archives",
+    titre: "Archives",
+    court: "Archives",
+    icone: "archives",
+    modules: [
       { href: "/archives", racine: "/archives", icone: "archives", libelle: "Archives", description: "Votre espace d'archivage personnel, intègre et tracé.", droit: "archives.consulter" },
+    ],
+  },
+  {
+    cle: "journal",
+    titre: "Journal d'activité",
+    court: "Journal",
+    icone: "journal",
+    modules: [
+      { href: "/journal", racine: "/journal", icone: "journal", libelle: "Journal d'activité", description: "Qui a fait quoi, et quand.", droit: "organisation.journal.consulter" },
     ],
   },
   {
@@ -161,7 +208,6 @@ export const GROUPES_MODULES: GroupeModules[] = [
         : []),
       { href: "/marches", racine: "/marches", icone: "marches", libelle: "Marchés et conventions", description: "Appels d'offres, consultations et conventions.", droit: "marches.consulter" },
       { href: "/securite", racine: "/securite", icone: "securite", libelle: "Sécurité", description: "Caméras des magasins, entrepôts et bureaux en direct.", droit: "securite.consulter" },
-      { href: "/communication", racine: "/communication", icone: "communication", libelle: "Communication", description: "Envois aux clients et messages groupés.", droit: "communication.consulter" },
     ],
   },
 ];
@@ -219,7 +265,17 @@ export function relevDe(chemin: string, racine: string): boolean {
  */
 export function domaineDe(chemin: string, groupes: GroupeModules[]): string | null {
   if (relevDe(chemin, "/")) return "pilotage";
-  return groupes.find((g) => g.modules.some((m) => relevDe(chemin, m.racine)))?.cle ?? null;
+  // L'entrée la plus précise l'emporte : « /commercial/fournisseurs » relève
+  // du Service Achat, pas de Commercial dont il est pourtant une sous-page.
+  let meilleur: { cle: string; longueur: number } | null = null;
+  for (const g of groupes) {
+    for (const m of g.modules) {
+      if (relevDe(chemin, m.racine) && (!meilleur || m.racine.length > meilleur.longueur)) {
+        meilleur = { cle: g.cle, longueur: m.racine.length };
+      }
+    }
+  }
+  return meilleur?.cle ?? null;
 }
 
 /**

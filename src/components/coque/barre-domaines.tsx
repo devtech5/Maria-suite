@@ -58,7 +58,8 @@ export function domainesVisibles(droits: Droit[], modulesOuverts: string[]): Dom
  * seul endroit où il porte du texte. Plus de barre latérale : la largeur
  * entière revient aux tableaux.
  *
- * Seule la rangée des domaines défile sur un petit écran. Les outils et le
+ * Seize domaines au plus : tous tiennent sur un écran de 1366 px. Seule la
+ * rangée des domaines défile sur un écran plus étroit. Les outils et le
  * menu de compte restent dehors : leurs menus déroulants seraient coupés par
  * un conteneur qui défile.
  */
@@ -83,8 +84,8 @@ export function BarreDomaines({
   const actif = domaineDe(chemin, groupesVisibles(droits, modulesOuverts));
 
   return (
-    <header className="nav-sombre barre-haut flex shrink-0 items-center gap-2 px-2 py-1.5 sm:px-3">
-      <Link href="/accueil" aria-label="MARIA GROUP — accueil" className="flex shrink-0 items-center gap-2.5 pr-1 sm:pr-3">
+    <header className="nav-sombre barre-haut flex shrink-0 items-center gap-1.5 px-2 py-1.5 sm:px-3">
+      <Link href="/accueil" aria-label="MARIA GROUP — accueil" className="flex shrink-0 items-center gap-2.5 pr-1 2xl:pr-3">
         <Image
           src="/marque/icone-blanc-or-detouree.png"
           alt=""
@@ -93,15 +94,15 @@ export function BarreDomaines({
           unoptimized
           className="size-9 shrink-0 rounded-lg"
         />
-        <span className="hidden min-w-0 leading-tight xl:block">
+        <span className="hidden min-w-0 leading-tight 2xl:block">
           <span className="block whitespace-nowrap text-[13px] font-bold tracking-[0.12em] text-white">MARIA GROUP</span>
           <span className="block text-[10px] font-semibold uppercase tracking-[0.2em] text-or">Maria Suite</span>
         </span>
       </Link>
 
-      <span className="hidden h-8 w-px shrink-0 bg-[var(--filet)] sm:block" aria-hidden />
+      <span className="hidden h-8 w-px shrink-0 bg-[var(--filet)] 2xl:block" aria-hidden />
 
-      <nav aria-label="Domaines" className="flex min-w-0 flex-1 items-stretch gap-0.5 overflow-x-auto">
+      <nav aria-label="Domaines" className="flex min-w-0 flex-1 items-stretch overflow-x-auto">
         {domaines.map((d) => {
           const courant = d.cle === actif;
           return (
@@ -110,7 +111,7 @@ export function BarreDomaines({
               href={d.href}
               title={d.titre}
               aria-current={courant ? "page" : undefined}
-              className={`flex min-w-[4.5rem] shrink-0 flex-col items-center justify-center gap-1 rounded-xl px-2.5 py-1.5 text-[10px] font-bold uppercase tracking-wide whitespace-nowrap transition-colors ${
+              className={`flex min-w-[3.25rem] shrink-0 flex-col items-center justify-center gap-1 rounded-xl px-1 py-1.5 text-[10px] font-bold uppercase whitespace-nowrap 2xl:px-2 transition-colors ${
                 courant
                   ? "bg-or text-nuit-profond shadow-sm"
                   : "text-[var(--encre-douce)] hover:bg-[var(--surface-creuse)] hover:text-white"

@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
 
 import { definitionDroit } from "@/lib/droits/catalogue";
-import { destinationApresConnexion, GROUPES_MODULES, groupesVisibles } from "@/lib/navigation";
+import { destinationApresConnexion, domaineDe, GROUPES_MODULES, groupesVisibles } from "@/lib/navigation";
 
 const tous = GROUPES_MODULES.flatMap((g) => g.modules);
 const modulesDe = (droits: string[]) => droits.map((d) => definitionDroit(d as never).moduleKey);
@@ -9,7 +9,7 @@ const modulesDe = (droits: string[]) => droits.map((d) => definitionDroit(d as n
 describe("groupesVisibles", () => {
   it("ne montre que les modules dont le rôle a le droit", () => {
     const groupes = groupesVisibles(["taches.consulter", "messagerie.utiliser"], ["taches", "messagerie"]);
-    expect(groupes.map((g) => g.titre)).toEqual(["Ressources humaines", "Collaboration"]);
+    expect(groupes.map((g) => g.titre)).toEqual(["Ressources humaines", "Communication"]);
     expect(groupes.flatMap((g) => g.modules.map((m) => m.href))).toEqual(["/taches", "/messagerie"]);
   });
 
@@ -40,6 +40,16 @@ describe("groupesVisibles", () => {
       expect(m.description.trim()).not.toBe("");
       expect(m.href.startsWith(m.racine)).toBe(true);
     }
+  });
+});
+
+describe("domaineDe", () => {
+  it("allume l'entrée la plus précise", () => {
+    expect(domaineDe("/commercial/fournisseurs", GROUPES_MODULES)).toBe("achats");
+    expect(domaineDe("/commercial/fournisseurs/abc", GROUPES_MODULES)).toBe("achats");
+    expect(domaineDe("/commercial/factures", GROUPES_MODULES)).toBe("commerce");
+    expect(domaineDe("/", GROUPES_MODULES)).toBe("pilotage");
+    expect(domaineDe("/mot-de-passe", GROUPES_MODULES)).toBeNull();
   });
 });
 
