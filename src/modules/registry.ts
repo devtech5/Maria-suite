@@ -92,9 +92,13 @@ export const MODULES: ModuleDefinition[] = [
     // En base : plan de comptes SYSCOHADA, journaux, écritures équilibrées et
     // états financiers déduits du grand livre. Fiscalité : TVA mensuelle lue
     // dans les écritures, déclarée dans l'ordre (liquidation 4441/4449, mois
-    // verrouillé), payée depuis la trésorerie ; clôture d'exercice (131/139),
-    // exercice fermé aux écritures. Restent les à-nouveaux, la réouverture
-    // d'un exercice, la DSF et les acomptes d'impôt sur les bénéfices.
+    // verrouillé), payée depuis la trésorerie ; impôt sur les bénéfices par
+    // règle du pays attestée (taux, minimum forfaitaire), constaté avant la
+    // clôture et payé en fractions l'année suivante ; clôture d'exercice
+    // (131/139), affectation du résultat, réouverture motivée qui contrepasse.
+    // Bilan cumulé et à-nouveaux lus dans les soldes, liasse annuelle
+    // imprimable. Restent le tableau des flux de trésorerie, les notes
+    // annexes et le dépôt au format de la DGI.
     status: "en_cours",
     requires: ["tiers"],
     description:

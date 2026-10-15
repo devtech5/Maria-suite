@@ -251,7 +251,9 @@ export const DROITS = [
     cle: "comptabilite.exercice.cloturer",
     moduleKey: "comptabilite",
     libelle: "Clôturer un exercice",
-    description: "Déterminer le résultat de l'année et fermer l'exercice à toute nouvelle écriture. Irréversible.",
+    description:
+      "Constater l'impôt sur les bénéfices, déterminer le résultat de l'année et fermer l'exercice, affecter le résultat. " +
+      "Rouvrir un exercice clos, motif à l'appui : la clôture est contrepassée, jamais effacée.",
   },
 
   // ----------------------------------------------------------- personnes

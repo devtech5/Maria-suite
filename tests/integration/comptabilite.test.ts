@@ -6,6 +6,7 @@ import { prochainNumero } from "@/lib/sequences";
 import { enregistrerEcritureDans, PeriodeVerrouillee } from "@/modules/comptabilite/enregistrement";
 import { soldesParCompte } from "@/modules/comptabilite/requetes";
 import { cloturerExerciceDans, declarerTvaDans, payerTvaDans } from "@/modules/fiscalite/creation";
+import { constaterImpotDans } from "@/modules/fiscalite/exercice";
 import { comptesTresorerie } from "@/modules/tresorerie/schema";
 import { newId } from "@/lib/ids";
 
@@ -111,8 +112,11 @@ describe("clôture d'exercice", () => {
     ] });
     await poser(achatSansTva("2025-04-10", "A-2025-1", 120_000));
 
+    await expect(db.transaction((tx) => cloturerExerciceDans(tx, org, "2025", "2026-10-05", user))).rejects.toThrow(/impôt sur les bénéfices/);
+    const regle = { tauxBp: 2_500, imfTauxBp: 0, imfMinimum: 0, imfMaximum: 0, echeances: ["04-20"], source: "" };
+    await db.transaction((tx) => constaterImpotDans(tx, org, "2025", { reintegrations: 0, deductions: 0, chiffreAffaires: 300_000 }, regle, "2026-10-05", user));
     const r = await db.transaction((tx) => cloturerExerciceDans(tx, org, "2025", "2026-10-05", user));
-    expect(r.resultat).toBe(180_000);
+    expect(r.resultat).toBe(180_000 - 45_000);
 
     await expect(poser(achatSansTva("2025-12-15", "A-2025-2", 1_000))).rejects.toBeInstanceOf(PeriodeVerrouillee);
     await expect(db.transaction((tx) => cloturerExerciceDans(tx, org, "2025", "2026-10-05", user))).rejects.toThrow(/déjà clôturé/);
