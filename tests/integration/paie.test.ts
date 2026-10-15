@@ -3,6 +3,7 @@ import { afterAll, beforeAll, describe, expect, it } from "vitest";
 
 import type { db as Db } from "@/db";
 import { BAREME_PAR_DEFAUT } from "@/modules/paie/calcul";
+import { RAPPORTS_PAIE } from "@/modules/paie/rapports";
 import { contexteAbsences, enregistrerBaremeDans, modifierElementsDans, preparerPeriodeDans, proposerRappel, validerPeriodeDans } from "@/modules/paie/creation";
 import { bulletinsPaie, periodesPaie } from "@/modules/paie/schema";
 import { creerSalariePour } from "@/modules/personnes/creation";
@@ -98,5 +99,21 @@ describe("absences et congés dans la paie", () => {
     const apres = await bulletinDe(periode, awa.id);
     expect(apres).toMatchObject({ rappel: 23_500, rappelLibelle: r.libelle });
     expect(apres.brut).toBe(apres.salaireBase - apres.retenueAbsence + 23_500);
+  });
+
+  it("cumule l'année par salarié pour la DISA, assiette plafonnée mois par mois", async () => {
+    const disa = RAPPORTS_PAIE.find((r) => r.cle === "disa")!;
+    const r = await disa.executer(org, { du: "2026-01-01", au: "2026-12-31" });
+    // Seul octobre est validé ; novembre est en préparation.
+    expect(r.lignes.map((l) => l.nom)).toEqual(["Awa Comptable", "Koffi Commercial"]);
+    expect(r.lignes[0]).toMatchObject({ mois: 1, brut: 240_000, assiette: 240_000, entree: "2025-01-06", sortie: null, cnps: null });
+    expect(r.note).toMatch(/2 salariés n'ont pas de numéro CNPS/);
+
+    // Un plafond bas plafonne l'assiette, pas le brut.
+    await db.update(periodesPaie).set({ baremeApplique: { ...BAREME_PAR_DEFAUT, cnpsPlafondMensuel: 200_000 } }).where(eq(periodesPaie.mois, "2026-10"));
+    const plafonne = await disa.executer(org, { du: "2026-01-01", au: "2026-12-31" });
+    expect(plafonne.lignes[0]).toMatchObject({ brut: 240_000, assiette: 200_000 });
+    expect(plafonne.lignes[1]).toMatchObject({ brut: 150_000, assiette: 150_000 });
+    expect((await disa.executer(org, { du: "2025-01-01", au: "2025-12-31" })).lignes).toEqual([]);
   });
 });
