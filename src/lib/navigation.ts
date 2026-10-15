@@ -58,7 +58,7 @@ export const GROUPES_MODULES: GroupeModules[] = [
       { href: "/projets", racine: "/projets", icone: "projets", libelle: "Projets", description: "Projets, budgets, dépenses, photos et preuves.", droit: "projet.consulter" },
       { href: "/enquetes", racine: "/enquetes", icone: "enquetes", libelle: "Enquêtes", description: "Satisfaction des clients et enquêtes de terrain.", droit: "enquetes.consulter" },
       { href: "/missions", racine: "/missions", icone: "missions", libelle: "Missions", description: "Missions assignées, étapes et preuves de terrain.", droit: "missions.consulter" },
-      { href: "/actifs", racine: "/actifs", icone: "actifs", libelle: "Actifs", description: "Engins et matériel : interventions et échéances.", droit: "actifs.consulter" },
+      { href: "/actifs", racine: "/actifs", icone: "actifs", libelle: "Actifs / Biens", description: "Engins et matériel : interventions et échéances.", droit: "actifs.consulter" },
       { href: "/parc-auto", racine: "/parc-auto", icone: "parc-auto", libelle: "Parc auto", description: "Véhicules, pleins, consommation et vignettes.", droit: "parc_auto.consulter" },
       { href: "/parc-informatique", racine: "/parc-informatique", icone: "parc-informatique", libelle: "Parc informatique", description: "Ordinateurs, attributions et licences.", droit: "parc_informatique.consulter" },
       { href: "/billetterie", racine: "/billetterie", icone: "billetterie", libelle: "Billetterie", description: "Départs programmés, places, billets et contrôle.", droit: "billetterie.consulter" },
