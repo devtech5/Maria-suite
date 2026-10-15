@@ -46,6 +46,13 @@ export default async function PagePaie({ searchParams }: PageProps<"/rh/paie">) 
             <Link href="/rh/paie/bareme" className="h-cible inline-flex items-center rounded-lg border border-[var(--filet)] bg-[var(--surface)] px-3.5 text-sm font-medium hover:bg-[var(--surface-creuse)]">
               Barème
             </Link>
+            <Link
+              href={`/rapports/disa?du=${mois.slice(0, 4)}-01-01&au=${mois.slice(0, 4)}-12-31`}
+              title="Déclaration annuelle des salaires : cumuls par salarié de l'année, à reporter à la CNPS"
+              className="h-cible inline-flex items-center rounded-lg border border-[var(--filet)] bg-[var(--surface)] px-3.5 text-sm font-medium hover:bg-[var(--surface-creuse)]"
+            >
+              DISA {mois.slice(0, 4)}
+            </Link>
             {preparer && <PreparerMois moisCourant={moisCourant()} mois={mois} dejaValidee={validee} />}
           </>
         }

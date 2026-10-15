@@ -113,8 +113,9 @@ export const MODULES: ModuleDefinition[] = [
     // sortie dans le mois, congé sans solde et absences saisies retenus au
     // prorata des jours, congés payés pris et solde imprimés. Rappel de
     // salaire ou reprise de trop-perçu sur le bulletin, chiffré depuis les
-    // mois validés après une augmentation rétroactive. Restent l'allocation
-    // de congés payés et la DISA annuelle.
+    // mois validés après une augmentation rétroactive. État annuel DISA par
+    // salarié, assiette retraite plafonnée mois par mois. Restent
+    // l'allocation de congés payés et le fichier de dépôt au gabarit e-CNPS.
     status: "en_cours",
     requires: [],
     description:
