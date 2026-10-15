@@ -414,6 +414,13 @@
       "when": 1792064837560,
       "tag": "0058_paie_absences",
       "breakpoints": true
+    },
+    {
+      "idx": 59,
+      "version": "7",
+      "when": 1792065830241,
+      "tag": "0059_paie_rappels",
+      "breakpoints": true
     }
   ]
 }

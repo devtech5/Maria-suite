@@ -110,6 +110,9 @@ export const bulletinsPaie = pgTable(
     primesImposables: money("primes_imposables").notNull().default(0),
     indemnitesNonImposables: money("indemnites_non_imposables").notNull().default(0),
     retenuesDiverses: money("retenues_diverses").notNull().default(0),
+    /** Rappel de salaire, signé : négatif, il reprend un trop-perçu. */
+    rappel: money("rappel").notNull().default(0),
+    rappelLibelle: text("rappel_libelle"),
 
     brut: money("brut").notNull(),
     cnpsSalarie: money("cnps_salarie").notNull(),
@@ -131,6 +134,7 @@ export const bulletinsPaie = pgTable(
     unique("bulletins_paie_salarie_unique").on(t.periodeId, t.employeId),
     unique("bulletins_paie_numero_unique").on(t.organizationId, t.numero),
     check("bulletins_paie_net", sql`${t.net} >= 0 AND ${t.brut} >= 0`),
+    check("bulletins_paie_rappel", sql`${t.rappel} = 0 OR ${t.rappelLibelle} IS NOT NULL`),
     check(
       "bulletins_paie_absences",
       sql`${t.joursMois} >= 0 AND ${t.joursHorsContrat} >= 0 AND ${t.joursSansSolde} >= 0 AND ${t.joursAbsenceSaisis} >= 0 AND ${t.congesPris} >= 0 AND ${t.retenueAbsence} BETWEEN 0 AND ${t.salaireBase}`,

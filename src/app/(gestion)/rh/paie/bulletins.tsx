@@ -1,13 +1,13 @@
 "use client";
 
 import Link from "next/link";
-import { useState, useTransition } from "react";
+import { Fragment, useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 
 import { Retour, type Resultat } from "@/components/ui/operations";
 import { CLASSE_CHAMP_COMPACT, Pastille, Tableau, Td, Th } from "@/components/ui/primitives";
 import { fmt } from "@/lib/format";
-import { modifierElements, retirerBulletin } from "@/modules/paie/actions";
+import { calculerRappel, modifierElements, retirerBulletin } from "@/modules/paie/actions";
 import { formatJours } from "@/modules/presences/calcul";
 
 export interface BulletinAffiche {
@@ -25,6 +25,9 @@ export interface BulletinAffiche {
   joursAbsenceSaisis: number;
   retenueAbsence: number;
   primesImposables: number;
+  /** Signé : négatif, un trop-perçu repris. */
+  rappel: number;
+  rappelLibelle: string | null;
   indemnitesNonImposables: number;
   retenuesDiverses: number;
   brut: number;
@@ -47,6 +50,11 @@ const centiemes = (v: string) => {
   const c = Math.round(Number(p) * 100);
   return c % 50 === 0 ? c : Number.NaN;
 };
+/** Montant signé : « -15 000 » ou « − 15 000 » pour un trop-perçu. */
+const signe = (v: string) => {
+  const p = v.replace(/\s/g, "").replace("−", "-");
+  return /^-?\d+$/.test(p) ? Number(p) : p === "" ? 0 : Number.NaN;
+};
 const saisieJours = (c: number) => (c ? String(c / 100).replace(".", ",") : "");
 
 /** Détail des jours non payés : hors contrat, sans solde, absences saisies. */
@@ -60,12 +68,85 @@ function detailAbsences(b: BulletinAffiche): string {
     .join(" · ");
 }
 
+interface Edition {
+  id: string;
+  absences: string;
+  primes: string;
+  indemnites: string;
+  retenues: string;
+  rappel: string;
+  rappelLibelle: string;
+}
+
+/**
+ * Rappel de salaire du bulletin en cours d'édition : saisi à la main, ou
+ * chiffré depuis les bulletins validés après une augmentation rétroactive.
+ */
+function LigneRappel({ b, edition, changer, colonnes }: { b: BulletinAffiche; edition: Edition; changer: (e: Edition) => void; colonnes: number }) {
+  const [depuis, setDepuis] = useState("");
+  const [salaire, setSalaire] = useState(String(b.salaireBase));
+  const [calcul, setCalcul] = useState<Resultat | null>(null);
+  const [enCours, demarrer] = useTransition();
+
+  function chiffrer() {
+    const nouveau = entier(salaire);
+    if (!depuis || Number.isNaN(nouveau)) return setCalcul({ ok: false, message: "Mois d'effet et nouveau salaire en francs entiers." });
+    setCalcul(null);
+    demarrer(async () => {
+      const r = await calculerRappel(b.id, depuis, nouveau);
+      setCalcul({ ok: r.ok, message: r.message });
+      if (r.ok) changer({ ...edition, rappel: String(r.montant), rappelLibelle: r.libelle });
+    });
+  }
+
+  return (
+    <tr className="bg-[var(--surface-creuse)]">
+      <td colSpan={colonnes} className="px-3 pb-3">
+        <div className="flex flex-wrap items-end gap-2 text-xs">
+          <label>
+            <span className="mb-1 block font-semibold text-[var(--encre-faible)]">Rappel de salaire (négatif : trop-perçu)</span>
+            <input aria-label="Rappel de salaire" inputMode="numeric" value={edition.rappel} onChange={(e) => changer({ ...edition, rappel: e.target.value })} className={`${CLASSE_CHAMP_COMPACT} chiffres h-8 w-28 text-right`} />
+          </label>
+          <label className="min-w-56 flex-1">
+            <span className="mb-1 block font-semibold text-[var(--encre-faible)]">Ce qu&apos;il rattrape</span>
+            <input
+              aria-label="Libellé du rappel"
+              placeholder="Rappel de salaire de mars 2026"
+              value={edition.rappelLibelle}
+              onChange={(e) => changer({ ...edition, rappelLibelle: e.target.value })}
+              className={`${CLASSE_CHAMP_COMPACT} h-8 w-full`}
+            />
+          </label>
+          <span className="flex flex-wrap items-end gap-2 rounded-lg border border-dashed border-[var(--filet)] p-2">
+            <label>
+              <span className="mb-1 block font-semibold text-[var(--encre-faible)]">Augmentation depuis</span>
+              <input type="month" aria-label="Mois d'effet de l'augmentation" value={depuis} onChange={(e) => setDepuis(e.target.value)} className={`${CLASSE_CHAMP_COMPACT} h-8`} />
+            </label>
+            <label>
+              <span className="mb-1 block font-semibold text-[var(--encre-faible)]">Nouveau salaire de base</span>
+              <input aria-label="Nouveau salaire de base" inputMode="numeric" value={salaire} onChange={(e) => setSalaire(e.target.value)} className={`${CLASSE_CHAMP_COMPACT} chiffres h-8 w-28 text-right`} />
+            </label>
+            <button type="button" disabled={enCours} onClick={chiffrer} className="h-8 rounded-lg border border-[var(--filet)] px-2.5 font-semibold hover:bg-[var(--surface)] disabled:opacity-50">
+              {enCours ? "Calcul…" : "Chiffrer le rappel"}
+            </button>
+          </span>
+        </div>
+        {calcul && (
+          <div className="mt-2">
+            <Retour resultat={calcul} />
+          </div>
+        )}
+      </td>
+    </tr>
+  );
+}
+
 /**
  * Bulletins du mois. En préparation, les éléments variables se saisissent sur
  * la ligne et le net se recalcule au serveur, avec le barème en vigueur.
  */
 export function TableBulletins({ bulletins, modifiable }: { bulletins: BulletinAffiche[]; modifiable: boolean }) {
-  const [edition, setEdition] = useState<{ id: string; absences: string; primes: string; indemnites: string; retenues: string } | null>(null);
+  const [edition, setEdition] = useState<Edition | null>(null);
   const [resultat, setResultat] = useState<Resultat | null>(null);
   const [enCours, demarrer] = useTransition();
   const routeur = useRouter();
@@ -106,7 +187,8 @@ export function TableBulletins({ bulletins, modifiable }: { bulletins: BulletinA
         <tbody>
           {bulletins.map((b) =>
             edition?.id === b.id ? (
-              <tr key={b.id} className="bg-[var(--surface-creuse)]">
+              <Fragment key={b.id}>
+              <tr className="bg-[var(--surface-creuse)]">
                 <Td fort>
                   {b.nom}
                   <span className="block text-xs font-normal text-[var(--encre-faible)]">{b.matricule}</span>
@@ -146,9 +228,19 @@ export function TableBulletins({ bulletins, modifiable }: { bulletins: BulletinA
                         const indemnites = entier(edition.indemnites);
                         const retenues = entier(edition.retenues);
                         const absences = centiemes(edition.absences);
-                        if ([primes, indemnites, retenues].some(Number.isNaN)) return setResultat({ ok: false, message: "Montants en francs entiers." });
+                        const rappel = signe(edition.rappel);
+                        if ([primes, indemnites, retenues, rappel].some(Number.isNaN)) return setResultat({ ok: false, message: "Montants en francs entiers." });
                         if (Number.isNaN(absences)) return setResultat({ ok: false, message: "Absences en jours ou demi-journées : 1, 1,5, 2…" });
-                        lancer(() => modifierElements(b.id, { primesImposables: primes, indemnitesNonImposables: indemnites, retenuesDiverses: retenues, joursAbsenceSaisis: absences }));
+                        lancer(() =>
+                          modifierElements(b.id, {
+                            primesImposables: primes,
+                            indemnitesNonImposables: indemnites,
+                            retenuesDiverses: retenues,
+                            joursAbsenceSaisis: absences,
+                            rappel,
+                            rappelLibelle: rappel ? edition.rappelLibelle : null,
+                          }),
+                        );
                       }}
                       className="rounded-lg bg-marque-500 px-2.5 py-1 text-xs font-semibold text-white disabled:opacity-50"
                     >
@@ -160,6 +252,8 @@ export function TableBulletins({ bulletins, modifiable }: { bulletins: BulletinA
                   </span>
                 </Td>
               </tr>
+              <LigneRappel b={b} edition={edition} changer={setEdition} colonnes={11} />
+              </Fragment>
             ) : (
               <tr key={b.id}>
                 <Td fort>
@@ -180,7 +274,14 @@ export function TableBulletins({ bulletins, modifiable }: { bulletins: BulletinA
                     "—"
                   )}
                 </Td>
-                <Td aligne="droite" chiffres>{b.primesImposables ? fmt(b.primesImposables) : "—"}</Td>
+                <Td aligne="droite" chiffres>
+                  {b.primesImposables ? fmt(b.primesImposables) : b.rappel ? "" : "—"}
+                  {b.rappel !== 0 && (
+                    <span className="block text-xs text-[var(--encre-faible)]" title={b.rappelLibelle ?? undefined}>
+                      rappel {b.rappel > 0 ? "+" : "−"} {fmt(Math.abs(b.rappel))}
+                    </span>
+                  )}
+                </Td>
                 <Td aligne="droite" chiffres>{fmt(b.brut)}</Td>
                 <Td aligne="droite" chiffres>− {fmt(b.cnpsSalarie)}</Td>
                 <Td aligne="droite" chiffres>− {fmt(b.impot)}</Td>
@@ -192,7 +293,7 @@ export function TableBulletins({ bulletins, modifiable }: { bulletins: BulletinA
                     <span className="flex gap-2">
                       <button
                         type="button"
-                        onClick={() => setEdition({ id: b.id, absences: saisieJours(b.joursAbsenceSaisis), primes: String(b.primesImposables), indemnites: String(b.indemnitesNonImposables), retenues: String(b.retenuesDiverses) })}
+                        onClick={() => setEdition({ id: b.id, absences: saisieJours(b.joursAbsenceSaisis), rappel: b.rappel ? String(b.rappel) : "", rappelLibelle: b.rappelLibelle ?? "", primes: String(b.primesImposables), indemnites: String(b.indemnitesNonImposables), retenues: String(b.retenuesDiverses) })}
                         className="text-xs font-semibold text-marque-600 hover:underline"
                       >
                         Éléments

@@ -88,6 +88,12 @@ export interface ElementsVariables {
   indemnitesNonImposables: number;
   /** Retenues sur le net : remboursement d'avance, de prêt, cantine. */
   retenuesDiverses: number;
+  /**
+   * Rappel de salaire : ce qu'un mois validé aurait dû payer et n'a pas payé
+   * (augmentation rétroactive, prime oubliée). Négatif, il reprend un
+   * trop-perçu. Cotisé et imposé avec le brut du mois où il est versé.
+   */
+  rappel?: number;
 }
 
 export interface CalculBulletin {
@@ -115,7 +121,10 @@ export function calculerBulletinPaie(e: ElementsVariables, b: BaremePaie): Calcu
     if (!Number.isInteger(v) || v < 0) throw new Error("Les éléments de paie sont des montants entiers positifs.");
   }
   if (retenueAbsence > e.salaireBase) throw new Error("La retenue pour absence dépasse le salaire de base.");
-  const brut = e.salaireBase - retenueAbsence + e.primesImposables;
+  const rappel = e.rappel ?? 0;
+  if (!Number.isInteger(rappel)) throw new Error("Le rappel est un montant entier.");
+  const brut = e.salaireBase - retenueAbsence + e.primesImposables + rappel;
+  if (brut < 0) throw new Error("Le trop-perçu à reprendre dépasse le salaire du mois : étalez-le sur plusieurs paies.");
   const assietteCnps = Math.min(brut, b.cnpsPlafondMensuel);
   const cnpsSalarie = rateOf(assietteCnps, b.cnpsRetraiteSalarieBp);
   const baseImposable = brut - cnpsSalarie;
@@ -342,6 +351,41 @@ export function retenueAbsence(salaireBase: number, joursNonPayes: number, jours
   if (joursMois <= 0 || joursNonPayes <= 0) return 0;
   if (joursNonPayes >= joursMois) return salaireBase;
   return divideMoney(salaireBase * joursNonPayes, joursMois);
+}
+
+// ------------------------------------------------------------------ rappels
+
+/** Un bulletin déjà validé, tel que le rappel le relit. */
+export interface BulletinPasse {
+  mois: string;
+  salaireBase: number;
+  retenueAbsence: number;
+}
+
+/**
+ * Rappel après une augmentation rétroactive : pour chaque mois validé, l'écart
+ * entre le nouveau salaire et celui payé, au prorata des jours payés ce
+ * mois-là (un mois à moitié absent ne rappelle que la moitié de l'écart).
+ * Un nouveau salaire plus bas donne un rappel négatif : un trop-perçu.
+ */
+export function rappelRetroactif(passes: readonly BulletinPasse[], nouveauSalaire: number): { montant: number; mois: string[]; libelle: string } {
+  if (!Number.isInteger(nouveauSalaire) || nouveauSalaire < 0) throw new Error("Le nouveau salaire est un montant entier positif.");
+  const concernes = [...passes].sort((a, b) => a.mois.localeCompare(b.mois)).filter((b) => b.salaireBase !== nouveauSalaire);
+  let montant = 0;
+  for (const b of concernes) {
+    const ecart = nouveauSalaire - b.salaireBase;
+    montant += b.salaireBase > 0 ? divideMoney(ecart * (b.salaireBase - b.retenueAbsence), b.salaireBase) : ecart;
+  }
+  const mois = concernes.map((b) => b.mois);
+  return { montant, mois, libelle: mois.length ? libelleRappel(mois[0], mois[mois.length - 1]) : "" };
+}
+
+/** « Rappel de salaire de mars 2026 », « … d'avril à septembre 2026 ». */
+export function libelleRappel(du: string, au: string): string {
+  const de = (mot: string) => (/^[aeiouâ]/.test(mot) ? `d'${mot}` : `de ${mot}`);
+  if (du === au) return `Rappel de salaire ${de(libelleMois(du))}`;
+  const memeAnnee = du.slice(0, 4) === au.slice(0, 4);
+  return `Rappel de salaire ${de(memeAnnee ? MOIS[Number(du.slice(5, 7)) - 1] : libelleMois(du))} à ${libelleMois(au)}`;
 }
 
 // ------------------------------------------------------------------ périodes

@@ -14,7 +14,9 @@ import {
   finDeMois,
   impotProgressif,
   libelleMois,
+  libelleRappel,
   moisValide,
+  rappelRetroactif,
   refusBareme,
   retenueAbsence,
   totaliser,
@@ -219,5 +221,40 @@ describe("absences dans la paie", () => {
     expect(b.brut).toBe(160_000);
     expect(b.cnpsSalarie).toBe(10_080);
     expect(() => calculerBulletinPaie({ salaireBase: 100_000, retenueAbsence: 100_001, primesImposables: 0, indemnitesNonImposables: 0, retenuesDiverses: 0 }, bareme)).toThrow(/dépasse/);
+  });
+});
+
+describe("rappels de salaire", () => {
+  const ligne = { primesImposables: 0, indemnitesNonImposables: 0, retenuesDiverses: 0 };
+
+  it("cotise et impose le rappel avec le brut du mois", () => {
+    const b = calculerBulletinPaie({ salaireBase: 200_000, rappel: 50_000, ...ligne }, bareme);
+    expect(b.brut).toBe(250_000);
+    expect(b.cnpsSalarie).toBe(15_750);
+  });
+
+  it("reprend un trop-perçu, sans jamais rendre le brut négatif", () => {
+    expect(calculerBulletinPaie({ salaireBase: 200_000, rappel: -30_000, ...ligne }, bareme).brut).toBe(170_000);
+    expect(() => calculerBulletinPaie({ salaireBase: 200_000, rappel: -200_001, ...ligne }, bareme)).toThrow(/étalez/);
+  });
+
+  it("chiffre une augmentation rétroactive au prorata des jours payés", () => {
+    const passes = [
+      { mois: "2026-08", salaireBase: 200_000, retenueAbsence: 0 },
+      { mois: "2026-07", salaireBase: 200_000, retenueAbsence: 100_000 }, // la moitié du mois payée
+      { mois: "2026-09", salaireBase: 230_000, retenueAbsence: 0 }, // déjà au nouveau salaire
+    ];
+    const r = rappelRetroactif(passes, 230_000);
+    expect(r.montant).toBe(30_000 + 15_000);
+    expect(r.mois).toEqual(["2026-07", "2026-08"]);
+    expect(r.libelle).toBe("Rappel de salaire de juillet à août 2026");
+    expect(rappelRetroactif(passes, 190_000).montant).toBe(-10_000 - 5_000 - 40_000);
+    expect(rappelRetroactif([], 230_000)).toEqual({ montant: 0, mois: [], libelle: "" });
+  });
+
+  it("nomme la période rattrapée", () => {
+    expect(libelleRappel("2026-03", "2026-03")).toBe("Rappel de salaire de mars 2026");
+    expect(libelleRappel("2025-11", "2026-02")).toBe("Rappel de salaire de novembre 2025 à février 2026");
+    expect(libelleRappel("2026-04", "2026-08")).toBe("Rappel de salaire d'avril à août 2026");
   });
 });
