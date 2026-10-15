@@ -3,9 +3,10 @@ import { afterAll, beforeAll, describe, expect, it } from "vitest";
 
 import type { db as Db } from "@/db";
 import { BAREME_PAR_DEFAUT } from "@/modules/paie/calcul";
-import { contexteAbsences, enregistrerBaremeDans, modifierElementsDans, preparerPeriodeDans, validerPeriodeDans } from "@/modules/paie/creation";
+import { contexteAbsences, enregistrerBaremeDans, modifierElementsDans, preparerPeriodeDans, proposerRappel, validerPeriodeDans } from "@/modules/paie/creation";
 import { bulletinsPaie, periodesPaie } from "@/modules/paie/schema";
 import { creerSalariePour } from "@/modules/personnes/creation";
+import { employees } from "@/modules/personnes/schema";
 import { demanderCongePour } from "@/modules/presences/creation";
 
 import { ouvrirBaseDeTest, semerEntreprise } from "./base";
@@ -52,15 +53,15 @@ describe("absences et congés dans la paie", () => {
 
     // Un jour et demi d'absence injustifiée s'ajoute au sans solde.
     await db.transaction((tx) =>
-      modifierElementsDans(tx, org, a.id, { primesImposables: 5_000, indemnitesNonImposables: 0, retenuesDiverses: 0, joursAbsenceSaisis: 150 }, BAREME_PAR_DEFAUT, user),
+      modifierElementsDans(tx, org, a.id, { primesImposables: 5_000, indemnitesNonImposables: 0, retenuesDiverses: 0, joursAbsenceSaisis: 150, rappel: 0, rappelLibelle: null }, BAREME_PAR_DEFAUT, user),
     );
     expect(await bulletinDe(periode, ancien.id)).toMatchObject({ joursAbsenceSaisis: 150, retenueAbsence: 35_000, brut: 240_000 });
 
     await expect(
-      db.transaction((tx) => modifierElementsDans(tx, org, a.id, { primesImposables: 0, indemnitesNonImposables: 0, retenuesDiverses: 0, joursAbsenceSaisis: 25 }, BAREME_PAR_DEFAUT, user)),
+      db.transaction((tx) => modifierElementsDans(tx, org, a.id, { primesImposables: 0, indemnitesNonImposables: 0, retenuesDiverses: 0, joursAbsenceSaisis: 25, rappel: 0, rappelLibelle: null }, BAREME_PAR_DEFAUT, user)),
     ).rejects.toThrow(/demi-journées/);
     await expect(
-      db.transaction((tx) => modifierElementsDans(tx, org, n.id, { primesImposables: 0, indemnitesNonImposables: 0, retenuesDiverses: 0, joursAbsenceSaisis: 1_600 }, BAREME_PAR_DEFAUT, user)),
+      db.transaction((tx) => modifierElementsDans(tx, org, n.id, { primesImposables: 0, indemnitesNonImposables: 0, retenuesDiverses: 0, joursAbsenceSaisis: 1_600, rappel: 0, rappelLibelle: null }, BAREME_PAR_DEFAUT, user)),
     ).rejects.toThrow(/Plus de jours/);
 
     // Recalculer garde la saisie et la prime.
@@ -73,5 +74,29 @@ describe("absences et congés dans la paie", () => {
     const [p] = await db.select().from(periodesPaie).where(eq(periodesPaie.id, periode));
     expect(p.totalBrut).toBe(240_000 + 150_000);
     expect((await bulletinDe(periode, ancien.id)).numero).toMatch(/^BUL-2026-10-/);
+  });
+
+  it("rattrape une augmentation rétroactive au mois suivant", async () => {
+    const [awa] = await db.select().from(employees).where(and(eq(employees.organizationId, org), eq(employees.nom, "Awa Comptable")));
+    await db.update(employees).set({ salaireBase: 297_000 }).where(eq(employees.id, awa.id));
+    const { id: periode } = await preparer("2026-11");
+    const b = await bulletinDe(periode, awa.id);
+    expect(b.salaireBase).toBe(297_000);
+
+    // Octobre payé 270 000 moins 35 000 d'absences : 235/270 de l'écart de 27 000.
+    const r = await proposerRappel(org, b.id, "2026-10", 297_000);
+    expect(r).toEqual({ montant: 23_500, mois: ["2026-10"], libelle: "Rappel de salaire d'octobre 2026" });
+    await expect(proposerRappel(org, b.id, "2026-11", 297_000)).rejects.toThrow(/avant celui-ci/);
+
+    await expect(
+      db.transaction((tx) => modifierElementsDans(tx, org, b.id, { primesImposables: 0, indemnitesNonImposables: 0, retenuesDiverses: 0, joursAbsenceSaisis: 0, rappel: r.montant, rappelLibelle: " " }, BAREME_PAR_DEFAUT, user)),
+    ).rejects.toThrow(/rattrape/);
+    await db.transaction((tx) =>
+      modifierElementsDans(tx, org, b.id, { primesImposables: 0, indemnitesNonImposables: 0, retenuesDiverses: 0, joursAbsenceSaisis: 0, rappel: r.montant, rappelLibelle: r.libelle }, BAREME_PAR_DEFAUT, user),
+    );
+    await preparer("2026-11");
+    const apres = await bulletinDe(periode, awa.id);
+    expect(apres).toMatchObject({ rappel: 23_500, rappelLibelle: r.libelle });
+    expect(apres.brut).toBe(apres.salaireBase - apres.retenueAbsence + 23_500);
   });
 });

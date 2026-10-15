@@ -111,9 +111,10 @@ export const MODULES: ModuleDefinition[] = [
     // salaires payés depuis la trésorerie, versements CNPS et impôt, état
     // mensuel des cotisations. Le bulletin se cale sur Présences : entrée ou
     // sortie dans le mois, congé sans solde et absences saisies retenus au
-    // prorata des jours, congés payés pris et solde imprimés. Restent
-    // l'allocation de congés payés, la DISA annuelle et les rappels de
-    // salaire.
+    // prorata des jours, congés payés pris et solde imprimés. Rappel de
+    // salaire ou reprise de trop-perçu sur le bulletin, chiffré depuis les
+    // mois validés après une augmentation rétroactive. Restent l'allocation
+    // de congés payés et la DISA annuelle.
     status: "en_cours",
     requires: [],
     description:

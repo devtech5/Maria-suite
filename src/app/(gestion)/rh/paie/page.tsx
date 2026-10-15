@@ -143,6 +143,8 @@ export default async function PagePaie({ searchParams }: PageProps<"/rh/paie">) 
               joursAbsenceSaisis: b.joursAbsenceSaisis,
               retenueAbsence: b.retenueAbsence,
               primesImposables: b.primesImposables,
+              rappel: b.rappel,
+              rappelLibelle: b.rappelLibelle,
               indemnitesNonImposables: b.indemnitesNonImposables,
               retenuesDiverses: b.retenuesDiverses,
               brut: b.brut,

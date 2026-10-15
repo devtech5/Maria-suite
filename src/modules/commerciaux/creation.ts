@@ -245,6 +245,8 @@ export async function reporterEnPaieDans(tx: Transaction, organizationId: string
       indemnitesNonImposables: b.indemnitesNonImposables,
       retenuesDiverses: b.retenuesDiverses,
       joursAbsenceSaisis: b.joursAbsenceSaisis,
+      rappel: b.rappel,
+      rappelLibelle: b.rappelLibelle,
     },
     bareme,
     userId,

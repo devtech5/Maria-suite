@@ -1,6 +1,6 @@
 import "server-only";
 
-import { and, asc, eq, gte, inArray, isNull, lte, or, sql } from "drizzle-orm";
+import { and, asc, eq, gte, inArray, isNull, lt, lte, or, sql } from "drizzle-orm";
 
 import { db } from "@/db";
 import { auditLogs } from "@/db/schema";
@@ -24,6 +24,7 @@ import {
   ecritureVersement,
   finDeMois,
   moisValide,
+  rappelRetroactif,
   refusBareme,
   retenueAbsence,
   totaliser,
@@ -158,6 +159,7 @@ export async function preparerPeriodeDans(
       primesImposables: deja?.primesImposables ?? 0,
       indemnitesNonImposables: deja?.indemnitesNonImposables ?? 0,
       retenuesDiverses: deja?.retenuesDiverses ?? 0,
+      rappel: deja?.rappel ?? 0,
     };
     const c = calculerBulletinPaie(elements, bareme);
     const valeurs = {
@@ -169,6 +171,7 @@ export async function preparerPeriodeDans(
       joursMois: a.joursMois,
       joursHorsContrat: a.joursHorsContrat,
       joursSansSolde: a.joursSansSolde,
+      rappelLibelle: deja?.rappelLibelle ?? null,
       joursAbsenceSaisis,
       congesPris: a.congesPris,
       soldeConges: a.soldeConges,
@@ -199,6 +202,9 @@ export interface SaisieElements {
   retenuesDiverses: number;
   /** Absences non rémunérées constatées, en centièmes de jour. */
   joursAbsenceSaisis: number;
+  /** Rappel de salaire, signé, et ce qu'il rattrape. */
+  rappel: number;
+  rappelLibelle: string | null;
 }
 
 /** Éléments variables d'un bulletin en préparation : primes, indemnités, retenues, absences. */
@@ -214,7 +220,9 @@ export async function modifierElementsDans(
   if (!b) throw new Error("Bulletin introuvable.");
   const periode = await periodeVerrouillee(tx, organizationId, b.periodeId);
   if (periode.statut === "validee") throw new Error("La paie de ce mois est validée : ses bulletins ne se modifient plus.");
-  const { joursAbsenceSaisis, ...montants } = saisie;
+  const { joursAbsenceSaisis, rappelLibelle: libelle, ...montants } = saisie;
+  const rappelLibelle = montants.rappel ? libelle?.trim() || null : null;
+  if (montants.rappel && !rappelLibelle) throw new Error("Dites ce que le rappel rattrape : « Rappel de salaire de mars 2026 ».");
   if (!Number.isInteger(joursAbsenceSaisis) || joursAbsenceSaisis < 0 || joursAbsenceSaisis % 50 !== 0) throw new Error("Les absences se comptent en jours ou demi-journées.");
   if (joursAbsenceSaisis > 0 && b.joursMois === 0) throw new Error("Recalculez d'abord la paie du mois : ce bulletin ne connaît pas encore ses jours.");
   const nonPayes = b.joursHorsContrat + b.joursSansSolde + joursAbsenceSaisis;
@@ -226,6 +234,7 @@ export async function modifierElementsDans(
     .set({
       ...elements,
       joursAbsenceSaisis,
+      rappelLibelle,
       brut: c.brut,
       cnpsSalarie: c.cnpsSalarie,
       baseImposable: c.baseImposable,
@@ -241,6 +250,41 @@ export async function modifierElementsDans(
     .where(eq(bulletinsPaie.id, b.id));
   await journaliser(tx, organizationId, userId, "paie.elements", b.id, { salarie: b.nom, ...elements, joursAbsenceSaisis, net: c.net });
   return { nom: b.nom, net: c.net };
+}
+
+/**
+ * Rappel proposé pour un bulletin en préparation : relit les bulletins validés
+ * du salarié depuis `depuis`, avant le mois de ce bulletin, et chiffre l'écart
+ * avec `nouveauSalaire`. Ne modifie rien : la saisie reste à faire.
+ */
+export async function proposerRappel(
+  organizationId: string,
+  bulletinId: string,
+  depuis: string,
+  nouveauSalaire: number,
+): Promise<{ montant: number; mois: string[]; libelle: string }> {
+  if (!moisValide(depuis)) throw new Error("Mois de départ invalide.");
+  const [b] = await db
+    .select({ employeId: bulletinsPaie.employeId, mois: periodesPaie.mois })
+    .from(bulletinsPaie)
+    .innerJoin(periodesPaie, eq(periodesPaie.id, bulletinsPaie.periodeId))
+    .where(and(eq(bulletinsPaie.id, bulletinId), eq(bulletinsPaie.organizationId, organizationId)));
+  if (!b) throw new Error("Bulletin introuvable.");
+  if (depuis >= b.mois) throw new Error("Le rappel porte sur des mois déjà payés, avant celui-ci.");
+  const passes = await db
+    .select({ mois: periodesPaie.mois, salaireBase: bulletinsPaie.salaireBase, retenueAbsence: bulletinsPaie.retenueAbsence })
+    .from(bulletinsPaie)
+    .innerJoin(periodesPaie, eq(periodesPaie.id, bulletinsPaie.periodeId))
+    .where(
+      and(
+        eq(bulletinsPaie.organizationId, organizationId),
+        eq(bulletinsPaie.employeId, b.employeId),
+        eq(periodesPaie.statut, "validee"),
+        gte(periodesPaie.mois, depuis),
+        lt(periodesPaie.mois, b.mois),
+      ),
+    );
+  return rappelRetroactif(passes, nouveauSalaire);
 }
 
 /** Retire un salarié de la paie du mois (absent tout le mois, sorti avant le début). */

@@ -30,6 +30,7 @@ export function BulletinDocument({ detail, identite }: { detail: Detail; identit
       ? [[absences.length === 1 ? absences[0][0] : "Jours non payés", formatJours(nonPayes), null, b.retenueAbsence] as [string, string, null, number]]
       : []),
     ...(b.primesImposables ? [["Primes et heures supplémentaires", "", b.primesImposables, null] as [string, string, number, null]] : []),
+    ...(b.rappel ? [[b.rappelLibelle ?? "Rappel de salaire", "", b.rappel > 0 ? b.rappel : null, b.rappel < 0 ? -b.rappel : null] as [string, string, number | null, number | null]] : []),
     ["Salaire brut", "", b.brut, null],
     ["CNPS retraite, part salariale", fmtTauxBp(bareme.cnpsRetraiteSalarieBp), null, b.cnpsSalarie],
     ["Impôt sur salaire", "", null, b.impot],

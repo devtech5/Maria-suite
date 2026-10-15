@@ -16,6 +16,7 @@ import {
   modifierElementsDans,
   payerSalairesDans,
   preparerPeriodeDans,
+  proposerRappel,
   retirerBulletinDans,
   validerPeriodeDans,
   verserDans,
@@ -88,6 +89,8 @@ const schemaElements = z.object({
   retenuesDiverses: montant,
   /** Centièmes de jour, par demi-journée. */
   joursAbsenceSaisis: z.number().int().min(0).max(3_100).multipleOf(50),
+  rappel: z.number().int().min(-100_000_000).max(100_000_000),
+  rappelLibelle: z.string().trim().max(160).nullable(),
 });
 
 export async function modifierElements(bulletinId: string, elements: z.input<typeof schemaElements>): Promise<Resultat> {
@@ -99,6 +102,24 @@ export async function modifierElements(bulletinId: string, elements: z.input<typ
     const r = await db.transaction((tx) => modifierElementsDans(tx, organizationId, bulletinId, analyse.data, bareme, userId));
     return { ok: true, message: `${r.nom} : net à payer ${fr(r.net)} F.` };
   });
+}
+
+export type PropositionRappel = { ok: true; montant: number; mois: string[]; libelle: string; message: string } | { ok: false; message: string };
+
+/** Chiffre un rappel après augmentation rétroactive, sans rien enregistrer. */
+export async function calculerRappel(bulletinId: string, depuis: string, nouveauSalaire: number): Promise<PropositionRappel> {
+  const session = await exigerEntreprise();
+  const refus = await refusDroit("personnes.paie.preparer");
+  if (refus) return { ok: false, message: refus.erreur };
+  if (!UUID.test(bulletinId) || !moisValide(depuis)) return { ok: false, message: "Choisissez le mois d'effet de l'augmentation." };
+  if (!Number.isInteger(nouveauSalaire) || nouveauSalaire < 0) return { ok: false, message: "Nouveau salaire en francs entiers." };
+  try {
+    const r = await proposerRappel(session.organizationId, bulletinId, depuis, nouveauSalaire);
+    if (r.mois.length === 0) return { ok: false, message: "Aucun mois validé à rattraper depuis cette date : rien à rappeler." };
+    return { ok: true, ...r, message: `${r.mois.length} mois rattrapé${r.mois.length > 1 ? "s" : ""} : ${r.montant >= 0 ? "" : "trop-perçu de "}${fr(Math.abs(r.montant))} F.` };
+  } catch (erreur) {
+    return { ok: false, message: erreur instanceof Error && erreur.message.length < 240 ? erreur.message : "Le calcul n'a pas abouti." };
+  }
 }
 
 export async function retirerBulletin(bulletinId: string): Promise<Resultat> {
