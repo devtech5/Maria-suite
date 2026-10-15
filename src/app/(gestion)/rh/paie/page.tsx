@@ -90,7 +90,7 @@ export default async function PagePaie({ searchParams }: PageProps<"/rh/paie">) 
       {!detail ? (
         <EtatVide
           titre="Paie non préparée"
-          message="Préparez la paie du mois : un bulletin par salarié actif, calculé sur son salaire de base. Vous ajouterez ensuite primes, indemnités et retenues."
+          message="Préparez la paie du mois : un bulletin par salarié sous contrat, calculé sur son salaire de base, moins les jours hors contrat et les congés sans solde accordés dans Présences. Vous ajouterez ensuite absences, primes, indemnités et retenues."
         />
       ) : (
         <>
@@ -137,6 +137,11 @@ export default async function PagePaie({ searchParams }: PageProps<"/rh/paie">) 
               poste: b.poste,
               numeroCnps: b.numeroCnps,
               salaireBase: b.salaireBase,
+              joursMois: b.joursMois,
+              joursHorsContrat: b.joursHorsContrat,
+              joursSansSolde: b.joursSansSolde,
+              joursAbsenceSaisis: b.joursAbsenceSaisis,
+              retenueAbsence: b.retenueAbsence,
               primesImposables: b.primesImposables,
               indemnitesNonImposables: b.indemnitesNonImposables,
               retenuesDiverses: b.retenuesDiverses,

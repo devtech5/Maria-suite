@@ -109,8 +109,10 @@ export const MODULES: ModuleDefinition[] = [
     // Dossier du salarié avec ses pièces. Paie émise : barème par entreprise
     // attesté vérifié, bulletins numérotés et figés, écriture de paie,
     // salaires payés depuis la trésorerie, versements CNPS et impôt, état
-    // mensuel des cotisations. Restent les congés dans le bulletin (les
-    // soldes vivent dans Présences), la DISA annuelle et les rappels de
+    // mensuel des cotisations. Le bulletin se cale sur Présences : entrée ou
+    // sortie dans le mois, congé sans solde et absences saisies retenus au
+    // prorata des jours, congés payés pris et solde imprimés. Restent
+    // l'allocation de congés payés, la DISA annuelle et les rappels de
     // salaire.
     status: "en_cours",
     requires: [],
@@ -157,7 +159,7 @@ export const MODULES: ModuleDefinition[] = [
     // et fiche salarié), pointage et correction à la main, horaires et
     // retards, jours fériés du pays, demandes de congé numérotées et
     // décidées, soldes en centièmes de jour avec reprise et majorations.
-    // Restent l'effet des absences sans solde sur la paie et le badge QR.
+    // Le sans solde accordé est retenu sur la paie du mois. Reste le badge QR.
     status: "en_cours",
     requires: ["personnes"],
     description: "Pointage automatique à la connexion, registre des présences, retards, congés et soldes.",
