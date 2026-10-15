@@ -6,7 +6,7 @@ import { definitionDroit, type Droit } from "@/lib/droits/catalogue";
  * Écran affiché quand le rôle ne porte pas le droit d'entrer, ou que l'accès
  * de la personne à ce module a été resserré ou coupé.
  *
- * Rendu à la place du module, dans sa coque : la barre latérale et le fil
+ * Rendu à la place du module, dans sa coque : la barre du haut et le fil
  * d'Ariane restent là, et l'on repart d'un clic. Une page d'erreur plein écran
  * donnerait l'impression que le logiciel est cassé alors qu'il fonctionne
  * exactement comme prévu.

@@ -143,7 +143,7 @@
 /**
  * Navigation sombre, dans les deux thèmes.
  *
- * La barre latérale redéfinit pour elle seule les couleurs de surface et
+ * La barre du haut redéfinit pour elle seule les couleurs de surface et
  * d'encre : tout ce qu'elle contient — liens, titres de groupe, menu de
  * compte — passe en sombre sans une classe de plus. La page reste claire, et
  * l'œil sépare d'un coup ce qui navigue de ce qui se lit.
@@ -170,6 +170,42 @@
   color-scheme: dark;
   scrollbar-color: var(--filet) transparent;
 }
+
+/* La barre du haut : le même bleu nuit, en léger dégradé vers la droite. */
+.barre-haut {
+  background: linear-gradient(90deg, #0f2236 0%, #162e49 55%, #1c3a5c 100%);
+}
+
+/**
+ * Cartes d'indicateur en dégradé (`CarteIndicateur`).
+ *
+ * Couleurs fixes dans les deux thèmes : la carte est sa propre surface, le
+ * texte y reste blanc. Comme `.nav-sombre`, la classe redéfinit pour elle seule
+ * l'encre et les couleurs de sens, si bien qu'une précision qui écrit en
+ * `text-valide-600` ou en `--encre-faible` passe en teinte claire sans une
+ * classe de plus. L'or est assombri : du blanc sur l'or de la charte tombe
+ * sous 3:1.
+ */
+.carte-degrade {
+  --encre: #ffffff;
+  --encre-douce: rgb(255 255 255 / 0.85);
+  --encre-faible: rgb(255 255 255 / 0.78);
+  --filet: rgb(255 255 255 / 0.25);
+  --surface-creuse: rgb(255 255 255 / 0.15);
+  --color-marque-600: #ffffff;
+  --color-valide-50: rgb(255 255 255 / 0.18);
+  --color-valide-600: #d3f5e2;
+  --color-alerte-50: rgb(255 255 255 / 0.18);
+  --color-alerte-600: #ffe7b3;
+  --color-danger-50: rgb(255 255 255 / 0.18);
+  --color-danger-600: #ffd6cf;
+  color: var(--encre);
+}
+.carte-neutre { background: linear-gradient(135deg, #24476e 0%, #0f2236 100%); }
+.carte-marque { background: linear-gradient(135deg, #3a74d4 0%, #1f4aa8 100%); }
+.carte-valide { background: linear-gradient(135deg, #22905f 0%, #135a3b 100%); }
+.carte-alerte { background: linear-gradient(135deg, #b08a3e 0%, #7d6638 100%); }
+.carte-danger { background: linear-gradient(135deg, #cf4a3c 0%, #8f2a22 100%); }
 
 /*
  * Un mot de passe masqué s'affiche en étoiles, pas en points.

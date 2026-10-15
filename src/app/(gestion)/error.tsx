@@ -8,7 +8,7 @@ import { BoutonPrincipal } from "@/components/ui/primitives";
 /**
  * Frontière d'erreur des écrans de gestion.
  *
- * Rendue DANS la coque : la barre latérale et le fil d'Ariane restent là, et
+ * Rendue DANS la coque : la barre du haut et le fil d'Ariane restent là, et
  * l'on repart d'un clic. Un écran d'erreur plein cadre donnerait l'impression
  * que tout le logiciel est tombé alors qu'un seul module a échoué.
  *

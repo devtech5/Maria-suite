@@ -5,9 +5,9 @@ import type { CleIcone } from "@/lib/navigation";
 /**
  * Icônes des modules, dessinées pour Maria Suite : formes plates superposées,
  * trois couleurs au plus, sur une grille de 48. Lisibles à 18 px dans la
- * barre latérale comme à 48 px sur l'accueil.
+ * barre du haut comme à 48 px sur l'accueil.
  *
- * Aucun « trou » peint en blanc pour simuler le fond : la barre latérale est
+ * Aucun « trou » peint en blanc pour simuler le fond : la barre du haut est
  * sombre, un blanc de remplissage y apparaîtrait comme une tache. Les
  * découpes sont dans les tracés (ticket) ; le blanc ne sert qu'aux détails
  * posés SUR une forme colorée.

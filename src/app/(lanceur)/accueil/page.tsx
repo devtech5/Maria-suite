@@ -1,7 +1,7 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 
-import { MenuCompte } from "@/components/coque/barre-laterale";
+import { MenuCompte } from "@/components/coque/menu-compte";
 import { Calculette } from "@/components/coque/calculette";
 import { Cloche } from "@/components/coque/cloche";
 import { IconeModule } from "@/components/coque/icone-module";
@@ -16,9 +16,9 @@ export const metadata: Metadata = { title: "Accueil" };
 
 /**
  * Écran d'arrivée après connexion : tous les modules que CETTE session peut
- * ouvrir, rangés par famille comme dans la barre latérale.
+ * ouvrir, rangés par famille comme dans la barre du haut.
  *
- * Un lanceur plein écran, sans barre latérale ni fil d'Ariane, à la manière
+ * Un lanceur plein écran, sans barre du haut ni fil d'Ariane, à la manière
  * d'un écran de téléphone : une icône, un nom, rien d'autre — on reconnaît une icône plus vite qu'on ne lit une phrase. La
  * description reste en infobulle et pour les lecteurs d'écran.
  *
@@ -65,7 +65,7 @@ export default async function PageAccueil() {
 
       {/*
         Grille centrée dans l'écran, sans défilement sur un ordinateur : une
-        seule grille, rangée par famille (même ordre que la barre latérale),
+        seule grille, rangée par famille (même ordre que la barre du haut),
         sans intertitres — cinq titres de section coûtent cinq rangées.
         Tailles et écarts suivent la hauteur de l'écran (vh), pour tenir sur
         un portable de 768 px comme sur un grand moniteur.

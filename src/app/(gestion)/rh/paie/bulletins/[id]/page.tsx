@@ -18,7 +18,7 @@ const LIEN = "h-cible inline-flex items-center rounded-lg border border-[var(--f
 /**
  * Aperçu du bulletin dans l'application : la feuille A4 telle qu'elle
  * s'imprimera, avec de quoi passer au bulletin suivant du mois. L'impression
- * ne sort que la feuille, sans la barre latérale ni les boutons.
+ * ne sort que la feuille, sans la barre du haut ni les boutons.
  *
  * Seul un bulletin validé, donc numéroté, s'affiche : un brouillon se
  * recalcule encore et ne doit pas circuler.

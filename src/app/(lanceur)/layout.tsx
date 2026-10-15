@@ -6,9 +6,9 @@ import { exigerSession } from "@/lib/auth/dal";
 import { pointerApresReponse } from "@/modules/presences/pointage";
 
 /**
- * Coque de l'écran d'accueil : plein écran, sans barre latérale ni fil
+ * Coque de l'écran d'accueil : plein écran, sans barre du haut ni fil
  * d'Ariane — un lanceur, pas un écran de travail. Les modules s'ouvrent
- * depuis la grille ; on y revient par « Accueil » dans la barre latérale.
+ * depuis la grille ; on y revient par le logo de la barre du haut.
  *
  * Restent ce qui protège ou prévient : le verrouillage après inactivité et
  * les bandeaux d'abonnement et de démonstration.
