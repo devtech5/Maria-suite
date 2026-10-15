@@ -61,7 +61,7 @@ export default async function PageProjets() {
           gerer ? (
             <div className="flex flex-col items-end gap-2">
               {projets.length === 0 && <BoutonDemonstration libelle="Installer le jeu de démonstration" />}
-              <FormulaireRepliable libelle="Nouveau projet" titre="Nouveau projet" action={creerProjet}>
+              <FormulaireRepliable libelle="Nouveau projet" titre="Nouveau projet" presentation="tiroir" action={creerProjet}>
                 <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
                   <Champ libelle="Nom du projet">
                     <input name="nom" required placeholder="Ouverture boutique Yopougon" className={CLASSE_CHAMP} />

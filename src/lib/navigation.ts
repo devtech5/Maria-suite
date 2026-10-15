@@ -172,7 +172,7 @@ export const GROUPES_MODULES: GroupeModules[] = [
   {
     cle: "administration",
     titre: "Administration",
-    court: "Admin",
+    court: "Administration",
     icone: "entreprise",
     modules: [
       { href: "/entreprise", racine: "/entreprise", icone: "entreprise", libelle: "Entreprise", description: "Identité, numérotation et sécurité.", droit: "organisation.parametres.gerer" },

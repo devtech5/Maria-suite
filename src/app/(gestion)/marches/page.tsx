@@ -44,7 +44,7 @@ export default async function PageAppelsOffres() {
         sousTitre="Marchés publics, privés et bailleurs auxquels vous répondez"
         actions={
           gerer ? (
-            <FormulaireRepliable libelle="Nouvel appel d'offres" titre="Appel d'offres repéré" action={creerSoumission}>
+            <FormulaireRepliable libelle="Nouvel appel d'offres" titre="Appel d'offres repéré" presentation="tiroir" action={creerSoumission}>
               <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
                 <Champ libelle="Objet du marché">
                   <input name="intitule" required placeholder="Fourniture de matériel informatique" className={CLASSE_CHAMP} />

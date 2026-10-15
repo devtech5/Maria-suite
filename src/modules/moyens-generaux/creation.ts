@@ -5,6 +5,8 @@ import { and, asc, desc, eq, isNull, sql } from "drizzle-orm";
 import { db } from "@/db";
 import { auditLogs } from "@/db/schema";
 import { newId } from "@/lib/ids";
+import { motsRecherche, type FiltresListe } from "@/lib/recherche";
+import { dansPeriodeSql, motsDans } from "@/lib/recherche-sql";
 import type { Transaction } from "@/lib/sequences";
 import { employees } from "@/modules/personnes/schema";
 
@@ -167,7 +169,7 @@ export interface LigneMouvement {
 }
 
 /** Les derniers mouvements, du plus récent au plus ancien. */
-export async function derniersMouvements(organizationId: string, limite = 200): Promise<LigneMouvement[]> {
+export async function derniersMouvements(organizationId: string, limite = 200, filtres?: FiltresListe): Promise<LigneMouvement[]> {
   const lignes = await db
     .select({
       id: mouvementsFournitures.id,
@@ -184,7 +186,15 @@ export async function derniersMouvements(organizationId: string, limite = 200): 
     .from(mouvementsFournitures)
     .innerJoin(fournitures, eq(fournitures.id, mouvementsFournitures.fournitureId))
     .leftJoin(employees, eq(employees.id, mouvementsFournitures.employeId))
-    .where(and(eq(mouvementsFournitures.organizationId, organizationId), isNull(mouvementsFournitures.deletedAt)))
+    .where(
+      and(
+        eq(mouvementsFournitures.organizationId, organizationId),
+        isNull(mouvementsFournitures.deletedAt),
+        // Filtrés en base, pas après coup : sinon la recherche ne verrait que les deux cents derniers.
+        filtres && motsDans([fournitures.designation, employees.nom, mouvementsFournitures.service, mouvementsFournitures.note], motsRecherche(filtres.q)),
+        filtres && dansPeriodeSql(mouvementsFournitures.date, filtres.periode),
+      ),
+    )
     .orderBy(desc(mouvementsFournitures.date), desc(mouvementsFournitures.createdAt))
     .limit(limite);
   return lignes;

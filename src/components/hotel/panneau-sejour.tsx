@@ -283,7 +283,7 @@ export function PanneauAnnulation({ sejourId, acomptes }: { sejourId: string; ac
 /** Fiche de police : identité, pièce, provenance et destination. */
 export function FormulaireVoyageur({ sejourId, premier }: { sejourId: string; premier: boolean }) {
   return (
-    <FormulaireRepliable libelle={premier ? "Remplir la fiche de police" : "Ajouter un voyageur"} titre="Fiche de police" action={(d) => ajouterVoyageur(sejourId, d)}>
+    <FormulaireRepliable libelle={premier ? "Remplir la fiche de police" : "Ajouter un voyageur"} titre="Fiche de police" presentation="tiroir" action={(d) => ajouterVoyageur(sejourId, d)}>
       <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
         <Champ libelle="Nom">
           <input name="nom" required maxLength={80} className={CLASSE_CHAMP} />
