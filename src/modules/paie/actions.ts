@@ -11,6 +11,7 @@ import { refusDroit } from "@/lib/droits/garde";
 import { libelleMois, moisValide } from "./calcul";
 import {
   baremeDe,
+  contexteAbsences,
   enregistrerBaremeDans,
   modifierElementsDans,
   payerSalairesDans,
@@ -74,20 +75,26 @@ export async function enregistrerBareme(bareme: z.input<typeof schemaBareme>, at
 export async function preparerPaie(mois: string): Promise<Resultat> {
   return operer("personnes.paie.preparer", async (organizationId, userId) => {
     if (!moisValide(mois)) return { ok: false, message: "Mois invalide." };
-    const { bareme } = await baremeDe(organizationId);
-    const r = await db.transaction((tx) => preparerPeriodeDans(tx, organizationId, mois, bareme, userId));
+    const [{ bareme }, absences] = await Promise.all([baremeDe(organizationId), contexteAbsences(organizationId, mois)]);
+    const r = await db.transaction((tx) => preparerPeriodeDans(tx, organizationId, mois, bareme, absences, userId));
     return { ok: true, message: `Paie de ${libelleMois(mois)} préparée : ${r.bulletins} bulletin${r.bulletins > 1 ? "s" : ""} calculé${r.bulletins > 1 ? "s" : ""}.` };
   });
 }
 
 const montant = z.number().int().min(0);
-const schemaElements = z.object({ primesImposables: montant, indemnitesNonImposables: montant, retenuesDiverses: montant });
+const schemaElements = z.object({
+  primesImposables: montant,
+  indemnitesNonImposables: montant,
+  retenuesDiverses: montant,
+  /** Centièmes de jour, par demi-journée. */
+  joursAbsenceSaisis: z.number().int().min(0).max(3_100).multipleOf(50),
+});
 
 export async function modifierElements(bulletinId: string, elements: z.input<typeof schemaElements>): Promise<Resultat> {
   return operer("personnes.paie.preparer", async (organizationId, userId) => {
     if (!UUID.test(bulletinId)) return { ok: false, message: "Bulletin introuvable." };
     const analyse = schemaElements.safeParse(elements);
-    if (!analyse.success) return { ok: false, message: "Montants invalides : francs entiers, positifs." };
+    if (!analyse.success) return { ok: false, message: "Montants en francs entiers, positifs ; absences en jours ou demi-journées." };
     const { bareme } = await baremeDe(organizationId);
     const r = await db.transaction((tx) => modifierElementsDans(tx, organizationId, bulletinId, analyse.data, bareme, userId));
     return { ok: true, message: `${r.nom} : net à payer ${fr(r.net)} F.` };

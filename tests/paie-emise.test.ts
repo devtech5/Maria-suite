@@ -5,6 +5,7 @@ import { presetRole, resoudreDroits } from "@/lib/droits/catalogue";
 import { alertes } from "@/lib/tableau-de-bord";
 import {
   BAREME_PAR_DEFAUT,
+  absencesDuMois,
   calculerBulletinPaie,
   echeanceDeclarations,
   ecriturePaie,
@@ -15,8 +16,10 @@ import {
   libelleMois,
   moisValide,
   refusBareme,
+  retenueAbsence,
   totaliser,
   type BaremePaie,
+  type ContexteAbsences,
 } from "@/modules/paie/calcul";
 
 const bareme: BaremePaie = {
@@ -147,5 +150,74 @@ describe("branchements de la paie", () => {
     expect(comptable.has("personnes.paie.payer")).toBe(true);
     expect(comptable.has("personnes.paie.valider")).toBe(false);
     expect(presetRole("gerant")?.droits).toContain("personnes.paie.valider");
+  });
+});
+
+describe("absences dans la paie", () => {
+  // Octobre 2026 : 31 jours, 4 dimanches, aucun férié — 27 jours ouvrables.
+  const ctx = (conges: ContexteAbsences["conges"] = [], feries: string[] = []): ContexteAbsences => ({
+    options: { decompte: "ouvrables", joursTravailles: [1, 2, 3, 4, 5], feries: new Set(feries) },
+    conges,
+    soldes: new Map([["s1", 1_320]]),
+  });
+  const salarie = { id: "s1", debut: "2025-01-06", fin: null };
+  const conge = (nature: "paye" | "sans_solde", debut: string, fin: string, demi: { debut?: boolean; fin?: boolean } = {}) => ({
+    employeeId: "s1",
+    nature,
+    debut,
+    fin,
+    debutDemi: demi.debut ?? false,
+    finDemi: demi.fin ?? false,
+  });
+
+  it("compte les jours du mois selon le décompte des congés", () => {
+    expect(absencesDuMois("2026-10", salarie, ctx())).toEqual({ joursMois: 2_700, joursHorsContrat: 0, joursSansSolde: 0, congesPris: 0, soldeConges: 1_320 });
+    // Le 1er novembre, Toussaint, tombe un dimanche ; un férié en semaine sort du mois.
+    expect(absencesDuMois("2026-10", salarie, ctx([], ["2026-10-07"])).joursMois).toBe(2_600);
+  });
+
+  it("ne paie pas les jours avant l'embauche ni après le terme", () => {
+    // Entré le jeudi 15 : du 1er au 14, 12 jours ouvrables.
+    expect(absencesDuMois("2026-10", { id: "s1", debut: "2026-10-15", fin: null }, ctx()).joursHorsContrat).toBe(1_200);
+    // CDD terminé le samedi 24 : du 26 au 31, 6 jours ouvrables.
+    expect(absencesDuMois("2026-10", { id: "s1", debut: "2026-01-05", fin: "2026-10-24" }, ctx()).joursHorsContrat).toBe(600);
+  });
+
+  it("retient le sans solde accordé, et seulement la part du mois", () => {
+    const a = absencesDuMois("2026-10", salarie, ctx([conge("sans_solde", "2026-10-19", "2026-10-20")]));
+    expect(a.joursSansSolde).toBe(200);
+    // Du jeudi 29 (parti l'après-midi) au mardi 3 novembre (rentré l'après-midi).
+    const aCheval = [conge("sans_solde", "2026-10-29", "2026-11-03", { debut: true, fin: true })];
+    expect(absencesDuMois("2026-10", salarie, ctx(aCheval)).joursSansSolde).toBe(250);
+    expect(absencesDuMois("2026-11", salarie, ctx(aCheval)).joursSansSolde).toBe(150);
+  });
+
+  it("ne compte pas deux fois un congé tombé avant l'embauche", () => {
+    const a = absencesDuMois("2026-10", { id: "s1", debut: "2026-10-15", fin: null }, ctx([conge("sans_solde", "2026-10-12", "2026-10-16")]));
+    expect(a.joursHorsContrat).toBe(1_200);
+    expect(a.joursSansSolde).toBe(200); // jeudi 15 et vendredi 16
+  });
+
+  it("imprime les congés payés sans rien retenir", () => {
+    const a = absencesDuMois("2026-10", salarie, ctx([conge("paye", "2026-10-05", "2026-10-10"), conge("paye", "2026-10-31", "2026-11-14")]));
+    expect(a.congesPris).toBe(700);
+    expect(a.joursSansSolde).toBe(0);
+    expect(absencesDuMois("2026-10", { id: "autre", debut: "2026-01-05", fin: null }, ctx([conge("paye", "2026-10-05", "2026-10-10")])).soldeConges).toBeNull();
+  });
+
+  it("retient au prorata, en francs entiers, et tout le salaire pour tout le mois", () => {
+    expect(retenueAbsence(270_000, 1_200, 2_700)).toBe(120_000);
+    expect(retenueAbsence(250_000, 150, 2_700)).toBe(13_889); // 13 888,89
+    expect(retenueAbsence(250_000, 2_700, 2_700)).toBe(250_000);
+    expect(retenueAbsence(250_000, 3_000, 2_700)).toBe(250_000);
+    expect(retenueAbsence(250_000, 0, 2_700)).toBe(0);
+    expect(retenueAbsence(250_000, 100, 0)).toBe(0);
+  });
+
+  it("calcule le bulletin sur le salaire dû", () => {
+    const b = calculerBulletinPaie({ salaireBase: 270_000, retenueAbsence: 120_000, primesImposables: 10_000, indemnitesNonImposables: 0, retenuesDiverses: 0 }, bareme);
+    expect(b.brut).toBe(160_000);
+    expect(b.cnpsSalarie).toBe(10_080);
+    expect(() => calculerBulletinPaie({ salaireBase: 100_000, retenueAbsence: 100_001, primesImposables: 0, indemnitesNonImposables: 0, retenuesDiverses: 0 }, bareme)).toThrow(/dépasse/);
   });
 });

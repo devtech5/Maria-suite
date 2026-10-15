@@ -240,7 +240,12 @@ export async function reporterEnPaieDans(tx: Transaction, organizationId: string
     tx,
     organizationId,
     b.id,
-    { primesImposables: b.primesImposables + k.total, indemnitesNonImposables: b.indemnitesNonImposables, retenuesDiverses: b.retenuesDiverses },
+    {
+      primesImposables: b.primesImposables + k.total,
+      indemnitesNonImposables: b.indemnitesNonImposables,
+      retenuesDiverses: b.retenuesDiverses,
+      joursAbsenceSaisis: b.joursAbsenceSaisis,
+    },
     bareme,
     userId,
   );

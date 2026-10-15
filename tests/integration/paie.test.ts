@@ -1,0 +1,77 @@
+import { and, eq } from "drizzle-orm";
+import { afterAll, beforeAll, describe, expect, it } from "vitest";
+
+import type { db as Db } from "@/db";
+import { BAREME_PAR_DEFAUT } from "@/modules/paie/calcul";
+import { contexteAbsences, enregistrerBaremeDans, modifierElementsDans, preparerPeriodeDans, validerPeriodeDans } from "@/modules/paie/creation";
+import { bulletinsPaie, periodesPaie } from "@/modules/paie/schema";
+import { creerSalariePour } from "@/modules/personnes/creation";
+import { demanderCongePour } from "@/modules/presences/creation";
+
+import { ouvrirBaseDeTest, semerEntreprise } from "./base";
+
+let db: typeof Db;
+let fermer: () => Promise<void>;
+let org: string;
+let user: string;
+
+beforeAll(async () => {
+  ({ db, fermer } = await ouvrirBaseDeTest());
+  ({ organizationId: org, userId: user } = await semerEntreprise(db));
+});
+afterAll(async () => fermer());
+
+const preparer = async (mois: string) => {
+  const absences = await contexteAbsences(org, mois);
+  return db.transaction((tx) => preparerPeriodeDans(tx, org, mois, BAREME_PAR_DEFAUT, absences, user));
+};
+const bulletinDe = async (periodeId: string, employeId: string) => {
+  const [b] = await db.select().from(bulletinsPaie).where(and(eq(bulletinsPaie.periodeId, periodeId), eq(bulletinsPaie.employeId, employeId)));
+  return b;
+};
+
+describe("absences et congés dans la paie", () => {
+  it("paie au prorata, retient le sans solde, conserve les absences saisies", async () => {
+    const ancien = await creerSalariePour(org, { nom: "Awa Comptable", poste: "Comptable", debut: "2025-01-06", salaireBase: 270_000 }, user);
+    const nouveau = await creerSalariePour(org, { nom: "Koffi Commercial", poste: "Commercial", debut: "2026-10-15", salaireBase: 270_000 }, user);
+    await creerSalariePour(org, { nom: "Yao Futur", poste: "Chauffeur", debut: "2026-11-02", salaireBase: 150_000 }, user);
+
+    await demanderCongePour(org, user, { employeeId: ancien.id, nature: "sans_solde", debut: "2026-10-19", fin: "2026-10-20", debutDemi: false, finDemi: false, motif: "Affaire personnelle" }, { accorder: true });
+    await demanderCongePour(org, user, { employeeId: ancien.id, nature: "paye", debut: "2026-10-05", fin: "2026-10-07", debutDemi: false, finDemi: false, motif: null }, { accorder: true });
+
+    // Octobre 2026 : 27 jours ouvrables. Le salarié embauché en novembre n'a pas de bulletin.
+    const { id: periode, bulletins } = await preparer("2026-10");
+    expect(bulletins).toBe(2);
+
+    const a = await bulletinDe(periode, ancien.id);
+    expect(a).toMatchObject({ joursMois: 2_700, joursHorsContrat: 0, joursSansSolde: 200, retenueAbsence: 20_000, brut: 250_000, congesPris: 300 });
+    expect(a.soldeConges).not.toBeNull();
+
+    const n = await bulletinDe(periode, nouveau.id);
+    expect(n).toMatchObject({ joursHorsContrat: 1_200, retenueAbsence: 120_000, brut: 150_000 });
+
+    // Un jour et demi d'absence injustifiée s'ajoute au sans solde.
+    await db.transaction((tx) =>
+      modifierElementsDans(tx, org, a.id, { primesImposables: 5_000, indemnitesNonImposables: 0, retenuesDiverses: 0, joursAbsenceSaisis: 150 }, BAREME_PAR_DEFAUT, user),
+    );
+    expect(await bulletinDe(periode, ancien.id)).toMatchObject({ joursAbsenceSaisis: 150, retenueAbsence: 35_000, brut: 240_000 });
+
+    await expect(
+      db.transaction((tx) => modifierElementsDans(tx, org, a.id, { primesImposables: 0, indemnitesNonImposables: 0, retenuesDiverses: 0, joursAbsenceSaisis: 25 }, BAREME_PAR_DEFAUT, user)),
+    ).rejects.toThrow(/demi-journées/);
+    await expect(
+      db.transaction((tx) => modifierElementsDans(tx, org, n.id, { primesImposables: 0, indemnitesNonImposables: 0, retenuesDiverses: 0, joursAbsenceSaisis: 1_600 }, BAREME_PAR_DEFAUT, user)),
+    ).rejects.toThrow(/Plus de jours/);
+
+    // Recalculer garde la saisie et la prime.
+    await preparer("2026-10");
+    expect(await bulletinDe(periode, ancien.id)).toMatchObject({ joursAbsenceSaisis: 150, primesImposables: 5_000, retenueAbsence: 35_000 });
+
+    // La validation fige le salaire dû.
+    await db.transaction((tx) => enregistrerBaremeDans(tx, org, BAREME_PAR_DEFAUT, true, user));
+    await db.transaction((tx) => validerPeriodeDans(tx, org, periode, BAREME_PAR_DEFAUT, user));
+    const [p] = await db.select().from(periodesPaie).where(eq(periodesPaie.id, periode));
+    expect(p.totalBrut).toBe(240_000 + 150_000);
+    expect((await bulletinDe(periode, ancien.id)).numero).toMatch(/^BUL-2026-10-/);
+  });
+});
