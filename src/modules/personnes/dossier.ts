@@ -1,6 +1,6 @@
 import "server-only";
 
-import { and, asc, eq, isNull } from "drizzle-orm";
+import { and, asc, eq, isNull, sql } from "drizzle-orm";
 
 import { db } from "@/db";
 import { tracerPour } from "@/lib/audit";
@@ -14,6 +14,7 @@ import {
   etatsPieces,
   type NaturePiece,
 } from "./pieces";
+import { formeUneBoucle } from "./calcul";
 import { employees, piecesEmploye, type PieceEmploye } from "./schema";
 
 /**
@@ -257,6 +258,62 @@ export async function modifierEtatCivilPour(
     entite: "employe",
     entiteId: employeeId,
     apres: { salarie: modifie.nom },
+  });
+}
+
+/** État professionnel modifiable. Matricule, contrat et dates d'entrée n'en font pas partie : ils viennent de l'embauche. */
+export interface EtatProfessionnel {
+  emailProfessionnel: string | null;
+  poste: string;
+  service: string | null;
+  superieurId: string | null;
+  finPeriodeEssai: string | null;
+}
+
+/** Les autres salariés de l'entreprise, candidats au rôle de supérieur. Les sortis restent, pour qu'un ancien rattachement se lise. */
+export async function collegues(organizationId: string, saufId: string): Promise<{ id: string; nom: string; poste: string; actif: boolean; superieurId: string | null }[]> {
+  const lignes = await db
+    .select({ id: employees.id, nom: employees.nom, poste: employees.poste, actif: employees.actif, superieurId: employees.superieurId })
+    .from(employees)
+    .where(and(eq(employees.organizationId, organizationId), isNull(employees.deletedAt)))
+    .orderBy(asc(employees.nom));
+  return lignes.filter((l) => l.id !== saufId);
+}
+
+export async function modifierEtatProfessionnelPour(
+  organizationId: string,
+  userId: string,
+  employeeId: string,
+  etat: EtatProfessionnel,
+): Promise<void> {
+  const nom = await db.transaction(async (tx) => {
+    // Toute la hiérarchie de l'entreprise, pour remonter la chaîne : quelques
+    // dizaines de lignes, lues dans la transaction qui écrit.
+    const tous = await tx
+      .select({ id: employees.id, superieurId: employees.superieurId, debut: employees.debut, nom: employees.nom })
+      .from(employees)
+      .where(and(eq(employees.organizationId, organizationId), isNull(employees.deletedAt)));
+    const salarie = tous.find((e) => e.id === employeeId);
+    if (!salarie) throw new Error("Salarié introuvable.");
+    if (etat.superieurId && !tous.some((e) => e.id === etat.superieurId)) throw new Error("Supérieur hiérarchique inconnu.");
+    if (formeUneBoucle(employeeId, etat.superieurId, new Map(tous.map((e) => [e.id, e.superieurId])))) {
+      throw new Error("Ce choix ferait du salarié le supérieur de son propre supérieur.");
+    }
+    if (etat.finPeriodeEssai && etat.finPeriodeEssai < salarie.debut) {
+      throw new Error("La période d'essai ne peut pas finir avant l'entrée dans l'entreprise.");
+    }
+
+    await tx
+      .update(employees)
+      .set({ ...etat, updatedAt: new Date(), version: sql`${employees.version} + 1` })
+      .where(and(eq(employees.organizationId, organizationId), eq(employees.id, employeeId)));
+    return salarie.nom;
+  });
+  await tracerPour(organizationId, userId, {
+    action: "salarie.etat_professionnel",
+    entite: "employe",
+    entiteId: employeeId,
+    apres: { salarie: nom, poste: etat.poste, service: etat.service, superieurId: etat.superieurId },
   });
 }
 

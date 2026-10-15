@@ -9,7 +9,10 @@ export interface EntreeNav {
 }
 
 /**
- * Onglets d'un module, sous le fil d'Ariane.
+ * Sections d'un module, en pastilles, sous les onglets de section.
+ *
+ * Troisième niveau de la navigation : domaine en haut, module en onglet,
+ * section en pastille. La pastille courante se remplit de la couleur de marque.
  *
  * Cinq entrées au maximum, sans exception. Le concurrent empile un onglet par
  * fonctionnalité ajoutée — vingt-sept en comptabilité, treize en stock, dont
@@ -27,7 +30,7 @@ export function SousNavigation({ entrees, rapports }: { entrees: EntreeNav[]; ra
   return (
     <nav
       aria-label="Sections du module"
-      className="mb-5 flex items-center gap-1 overflow-x-auto border-b border-[var(--filet)] pb-2"
+      className="mb-5 flex items-center gap-2 overflow-x-auto pb-1"
     >
       {entrees.map((entree) => {
         const actif = chemin === entree.href;
@@ -36,10 +39,10 @@ export function SousNavigation({ entrees, rapports }: { entrees: EntreeNav[]; ra
             key={entree.href}
             href={entree.href}
             aria-current={actif ? "page" : undefined}
-            className={`shrink-0 whitespace-nowrap rounded-lg px-3 py-2 text-sm font-medium ${
+            className={`shrink-0 whitespace-nowrap rounded-full border px-4 py-1.5 text-[13px] font-semibold shadow-sm transition-colors ${
               actif
-                ? "bg-[var(--surface-creuse)] text-[var(--encre)]"
-                : "text-[var(--encre-douce)] hover:bg-[var(--surface-creuse)]"
+                ? "border-marque-600 bg-marque-600 text-white"
+                : "border-[var(--filet)] bg-[var(--surface)] text-[var(--encre-douce)] hover:border-marque-400 hover:text-[var(--encre)]"
             }`}
           >
             {entree.libelle}
@@ -49,7 +52,7 @@ export function SousNavigation({ entrees, rapports }: { entrees: EntreeNav[]; ra
       {rapports && (
         <Link
           href={rapports}
-          className="ml-auto flex shrink-0 items-center gap-1.5 whitespace-nowrap rounded-lg border border-[var(--filet)] px-3 py-1.5 text-sm font-medium text-[var(--encre-douce)] hover:bg-[var(--surface-creuse)]"
+          className="ml-auto flex shrink-0 items-center gap-1.5 whitespace-nowrap rounded-full border border-[var(--filet)] bg-[var(--surface)] px-4 py-1.5 text-[13px] font-semibold text-[var(--encre-douce)] shadow-sm hover:border-marque-400 hover:text-[var(--encre)]"
         >
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.75} strokeLinecap="round" strokeLinejoin="round" className="size-4" aria-hidden>
             <path d="M4 20V10M10 20V4M16 20v-7M22 20H2" />

@@ -421,6 +421,13 @@
       "when": 1792065830241,
       "tag": "0059_paie_rappels",
       "breakpoints": true
+    },
+    {
+      "idx": 60,
+      "version": "7",
+      "when": 1792082647029,
+      "tag": "0060_personnel_etat_professionnel",
+      "breakpoints": true
     }
   ]
 }

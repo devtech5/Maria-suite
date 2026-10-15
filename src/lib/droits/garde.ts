@@ -23,7 +23,7 @@ export type SessionEntreprise = SessionActive & { organizationId: string };
  *
  * Trois formes selon l'appelant :
  *
- *   · `peut`        — booléen, pour décider d'afficher (barre latérale, boutons)
+ *   · `peut`        — booléen, pour décider d'afficher (barre du haut, boutons)
  *   · `refusDroit`  — message d'erreur, pour une action à état de formulaire
  *   · `exigerDroit` — lève, pour une action sans état : l'appel n'aurait pas dû
  *                     partir, il n'y a pas d'interface pour en rendre compte.

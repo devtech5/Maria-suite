@@ -457,7 +457,7 @@ export function alertes(
       id: "echeances",
       gravite: "critique",
       source: "base",
-      module: "Actifs",
+      module: "Actifs / Biens",
       titre: "Échéances dépassées",
       // Rouler sans assurance ou sans visite valide n'est pas un retard
       // administratif : c'est une immobilisation au premier contrôle.
@@ -472,7 +472,7 @@ export function alertes(
       id: "actifs-indisponibles",
       gravite: "information",
       source: "base",
-      module: "Actifs",
+      module: "Actifs / Biens",
       titre: "Actifs indisponibles",
       detail: "En entretien ou immobilisés",
       href: "/actifs",

@@ -12,6 +12,7 @@ import {
   changerPhotoPour,
   fichierDe,
   modifierEtatCivilPour,
+  modifierEtatProfessionnelPour,
   ouvrirPiecePour,
   retirerPiecePour,
 } from "./dossier";
@@ -154,6 +155,43 @@ export async function modifierEtatCivil(employeeId: string, donnees: FormData): 
   }
 }
 
+
+const schemaEtatProfessionnel = z.object({
+  emailProfessionnel: z
+    .string()
+    .trim()
+    .max(120)
+    .refine((v) => /^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(v), "Adresse e-mail professionnelle invalide.")
+    .nullable(),
+  poste: z.string({ error: "La fonction est obligatoire." }).trim().min(1, "La fonction est obligatoire.").max(120),
+  service: z.string().trim().max(120).nullable(),
+  superieurId: z.string().regex(UUID, "Supérieur hiérarchique inconnu.").nullable(),
+  finPeriodeEssai: z.string().regex(DATE_ISO, "Date de fin d'essai invalide.").nullable(),
+});
+
+export async function modifierEtatProfessionnel(employeeId: string, donnees: FormData): Promise<Resultat> {
+  const session = await exigerEntreprise();
+  const refus = await refusDroit("personnes.dossier.gerer");
+  if (refus) return { ok: false, message: refus.erreur };
+  if (!UUID.test(employeeId)) return { ok: false, message: "Salarié inconnu." };
+
+  const analyse = schemaEtatProfessionnel.safeParse({
+    emailProfessionnel: texte(donnees, "emailProfessionnel"),
+    poste: texte(donnees, "poste"),
+    service: texte(donnees, "service"),
+    superieurId: texte(donnees, "superieurId"),
+    finPeriodeEssai: texte(donnees, "finPeriodeEssai"),
+  });
+  if (!analyse.success) return { ok: false, message: analyse.error.issues[0].message };
+
+  try {
+    await modifierEtatProfessionnelPour(session.organizationId, session.userId, employeeId, analyse.data);
+    revalidatePath("/rh", "layout");
+    return { ok: true, message: "État professionnel enregistré." };
+  } catch (erreur) {
+    return { ok: false, message: lisible(erreur) };
+  }
+}
 
 /** Photo d'identité déjà réduite par le navigateur, ou `null` pour la retirer. */
 export async function changerPhoto(employeeId: string, photo: string | null): Promise<Resultat> {

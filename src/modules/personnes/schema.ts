@@ -11,6 +11,7 @@ import {
   timestamp,
   unique,
   uuid,
+  type AnyPgColumn,
 } from "drizzle-orm/pg-core";
 
 import {
@@ -67,6 +68,22 @@ export const employees = pgTable(
 
     /** Salaire brut mensuel de base, en francs entiers. */
     salaireBase: money("salaire_base").notNull().default(0),
+
+    // État professionnel : ce que le salarié est DANS l'entreprise, à côté de
+    // ce qu'il est à l'état civil. Facultatif, complété après l'embauche.
+    /** Adresse de travail, distincte de l'adresse personnelle (`email`). */
+    emailProfessionnel: text("email_professionnel"),
+    /** Service ou département : Comptabilité, Logistique, Chantier de Cocody. */
+    service: text("service"),
+    /**
+     * Supérieur hiérarchique direct : un autre salarié. Son départ laisse le
+     * champ vide plutôt que d'effacer la fiche. Un salarié n'est jamais son
+     * propre supérieur, ni directement (contrainte) ni par une chaîne (vérifié
+     * à l'enregistrement).
+     */
+    superieurId: uuid("superieur_id").references((): AnyPgColumn => employees.id, { onDelete: "set null" }),
+    /** Dernier jour de la période d'essai. Nulle sans essai, jamais avant l'entrée. */
+    finPeriodeEssai: date("fin_periode_essai"),
 
     /**
      * Numéro d'immatriculation CNPS. Facultatif en base parce qu'il arrive
@@ -129,6 +146,8 @@ export const employees = pgTable(
     check("employees_photo", sql`${t.photo} IS NULL OR (length(${t.photo}) <= 131072 AND ${t.photo} LIKE 'data:image/%')`),
     check("employees_sexe", sql`${t.sexe} IS NULL OR ${t.sexe} IN ('F', 'M')`),
     check("employees_enfants", sql`${t.enfantsACharge} IS NULL OR ${t.enfantsACharge} BETWEEN 0 AND 30`),
+    check("employees_superieur_autre", sql`${t.superieurId} IS NULL OR ${t.superieurId} <> ${t.id}`),
+    check("employees_essai_apres_entree", sql`${t.finPeriodeEssai} IS NULL OR ${t.finPeriodeEssai} >= ${t.debut}`),
     /**
      * Un contrat à durée déterminée sans terme n'est pas déterminé, et un CDI
      * qui en porte un n'est pas indéterminé. L'un comme l'autre passeraient

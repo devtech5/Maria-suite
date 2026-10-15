@@ -11,6 +11,7 @@ import {
   ajouterPiece,
   changerPhoto,
   modifierEtatCivil,
+  modifierEtatProfessionnel,
   ouvrirPiece,
   retirerPiece,
 } from "@/modules/personnes/actions-dossier";
@@ -363,6 +364,74 @@ export function FormulaireEtatCivil({ employeeId, initial }: { employeeId: strin
         </Champ>
         <Champ libelle="Téléphone de la personne à prévenir">
           <input name="contactUrgenceTelephone" type="tel" defaultValue={v("contactUrgenceTelephone")} placeholder="07 00 00 00 00" className={`${CLASSE_CHAMP} chiffres`} />
+        </Champ>
+      </div>
+      <div className="flex items-center justify-end gap-3">
+        <Retour resultat={op.resultat} />
+        <button type="submit" disabled={op.enCours} className="h-cible rounded-lg bg-marque-500 px-5 text-sm font-semibold text-white disabled:opacity-50">
+          {op.enCours ? "Enregistrement…" : "Enregistrer"}
+        </button>
+      </div>
+    </form>
+  );
+}
+
+export interface EtatProfessionnelAffiche {
+  emailProfessionnel: string | null;
+  poste: string;
+  service: string | null;
+  superieurId: string | null;
+  finPeriodeEssai: string | null;
+}
+
+/**
+ * État professionnel : ce qui se modifie. Matricule, contrat et dates
+ * d'entrée s'affichent au-dessus, en lecture : ils viennent de l'embauche et
+ * le matricule en dérive.
+ */
+export function FormulaireEtatProfessionnel({
+  employeeId,
+  initial,
+  collegues,
+}: {
+  employeeId: string;
+  initial: EtatProfessionnelAffiche;
+  collegues: { id: string; nom: string; poste: string; actif: boolean }[];
+}) {
+  const op = useOperation();
+  const v = (cle: keyof EtatProfessionnelAffiche) => (initial[cle] ?? "").toString();
+  return (
+    <form
+      onSubmit={(e) => {
+        e.preventDefault();
+        const donnees = new FormData(e.currentTarget);
+        op.lancer(() => modifierEtatProfessionnel(employeeId, donnees));
+      }}
+      className="space-y-4"
+    >
+      <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+        <Champ libelle="Adresse e-mail professionnelle" precision="Celle de l'entreprise, distincte de l'adresse personnelle.">
+          <input name="emailProfessionnel" type="email" defaultValue={v("emailProfessionnel")} placeholder="prenom.nom@maria-groupe.com" className={CLASSE_CHAMP} />
+        </Champ>
+        <Champ libelle="Fonction">
+          <input name="poste" required defaultValue={v("poste")} className={CLASSE_CHAMP} />
+        </Champ>
+        <Champ libelle="Service">
+          <input name="service" defaultValue={v("service")} placeholder="Comptabilité, Logistique…" className={CLASSE_CHAMP} />
+        </Champ>
+        <Champ libelle="Supérieur hiérarchique">
+          <select name="superieurId" defaultValue={v("superieurId")} className={CLASSE_CHAMP}>
+            <option value="">— Aucun —</option>
+            {collegues.map((c) => (
+              <option key={c.id} value={c.id}>
+                {c.nom} · {c.poste}
+                {c.actif ? "" : " (sorti)"}
+              </option>
+            ))}
+          </select>
+        </Champ>
+        <Champ libelle="Fin de la période d'essai" precision="Vide s'il n'y a pas d'essai.">
+          <input name="finPeriodeEssai" type="date" defaultValue={v("finPeriodeEssai")} className={`${CLASSE_CHAMP} chiffres`} />
         </Champ>
       </div>
       <div className="flex items-center justify-end gap-3">

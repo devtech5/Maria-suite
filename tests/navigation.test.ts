@@ -9,8 +9,8 @@ const modulesDe = (droits: string[]) => droits.map((d) => definitionDroit(d as n
 describe("groupesVisibles", () => {
   it("ne montre que les modules dont le rôle a le droit", () => {
     const groupes = groupesVisibles(["taches.consulter", "messagerie.utiliser"], ["taches", "messagerie"]);
-    expect(groupes.map((g) => g.titre)).toEqual(["Ressources humaines"]);
-    expect(groupes[0].modules.map((m) => m.href)).toEqual(["/taches", "/messagerie"]);
+    expect(groupes.map((g) => g.titre)).toEqual(["Ressources humaines", "Collaboration"]);
+    expect(groupes.flatMap((g) => g.modules.map((m) => m.href))).toEqual(["/taches", "/messagerie"]);
   });
 
   it("cache un module fermé sur l'instance, même si le rôle a le droit", () => {
@@ -26,6 +26,11 @@ describe("groupesVisibles", () => {
     const droits = tous.map((m) => m.droit);
     const groupes = groupesVisibles(droits, modulesDe(droits));
     expect(groupes.flatMap((g) => g.modules)).toEqual(tous);
+  });
+
+  it("chaque domaine a une clé unique et un libellé court", () => {
+    expect(new Set(GROUPES_MODULES.map((g) => g.cle)).size).toBe(GROUPES_MODULES.length);
+    for (const g of GROUPES_MODULES) expect(g.court.length).toBeLessThanOrEqual(14);
   });
 
   it("chaque entrée a un libellé, une description et un chemin unique", () => {
