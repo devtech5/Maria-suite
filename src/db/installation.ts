@@ -26,6 +26,9 @@ export const ENTREPRISE = {
   pays: "CI",
   devise: "XOF",
   fuseau: "Africa/Abidjan",
+  /** Bleu nuit et or, comme `COULEUR_PAR_DEFAUT` (`src/lib/identite.ts`) et la migration 0058. */
+  couleurPrimaire: "#162E49",
+  couleurSecondaire: "#BFA169",
 };
 
 /**
@@ -90,11 +93,20 @@ export async function installerEntreprise(
   }
 
   const [entreprise] = await requete(
-    `insert into organizations (name, slug, legal_form, country_code, currency, timezone, status)
-    values ($1, $2, $3, $4, $5, $6, 'actif')
+    `insert into organizations (name, slug, legal_form, country_code, currency, timezone, couleur_documents, couleur_secondaire, status)
+    values ($1, $2, $3, $4, $5, $6, $7, $8, 'actif')
     on conflict (slug) do update set status = 'actif'
     returning id`,
-    [ENTREPRISE.nom, ENTREPRISE.slug, ENTREPRISE.formeJuridique, ENTREPRISE.pays, ENTREPRISE.devise, ENTREPRISE.fuseau],
+    [
+      ENTREPRISE.nom,
+      ENTREPRISE.slug,
+      ENTREPRISE.formeJuridique,
+      ENTREPRISE.pays,
+      ENTREPRISE.devise,
+      ENTREPRISE.fuseau,
+      ENTREPRISE.couleurPrimaire,
+      ENTREPRISE.couleurSecondaire,
+    ],
   );
 
   // Les rôles préréglés, comme dans toute entreprise : un caissier ne doit

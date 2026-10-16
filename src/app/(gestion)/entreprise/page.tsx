@@ -13,7 +13,7 @@ export const metadata: Metadata = { title: "Entreprise" };
 
 /**
  * Identité de l'entreprise : raison sociale, identifiants légaux du pays,
- * coordonnées, logo, couleur et mentions de pied de page. Tout document
+ * coordonnées, logo, couleurs et mentions de pied de page. Tout document
  * imprimé — facture, bon de commande, bulletin, ticket — la lit ici.
  */
 export default async function PageEntreprise() {
@@ -36,6 +36,7 @@ export default async function PageEntreprise() {
           telephone: i.telephone ?? "",
           email: i.email ?? "",
           couleur: i.couleur,
+          couleurSecondaire: i.couleurSecondaire,
           piedDePage: i.piedDePage ?? "",
           logo: i.logo,
         }}

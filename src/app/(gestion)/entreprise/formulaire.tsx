@@ -17,6 +17,7 @@ interface Identite {
   telephone: string;
   email: string;
   couleur: string;
+  couleurSecondaire: string;
   piedDePage: string;
   logo: string | null;
 }
@@ -119,10 +120,16 @@ export function FormulaireIdentite({ initial, libelles }: { initial: Identite; l
           <Champ libelle="E-mail">
             <input {...champ("email")} type="email" />
           </Champ>
-          <Champ libelle="Couleur des documents">
+          <Champ libelle="Couleur primaire" aide="Raison sociale, titre et filet de l'en-tête.">
             <span className="flex items-center gap-2">
               <input type="color" value={v.couleur} onChange={(e) => setV({ ...v, couleur: e.target.value })} className="h-10 w-14 cursor-pointer rounded border border-[var(--filet)]" />
-              <code className="text-xs">{v.couleur}</code>
+              <code className="text-xs">{v.couleur.toUpperCase()}</code>
+            </span>
+          </Champ>
+          <Champ libelle="Couleur secondaire" aide="Filets d'accent de l'en-tête et du pied de page.">
+            <span className="flex items-center gap-2">
+              <input type="color" value={v.couleurSecondaire} onChange={(e) => setV({ ...v, couleurSecondaire: e.target.value })} className="h-10 w-14 cursor-pointer rounded border border-[var(--filet)]" />
+              <code className="text-xs">{v.couleurSecondaire.toUpperCase()}</code>
             </span>
           </Champ>
         </div>
@@ -181,40 +188,46 @@ export function FormulaireIdentite({ initial, libelles }: { initial: Identite; l
       <section aria-label="Aperçu" className="space-y-2">
         <p className="text-xs font-semibold uppercase text-[var(--encre-faible)]">Aperçu de l&apos;en-tête</p>
         <div className="rounded-xl bg-white p-5 text-[12px] leading-snug text-black shadow">
-          <div className="flex items-start justify-between gap-4 border-b-2 pb-3" style={{ borderColor: v.couleur }}>
-            <div className="flex items-start gap-3">
-              {v.logo && (
-                // eslint-disable-next-line @next/next/no-img-element -- data URL, aperçu local
-                <img src={v.logo} alt="" className="max-h-16 max-w-32 object-contain" />
-              )}
-              <div>
-                <p className="text-base font-bold" style={{ color: v.couleur }}>
-                  {v.nom || "Raison sociale"}
+          <div className="border-b pb-0.5" style={{ borderColor: v.couleurSecondaire }}>
+            <div className="flex items-start justify-between gap-4 border-b-2 pb-3" style={{ borderColor: v.couleur }}>
+              <div className="flex items-start gap-3">
+                {v.logo && (
+                  // eslint-disable-next-line @next/next/no-img-element -- data URL, aperçu local
+                  <img src={v.logo} alt="" className="max-h-16 max-w-32 object-contain" />
+                )}
+                <div>
+                  <p className="text-base font-bold" style={{ color: v.couleur }}>
+                    {v.nom || "Raison sociale"}
+                  </p>
+                  {v.formeJuridique && <p>{v.formeJuridique}</p>}
+                  {v.adresse && <p>{v.adresse}</p>}
+                  {v.ville && <p>{v.ville}</p>}
+                  {v.telephone && <p>Tél. {v.telephone}</p>}
+                  {v.identifiantFiscal && (
+                    <p>
+                      {libelles.sigle} : {v.identifiantFiscal}
+                    </p>
+                  )}
+                  {v.rccm && (
+                    <p>
+                      {libelles.registre} : {v.rccm}
+                    </p>
+                  )}
+                </div>
+              </div>
+              <div className="text-right">
+                <p className="text-lg font-bold uppercase" style={{ color: v.couleur }}>
+                  Facture
                 </p>
-                {v.formeJuridique && <p>{v.formeJuridique}</p>}
-                {v.adresse && <p>{v.adresse}</p>}
-                {v.ville && <p>{v.ville}</p>}
-                {v.telephone && <p>Tél. {v.telephone}</p>}
-                {v.identifiantFiscal && (
-                  <p>
-                    {libelles.sigle} : {v.identifiantFiscal}
-                  </p>
-                )}
-                {v.rccm && (
-                  <p>
-                    {libelles.registre} : {v.rccm}
-                  </p>
-                )}
+                <p className="font-mono">FAC-2026-00001</p>
               </div>
             </div>
-            <div className="text-right">
-              <p className="text-lg font-bold uppercase" style={{ color: v.couleur }}>
-                Facture
-              </p>
-              <p className="font-mono">FAC-2026-00001</p>
-            </div>
           </div>
-          {v.piedDePage && <p className="mt-6 whitespace-pre-line border-t pt-2 text-center text-[10px] text-black/60">{v.piedDePage}</p>}
+          {v.piedDePage && (
+            <p className="mt-6 whitespace-pre-line border-t pt-2 text-center text-[10px] text-black/60" style={{ borderColor: v.couleurSecondaire }}>
+              {v.piedDePage}
+            </p>
+          )}
         </div>
       </section>
     </div>

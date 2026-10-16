@@ -69,8 +69,10 @@ export const organizations = pgTable(
     logo: text("logo"),
     /** Registre du commerce (RCCM en zone OHADA). */
     rccm: text("rccm"),
-    /** Couleur des documents imprimés, #RRGGBB. */
+    /** Couleur primaire de l'entreprise, #RRGGBB : en-tête et titre des documents. */
     couleurDocuments: text("couleur_documents"),
+    /** Couleur secondaire, #RRGGBB : filets d'accent des documents. */
+    couleurSecondaire: text("couleur_secondaire"),
     /** Mentions de pied de page : coordonnées bancaires, conditions, capital. */
     piedDePage: text("pied_de_page"),
 
@@ -98,6 +100,7 @@ export const organizations = pgTable(
     check("organizations_logo_taille", sql`${t.logo} IS NULL OR (length(${t.logo}) <= 131072 AND ${t.logo} LIKE 'data:image/%')`),
     check("organizations_delai_verrouillage", sql`${t.delaiVerrouillageMinutes} BETWEEN 1 AND 240`),
     check("organizations_couleur", sql`${t.couleurDocuments} IS NULL OR ${t.couleurDocuments} ~ '^#[0-9a-fA-F]{6}$'`),
+    check("organizations_couleur_secondaire", sql`${t.couleurSecondaire} IS NULL OR ${t.couleurSecondaire} ~ '^#[0-9a-fA-F]{6}$'`),
   ],
 );
 

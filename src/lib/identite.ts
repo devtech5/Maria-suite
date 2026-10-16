@@ -19,13 +19,18 @@ export interface IdentiteEntreprise {
   telephone: string | null;
   email: string | null;
   logo: string | null;
+  /** Couleur primaire : en-tête, raison sociale, titre de la pièce. */
   couleur: string;
+  /** Couleur secondaire : filets d'accent. */
+  couleurSecondaire: string;
   piedDePage: string | null;
   pays: string;
   referentiel: ReferentielPays;
 }
 
-export const COULEUR_PAR_DEFAUT = "#1f2937";
+/** Couleurs de MARIA GROUP SARL : bleu nuit et or. */
+export const COULEUR_PAR_DEFAUT = "#162E49";
+export const COULEUR_SECONDAIRE_PAR_DEFAUT = "#BFA169";
 
 export async function identiteEntreprise(organizationId: string): Promise<IdentiteEntreprise> {
   const [o] = await db.select().from(organizations).where(eq(organizations.id, organizationId));
@@ -42,6 +47,7 @@ export async function identiteEntreprise(organizationId: string): Promise<Identi
     email: o.email,
     logo: o.logo,
     couleur: o.couleurDocuments ?? COULEUR_PAR_DEFAUT,
+    couleurSecondaire: o.couleurSecondaire ?? COULEUR_SECONDAIRE_PAR_DEFAUT,
     piedDePage: o.piedDePage,
     pays: o.countryCode,
     referentiel: referentielPays(o.countryCode),

@@ -37,7 +37,8 @@ const schema = z.object({
     .refine((v) => v === "" || /^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(v), "Adresse e-mail invalide.")
     .transform((v) => v || null)
     .nullable(),
-  couleur: z.string().regex(/^#[0-9a-fA-F]{6}$/, "Couleur invalide."),
+  couleur: z.string().regex(/^#[0-9a-fA-F]{6}$/, "Couleur primaire invalide."),
+  couleurSecondaire: z.string().regex(/^#[0-9a-fA-F]{6}$/, "Couleur secondaire invalide."),
   piedDePage: texte(600),
   /** Absent : inchangé ; nul : retiré ; chaîne : nouveau logo. */
   logo: z
@@ -70,6 +71,7 @@ export async function modifierIdentite(saisie: z.input<typeof schema>): Promise<
       phone: v.telephone,
       email: v.email,
       couleurDocuments: v.couleur,
+      couleurSecondaire: v.couleurSecondaire,
       piedDePage: v.piedDePage,
       ...(v.logo !== undefined ? { logo: v.logo } : {}),
       updatedAt: new Date(),
