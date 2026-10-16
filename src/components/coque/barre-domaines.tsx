@@ -1,6 +1,6 @@
 "use client";
 
-import type { ReactNode } from "react";
+import { useEffect, useState, type ReactNode } from "react";
 import Image from "next/image";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
@@ -83,9 +83,35 @@ export function BarreDomaines({
   const chemin = usePathname();
   const domaines = domainesVisibles(droits, modulesOuverts);
   const actif = domaineDe(chemin, groupesVisibles(droits, modulesOuverts));
+  // Le tiroir retient la page sur laquelle il s'est ouvert : changer de page
+  // le referme de lui-même, sans effet à synchroniser.
+  const [ouvertSur, setOuvertSur] = useState<string | null>(null);
+  const menuOuvert = ouvertSur === chemin;
+
+  useEffect(() => {
+    if (!menuOuvert) return;
+    function auClavier(evenement: KeyboardEvent) {
+      if (evenement.key === "Escape") setOuvertSur(null);
+    }
+    document.addEventListener("keydown", auClavier);
+    return () => document.removeEventListener("keydown", auClavier);
+  }, [menuOuvert]);
 
   return (
     <header className="nav-sombre barre-haut flex shrink-0 items-center gap-1.5 px-2 py-1.5 sm:px-3">
+      {/* Sur téléphone, les domaines ne tiennent pas dans la barre : ils passent dans un tiroir. */}
+      <button
+        type="button"
+        onClick={() => setOuvertSur(chemin)}
+        aria-label="Ouvrir le menu"
+        aria-expanded={menuOuvert}
+        className="flex size-10 shrink-0 items-center justify-center rounded-lg text-white hover:bg-[var(--surface-creuse)] lg:hidden"
+      >
+        <svg viewBox="0 0 24 24" aria-hidden className="size-6" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round">
+          <path d="M4 7h16M4 12h16M4 17h16" />
+        </svg>
+      </button>
+
       <Link href="/accueil" aria-label="MARIA GROUP — accueil" className="flex shrink-0 items-center gap-2.5 pr-1 2xl:pr-3">
         <Image
           src="/marque/icone-blanc-or-detouree.png"
@@ -104,7 +130,8 @@ export function BarreDomaines({
       <span className="hidden h-8 w-px shrink-0 bg-[var(--filet)] 2xl:block" aria-hidden />
 
       {/* Centrée tant qu'elle tient ; collée à gauche dès qu'elle défile, sinon le début serait coupé. */}
-      <nav aria-label="Domaines" className="flex min-w-0 flex-1 items-stretch justify-center-safe gap-1.5 overflow-x-auto">
+      <span className="flex-1 lg:hidden" aria-hidden />
+      <nav aria-label="Domaines" className="hidden min-w-0 flex-1 lg:flex items-stretch justify-center-safe gap-1.5 overflow-x-auto">
         {/* L'accueil n'est pas un domaine : il les présente tous, en grille. */}
         <Link
           href="/accueil"
@@ -152,6 +179,50 @@ export function BarreDomaines({
           raccourcis={raccourcisCompte(modulesOuverts)}
         />
       </div>
+
+      {menuOuvert && (
+        <div className="fixed inset-0 z-50 lg:hidden" role="dialog" aria-modal="true" aria-label="Menu">
+          <button type="button" aria-label="Fermer le menu" onClick={() => setOuvertSur(null)} className="absolute inset-0 bg-black/50" />
+          <nav className="absolute inset-y-0 left-0 flex w-72 max-w-[85vw] flex-col overflow-y-auto bg-[var(--surface)] p-3 text-[var(--encre)] shadow-xl">
+            <Link
+              href="/accueil"
+              onClick={() => setOuvertSur(null)}
+              className="mb-2 flex items-center gap-2.5 rounded-lg px-3 py-2.5 text-sm font-semibold hover:bg-[var(--surface-creuse)]"
+            >
+              <IconeModule cle="maison" className="size-5 shrink-0" />
+              Accueil
+            </Link>
+            {domaines.map((d) => (
+              <div key={d.cle} className="mb-2">
+                <p
+                  className={`flex items-center gap-2.5 px-3 py-1.5 text-xs font-bold uppercase ${
+                    d.cle === actif ? "text-or" : "text-[var(--encre-faible)]"
+                  }`}
+                >
+                  <IconeModule cle={d.icone} className="size-4 shrink-0" />
+                  {d.titre}
+                </p>
+                {d.onglets.map((o) => {
+                  const courant = o.racine === "/" ? chemin === "/" : relevDe(chemin, o.racine);
+                  return (
+                    <Link
+                      key={o.href}
+                      href={o.href}
+                      onClick={() => setOuvertSur(null)}
+                      aria-current={courant ? "page" : undefined}
+                      className={`block rounded-lg py-2.5 pl-9 pr-3 text-sm ${
+                        courant ? "bg-or font-semibold text-nuit-profond" : "text-[var(--encre-douce)] hover:bg-[var(--surface-creuse)] hover:text-white"
+                      }`}
+                    >
+                      {o.libelle}
+                    </Link>
+                  );
+                })}
+              </div>
+            ))}
+          </nav>
+        </div>
+      )}
     </header>
   );
 }
