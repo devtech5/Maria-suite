@@ -5,14 +5,17 @@ import { peut } from "@/lib/droits/garde";
 import { moduleOuvert } from "@/lib/modules/garde";
 
 /**
- * Deux sections, et c'est délibéré.
+ * Trois sections, et c'est délibéré.
  *
  * Ce module n'est pas un espace de stockage : c'est une pièce jointe
- * disponible partout, plus la signature. Tout ce qui ressemblerait à une suite
- * bureautique reconstruite — tableur, traitement de texte — est hors périmètre.
+ * disponible partout, la signature, et le courrier officiel sur papier à
+ * en-tête. Tout ce qui ressemblerait à une suite bureautique reconstruite —
+ * tableur, traitement de texte — est hors périmètre : un courrier est un
+ * objet, un corps en texte simple et un signataire, rien de plus.
  */
 const SECTIONS = [
   { href: "/documents", libelle: "Documents" },
+  { href: "/documents/courriers", libelle: "Courriers" },
   { href: "/documents/signatures", libelle: "Signatures" },
 ];
 

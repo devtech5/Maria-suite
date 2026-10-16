@@ -696,6 +696,14 @@ export const DROITS = [
       "Apposer sa signature sur une demande. Distinct du droit de la demander : " +
       "celui qui prépare le contrat n'est pas forcément celui qui l'engage.",
   },
+  {
+    cle: "documents.courrier.rediger",
+    moduleKey: "documents",
+    libelle: "Rédiger un courrier",
+    description:
+      "Rédiger, corriger et retirer un courrier officiel sur le papier à en-tête. " +
+      "Le consulter et l'imprimer ne demande que l'accès aux documents.",
+  },
 
   // ------------------------------------------------------------- archives
   {
@@ -1295,11 +1303,13 @@ export const PRESETS_ROLES = [
     nom: "Secrétaire",
     description:
       "Accueille, oriente et répond au téléphone : voit à tout moment qui est disponible, " +
-      "en mission, en courses ou sur le terrain. Consulte le planning de l'équipe sans le modifier.",
+      "en mission, en courses ou sur le terrain. Consulte le planning de l'équipe sans le modifier. " +
+      "Rédige les courriers officiels.",
     droits: [
       "planning.equipe.consulter",
       "tiers.fiche.consulter",
       "documents.consulter",
+      "documents.courrier.rediger",
       "boite_mail.utiliser",
       ...ARCHIVAGE_PERSONNEL,
       ...TACHES_PERSONNELLES,
