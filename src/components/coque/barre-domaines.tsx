@@ -99,19 +99,6 @@ export function BarreDomaines({
 
   return (
     <header className="nav-sombre barre-haut flex shrink-0 items-center gap-1.5 px-2 py-1.5 sm:px-3">
-      {/* Sur téléphone, les domaines ne tiennent pas dans la barre : ils passent dans un tiroir. */}
-      <button
-        type="button"
-        onClick={() => setOuvertSur(chemin)}
-        aria-label="Ouvrir le menu"
-        aria-expanded={menuOuvert}
-        className="flex size-10 shrink-0 items-center justify-center rounded-lg text-white hover:bg-[var(--surface-creuse)] lg:hidden"
-      >
-        <svg viewBox="0 0 24 24" aria-hidden className="size-6" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round">
-          <path d="M4 7h16M4 12h16M4 17h16" />
-        </svg>
-      </button>
-
       <Link href="/accueil" aria-label="MARIA GROUP — accueil" className="flex shrink-0 items-center gap-2.5 pr-1 2xl:pr-3">
         <Image
           src="/marque/icone-blanc-or-detouree.png"
@@ -178,12 +165,24 @@ export function BarreDomaines({
           gereLesMembres={droits.includes("organisation.membre.gerer")}
           raccourcis={raccourcisCompte(modulesOuverts)}
         />
+        {/* Sur téléphone, les domaines ne tiennent pas dans la barre : ils passent dans un tiroir, ouvert depuis le bord droit. */}
+        <button
+          type="button"
+          onClick={() => setOuvertSur(chemin)}
+          aria-label="Ouvrir le menu"
+          aria-expanded={menuOuvert}
+          className="flex size-10 shrink-0 items-center justify-center rounded-lg text-white hover:bg-[var(--surface-creuse)] lg:hidden"
+        >
+          <svg viewBox="0 0 24 24" aria-hidden className="size-6" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round">
+            <path d="M4 7h16M4 12h16M4 17h16" />
+          </svg>
+        </button>
       </div>
 
       {menuOuvert && (
         <div className="fixed inset-0 z-50 lg:hidden" role="dialog" aria-modal="true" aria-label="Menu">
           <button type="button" aria-label="Fermer le menu" onClick={() => setOuvertSur(null)} className="absolute inset-0 bg-black/50" />
-          <nav className="absolute inset-y-0 left-0 flex w-72 max-w-[85vw] flex-col overflow-y-auto bg-[var(--surface)] p-3 text-[var(--encre)] shadow-xl">
+          <nav className="absolute inset-y-0 right-0 flex w-72 max-w-[85vw] flex-col overflow-y-auto bg-[var(--surface)] p-3 text-[var(--encre)] shadow-xl">
             <Link
               href="/accueil"
               onClick={() => setOuvertSur(null)}
