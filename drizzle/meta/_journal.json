@@ -428,6 +428,13 @@
       "when": 1792160826011,
       "tag": "0060_entete_slogan_site_capital",
       "breakpoints": true
+    },
+    {
+      "idx": 61,
+      "version": "7",
+      "when": 1792168388124,
+      "tag": "0061_courriers",
+      "breakpoints": true
     }
   ]
 }

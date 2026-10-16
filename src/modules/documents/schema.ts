@@ -266,3 +266,56 @@ export type Signataire = typeof signataires.$inferSelect;
 export type TypeEntiteDocument = NonNullable<Document["entiteType"]>;
 export type VisibiliteDocument = Document["visibilite"];
 export type StatutSignature = DemandeSignature["statut"];
+
+/**
+ * Courrier officiel, rédigé sur le papier à en-tête de l'entreprise.
+ *
+ * Le module reste une pièce jointe, pas un traitement de texte : un courrier
+ * se compose d'un lieu, d'une date, d'un objet, d'un corps en paragraphes et
+ * d'un signataire — rien de plus, et c'est la mise en page commune qui en
+ * fait une lettre. Le corps est du TEXTE : une ligne, un paragraphe. Aucune
+ * balise n'y est interprétée, si bien qu'un courrier ne peut rien injecter
+ * dans la page qui l'imprime.
+ *
+ * Le numéro (COUR-2026-00012) est attribué à la création, dans la transaction
+ * qui l'enregistre : une lettre envoyée se cite par sa référence, et deux
+ * secrétaires qui créent un courrier au même instant ne doivent pas recevoir
+ * la même.
+ */
+export const courriers = pgTable(
+  "courriers",
+  {
+    id: primaryId(),
+    organizationId: uuid("organization_id")
+      .notNull()
+      .references(() => organizations.id, { onDelete: "cascade" }),
+
+    /** Numéro séquentiel : COUR-2026-00012. */
+    numero: text("numero").notNull(),
+
+    /** « Abidjan », imprimé devant la date : « Abidjan, le 16 octobre 2026 ». */
+    lieu: text("lieu").notNull(),
+    /** Date portée par la lettre, sans heure : celle de la signature, pas de la saisie. */
+    dateCourrier: date("date_courrier").notNull(),
+
+    /** Bloc d'adresse, une ligne par ligne imprimée. Facultatif : une note de service n'en a pas. */
+    destinataire: text("destinataire"),
+    objet: text("objet").notNull(),
+    /** Texte brut. Chaque ligne non vide devient un paragraphe. */
+    corps: text("corps").notNull(),
+
+    signataire: text("signataire").notNull(),
+    fonction: text("fonction"),
+
+    redigeParUserId: uuid("redige_par_user_id"),
+
+    ...timestamps,
+    ...rowVersion,
+  },
+  (t) => [
+    unique("courriers_numero_unique").on(t.organizationId, t.numero),
+    index("courriers_date_idx").on(t.organizationId, t.dateCourrier),
+  ],
+);
+
+export type Courrier = typeof courriers.$inferSelect;
