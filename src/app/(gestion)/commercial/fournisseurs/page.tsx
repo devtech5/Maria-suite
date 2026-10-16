@@ -5,11 +5,13 @@ import {
   CarteIndicateur,
   EnTetePage,
   EtatVide,
+  Pastille,
   Tableau,
   Td,
   Th,
 } from "@/components/ui/primitives";
 import { ContactsTiers } from "@/components/tiers/contacts";
+import { ActionsFiche } from "@/components/ui/actions-fiche";
 import { exigerEntreprise } from "@/lib/auth/dal";
 import { peut } from "@/lib/droits/garde";
 import { fmt, fmtCompact, fmtEntier, fmtTaux } from "@/lib/format";
@@ -20,7 +22,9 @@ export const metadata: Metadata = { title: "Fournisseurs" };
 
 export default async function PageFournisseurs() {
   const session = await exigerEntreprise();
-  const [fournisseurs, gerer] = await Promise.all([fichesTiers(session.organizationId, "fournisseur"), peut("tiers.fiche.gerer")]);
+  const [gerer, supprimer] = await Promise.all([peut("tiers.fiche.gerer"), peut("tiers.fiche.supprimer")]);
+  // Qui peut réactiver voit aussi les fiches en off.
+  const fournisseurs = await fichesTiers(session.organizationId, "fournisseur", gerer);
 
   const volume = fournisseurs.reduce((somme, f) => somme + f.achatsFournisseur, 0);
   const du = fournisseurs.reduce((somme, f) => somme + f.duFournisseur, 0);
@@ -92,14 +96,20 @@ export default async function PageFournisseurs() {
                 <Th aligne="droite">Délai</Th>
                 <Th aligne="droite">Achats</Th>
                 <Th aligne="droite">Solde dû</Th>
+                {(gerer || supprimer) && <Th aligne="droite">Fiche</Th>}
               </tr>
             </thead>
             <tbody>
               {fournisseurs.map((fournisseur) => (
-                <tr key={fournisseur.id}>
+                <tr key={fournisseur.id} className={fournisseur.actif ? "" : "opacity-60"}>
                   <Td chiffres>{fournisseur.code}</Td>
                   <Td fort>
                     {fournisseur.nom}
+                    {!fournisseur.actif && (
+                      <span className="ml-1.5 align-middle">
+                        <Pastille ton="alerte">En off</Pastille>
+                      </span>
+                    )}
                     {fournisseur.identifiantFiscal && (
                       <span className="chiffres block text-xs font-normal text-[var(--encre-faible)]">
                         {fournisseur.identifiantFiscal}
@@ -136,6 +146,18 @@ export default async function PageFournisseurs() {
                       {fmt(fournisseur.duFournisseur)}
                     </span>
                   </Td>
+                  {(gerer || supprimer) && (
+                    <Td aligne="droite">
+                      <ActionsFiche
+                        type="tiers"
+                        id={fournisseur.id}
+                        libelle={fournisseur.nom}
+                        actif={fournisseur.actif}
+                        peutGerer={gerer}
+                        peutSupprimer={supprimer}
+                      />
+                    </Td>
+                  )}
                 </tr>
               ))}
             </tbody>

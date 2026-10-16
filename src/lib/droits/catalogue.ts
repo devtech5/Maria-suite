@@ -34,6 +34,16 @@ export interface DefinitionDroit {
  */
 const TRANSVERSE = "organisation";
 
+/**
+ * Supprimer n'est pas gérer : c'est effacer une fiche saisie par erreur et
+ * jamais utilisée (suppression logique, tracée). Une fiche qui a servi se met
+ * en off et garde son historique. Droit à part, que seuls le propriétaire et
+ * le gérant tiennent d'office.
+ */
+const SUPPRESSION =
+  "Effacer une fiche saisie par erreur et jamais utilisée. Une fiche qui a servi " +
+  "ne se supprime pas : elle se met en off et garde son historique.";
+
 export const DROITS = [
   // ---------------------------------------------------------------- tiers
   {
@@ -47,6 +57,12 @@ export const DROITS = [
     moduleKey: "tiers",
     libelle: "Gérer les tiers",
     description: "Créer, modifier et archiver un client ou un fournisseur.",
+  },
+  {
+    cle: "tiers.fiche.supprimer",
+    moduleKey: "tiers",
+    libelle: "Supprimer un tiers ou un commercial",
+    description: SUPPRESSION,
   },
 
   // ---------------------------------------------------------------- stock
@@ -288,6 +304,12 @@ export const DROITS = [
     description: "Ouvrir la fiche d'un maçon, d'un extra, d'un chauffeur occasionnel.",
   },
   {
+    cle: "personnes.fiche.supprimer",
+    moduleKey: "personnes",
+    libelle: "Supprimer un salarié ou un intervenant",
+    description: SUPPRESSION,
+  },
+  {
     cle: "personnes.pointage.saisir",
     moduleKey: "personnes",
     libelle: "Pointer un intervenant",
@@ -338,6 +360,12 @@ export const DROITS = [
     libelle: "Gérer les actifs",
     description:
       "Ouvrir une fiche, l'affecter à quelqu'un, changer son état de service.",
+  },
+  {
+    cle: "actifs.fiche.supprimer",
+    moduleKey: "actifs",
+    libelle: "Supprimer un actif",
+    description: SUPPRESSION,
   },
   {
     cle: "actifs.intervention.saisir",
@@ -831,6 +859,12 @@ export const DROITS = [
     libelle: "Gérer la vidéosurveillance",
     description: "Déclarer les sites et les caméras, émettre la clé d'un relais, télécharger sa configuration.",
   },
+  {
+    cle: "securite.fiche.supprimer",
+    moduleKey: "securite",
+    libelle: "Supprimer un site ou une caméra",
+    description: SUPPRESSION,
+  },
 
   // -------------------------------------------------------------- enquêtes
   {
@@ -896,6 +930,12 @@ export const DROITS = [
     moduleKey: "tresorerie",
     libelle: "Gérer les comptes de trésorerie",
     description: "Ouvrir une caisse, une banque, un portefeuille mobile money ; fixer son seuil et son responsable.",
+  },
+  {
+    cle: "tresorerie.compte.supprimer",
+    moduleKey: "tresorerie",
+    libelle: "Supprimer un compte de trésorerie",
+    description: SUPPRESSION,
   },
   {
     cle: "tresorerie.virement.saisir",

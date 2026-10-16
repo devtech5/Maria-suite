@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { useMemo, useState } from "react";
 
+import { ActionsFiche } from "@/components/ui/actions-fiche";
 import { Pastille } from "@/components/ui/primitives";
 import { fmt, fmtDateIso } from "@/lib/format";
 import { ContactsTiers } from "@/components/tiers/contacts";
@@ -20,7 +21,15 @@ import type { FicheTiers } from "@/modules/tiers/requetes";
  * aucun solde : encours et facturé sont la conséquence des écritures, et se
  * déduisent là où les écritures sont — pas dans le navigateur.
  */
-export function ListeClients({ clients, modifiable = false }: { clients: FicheTiers[]; modifiable?: boolean }) {
+export function ListeClients({
+  clients,
+  modifiable = false,
+  supprimable = false,
+}: {
+  clients: FicheTiers[];
+  modifiable?: boolean;
+  supprimable?: boolean;
+}) {
   const [recherche, setRecherche] = useState("");
   const [selectionId, setSelectionId] = useState<string | null>(
     clients[0]?.id ?? null,
@@ -70,7 +79,7 @@ export function ListeClients({ clients, modifiable = false }: { clients: FicheTi
                   </span>
 
                   <span className="min-w-0 flex-1">
-                    <span className="block truncate text-sm font-medium">
+                    <span className={`block truncate text-sm font-medium ${client.actif ? "" : "text-[var(--encre-faible)] line-through"}`}>
                       {client.nom}
                     </span>
                     <span className="chiffres block truncate text-xs text-[var(--encre-faible)]">
@@ -111,9 +120,24 @@ export function ListeClients({ clients, modifiable = false }: { clients: FicheTi
           <header className="border-b border-[var(--filet)] p-4">
             <div className="flex items-start justify-between gap-2">
               <h2 className="text-base font-semibold leading-snug">{selection.nom}</h2>
-              <Pastille>
-                {selection.nature === "particulier" ? "Particulier" : "Entreprise"}
-              </Pastille>
+              <span className="flex shrink-0 gap-1">
+                {!selection.actif && <Pastille ton="alerte">En off</Pastille>}
+                <Pastille>
+                  {selection.nature === "particulier" ? "Particulier" : "Entreprise"}
+                </Pastille>
+              </span>
+            </div>
+
+            <div className="mt-2">
+              <ActionsFiche
+                key={selection.id}
+                type="tiers"
+                id={selection.id}
+                libelle={selection.nom}
+                actif={selection.actif}
+                peutGerer={modifiable}
+                peutSupprimer={supprimable}
+              />
             </div>
 
             <dl className="mt-3 space-y-1.5 text-sm">

@@ -53,7 +53,7 @@ export async function salarieDe(organizationId: string, employeeId: string) {
   const [salarie] = await db
     .select()
     .from(employees)
-    .where(and(eq(employees.organizationId, organizationId), eq(employees.id, employeeId)));
+    .where(and(eq(employees.organizationId, organizationId), eq(employees.id, employeeId), isNull(employees.deletedAt)));
   return salarie ?? null;
 }
 

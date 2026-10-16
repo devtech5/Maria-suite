@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 
 import { AccesRefuse } from "@/components/coque/acces-refuse";
 import { CarteIndicateur, EnTetePage, EtatVide, Pastille, Tableau, Td, Th } from "@/components/ui/primitives";
+import { ActionsFiche } from "@/components/ui/actions-fiche";
 import { listerMembres } from "@/lib/auth/membres";
 import { exigerEntreprise } from "@/lib/auth/dal";
 import { peut } from "@/lib/droits/garde";
@@ -29,6 +30,7 @@ export default async function PageCommerciaux({ searchParams }: { searchParams: 
   const courant = moisCourant();
   const mois = moisValide(demande) && demande <= courant ? demande : courant;
   const payer = await peut("commercial.commission.payer");
+  const supprimer = await peut("tiers.fiche.supprimer");
 
   const [lignes, membres, salaries, comptes] = await Promise.all([
     tableauCommissions(session.organizationId, mois),
@@ -145,6 +147,8 @@ export default async function PageCommerciaux({ searchParams }: { searchParams: 
                       membres={membres.filter((m) => m.statut === "actif").map((m) => ({ id: m.userId, nom: m.nom }))}
                       salaries={salaries.map((s) => ({ id: s.id, nom: `${s.nom} — ${s.poste}` }))}
                     />
+                    {/* La mise en off passe par la fiche ; ici, l'effacement d'une saisie erronée. */}
+                    <ActionsFiche type="commercial" id={c.id} libelle={c.nom} peutGerer={false} peutSupprimer={supprimer} />
                   </Td>
                 </tr>
               );

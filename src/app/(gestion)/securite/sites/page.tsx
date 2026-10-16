@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import Link from "next/link";
 
 import { FormulaireSite } from "@/components/securite/formulaires";
+import { ActionsFiche } from "@/components/ui/actions-fiche";
 import { EnTetePage, EtatVide, Pastille, Tableau, Td, Th } from "@/components/ui/primitives";
 import { exigerEntreprise } from "@/lib/auth/dal";
 import { peut } from "@/lib/droits/garde";
@@ -14,7 +15,11 @@ export const metadata: Metadata = { title: "Sites et caméras" };
 /** Les sites surveillés : enregistreur, caméras, état du relais, débit à prévoir. */
 export default async function PageSites() {
   const session = await exigerEntreprise();
-  const [sites, gerer] = await Promise.all([sitesAvecCameras(session.organizationId), peut("securite.gerer")]);
+  const [sites, gerer, supprimer] = await Promise.all([
+    sitesAvecCameras(session.organizationId),
+    peut("securite.gerer"),
+    peut("securite.fiche.supprimer"),
+  ]);
   const maintenant = new Date();
 
   return (
@@ -35,6 +40,7 @@ export default async function PageSites() {
               <Th aligne="droite">Caméras</Th>
               <Th aligne="droite">Débit montant</Th>
               <Th>Relais</Th>
+              {(gerer || supprimer) && <Th aligne="droite">Fiche</Th>}
             </tr>
           </thead>
           <tbody>
@@ -42,11 +48,16 @@ export default async function PageSites() {
               const actives = s.cameras.filter((c) => c.actif);
               const enLigne = relaisEnLigne(s.relaisVuLe, maintenant);
               return (
-                <tr key={s.id}>
+                <tr key={s.id} className={s.actif ? "" : "opacity-60"}>
                   <Td fort>
                     <Link href={`/securite/sites/${s.id}`} className="hover:underline">
                       {s.nom}
                     </Link>
+                    {!s.actif && (
+                      <span className="ml-1.5 align-middle">
+                        <Pastille ton="alerte">En off</Pastille>
+                      </span>
+                    )}
                     <span className="block text-xs font-normal text-[var(--encre-faible)]">{LIBELLE_NATURE[s.nature]}</span>
                   </Td>
                   <Td>
@@ -61,6 +72,11 @@ export default async function PageSites() {
                   <Td>
                     {!s.relaisEmpreinte ? <Pastille>À installer</Pastille> : enLigne ? <Pastille ton="valide">En ligne</Pastille> : <Pastille ton="alerte">Hors ligne</Pastille>}
                   </Td>
+                  {(gerer || supprimer) && (
+                    <Td aligne="droite">
+                      <ActionsFiche type="site_securite" id={s.id} libelle={s.nom} actif={s.actif} peutGerer={gerer} peutSupprimer={supprimer} />
+                    </Td>
+                  )}
                 </tr>
               );
             })}

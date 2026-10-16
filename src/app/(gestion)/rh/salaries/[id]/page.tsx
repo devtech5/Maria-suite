@@ -10,6 +10,7 @@ import {
   SITUATIONS,
   type PieceAffichee,
 } from "@/components/personnes/dossier";
+import { ActionsFiche } from "@/components/ui/actions-fiche";
 import { Pastille } from "@/components/ui/primitives";
 import { tracer } from "@/lib/audit";
 import { exigerEntreprise } from "@/lib/auth/dal";
@@ -41,7 +42,11 @@ export default async function PageFicheSalarie({ params }: { params: Promise<{ i
   const salarie = await salarieDe(session.organizationId, id);
   if (!salarie) notFound();
 
-  const [consulter, gerer] = await Promise.all([peut("personnes.dossier.consulter"), peut("personnes.dossier.gerer")]);
+  const [consulter, gerer, supprimer] = await Promise.all([
+    peut("personnes.dossier.consulter"),
+    peut("personnes.dossier.gerer"),
+    peut("personnes.fiche.supprimer"),
+  ]);
   const voitLeDossier = consulter || gerer;
 
   const aujourdhui = new Date().toISOString().slice(0, 10);
@@ -108,6 +113,7 @@ export default async function PageFicheSalarie({ params }: { params: Promise<{ i
             <span className="chiffres text-[var(--encre-douce)]">· {fmt(salarie.salaireBase)} FCFA brut</span>
           </p>
         </div>
+        <ActionsFiche type="salarie" id={id} libelle={salarie.nom} peutGerer={false} peutSupprimer={supprimer} retour="/rh" />
       </header>
 
       <section className="mb-8">

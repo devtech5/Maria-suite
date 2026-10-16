@@ -211,6 +211,8 @@ export interface FicheTiers extends SoldeAuxiliaire {
   id: string;
   code: string;
   nom: string;
+  /** En off : plus proposé à la saisie, historique intact. */
+  actif: boolean;
   nature: "entreprise" | "particulier";
   telephone: string | null;
   email: string | null;
@@ -236,9 +238,11 @@ export interface FicheTiers extends SoldeAuxiliaire {
 export async function fichesTiers(
   organizationId: string,
   role: RoleTiers = "tous",
+  /** Les fiches en off aussi : pour qui peut les réactiver. */
+  inclureInactifs = false,
 ): Promise<FicheTiers[]> {
   const [lignes, soldes, mouvements, contacts] = await Promise.all([
-    listerTiers(organizationId, role),
+    listerTiers(organizationId, role, inclureInactifs),
     soldesParAuxiliaire(organizationId),
     mouvementsParAuxiliaire(organizationId),
     contactsParTiers(organizationId),
@@ -254,6 +258,7 @@ export async function fichesTiers(
       id: ligne.id,
       code: ligne.code,
       nom: ligne.nom,
+      actif: ligne.actif,
       nature: ligne.nature,
       telephone: ligne.telephone,
       email: ligne.email,

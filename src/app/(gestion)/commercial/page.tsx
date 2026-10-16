@@ -13,7 +13,9 @@ export const metadata: Metadata = { title: "Clients" };
 
 export default async function PageClients() {
   const session = await exigerEntreprise();
-  const [clients, gerer] = await Promise.all([fichesTiers(session.organizationId, "client"), peut("tiers.fiche.gerer")]);
+  const [gerer, supprimer] = await Promise.all([peut("tiers.fiche.gerer"), peut("tiers.fiche.supprimer")]);
+  // Qui peut réactiver voit aussi les fiches en off.
+  const clients = await fichesTiers(session.organizationId, "client", gerer);
 
   const encoursTotal = clients.reduce(
     (somme, client) => somme + client.encoursClient,
@@ -39,7 +41,7 @@ export default async function PageClients() {
           actions={<BoutonDemonstration libelle="Installer le fichier de démonstration" />}
         />
       ) : (
-        <ListeClients clients={clients} modifiable={gerer} />
+        <ListeClients clients={clients} modifiable={gerer} supprimable={supprimer} />
       )}
     </>
   );

@@ -11,7 +11,9 @@ import {
   Th,
   type TonPastille,
 } from "@/components/ui/primitives";
+import { ActionsFiche } from "@/components/ui/actions-fiche";
 import { exigerEntreprise } from "@/lib/auth/dal";
+import { peut } from "@/lib/droits/garde";
 import { fmt, fmtCompact, fmtEntier } from "@/lib/format";
 import { listerActifs, resumeParc } from "@/modules/actifs/requetes";
 import type { StatutActif, TypeActif } from "@/modules/actifs/schema";
@@ -46,11 +48,12 @@ const TON: Record<StatutActif, TonPastille> = {
 export default async function PageParc() {
   const session = await exigerEntreprise();
 
-  const [parc, salaries, intervenants, partenaires] = await Promise.all([
+  const [parc, salaries, intervenants, partenaires, supprimer] = await Promise.all([
     listerActifs(session.organizationId),
     listerSalaries(session.organizationId),
     listerIntervenants(session.organizationId),
     listerTiers(session.organizationId, "client"),
+    peut("actifs.fiche.supprimer"),
   ]);
 
   const resume = resumeParc(parc);
@@ -129,6 +132,7 @@ export default async function PageParc() {
                 <Th>Statut</Th>
                 <Th aligne="droite">Compteur</Th>
                 <Th aligne="droite">Maintenance</Th>
+                {supprimer && <Th aligne="droite">Fiche</Th>}
               </tr>
             </thead>
             <tbody>
@@ -177,6 +181,11 @@ export default async function PageParc() {
                   <Td aligne="droite" chiffres>
                     {actif.coutMaintenance > 0 ? fmt(actif.coutMaintenance) : "—"}
                   </Td>
+                  {supprimer && (
+                    <Td aligne="droite">
+                      <ActionsFiche type="actif" id={actif.id} libelle={actif.designation} peutGerer={false} peutSupprimer />
+                    </Td>
+                  )}
                 </tr>
               ))}
             </tbody>

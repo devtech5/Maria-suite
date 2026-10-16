@@ -8,6 +8,7 @@ import { FormulaireIntervention } from "@/components/actifs/formulaire-intervent
 import { ListeEcheances } from "@/components/actifs/liste-echeances";
 import { STATUT_ACTIF } from "@/components/actifs/statut";
 import { FormulaireFicheVehicule, FormulairePlein, RetirerPlein } from "@/components/parc-auto/formulaires";
+import { ActionsFiche } from "@/components/ui/actions-fiche";
 import { CarteIndicateur, Pastille, Tableau, Td, Th } from "@/components/ui/primitives";
 import { exigerEntreprise } from "@/lib/auth/dal";
 import { peut } from "@/lib/droits/garde";
@@ -30,7 +31,7 @@ export default async function PageVehicule({ params }: { params: Promise<{ id: s
   const vehicule = await vehiculeDe(session.organizationId, id);
   if (!vehicule) notFound();
 
-  const [pleins, interventions, echeances, conducteurs, gerer, carburant, intervenir, echeancer, statut] = await Promise.all([
+  const [pleins, interventions, echeances, conducteurs, gerer, carburant, intervenir, echeancer, statut, supprimer] = await Promise.all([
     listerPleins(session.organizationId, id),
     listerInterventions(session.organizationId, 500),
     listerEcheances(session.organizationId),
@@ -40,6 +41,7 @@ export default async function PageVehicule({ params }: { params: Promise<{ id: s
     peut("actifs.intervention.saisir"),
     peut("actifs.echeance.gerer"),
     peut("actifs.fiche.gerer"),
+    peut("actifs.fiche.supprimer"),
   ]);
   const sesInterventions = interventions.filter((i) => i.actifCode === vehicule.code);
   const sesEcheances = echeances.filter((e) => e.actifId === id);
@@ -66,7 +68,10 @@ export default async function PageVehicule({ params }: { params: Promise<{ id: s
             {statut ? null : <Pastille ton={STATUT_ACTIF[vehicule.statut].ton}>{STATUT_ACTIF[vehicule.statut].libelle}</Pastille>}
           </p>
         </div>
-        {statut && <ChangerStatut id={id} statut={vehicule.statut} />}
+        <div className="flex flex-wrap items-start justify-end gap-2">
+          {statut && <ChangerStatut id={id} statut={vehicule.statut} />}
+          <ActionsFiche type="actif" id={id} libelle={f?.immatriculation ?? vehicule.designation} peutGerer={false} peutSupprimer={supprimer} retour="/parc-auto" />
+        </div>
       </header>
 
       <section className="mb-6 grid grid-cols-2 gap-2 sm:gap-3 xl:grid-cols-5">

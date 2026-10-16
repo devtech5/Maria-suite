@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { redirect } from "next/navigation";
 
+import { ActionsFiche } from "@/components/ui/actions-fiche";
 import { FormulaireRepliable } from "@/components/ui/operations";
 import { CarteIndicateur, EnTetePage, EtatVide, Pastille } from "@/components/ui/primitives";
 import { exigerEntreprise } from "@/lib/auth/dal";
@@ -25,7 +26,7 @@ const JOUR = new Intl.DateTimeFormat("fr-FR", { day: "2-digit", month: "2-digit"
 export default async function PageTresorerie() {
   const session = await exigerEntreprise();
   if (!(await peut("tresorerie.consulter"))) redirect("/tresorerie/caisse");
-  const gerer = await peut("tresorerie.compte.gerer");
+  const [gerer, supprimer] = await Promise.all([peut("tresorerie.compte.gerer"), peut("tresorerie.compte.supprimer")]);
 
   const [comptes, transit, membres] = await Promise.all([
     listerComptes(session.organizationId),
@@ -116,8 +117,10 @@ export default async function PageTresorerie() {
                       ? ` · arrêtée le ${JOUR.format(new Date(`${c.dernierArrete.le}T00:00:00Z`))}${c.dernierArrete.ecart !== 0 ? ` (écart ${c.dernierArrete.ecart > 0 ? "+" : "−"}${fmt(Math.abs(c.dernierArrete.ecart))})` : ""}`
                       : " · jamais arrêtée")}
                 </p>
-                {gerer && (
-                  <div className="mt-3 border-t border-[var(--filet)] pt-3">
+                {(gerer || supprimer) && (
+                  <div className="mt-3 flex flex-wrap items-start justify-between gap-2 border-t border-[var(--filet)] pt-3">
+                    <ActionsFiche type="compte_tresorerie" id={c.id} libelle={c.nom} actif={c.actif} peutGerer={gerer} peutSupprimer={supprimer} />
+                    {gerer && (
                     <FormulaireRepliable libelle="Modifier" titre={`Modifier « ${c.nom} »`} action={modifierCompte.bind(null, c.id)}>
                       <ChampsCompte
                         membres={membres}
@@ -131,6 +134,7 @@ export default async function PageTresorerie() {
                         }}
                       />
                     </FormulaireRepliable>
+                    )}
                   </div>
                 )}
               </li>

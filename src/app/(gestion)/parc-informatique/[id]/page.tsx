@@ -8,6 +8,7 @@ import { FormulaireIntervention } from "@/components/actifs/formulaire-intervent
 import { ListeEcheances } from "@/components/actifs/liste-echeances";
 import { STATUT_ACTIF } from "@/components/actifs/statut";
 import { DesinstallerLicence, FormulaireFicheEquipement, InstallerLicence } from "@/components/parc-informatique/formulaires";
+import { ActionsFiche } from "@/components/ui/actions-fiche";
 import { CarteIndicateur, Pastille, Tableau, Td, Th } from "@/components/ui/primitives";
 import { exigerEntreprise } from "@/lib/auth/dal";
 import { peut } from "@/lib/droits/garde";
@@ -30,7 +31,7 @@ export default async function PageEquipement({ params }: { params: Promise<{ id:
   const equipement = await equipementDe(session.organizationId, id);
   if (!equipement) notFound();
 
-  const [interventions, echeances, licences, utilisateurs, gerer, gererLicences, intervenir, echeancer, statut] = await Promise.all([
+  const [interventions, echeances, licences, utilisateurs, gerer, gererLicences, intervenir, echeancer, statut, supprimer] = await Promise.all([
     listerInterventions(session.organizationId, 500),
     listerEcheances(session.organizationId),
     listerLicences(session.organizationId),
@@ -40,6 +41,7 @@ export default async function PageEquipement({ params }: { params: Promise<{ id:
     peut("actifs.intervention.saisir"),
     peut("actifs.echeance.gerer"),
     peut("actifs.fiche.gerer"),
+    peut("actifs.fiche.supprimer"),
   ]);
   const f = equipement.fiche;
   const sesInterventions = interventions.filter((i) => i.actifCode === equipement.code);
@@ -65,7 +67,10 @@ export default async function PageEquipement({ params }: { params: Promise<{ id:
             {statut ? null : <Pastille ton={STATUT_ACTIF[equipement.statut].ton}>{STATUT_ACTIF[equipement.statut].libelle}</Pastille>}
           </p>
         </div>
-        {statut && <ChangerStatut id={id} statut={equipement.statut} />}
+        <div className="flex flex-wrap items-start justify-end gap-2">
+          {statut && <ChangerStatut id={id} statut={equipement.statut} />}
+          <ActionsFiche type="actif" id={id} libelle={equipement.designation} peutGerer={false} peutSupprimer={supprimer} retour="/parc-informatique" />
+        </div>
       </header>
 
       <section className="mb-6 grid grid-cols-2 gap-2 sm:gap-3 xl:grid-cols-4">

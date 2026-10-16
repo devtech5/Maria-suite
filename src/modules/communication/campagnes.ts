@@ -72,7 +72,8 @@ export async function destinataires(organizationId: string, publicVise: "personn
     return liste;
   }
 
-  const conditions = [eq(tiers.organizationId, organizationId), eq(tiers.estClient, true), isNull(tiers.deletedAt)];
+  // Un client en off ne reçoit plus rien : il n'est plus proposé nulle part.
+  const conditions = [eq(tiers.organizationId, organizationId), eq(tiers.estClient, true), eq(tiers.actif, true), isNull(tiers.deletedAt)];
   if (filtre.cible === "particuliers") conditions.push(eq(tiers.nature, "particulier"));
   if (filtre.cible === "entreprises") conditions.push(eq(tiers.nature, "entreprise"));
   if (filtre.ville?.trim()) conditions.push(sql`lower(${tiers.ville}) = lower(${filtre.ville.trim()})`);

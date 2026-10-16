@@ -10,7 +10,9 @@ import {
   Td,
   Th,
 } from "@/components/ui/primitives";
+import { ActionsFiche } from "@/components/ui/actions-fiche";
 import { exigerEntreprise } from "@/lib/auth/dal";
+import { peut } from "@/lib/droits/garde";
 import { fmt, fmtCompact, fmtEntier } from "@/lib/format";
 import { depuisQuantite } from "@/lib/quantite";
 import { LIBELLE_MODE } from "@/modules/personnes/paie";
@@ -45,7 +47,10 @@ const SANS_CHANTIER = "Sans affectation";
  */
 export default async function PageIntervenants() {
   const session = await exigerEntreprise();
-  const intervenants = await listerIntervenants(session.organizationId);
+  const [gerer, supprimer] = await Promise.all([peut("personnes.intervenant.gerer"), peut("personnes.fiche.supprimer")]);
+  // Qui peut réactiver voit aussi les intervenants en off.
+  const intervenants = await listerIntervenants(session.organizationId, gerer);
+  const gestes = gerer || supprimer;
 
   const parChantier = new Map<string, IntervenantAvecCompte[]>();
   for (const intervenant of intervenants) {
@@ -92,7 +97,7 @@ export default async function PageIntervenants() {
           <section className="mb-5 grid grid-cols-2 gap-2 sm:grid-cols-3 sm:gap-3 max-sm:[&>*:last-child:nth-child(odd)]:col-span-2">
             <CarteIndicateur
               libelle="Intervenants actifs"
-              valeur={fmtEntier(intervenants.length)}
+              valeur={fmtEntier(intervenants.filter((i) => i.actif).length)}
               precision={`Sur ${parChantier.size} chantiers`}
             />
             <CarteIndicateur
@@ -155,13 +160,19 @@ export default async function PageIntervenants() {
                         <Th aligne="droite">Pointé</Th>
                         <Th aligne="droite">Engagé</Th>
                         <Th aligne="droite">Reste dû</Th>
+                        {gestes && <Th aligne="droite">Fiche</Th>}
                       </tr>
                     </thead>
                     <tbody>
                       {equipe.map((intervenant) => (
-                        <tr key={intervenant.id}>
+                        <tr key={intervenant.id} className={intervenant.actif ? "" : "opacity-60"}>
                           <Td fort>
                             {intervenant.nom}
+                            {!intervenant.actif && (
+                              <span className="ml-1.5 align-middle">
+                                <Pastille ton="alerte">En off</Pastille>
+                              </span>
+                            )}
                             <span className="chiffres block text-xs font-normal text-[var(--encre-faible)]">
                               {intervenant.telephone ?? intervenant.code}
                             </span>
@@ -191,6 +202,18 @@ export default async function PageIntervenants() {
                               {fmt(intervenant.du)}
                             </span>
                           </Td>
+                          {gestes && (
+                            <Td aligne="droite">
+                              <ActionsFiche
+                                type="intervenant"
+                                id={intervenant.id}
+                                libelle={intervenant.nom}
+                                actif={intervenant.actif}
+                                peutGerer={gerer}
+                                peutSupprimer={supprimer}
+                              />
+                            </Td>
+                          )}
                         </tr>
                       ))}
                     </tbody>

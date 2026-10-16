@@ -3,6 +3,7 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 
 import { FormulaireCamera, PanneauRelais, ReglageCamera } from "@/components/securite/formulaires";
+import { ActionsFiche } from "@/components/ui/actions-fiche";
 import { CarteIndicateur, EnTetePage, EtatVide, Pastille, Tableau, Td, Th } from "@/components/ui/primitives";
 import { exigerEntreprise } from "@/lib/auth/dal";
 import { peut } from "@/lib/droits/garde";
@@ -20,7 +21,11 @@ export default async function PageSite({ params }: { params: Promise<{ id: strin
   const { id } = await params;
   if (!UUID.test(id)) notFound();
   const session = await exigerEntreprise();
-  const [site, gerer] = await Promise.all([siteAvecCameras(session.organizationId, id), peut("securite.gerer")]);
+  const [site, gerer, supprimer] = await Promise.all([
+    siteAvecCameras(session.organizationId, id),
+    peut("securite.gerer"),
+    peut("securite.fiche.supprimer"),
+  ]);
   if (!site) notFound();
 
   const actives = site.cameras.filter((c) => c.actif);
@@ -37,7 +42,12 @@ export default async function PageSite({ params }: { params: Promise<{ id: strin
       <EnTetePage
         titre={site.nom}
         sousTitre={[LIBELLE_NATURE[site.nature], site.adresse].filter(Boolean).join(" · ")}
-        actions={gerer && prochainCanal <= 256 ? <FormulaireCamera siteId={site.id} prochainCanal={prochainCanal} /> : undefined}
+        actions={
+          <div className="flex flex-wrap items-start justify-end gap-2">
+            <ActionsFiche type="site_securite" id={site.id} libelle={site.nom} actif={site.actif} peutGerer={gerer} peutSupprimer={supprimer} retour="/securite/sites" />
+            {gerer && prochainCanal <= 256 && <FormulaireCamera siteId={site.id} prochainCanal={prochainCanal} />}
+          </div>
+        }
       />
 
       <section className="mb-5 grid grid-cols-2 gap-2 sm:gap-3 xl:grid-cols-3">
@@ -67,7 +77,7 @@ export default async function PageSite({ params }: { params: Promise<{ id: strin
               <Th>Emplacement</Th>
               <Th>Qualité</Th>
               <Th>État</Th>
-              {gerer && <Th aligne="droite">{""}</Th>}
+              {(gerer || supprimer) && <Th aligne="droite">{""}</Th>}
             </tr>
           </thead>
           <tbody>
@@ -80,9 +90,11 @@ export default async function PageSite({ params }: { params: Promise<{ id: strin
                 <Td>{c.emplacement ?? "—"}</Td>
                 <Td>{c.hd ? "Mosaïque + HD" : "Mosaïque"}</Td>
                 <Td>{c.actif ? <Pastille ton="valide">Au mur</Pastille> : <Pastille>Retirée</Pastille>}</Td>
-                {gerer && (
+                {(gerer || supprimer) && (
                   <Td aligne="droite">
-                    <ReglageCamera cameraId={c.id} actif={c.actif} hd={c.hd} />
+                    {gerer && <ReglageCamera cameraId={c.id} actif={c.actif} hd={c.hd} />}
+                    {/* Retirer du mur passe par le réglage ; ici, l'effacement d'une caméra saisie par erreur. */}
+                    <ActionsFiche type="camera" id={c.id} libelle={c.nom} peutGerer={false} peutSupprimer={supprimer} />
                   </Td>
                 )}
               </tr>
