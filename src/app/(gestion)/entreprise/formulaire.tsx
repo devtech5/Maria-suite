@@ -4,6 +4,7 @@ import { useState } from "react";
 
 import { Retour, useOperation } from "@/components/ui/operations";
 import { CLASSE_CHAMP_COMPACT } from "@/components/ui/primitives";
+import { assombrir, FILIGRANE_MARQUE, LOGO_MARQUE } from "@/components/impression/entete-document";
 import { modifierIdentite } from "@/lib/identite-actions";
 
 interface Identite {
@@ -19,7 +20,18 @@ interface Identite {
   couleur: string;
   couleurSecondaire: string;
   piedDePage: string;
+  slogan: string;
+  siteWeb: string;
+  /** Saisi en chiffres, espaces tolérées ; vide : non renseigné. */
+  capitalSocial: string;
   logo: string | null;
+}
+
+/** « 10 000 000 » → 10000000 ; vide → null ; illisible → NaN, que le serveur refuse. */
+function montantSaisi(texte: string): number | null {
+  const brut = texte.replace(/[s  .]/g, "");
+  if (brut === "") return null;
+  return /^d+$/.test(brut) ? Number(brut) : Number.NaN;
 }
 
 const POIDS_MAX = 96 * 1024;
@@ -88,7 +100,10 @@ export function FormulaireIdentite({ initial, libelles }: { initial: Identite; l
       <form
         onSubmit={(e) => {
           e.preventDefault();
-          op.lancer(() => modifierIdentite({ ...v, logo: logoChange ? v.logo : undefined }), () => setLogoChange(false));
+          op.lancer(
+            () => modifierIdentite({ ...v, capitalSocial: montantSaisi(v.capitalSocial), logo: logoChange ? v.logo : undefined }),
+            () => setLogoChange(false),
+          );
         }}
         className="space-y-4 rounded-xl border border-[var(--filet)] bg-[var(--surface)] p-4"
       >
@@ -120,6 +135,12 @@ export function FormulaireIdentite({ initial, libelles }: { initial: Identite; l
           <Champ libelle="E-mail">
             <input {...champ("email")} type="email" />
           </Champ>
+          <Champ libelle="Site internet">
+            <input {...champ("siteWeb")} placeholder="www.maria-groupe.com" />
+          </Champ>
+          <Champ libelle="Capital social (FCFA)" aide="Imprimé avec le registre et l'identifiant fiscal, en bas de chaque document.">
+            <input {...champ("capitalSocial")} inputMode="numeric" placeholder="1 000 000" />
+          </Champ>
           <Champ libelle="Couleur primaire" aide="Raison sociale, titre et filet de l'en-tête.">
             <span className="flex items-center gap-2">
               <input type="color" value={v.couleur} onChange={(e) => setV({ ...v, couleur: e.target.value })} className="h-10 w-14 cursor-pointer rounded border border-[var(--filet)]" />
@@ -133,6 +154,10 @@ export function FormulaireIdentite({ initial, libelles }: { initial: Identite; l
             </span>
           </Champ>
         </div>
+
+        <Champ libelle="Devise de l'entreprise" aide="La phrase en italique au pied du papier à en-tête.">
+          <input {...champ("slogan")} />
+        </Champ>
 
         <Champ libelle="Mentions de pied de page" aide="Coordonnées bancaires, numéro Orange Money ou Wave, conditions de vente, capital social. Imprimées sur les factures et les tickets.">
           <textarea {...champ("piedDePage")} rows={3} className={`${CLASSE_CHAMP_COMPACT} w-full py-2`} />
@@ -187,47 +212,44 @@ export function FormulaireIdentite({ initial, libelles }: { initial: Identite; l
 
       <section aria-label="Aperçu" className="space-y-2">
         <p className="text-xs font-semibold uppercase text-[var(--encre-faible)]">Aperçu de l&apos;en-tête</p>
-        <div className="rounded-xl bg-white p-5 text-[12px] leading-snug text-black shadow">
-          <div className="border-b pb-0.5" style={{ borderColor: v.couleurSecondaire }}>
-            <div className="flex items-start justify-between gap-4 border-b-2 pb-3" style={{ borderColor: v.couleur }}>
-              <div className="flex items-start gap-3">
-                {v.logo && (
-                  // eslint-disable-next-line @next/next/no-img-element -- data URL, aperçu local
-                  <img src={v.logo} alt="" className="max-h-16 max-w-32 object-contain" />
-                )}
-                <div>
-                  <p className="text-base font-bold" style={{ color: v.couleur }}>
-                    {v.nom || "Raison sociale"}
-                  </p>
-                  {v.formeJuridique && <p>{v.formeJuridique}</p>}
-                  {v.adresse && <p>{v.adresse}</p>}
-                  {v.ville && <p>{v.ville}</p>}
-                  {v.telephone && <p>Tél. {v.telephone}</p>}
-                  {v.identifiantFiscal && (
-                    <p>
-                      {libelles.sigle} : {v.identifiantFiscal}
-                    </p>
-                  )}
-                  {v.rccm && (
-                    <p>
-                      {libelles.registre} : {v.rccm}
-                    </p>
-                  )}
-                </div>
-              </div>
-              <div className="text-right">
-                <p className="text-lg font-bold uppercase" style={{ color: v.couleur }}>
-                  Facture
-                </p>
-                <p className="font-mono">FAC-2026-00001</p>
-              </div>
+        <div className="relative isolate overflow-hidden rounded-xl bg-white p-5 text-[11px] leading-snug text-black shadow">
+          {/* eslint-disable-next-line @next/next/no-img-element -- SVG statique */}
+          <img src={FILIGRANE_MARQUE} alt="" aria-hidden className="pointer-events-none absolute -bottom-6 -right-10 -z-10 w-48 opacity-[0.06]" />
+          <div className="flex items-center justify-between gap-4" style={{ color: v.couleur }}>
+            {/* eslint-disable-next-line @next/next/no-img-element -- data URL ou SVG statique, aperçu local */}
+            <img src={v.logo ?? LOGO_MARQUE} alt="" className="max-h-16 max-w-32 object-contain" />
+            <div className="text-right text-[10px] font-medium leading-4">
+              <p className="mb-0.5 text-[12px] font-bold uppercase tracking-[0.12em]">{v.nom || "Raison sociale"}</p>
+              {[[v.adresse, v.ville].filter(Boolean).join(", "), v.telephone, v.email, v.siteWeb].filter(Boolean).map((l) => (
+                <p key={l}>{l}</p>
+              ))}
             </div>
           </div>
-          {v.piedDePage && (
-            <p className="mt-6 whitespace-pre-line border-t pt-2 text-center text-[10px] text-black/60" style={{ borderColor: v.couleurSecondaire }}>
-              {v.piedDePage}
+          <div className="mt-3 h-0.5" style={{ background: v.couleurSecondaire }} />
+          <div className="mt-3 text-right">
+            <p className="text-base font-bold uppercase" style={{ color: v.couleur }}>
+              Facture
             </p>
-          )}
+            <p className="font-mono">FAC-2026-00001</p>
+          </div>
+          <div className="mt-10 flex flex-col items-center gap-1.5 text-center">
+            {v.piedDePage && <p className="whitespace-pre-line text-[10px] text-black/60">{v.piedDePage}</p>}
+            {v.slogan && (
+              <p className="text-[11px] font-semibold italic" style={{ color: assombrir(v.couleurSecondaire) }}>
+                {v.slogan}
+              </p>
+            )}
+            <div className="h-0.5 w-full" style={{ background: v.couleurSecondaire }} />
+            <p className="text-[9px] text-[#5b6b7c]">
+              {[
+                v.rccm && `${libelles.registre} ${v.rccm}`,
+                v.identifiantFiscal && `${libelles.sigle} ${v.identifiantFiscal}`,
+                v.capitalSocial.trim() && `Capital ${v.capitalSocial.trim()} FCFA`,
+              ]
+                .filter(Boolean)
+                .join(" · ") || "Registre · identifiant fiscal · capital"}
+            </p>
+          </div>
         </div>
       </section>
     </div>

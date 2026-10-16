@@ -29,6 +29,9 @@ export const ENTREPRISE = {
   /** Bleu nuit et or, comme `COULEUR_PAR_DEFAUT` (`src/lib/identite.ts`) et la migration 0058. */
   couleurPrimaire: "#162E49",
   couleurSecondaire: "#BFA169",
+  /** Papier à en-tête, comme la migration 0060. */
+  slogan: "Ouvrir les horizons, bâtir avec puissance et détermination",
+  siteWeb: "www.maria-groupe.com",
 };
 
 /**
@@ -93,8 +96,8 @@ export async function installerEntreprise(
   }
 
   const [entreprise] = await requete(
-    `insert into organizations (name, slug, legal_form, country_code, currency, timezone, couleur_documents, couleur_secondaire, status)
-    values ($1, $2, $3, $4, $5, $6, $7, $8, 'actif')
+    `insert into organizations (name, slug, legal_form, country_code, currency, timezone, couleur_documents, couleur_secondaire, slogan, site_web, status)
+    values ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, 'actif')
     on conflict (slug) do update set status = 'actif'
     returning id`,
     [
@@ -106,6 +109,8 @@ export async function installerEntreprise(
       ENTREPRISE.fuseau,
       ENTREPRISE.couleurPrimaire,
       ENTREPRISE.couleurSecondaire,
+      ENTREPRISE.slogan,
+      ENTREPRISE.siteWeb,
     ],
   );
 

@@ -4,6 +4,7 @@ import { AccesRefuse } from "@/components/coque/acces-refuse";
 import { EnTetePage } from "@/components/ui/primitives";
 import { exigerEntreprise } from "@/lib/auth/dal";
 import { peut } from "@/lib/droits/garde";
+import { fmt } from "@/lib/format";
 import { identiteEntreprise } from "@/lib/identite";
 
 import { FormulaireIdentite } from "./formulaire";
@@ -38,6 +39,9 @@ export default async function PageEntreprise() {
           couleur: i.couleur,
           couleurSecondaire: i.couleurSecondaire,
           piedDePage: i.piedDePage ?? "",
+          slogan: i.slogan ?? "",
+          siteWeb: i.siteWeb ?? "",
+          capitalSocial: i.capitalSocial === null ? "" : fmt(i.capitalSocial),
           logo: i.logo,
         }}
         libelles={{ identifiantFiscal: i.referentiel.identifiantFiscalLong, sigle: i.referentiel.identifiantFiscal, registre: i.referentiel.registre }}

@@ -24,6 +24,12 @@ export interface IdentiteEntreprise {
   /** Couleur secondaire : filets d'accent. */
   couleurSecondaire: string;
   piedDePage: string | null;
+  /** Devise de l'entreprise, en pied des documents. */
+  slogan: string | null;
+  siteWeb: string | null;
+  /** Capital social, en unités entières de `devise`. */
+  capitalSocial: number | null;
+  devise: string;
   pays: string;
   referentiel: ReferentielPays;
 }
@@ -49,6 +55,10 @@ export async function identiteEntreprise(organizationId: string): Promise<Identi
     couleur: o.couleurDocuments ?? COULEUR_PAR_DEFAUT,
     couleurSecondaire: o.couleurSecondaire ?? COULEUR_SECONDAIRE_PAR_DEFAUT,
     piedDePage: o.piedDePage,
+    slogan: o.slogan,
+    siteWeb: o.siteWeb,
+    capitalSocial: o.capitalSocial,
+    devise: o.currency,
     pays: o.countryCode,
     referentiel: referentielPays(o.countryCode),
   };

@@ -421,6 +421,13 @@
       "when": 1792158202159,
       "tag": "0059_session_inactivite",
       "breakpoints": true
+    },
+    {
+      "idx": 60,
+      "version": "7",
+      "when": 1792160826011,
+      "tag": "0060_entete_slogan_site_capital",
+      "breakpoints": true
     }
   ]
 }

@@ -40,6 +40,10 @@ const schema = z.object({
   couleur: z.string().regex(/^#[0-9a-fA-F]{6}$/, "Couleur primaire invalide."),
   couleurSecondaire: z.string().regex(/^#[0-9a-fA-F]{6}$/, "Couleur secondaire invalide."),
   piedDePage: texte(600),
+  slogan: texte(120),
+  siteWeb: texte(120),
+  /** Entier, en unités de la devise : le franc CFA n'a pas de subdivision. */
+  capitalSocial: z.number().int("Capital social : un montant entier.").min(0, "Capital social négatif.").max(1e15).nullable(),
   /** Absent : inchangé ; nul : retiré ; chaîne : nouveau logo. */
   logo: z
     .string()
@@ -73,6 +77,9 @@ export async function modifierIdentite(saisie: z.input<typeof schema>): Promise<
       couleurDocuments: v.couleur,
       couleurSecondaire: v.couleurSecondaire,
       piedDePage: v.piedDePage,
+      slogan: v.slogan,
+      siteWeb: v.siteWeb,
+      capitalSocial: v.capitalSocial,
       ...(v.logo !== undefined ? { logo: v.logo } : {}),
       updatedAt: new Date(),
       version: sql`${organizations.version} + 1`,

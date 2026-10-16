@@ -13,7 +13,7 @@ import {
   uuid,
 } from "drizzle-orm/pg-core";
 
-import { currencyCode, primaryId, rowVersion, timestamps } from "./_shared";
+import { currencyCode, money, primaryId, rowVersion, timestamps } from "./_shared";
 import { users } from "./auth";
 import { roles } from "./rbac";
 
@@ -75,6 +75,12 @@ export const organizations = pgTable(
     couleurSecondaire: text("couleur_secondaire"),
     /** Mentions de pied de page : coordonnées bancaires, conditions, capital. */
     piedDePage: text("pied_de_page"),
+    /** Devise (formule) de l'entreprise, en pied des documents. */
+    slogan: text("slogan"),
+    /** Site internet, dans les coordonnées de l'en-tête. */
+    siteWeb: text("site_web"),
+    /** Capital social, en unités entières de la devise (FCFA). */
+    capitalSocial: money("capital_social"),
 
     status: organizationStatus("status").notNull().default("essai"),
     trialEndsAt: timestamp("trial_ends_at", { withTimezone: true }),
@@ -101,6 +107,7 @@ export const organizations = pgTable(
     check("organizations_delai_verrouillage", sql`${t.delaiVerrouillageMinutes} BETWEEN 1 AND 240`),
     check("organizations_couleur", sql`${t.couleurDocuments} IS NULL OR ${t.couleurDocuments} ~ '^#[0-9a-fA-F]{6}$'`),
     check("organizations_couleur_secondaire", sql`${t.couleurSecondaire} IS NULL OR ${t.couleurSecondaire} ~ '^#[0-9a-fA-F]{6}$'`),
+    check("organizations_capital_social_positif", sql`${t.capitalSocial} IS NULL OR ${t.capitalSocial} >= 0`),
   ],
 );
 
