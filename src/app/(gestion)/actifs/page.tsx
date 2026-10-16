@@ -1,6 +1,5 @@
 import type { Metadata } from "next";
 
-import { BoutonDemonstration } from "@/components/bouton-demonstration";
 import {
   CarteIndicateur,
   EnTetePage,
@@ -11,8 +10,10 @@ import {
   Th,
   type TonPastille,
 } from "@/components/ui/primitives";
+import { Recherche } from "@/components/ui/recherche";
 import { exigerEntreprise } from "@/lib/auth/dal";
 import { fmt, fmtCompact, fmtEntier } from "@/lib/format";
+import { correspond, lireFiltresListe } from "@/lib/recherche";
 import { listerActifs, resumeParc } from "@/modules/actifs/requetes";
 import type { StatutActif, TypeActif } from "@/modules/actifs/schema";
 import { listerSalaries, listerIntervenants } from "@/modules/personnes/requetes";
@@ -27,6 +28,7 @@ const LIBELLE_TYPE: Record<TypeActif, string> = {
   informatique: "Informatique",
   engin: "Engin",
   mobilier: "Mobilier",
+  local: "Local",
 };
 
 const LIBELLE_STATUT: Record<StatutActif, string> = {
@@ -43,8 +45,9 @@ const TON: Record<StatutActif, TonPastille> = {
   cede: "neutre",
 };
 
-export default async function PageParc() {
+export default async function PageParc({ searchParams }: PageProps<"/actifs">) {
   const session = await exigerEntreprise();
+  const filtres = lireFiltresListe(await searchParams);
 
   const [parc, salaries, intervenants, partenaires] = await Promise.all([
     listerActifs(session.organizationId),
@@ -54,6 +57,18 @@ export default async function PageParc() {
   ]);
 
   const resume = resumeParc(parc);
+  // Les indicateurs portent sur tout le parc ; seul le tableau suit la recherche.
+  const lignes = parc.filter((actif) =>
+    correspond(filtres.q, [
+      actif.code,
+      actif.designation,
+      LIBELLE_TYPE[actif.type],
+      actif.affecteA,
+      actif.site,
+      actif.proprietaire,
+      LIBELLE_STATUT[actif.statut],
+    ]),
+  );
 
   const personnes: OptionPersonne[] = [
     ...salaries.map((s) => ({ id: s.id, nom: s.nom, nature: "employe" as const })),
@@ -84,7 +99,6 @@ export default async function PageParc() {
         <EtatVide
           titre="Aucun actif suivi"
           message="Un actif est une chose qui coûte, s'use et s'entretient : un véhicule, un ordinateur, une bétonnière, une chambre froide. Le même écran suit le véhicule d'un client confié à l'atelier — c'est le propriétaire qui décide si l'intervention est une charge ou une facture."
-          actions={<BoutonDemonstration libelle="Installer le jeu de démonstration" />}
         />
       ) : (
         <>
@@ -118,69 +132,80 @@ export default async function PageParc() {
             />
           </section>
 
-          <Tableau>
-            <thead>
-              <tr>
-                <Th>Code</Th>
-                <Th>Désignation</Th>
-                <Th>Type</Th>
-                <Th>Affecté à</Th>
-                <Th>Site</Th>
-                <Th>Statut</Th>
-                <Th aligne="droite">Compteur</Th>
-                <Th aligne="droite">Maintenance</Th>
-              </tr>
-            </thead>
-            <tbody>
-              {parc.map((actif) => (
-                <tr key={actif.id}>
-                  <Td chiffres>{actif.code}</Td>
-                  <Td fort>
-                    {actif.designation}
-                    {/* Un actif de client se signale : sa valeur n'est pas au
-                        bilan, et ses interventions se facturent. */}
-                    {actif.proprietaire && (
-                      <span className="block text-xs font-normal text-[var(--encre-faible)]">
-                        Appartient à {actif.proprietaire}
-                      </span>
-                    )}
-                  </Td>
-                  <Td>
-                    <span className="text-xs text-[var(--encre-douce)]">
-                      {LIBELLE_TYPE[actif.type]}
-                    </span>
-                  </Td>
-                  <Td>
-                    {/* L'affectation pointe vers une personne du module
-                        Personnel, salariée ou intervenante. */}
-                    {actif.affecteA ?? (
-                      <span className="text-xs text-[var(--encre-faible)]">
-                        Non affecté
-                      </span>
-                    )}
-                  </Td>
-                  <Td>
-                    <span className="text-xs text-[var(--encre-douce)]">
-                      {actif.site ?? "—"}
-                    </span>
-                  </Td>
-                  <Td>
-                    <Pastille ton={TON[actif.statut]}>
-                      {LIBELLE_STATUT[actif.statut]}
-                    </Pastille>
-                  </Td>
-                  <Td aligne="droite" chiffres>
-                    {actif.compteur !== null
-                      ? `${fmtEntier(actif.compteur)} ${actif.uniteCompteur ?? ""}`
-                      : "—"}
-                  </Td>
-                  <Td aligne="droite" chiffres>
-                    {actif.coutMaintenance > 0 ? fmt(actif.coutMaintenance) : "—"}
-                  </Td>
+          <Recherche
+            chemin="/actifs"
+            valeur={filtres.q}
+            placeholder="Code, désignation, site, affecté à…"
+            resultats={filtres.q ? `${fmtEntier(lignes.length)} sur ${fmtEntier(parc.length)}` : undefined}
+          />
+
+          {lignes.length === 0 ? (
+            <EtatVide titre="Aucun résultat" message="Aucun actif ne répond à cette recherche. Retirez un mot ou cherchez par code." />
+          ) : (
+            <Tableau>
+              <thead>
+                <tr>
+                  <Th>Code</Th>
+                  <Th>Désignation</Th>
+                  <Th>Type</Th>
+                  <Th>Affecté à</Th>
+                  <Th>Site</Th>
+                  <Th>Statut</Th>
+                  <Th aligne="droite">Compteur</Th>
+                  <Th aligne="droite">Maintenance</Th>
                 </tr>
-              ))}
-            </tbody>
-          </Tableau>
+              </thead>
+              <tbody>
+                {lignes.map((actif) => (
+                  <tr key={actif.id}>
+                    <Td chiffres>{actif.code}</Td>
+                    <Td fort>
+                      {actif.designation}
+                      {/* Un actif de client se signale : sa valeur n'est pas au
+                          bilan, et ses interventions se facturent. */}
+                      {actif.proprietaire && (
+                        <span className="block text-xs font-normal text-[var(--encre-faible)]">
+                          Appartient à {actif.proprietaire}
+                        </span>
+                      )}
+                    </Td>
+                    <Td>
+                      <span className="text-xs text-[var(--encre-douce)]">
+                        {LIBELLE_TYPE[actif.type]}
+                      </span>
+                    </Td>
+                    <Td>
+                      {/* L'affectation pointe vers une personne du module
+                          Personnel, salariée ou intervenante. */}
+                      {actif.affecteA ?? (
+                        <span className="text-xs text-[var(--encre-faible)]">
+                          Non affecté
+                        </span>
+                      )}
+                    </Td>
+                    <Td>
+                      <span className="text-xs text-[var(--encre-douce)]">
+                        {actif.site ?? "—"}
+                      </span>
+                    </Td>
+                    <Td>
+                      <Pastille ton={TON[actif.statut]}>
+                        {LIBELLE_STATUT[actif.statut]}
+                      </Pastille>
+                    </Td>
+                    <Td aligne="droite" chiffres>
+                      {actif.compteur !== null
+                        ? `${fmtEntier(actif.compteur)} ${actif.uniteCompteur ?? ""}`
+                        : "—"}
+                    </Td>
+                    <Td aligne="droite" chiffres>
+                      {actif.coutMaintenance > 0 ? fmt(actif.coutMaintenance) : "—"}
+                    </Td>
+                  </tr>
+                ))}
+              </tbody>
+            </Tableau>
+          )}
 
           <p className="mt-5 max-w-[70ch] text-xs text-[var(--encre-faible)]">
             Ni le coût de maintenance ni le compteur ne sont stockés sur la

@@ -109,17 +109,3 @@ export function versLettres(rang: number): string {
 
   return code;
 }
-
-/**
- * Solde restant d'un tiers : ce qu'il doit, moins ce qu'il a réglé, sur les
- * seules lignes non lettrées.
- *
- * Les lignes lettrées sont exclues, et c'est tout l'intérêt : sans lettrage,
- * l'encours d'un client fidèle grossit indéfiniment avec l'historique, alors
- * qu'il ne doit peut-être plus rien.
- */
-export function soldeNonLettre(lignes: LigneLettrable[]): number {
-  return lignes
-    .filter((l) => !l.lettrage)
-    .reduce((somme, l) => somme + l.debit - l.credit, 0);
-}

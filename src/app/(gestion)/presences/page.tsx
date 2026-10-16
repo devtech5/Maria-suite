@@ -2,8 +2,11 @@ import type { Metadata } from "next";
 
 import { BoutonDepart, FormulairePointage } from "@/components/presences/formulaires";
 import { CarteIndicateur, EnTetePage, Pastille, Tableau, Td, Th } from "@/components/ui/primitives";
+import { Recherche } from "@/components/ui/recherche";
 import { exigerEntreprise } from "@/lib/auth/dal";
 import { droitsActifs } from "@/lib/droits/garde";
+import { fmtEntier } from "@/lib/format";
+import { correspond, lireFiltresListe } from "@/lib/recherche";
 import { NATURES_CONGE, formatJours, heureLocale, jourLocal, jourSemaine, retardMinutes } from "@/modules/presences/calcul";
 import { reglagesDe, salarieDuCompte } from "@/modules/presences/creation";
 import { absencesAVenir, maPresence, presencesDuJour, salariesSur, soldesConges } from "@/modules/presences/requetes";
@@ -15,8 +18,10 @@ function fmtJour(jour: string): string {
 }
 
 /** Aujourd'hui : mon pointage, mon solde ; pour l'équipe, qui est là et qui manque. */
-export default async function PagePresences() {
+export default async function PagePresences({ searchParams }: PageProps<"/presences">) {
   const session = await exigerEntreprise();
+  // Recherche seule : l'écran est celui du jour, le registre tient l'historique.
+  const filtres = lireFiltresListe(await searchParams);
   const droits = await droitsActifs();
   const r = await reglagesDe(session.organizationId);
   const maintenant = new Date();
@@ -36,6 +41,8 @@ export default async function PagePresences() {
   const attendus = travaille && heure > r.heureArrivee;
   const manquants = salaries.filter((s) => !presentsIds.has(s.id) && !enConge.has(s.id));
   const retards = presents.filter((p) => retardMinutes(p.arrivee, r.heureArrivee, r.toleranceMinutes) > 0);
+  // Les compteurs restent ceux de toute l'équipe ; seul le tableau « Qui est là » suit la recherche.
+  const affiches = presents.filter((p) => correspond(filtres.q, [p.nom, p.poste, p.motif]));
 
   return (
     <>
@@ -79,6 +86,14 @@ export default async function PagePresences() {
             <h2 className="text-sm font-semibold">Qui est là</h2>
             {droits.has("presences.gerer") && <FormulairePointage salaries={salaries.map((s) => ({ id: s.id, nom: s.nom }))} aujourdhui={aujourdhui} />}
           </div>
+          {presents.length > 0 && (
+            <Recherche
+              chemin="/presences"
+              valeur={filtres.q}
+              placeholder="Nom, poste, motif…"
+              resultats={filtres.q ? `${fmtEntier(affiches.length)} sur ${fmtEntier(presents.length)}` : undefined}
+            />
+          )}
           <Tableau>
             <thead>
               <tr>
@@ -90,7 +105,7 @@ export default async function PagePresences() {
               </tr>
             </thead>
             <tbody>
-              {presents.map((p) => {
+              {affiches.map((p) => {
                 const retard = retardMinutes(p.arrivee, r.heureArrivee, r.toleranceMinutes);
                 return (
                   <tr key={p.id}>
@@ -110,10 +125,12 @@ export default async function PagePresences() {
                   </tr>
                 );
               })}
-              {presents.length === 0 && (
+              {affiches.length === 0 && (
                 <tr>
                   <Td>
-                    <span className="text-[var(--encre-faible)]">Personne n&apos;est encore pointé aujourd&apos;hui.</span>
+                    <span className="text-[var(--encre-faible)]">
+                      {presents.length === 0 ? "Personne n'est encore pointé aujourd'hui." : "Aucun résultat : personne de pointé ne répond à cette recherche."}
+                    </span>
                   </Td>
                 </tr>
               )}

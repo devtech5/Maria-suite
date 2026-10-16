@@ -3,21 +3,27 @@ import type { Metadata } from "next";
 import { AccesRefuse } from "@/components/coque/acces-refuse";
 import { FormulaireAjustement } from "@/components/presences/formulaires";
 import { EnTetePage, Tableau, Td, Th } from "@/components/ui/primitives";
+import { Recherche } from "@/components/ui/recherche";
 import { exigerEntreprise } from "@/lib/auth/dal";
 import { droitsActifs } from "@/lib/droits/garde";
+import { fmtEntier } from "@/lib/format";
+import { correspond, lireFiltresListe } from "@/lib/recherche";
 import { formatJours, jourLocal } from "@/modules/presences/calcul";
 import { reglagesDe } from "@/modules/presences/creation";
 import { soldesConges } from "@/modules/presences/requetes";
 
 export const metadata: Metadata = { title: "Soldes de congés" };
 
-export default async function PageSoldes() {
+export default async function PageSoldes({ searchParams }: PageProps<"/presences/soldes">) {
   const droits = await droitsActifs();
   if (!droits.has("presences.consulter") && !droits.has("conges.valider")) return <AccesRefuse droit="presences.consulter" />;
   const session = await exigerEntreprise();
   const r = await reglagesDe(session.organizationId);
   const aujourdhui = jourLocal(new Date(), r.fuseau);
   const soldes = await soldesConges(session.organizationId, r, aujourdhui);
+  // Recherche seule : un solde se lit au jour dit, il n'a pas de date à filtrer.
+  const filtres = lireFiltresListe(await searchParams);
+  const affiches = soldes.filter((s) => correspond(filtres.q, [s.salarie.nom, s.salarie.matricule, s.salarie.poste]));
 
   return (
     <>
@@ -26,6 +32,14 @@ export default async function PageSoldes() {
         sousTitre={`Au ${aujourdhui.split("-").reverse().join("/")} · ${formatJours(r.congesCentiemesParMois)} par mois de service${r.verifie ? "" : " · règle à vérifier dans Réglages"}`}
         actions={droits.has("conges.valider") && soldes.length > 0 ? <FormulaireAjustement salaries={soldes.map((s) => ({ id: s.salarie.id, nom: s.salarie.nom }))} aujourdhui={aujourdhui} /> : undefined}
       />
+      {soldes.length > 0 && (
+        <Recherche
+          chemin="/presences/soldes"
+          valeur={filtres.q}
+          placeholder="Salarié, matricule, poste…"
+          resultats={filtres.q ? `${fmtEntier(affiches.length)} sur ${fmtEntier(soldes.length)}` : undefined}
+        />
+      )}
       <Tableau>
         <thead>
           <tr>
@@ -38,7 +52,7 @@ export default async function PageSoldes() {
           </tr>
         </thead>
         <tbody>
-          {soldes.map((s) => (
+          {affiches.map((s) => (
             <tr key={s.salarie.id}>
               <Td fort>
                 {s.salarie.nom}
@@ -61,10 +75,10 @@ export default async function PageSoldes() {
               </Td>
             </tr>
           ))}
-          {soldes.length === 0 && (
+          {affiches.length === 0 && (
             <tr>
               <Td>
-                <span className="text-[var(--encre-faible)]">Aucun salarié en poste.</span>
+                <span className="text-[var(--encre-faible)]">{soldes.length === 0 ? "Aucun salarié en poste." : "Aucun résultat : aucun salarié ne répond à cette recherche."}</span>
               </Td>
             </tr>
           )}

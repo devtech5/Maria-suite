@@ -5,6 +5,7 @@ import { correspond, Recherche } from "@/components/ui/recherche";
 import { exigerEntreprise } from "@/lib/auth/dal";
 import { peut } from "@/lib/droits/garde";
 import { fmtCompact, fmtEntier } from "@/lib/format";
+import { dansPeriode, lireFiltresListe } from "@/lib/recherche";
 import { listerDepenses, listerProjets, piecesParDepense } from "@/modules/projets/requetes";
 import { listerTiers } from "@/modules/tiers/requetes";
 
@@ -17,13 +18,11 @@ export const metadata: Metadata = { title: "Dépenses" };
  * Toutes les dépenses de l'entreprise, rattachées à un projet ou non. Celles
  * qui attendent une décision remontent en tête.
  */
-export default async function PageDepenses({
-  searchParams,
-}: {
-  searchParams: Promise<{ q?: string; statut?: string }>;
-}) {
+export default async function PageDepenses({ searchParams }: PageProps<"/projets/depenses">) {
   const session = await exigerEntreprise();
-  const { q = "", statut = "" } = await searchParams;
+  const parametres = await searchParams;
+  const filtres = lireFiltresListe(parametres);
+  const statut = typeof parametres.statut === "string" ? parametres.statut : "";
   const [depenses, pieces, projets, fournisseurs, approuver, payer, demander] = await Promise.all([
     listerDepenses(session.organizationId),
     piecesParDepense(session.organizationId),
@@ -40,9 +39,11 @@ export default async function PageDepenses({
   const affichees = depenses.filter(
     (d) =>
       (!statut || d.statut === statut) &&
-      correspond(q, [d.numero, d.objet, d.fournisseur, d.projet, d.demandeur, d.referencePaiement]),
+      correspond(filtres.q, [d.numero, d.objet, d.fournisseur, d.projet, d.demandeur, d.referencePaiement]) &&
+      // La date de la dépense est celle de sa demande : approbation et paiement viennent après.
+      dansPeriode(d.demandeeLe, filtres.periode),
   );
-  const filtre = q.trim() !== "" || statut !== "";
+  const filtre = filtres.actif || statut !== "";
   const ouverts = projets.filter((p) => p.statut !== "termine" && p.statut !== "annule");
 
   return (
@@ -87,8 +88,9 @@ export default async function PageDepenses({
 
           <Recherche
             chemin="/projets/depenses"
-            valeur={q}
-            placeholder="Numéro, objet, fournisseur, projet"
+            valeur={filtres.q}
+            placeholder="Numéro, objet, fournisseur, projet…"
+            periode={{ ...filtres.periode, libelle: "Demandée" }}
             resultats={filtre ? `${affichees.length} sur ${depenses.length}` : undefined}
             filtres={
               <select name="statut" defaultValue={statut} aria-label="Étape" className={CLASSE_CHAMP_COMPACT}>
@@ -101,7 +103,11 @@ export default async function PageDepenses({
               </select>
             }
           />
-          <TableauDepenses depenses={affichees} pieces={pieces} droits={{ approuver, payer, demander }} afficherProjet />
+          {affichees.length === 0 ? (
+            <EtatVide titre="Aucune dépense ne répond" message="Élargissez la période, changez d'étape ou retirez un mot de la recherche." />
+          ) : (
+            <TableauDepenses depenses={affichees} pieces={pieces} droits={{ approuver, payer, demander }} afficherProjet />
+          )}
         </>
       )}
     </>

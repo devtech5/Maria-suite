@@ -1,6 +1,5 @@
 import type { Metadata } from "next";
 
-import { BoutonDemonstration } from "@/components/bouton-demonstration";
 import {
   CarteIndicateur,
   EnTetePage,
@@ -90,9 +89,8 @@ export default async function PageMouvements() {
           message={
             depots.length === 0
               ? "Ouvrez d'abord un dépôt : une quantité n'existe qu'attachée à un lieu."
-              : "Enregistrez une réception, ou installez le jeu de démonstration pour voir un mois de mouvements."
+              : "Enregistrez une réception : chaque entrée et chaque sortie de stock apparaîtra ici."
           }
-          actions={<BoutonDemonstration libelle="Installer le jeu de démonstration" />}
         />
       ) : (
         <>

@@ -469,6 +469,18 @@ export const MODULES: ModuleDefinition[] = [
     requires: ["actifs"],
     description: "Ordinateurs, imprimantes, réseau, téléphones : utilisateur, garantie, pannes, licences logicielles.",
   },
+  {
+    key: "moyens_generaux",
+    name: "Moyens généraux",
+    layer: "metier",
+    // En base : fournitures de bureau (catalogue, entrées chiffrées, remises
+    // à un salarié ou un service, stock tiré des mouvements, alerte au seuil).
+    // L'entretien des locaux passe par le moteur : un local est un actif de
+    // type « local », avec ses interventions et ses échéances.
+    status: "en_cours",
+    requires: ["actifs", "personnes"],
+    description: "Fournitures de bureau et entretien des locaux : stock, remises, nettoyage, réparations, contrôles.",
+  },
   { key: "fitness", name: "Fitness", layer: "metier", status: "planifie", requires: ["reservation", "pos"], description: "Adhérents, formules, contrôle d'accès." },
   {
     key: "projet",
@@ -503,10 +515,6 @@ export function getModule(key: string): ModuleDefinition | undefined {
   return BY_KEY.get(key);
 }
 
-export function modulesByLayer(layer: ModuleLayer): ModuleDefinition[] {
-  return MODULES.filter((m) => m.layer === layer);
-}
-
 /**
  * Vrai quand les écrans du module lisent la base et non un jeu d'essai.
  *
@@ -523,24 +531,3 @@ export function estLivre(key: string): boolean {
 export const MODULES_LIVRES: string[] = MODULES.filter((m) =>
   estLivre(m.key),
 ).map((m) => m.key);
-
-/**
- * Développe la liste des modules à activer en y ajoutant leurs dépendances.
- * Activer « garage » entraîne « actifs », « tiers » et « personnes ».
- */
-export function resolveDependencies(keys: string[]): string[] {
-  const resolved = new Set<string>();
-
-  // Nommé `definition` et non `module` : ce dernier est réservé par CommonJS,
-  // et Next refuse qu'on lui assigne quoi que ce soit.
-  const visit = (key: string) => {
-    if (resolved.has(key)) return;
-    const definition = BY_KEY.get(key);
-    if (!definition) throw new Error(`Module inconnu : ${key}`);
-    resolved.add(key);
-    definition.requires.forEach(visit);
-  };
-
-  keys.forEach(visit);
-  return [...resolved];
-}

@@ -4,6 +4,8 @@ import { and, asc, desc, eq, inArray, sql } from "drizzle-orm";
 
 import { db } from "@/db";
 import type { SoldeCompte } from "@/lib/comptabilite/etats";
+import { motsRecherche, type FiltresListe } from "@/lib/recherche";
+import { dansPeriodeSql, motsDans } from "@/lib/recherche-sql";
 import { ecritures, lignesEcriture } from "./schema";
 
 /**
@@ -106,7 +108,7 @@ export interface EcritureJournal {
  */
 export async function journalEcritures(
   organizationId: string,
-  options: { exercice?: string; journal?: string; limite?: number } = {},
+  options: { exercice?: string; journal?: string; limite?: number; filtres?: FiltresListe } = {},
 ): Promise<EcritureJournal[]> {
   const filtres = [eq(ecritures.organizationId, organizationId)];
   if (options.exercice) filtres.push(eq(ecritures.exercice, options.exercice));
@@ -114,6 +116,19 @@ export async function journalEcritures(
     filtres.push(
       eq(ecritures.journal, options.journal as (typeof ecritures.journal.enumValues)[number]),
     );
+  }
+  // Recherche et période filtrées en base, avant la borne : sinon une
+  // écriture ancienne ne se retrouverait jamais. Les comptes et les tiers se
+  // cherchent dans les lignes de l'écriture.
+  if (options.filtres) {
+    const comptes = sql`(select string_agg(concat_ws(' ', l.compte, l.libelle_compte, l.auxiliaire), ' ') from lignes_ecriture l where l.ecriture_id = ${ecritures.id})`;
+    const recherche = motsDans(
+      [ecritures.numero, ecritures.libelle, ecritures.pieceNumero, comptes],
+      motsRecherche(options.filtres.q),
+    );
+    const periode = dansPeriodeSql(ecritures.dateEcriture, options.filtres.periode);
+    if (recherche) filtres.push(recherche);
+    if (periode) filtres.push(periode);
   }
 
   const entetes = await db

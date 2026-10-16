@@ -1,8 +1,10 @@
 import "server-only";
 
-import { sql } from "drizzle-orm";
+import { and, sql } from "drizzle-orm";
 
 import { db } from "@/db";
+import { motsRecherche, type FiltresListe } from "@/lib/recherche";
+import { dansPeriodeSql, motsDans } from "@/lib/recherche-sql";
 
 import { lignesComptaLibres } from "./creation";
 import { sortiesPaie } from "@/modules/paie/requetes";
@@ -109,7 +111,14 @@ export interface VirementVue {
   envoyePar: string | null;
 }
 
-export async function listerVirements(organizationId: string, limite = 100): Promise<VirementVue[]> {
+export async function listerVirements(organizationId: string, limite = 100, filtres?: FiltresListe): Promise<VirementVue[]> {
+  // Filtrés en base, pas après coup : sinon la recherche ne verrait que les cent derniers.
+  const recherche =
+    filtres &&
+    and(
+      motsDans([sql`v.numero`, sql`s.nom`, sql`d.nom`, sql`v.reference`, sql`v.motif`, sql`u.full_name`], motsRecherche(filtres.q)),
+      dansPeriodeSql(sql`v.date_envoi`, filtres.periode),
+    );
   const lignes = await db.execute<{
     id: string;
     numero: string;
@@ -132,7 +141,7 @@ export async function listerVirements(organizationId: string, limite = 100): Pro
     join comptes_tresorerie s on s.id = v.source_id
     join comptes_tresorerie d on d.id = v.destination_id
     left join users u on u.id = v.envoye_par_user_id
-    where v.organization_id = ${organizationId}
+    where v.organization_id = ${organizationId}${recherche ? sql` and ${recherche}` : sql``}
     order by case v.statut when 'en_transit' then 0 else 1 end, v.created_at desc
     limit ${limite}
   `);
@@ -179,8 +188,23 @@ export interface BonVue {
   justificatifNom: string | null;
 }
 
-/** Bons de caisse. Sans `tous`, seulement ceux que la personne a demandés. */
-export async function listerBons(organizationId: string, userId: string, tous: boolean): Promise<BonVue[]> {
+/**
+ * Bons de caisse. Sans `tous`, seulement ceux que la personne a demandés.
+ *
+ * Sans filtre, les bons en attente et ceux des soixante derniers jours. Une
+ * recherche porte sur tous les bons, en base : un bon d'il y a un an doit se
+ * retrouver par son numéro.
+ */
+export async function listerBons(organizationId: string, userId: string, tous: boolean, filtres?: FiltresListe): Promise<BonVue[]> {
+  const recherche =
+    filtres &&
+    and(
+      motsDans(
+        [sql`b.numero`, sql`c.nom`, sql`coalesce(bt.nom, be.nom, bw.nom, b.beneficiaire)`, sql`b.motif`, sql`d.full_name`, sql`b.ecriture`],
+        motsRecherche(filtres.q),
+      ),
+      dansPeriodeSql(sql`b.created_at`, filtres.periode),
+    );
   const lignes = await db.execute<{
     id: string;
     numero: string;
@@ -217,7 +241,7 @@ export async function listerBons(organizationId: string, userId: string, tous: b
     left join users d on d.id = b.demande_par_user_id
     left join users a on a.id = b.approuve_par_user_id
     where b.organization_id = ${organizationId} and (${tous} or b.demande_par_user_id = ${userId})
-      and (b.statut in ('demande', 'approuve') or b.updated_at > now() - interval '60 days')
+      and ${recherche ?? sql`(b.statut in ('demande', 'approuve') or b.updated_at > now() - interval '60 days')`}
     order by case b.statut when 'demande' then 0 when 'approuve' then 1 else 2 end, b.created_at desc
     limit 300
   `);

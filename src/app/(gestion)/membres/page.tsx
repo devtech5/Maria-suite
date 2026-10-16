@@ -1,17 +1,23 @@
 import type { Metadata } from "next";
 
-import { EnTetePage } from "@/components/ui/primitives";
+import { EnTetePage, EtatVide } from "@/components/ui/primitives";
+import { Recherche } from "@/components/ui/recherche";
 import { exigerEntreprise } from "@/lib/auth/dal";
 import { restrictionsParMembre } from "@/lib/auth/acces";
 import { listerMembres, rolesAttribuables } from "@/lib/auth/membres";
-import { fmtDateIso } from "@/lib/format";
+import { fmtDateIso, fmtEntier } from "@/lib/format";
+import { correspond, lireFiltresListe } from "@/lib/recherche";
 import { FormulaireMembre } from "./formulaire-membre";
 import { ListeMembres, type LigneMembre } from "./liste-membres";
 
 export const metadata: Metadata = { title: "Utilisateurs" };
 
-export default async function PageMembres() {
+/** Statut tel que la liste l'affiche : on le cherche comme on le lit. */
+const STATUT = { actif: "Actif", invite: "Invité", suspendu: "Suspendu" } as const;
+
+export default async function PageMembres({ searchParams }: PageProps<"/membres">) {
   const session = await exigerEntreprise();
+  const { q } = lireFiltresListe(await searchParams);
 
   const [membres, roles, restrictions] = await Promise.all([
     listerMembres(session.organizationId),
@@ -38,6 +44,9 @@ export default async function PageMembres() {
       ? fmtDateIso(membre.rejointLe.toISOString().slice(0, 10))
       : null,
   }));
+  const affichees = lignes.filter((l) =>
+    correspond(q, [l.nom, l.email, l.roleNom, STATUT[l.statut], l.proprietaire ? "Propriétaire" : null]),
+  );
 
   return (
     <>
@@ -51,7 +60,18 @@ export default async function PageMembres() {
         actions={<FormulaireMembre roles={roles} />}
       />
 
-      <ListeMembres membres={lignes} roles={roles} moiId={session.userId} />
+      <Recherche
+        chemin="/membres"
+        valeur={q}
+        placeholder="Nom, adresse, rôle, statut…"
+        resultats={q ? `${fmtEntier(affichees.length)} sur ${fmtEntier(lignes.length)}` : undefined}
+      />
+
+      {affichees.length === 0 ? (
+        <EtatVide titre="Aucun utilisateur ne répond" message="Retirez un mot de la recherche." />
+      ) : (
+        <ListeMembres membres={affichees} roles={roles} moiId={session.userId} />
+      )}
     </>
   );
 }

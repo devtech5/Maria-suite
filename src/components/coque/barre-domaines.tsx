@@ -10,6 +10,7 @@ import { domaineDe, groupesVisibles, raccourcisCompte, relevDe, type CleIcone, t
 
 import { IconeModule } from "./icone-module";
 import { MenuCompte } from "./menu-compte";
+import { RechercheGlobale } from "./recherche-globale";
 
 /** Le tableau de bord ouvre le Pilotage : il n'est le module de personne, et chacun y a accès. */
 const TABLEAU_DE_BORD: Pick<EntreeModule, "href" | "racine" | "libelle"> = { href: "/", racine: "/", libelle: "Tableau de bord" };
@@ -58,8 +59,8 @@ export function domainesVisibles(droits: Droit[], modulesOuverts: string[]): Dom
  * seul endroit où il porte du texte. Plus de barre latérale : la largeur
  * entière revient aux tableaux.
  *
- * Seize domaines au plus : tous tiennent sur un écran de 1366 px. Seule la
- * rangée des domaines défile sur un écran plus étroit. Les outils et le
+ * Les domaines sont espacés et centrés entre la marque et les outils. Sur un
+ * écran trop étroit pour tous, seule leur rangée défile. Les outils et le
  * menu de compte restent dehors : leurs menus déroulants seraient coupés par
  * un conteneur qui défile.
  */
@@ -102,12 +103,13 @@ export function BarreDomaines({
 
       <span className="hidden h-8 w-px shrink-0 bg-[var(--filet)] 2xl:block" aria-hidden />
 
-      <nav aria-label="Domaines" className="flex min-w-0 flex-1 items-stretch overflow-x-auto">
+      {/* Centrée tant qu'elle tient ; collée à gauche dès qu'elle défile, sinon le début serait coupé. */}
+      <nav aria-label="Domaines" className="flex min-w-0 flex-1 items-stretch justify-center-safe gap-1.5 overflow-x-auto">
         {/* L'accueil n'est pas un domaine : il les présente tous, en grille. */}
         <Link
           href="/accueil"
           title="Accueil : tous les modules"
-          className="flex min-w-[3.25rem] shrink-0 flex-col items-center justify-center gap-1 rounded-xl px-1 py-1.5 text-[10px] font-bold uppercase whitespace-nowrap text-[var(--encre-douce)] transition-colors hover:bg-[var(--surface-creuse)] hover:text-white 2xl:px-2"
+          className="flex min-w-[3.25rem] shrink-0 flex-col items-center justify-center gap-1 rounded-xl px-2.5 py-1.5 text-[10px] font-bold uppercase whitespace-nowrap text-[var(--encre-douce)] transition-colors hover:bg-[var(--surface-creuse)] hover:text-white 2xl:px-3"
         >
           <IconeModule cle="maison" className="size-5 shrink-0" />
           Accueil
@@ -120,7 +122,7 @@ export function BarreDomaines({
               href={d.href}
               title={d.titre}
               aria-current={courant ? "page" : undefined}
-              className={`flex min-w-[3.25rem] shrink-0 flex-col items-center justify-center gap-1 rounded-xl px-1 py-1.5 text-[10px] font-bold uppercase whitespace-nowrap 2xl:px-2 transition-colors ${
+              className={`flex min-w-[3.25rem] shrink-0 flex-col items-center justify-center gap-1 rounded-xl px-2.5 py-1.5 text-[10px] font-bold uppercase whitespace-nowrap 2xl:px-3 transition-colors ${
                 courant
                   ? "bg-or text-nuit-profond shadow-sm"
                   : "text-[var(--encre-douce)] hover:bg-[var(--surface-creuse)] hover:text-white"
@@ -134,6 +136,7 @@ export function BarreDomaines({
       </nav>
 
       <div className="flex shrink-0 items-center gap-1">
+        <RechercheGlobale />
         {entrepriseActive && (
           <span className="hidden whitespace-nowrap rounded-full border border-[var(--filet)] bg-[var(--surface-creuse)] px-3 py-1 text-[11px] font-semibold 2xl:inline">
             {entrepriseActive}

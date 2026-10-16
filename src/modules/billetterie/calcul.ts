@@ -6,7 +6,7 @@ import {
   type LigneEcriture,
 } from "@/lib/comptabilite/ecritures";
 
-import type { MoyenBillet, StatutBillet, StatutDepart } from "./schema";
+import type { MoyenBillet, StatutDepart } from "./schema";
 
 /**
  * Règles de la billetterie.
@@ -46,11 +46,6 @@ export function siegeValide(siege: string, rangees: number): boolean {
 export function comparerSieges(a: string, b: string): number {
   const rangee = (s: string) => Number.parseInt(s, 10);
   return rangee(a) - rangee(b) || a.localeCompare(b);
-}
-
-/** Le billet occupe-t-il encore son siège ? Seul l'annulé le libère. */
-export function occupeSiege(statut: StatutBillet): boolean {
-  return statut !== "annule";
 }
 
 export function tauxRemplissage(vendus: number, rangees: number): number {

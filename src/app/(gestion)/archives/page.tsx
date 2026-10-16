@@ -7,6 +7,7 @@ import { CarteIndicateur, CLASSE_CHAMP, EnTetePage, EtatVide } from "@/component
 import { exigerEntreprise } from "@/lib/auth/dal";
 import { peut } from "@/lib/droits/garde";
 import { fmtEntier } from "@/lib/format";
+import { lireFiltresListe } from "@/lib/recherche";
 import { stockageConfigure } from "@/lib/stockage";
 import { archiver } from "@/modules/archives/actions";
 import {
@@ -25,8 +26,10 @@ import { ListeArchives } from "./liste-archives";
 
 export const metadata: Metadata = { title: "Mes archives" };
 
-export default async function PageMesArchives() {
+export default async function PageMesArchives({ searchParams }: PageProps<"/archives">) {
   const session = await exigerEntreprise();
+  // `?q=` arrive de la recherche globale ; la liste filtre ensuite sur place.
+  const filtres = lireFiltresListe(await searchParams);
   const [consulter, deposer, gestionnaire] = await Promise.all([
     peut("archives.consulter"),
     peut("archives.deposer"),
@@ -153,7 +156,13 @@ export default async function PageMesArchives() {
           message="Déposez ici ce que vous devez conserver : contrat reçu par message, relevé, capture d'un paiement, export. Le fichier est scellé par son empreinte dès le dépôt."
         />
       ) : (
-        <ListeArchives archives={archives.map(affichee)} mode="personnel" peutRetirer={deposer} />
+        <ListeArchives
+          archives={archives.map(affichee)}
+          mode="personnel"
+          peutRetirer={deposer}
+          rechercheInitiale={filtres.q}
+          periodeInitiale={filtres.periode}
+        />
       )}
     </>
   );

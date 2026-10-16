@@ -283,11 +283,3 @@ export async function fermerSession(): Promise<void> {
 
   magasin.delete(COOKIE_SESSION);
 }
-
-/** Révoque toutes les sessions d'un utilisateur — départ, appareil perdu. */
-export async function revoquerToutesLesSessions(userId: string): Promise<void> {
-  await db
-    .update(sessions)
-    .set({ revokedAt: new Date() })
-    .where(and(eq(sessions.userId, userId), isNull(sessions.revokedAt)));
-}

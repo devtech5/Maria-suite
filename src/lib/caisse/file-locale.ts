@@ -156,14 +156,6 @@ export async function fileEnAttente(): Promise<TicketLocal[]> {
   return tickets.sort((a, b) => a.numeroSeq - b.numeroSeq);
 }
 
-/** Tickets refusés par le serveur. Ils demandent une décision humaine. */
-export async function fileRefusee(): Promise<TicketLocal[]> {
-  if (!disponible()) return [];
-  return transaction<TicketLocal[]>(STORE_TICKETS, "readonly", (tx) =>
-    tx.objectStore(STORE_TICKETS).index("etat").getAll("refuse"),
-  );
-}
-
 async function marquer(
   id: string,
   etat: EtatTicket,
@@ -243,34 +235,4 @@ export async function encaisserFile(
     refuses,
     restants: (await fileEnAttente()).length,
   };
-}
-
-/**
- * Purge les tickets déjà partis, plus vieux que `jours`.
- *
- * La file n'est pas un journal : l'historique vit en base, où il est
- * interrogeable et sauvegardé. Garder six mois de tickets sur un terminal
- * d'entrée de gamme finit par le remplir.
- */
-export async function purgerEnvoyes(jours = 7): Promise<number> {
-  if (!disponible()) return 0;
-
-  const limite = Date.now() - jours * 24 * 60 * 60 * 1000;
-  const envoyes = await transaction<TicketLocal[]>(
-    STORE_TICKETS,
-    "readonly",
-    (tx) => tx.objectStore(STORE_TICKETS).index("etat").getAll("envoye"),
-  );
-
-  const perimes = envoyes.filter(
-    (ticket) => new Date(ticket.encaisseeLe).getTime() < limite,
-  );
-
-  for (const ticket of perimes) {
-    await transaction(STORE_TICKETS, "readwrite", (tx) =>
-      tx.objectStore(STORE_TICKETS).delete(ticket.id),
-    );
-  }
-
-  return perimes.length;
 }

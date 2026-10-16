@@ -3,9 +3,11 @@ import Link from "next/link";
 
 import { AccesRefuse } from "@/components/coque/acces-refuse";
 import { CarteIndicateur, EnTetePage, EtatVide, Pastille, Tableau, Td, Th, type TonPastille } from "@/components/ui/primitives";
+import { Recherche } from "@/components/ui/recherche";
 import { exigerEntreprise } from "@/lib/auth/dal";
 import { peut } from "@/lib/droits/garde";
 import { fmt, fmtEntier } from "@/lib/format";
+import { correspond, dansPeriode, lireFiltresListe } from "@/lib/recherche";
 import { ETATS_CONVENTION, type EtatConvention } from "@/modules/marches/calcul";
 import { listerConventions } from "@/modules/marches/creation";
 
@@ -22,9 +24,10 @@ const date = (iso: string | null) => (iso ? iso.split("-").reverse().join("/") :
  * préavis, reconduction tacite, avenants et pièce signée ; cet écran les
  * présente échéances en tête.
  */
-export default async function PageContratsFournisseurs() {
+export default async function PageContratsFournisseurs({ searchParams }: PageProps<"/contrats/fournisseurs">) {
   if (!(await peut("marches.consulter"))) return <AccesRefuse droit="marches.consulter" />;
   const session = await exigerEntreprise();
+  const filtres = lireFiltresListe(await searchParams);
   const [toutes, gerer] = await Promise.all([listerConventions(session.organizationId), peut("marches.convention.gerer")]);
 
   const lignes = toutes
@@ -34,6 +37,11 @@ export default async function PageContratsFournisseurs() {
   const engage = lignes
     .filter((l) => l.etat === "en_vigueur" || l.etat === "a_renouveler")
     .reduce((s, l) => s + (l.montantEffectif ?? 0), 0);
+  // Les indicateurs portent sur tous les contrats ; seul le tableau suit la recherche.
+  // La période porte sur l'échéance, avenants compris : un contrat sans terme n'y entre pas.
+  const affiches = lignes.filter(
+    (l) => correspond(filtres.q, [l.numero, l.partenaire, l.intitule, l.objet, ETATS_CONVENTION[l.etat]]) && dansPeriode(l.finEffective, filtres.periode),
+  );
 
   return (
     <>
@@ -69,46 +77,59 @@ export default async function PageContratsFournisseurs() {
           }
         />
       ) : (
-        <Tableau>
-          <thead>
-            <tr>
-              <Th>Numéro</Th>
-              <Th>Fournisseur</Th>
-              <Th>Objet</Th>
-              <Th>Début</Th>
-              <Th>Échéance</Th>
-              <Th aligne="droite">Montant</Th>
-              <Th>État</Th>
-            </tr>
-          </thead>
-          <tbody>
-            {lignes.map((l) => (
-              <tr key={l.id}>
-                <Td chiffres>
-                  <Link href={`/marches/conventions/${l.id}`} className="font-semibold text-marque-600 hover:underline">
-                    {l.numero}
-                  </Link>
-                </Td>
-                <Td fort>{l.partenaire}</Td>
-                <Td>
-                  {l.intitule}
-                  {l.reconductionTacite && <span className="block text-xs text-[var(--encre-faible)]">Reconduction tacite</span>}
-                </Td>
-                <Td chiffres>{date(l.debut)}</Td>
-                <Td chiffres>{l.finEffective ? date(l.finEffective) : "Sans terme"}</Td>
-                <Td aligne="droite" chiffres>
-                  {l.montantEffectif === null ? "—" : fmt(l.montantEffectif)}
-                </Td>
-                <Td>
-                  <Pastille ton={TON[l.etat]}>{ETATS_CONVENTION[l.etat]}</Pastille>
-                  {l.jours !== null && l.etat === "a_renouveler" && (
-                    <span className="block text-xs text-[var(--encre-faible)]">dans {fmtEntier(l.jours)} j</span>
-                  )}
-                </Td>
-              </tr>
-            ))}
-          </tbody>
-        </Tableau>
+        <>
+          <Recherche
+            chemin="/contrats/fournisseurs"
+            valeur={filtres.q}
+            placeholder="Numéro, fournisseur, objet…"
+            periode={{ ...filtres.periode, libelle: "Échéance" }}
+            resultats={filtres.actif ? `${fmtEntier(affiches.length)} sur ${fmtEntier(lignes.length)}` : undefined}
+          />
+          {affiches.length === 0 ? (
+            <EtatVide titre="Aucun contrat ne répond" message="Élargissez la période ou retirez un mot de la recherche." />
+          ) : (
+            <Tableau>
+              <thead>
+                <tr>
+                  <Th>Numéro</Th>
+                  <Th>Fournisseur</Th>
+                  <Th>Objet</Th>
+                  <Th>Début</Th>
+                  <Th>Échéance</Th>
+                  <Th aligne="droite">Montant</Th>
+                  <Th>État</Th>
+                </tr>
+              </thead>
+              <tbody>
+                {affiches.map((l) => (
+                  <tr key={l.id}>
+                    <Td chiffres>
+                      <Link href={`/marches/conventions/${l.id}`} className="font-semibold text-marque-600 hover:underline">
+                        {l.numero}
+                      </Link>
+                    </Td>
+                    <Td fort>{l.partenaire}</Td>
+                    <Td>
+                      {l.intitule}
+                      {l.reconductionTacite && <span className="block text-xs text-[var(--encre-faible)]">Reconduction tacite</span>}
+                    </Td>
+                    <Td chiffres>{date(l.debut)}</Td>
+                    <Td chiffres>{l.finEffective ? date(l.finEffective) : "Sans terme"}</Td>
+                    <Td aligne="droite" chiffres>
+                      {l.montantEffectif === null ? "—" : fmt(l.montantEffectif)}
+                    </Td>
+                    <Td>
+                      <Pastille ton={TON[l.etat]}>{ETATS_CONVENTION[l.etat]}</Pastille>
+                      {l.jours !== null && l.etat === "a_renouveler" && (
+                        <span className="block text-xs text-[var(--encre-faible)]">dans {fmtEntier(l.jours)} j</span>
+                      )}
+                    </Td>
+                  </tr>
+                ))}
+              </tbody>
+            </Tableau>
+          )}
+        </>
       )}
     </>
   );

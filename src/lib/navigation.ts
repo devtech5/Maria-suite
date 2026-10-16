@@ -123,6 +123,7 @@ export const GROUPES_MODULES: GroupeModules[] = [
       { href: "/parc-auto", racine: "/parc-auto", icone: "parc-auto", libelle: "Parc auto", description: "Véhicules, pleins, consommation et vignettes.", droit: "parc_auto.consulter" },
       { href: "/parc-informatique", racine: "/parc-informatique", icone: "parc-informatique", libelle: "Parc informatique", description: "Ordinateurs, attributions et licences.", droit: "parc_informatique.consulter" },
       { href: "/actifs", racine: "/actifs", icone: "actifs", libelle: "Matériels", description: "Engins et matériel : interventions et échéances.", droit: "actifs.consulter" },
+      { href: "/moyens-generaux", racine: "/moyens-generaux", icone: "stock", libelle: "Moyens généraux", description: "Fournitures de bureau et entretien des locaux.", droit: "moyens_generaux.consulter" },
     ],
   },
   {
@@ -171,7 +172,7 @@ export const GROUPES_MODULES: GroupeModules[] = [
   {
     cle: "administration",
     titre: "Administration",
-    court: "Admin",
+    court: "Administration",
     icone: "entreprise",
     modules: [
       { href: "/entreprise", racine: "/entreprise", icone: "entreprise", libelle: "Entreprise", description: "Identité, numérotation et sécurité.", droit: "organisation.parametres.gerer" },

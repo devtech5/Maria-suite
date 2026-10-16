@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useTransition } from "react";
+import { useState, useTransition, type ReactNode } from "react";
 import { useRouter } from "next/navigation";
 
 import { Champ, CLASSE_CHAMP, EtatVide, Pastille, type TonPastille } from "@/components/ui/primitives";
@@ -66,6 +66,8 @@ const MOYENS = [
 
 export function PiecesCommerciales({
   pieces,
+  filtrees = false,
+  recherche,
   lignes,
   reglements,
   options,
@@ -73,7 +75,12 @@ export function PiecesCommerciales({
   droits,
   ouvrir,
 }: {
+  /** Pièces à lister, déjà filtrées par la recherche de la page. */
   pieces: PieceListee[];
+  /** Vrai si une recherche est posée : une liste vide veut alors dire « aucun résultat ». */
+  filtrees?: boolean;
+  /** Formulaire de recherche (`?q=`, `?du=`, `?au=`), rendu au-dessus de la liste. */
+  recherche?: ReactNode;
   lignes: Record<string, LignePieceVue[]>;
   reglements: Record<string, ReglementVue[]>;
   options: OptionsPiece;
@@ -198,7 +205,11 @@ export function PiecesCommerciales({
         </p>
       )}
 
-      {pieces.length === 0 ? (
+      {recherche}
+
+      {pieces.length === 0 && filtrees ? (
+        <EtatVide titre="Aucune pièce ne répond" message="Élargissez la période ou retirez un mot de la recherche." />
+      ) : pieces.length === 0 ? (
         <EtatVide
           titre="Aucun devis, aucune facture"
           message={

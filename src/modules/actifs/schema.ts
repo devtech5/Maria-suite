@@ -31,6 +31,9 @@ export const typeActif = pgEnum("type_actif", [
   "informatique",
   "engin",
   "mobilier",
+  // Bureau, entrepôt, magasin : un local s'entretient comme un engin —
+  // nettoyage, plomberie, climatisation, contrôle des extincteurs.
+  "local",
 ]);
 
 /**

@@ -54,7 +54,7 @@ export default async function PageRessources() {
         sousTitre="Matériel, chambres et salles qui se louent"
         actions={
           gerer ? (
-            <FormulaireRepliable libelle="Nouvelle ressource" titre="Nouvelle ressource" action={creerRessource}>
+            <FormulaireRepliable libelle="Nouvelle ressource" titre="Nouvelle ressource" presentation="tiroir" action={creerRessource}>
               <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
                 <Champ libelle="Désignation">
                   <input name="designation" required placeholder="Bétonnière 350 L" className={CLASSE_CHAMP} />

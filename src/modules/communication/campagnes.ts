@@ -5,6 +5,8 @@ import { and, desc, eq, isNull, sql } from "drizzle-orm";
 import { db } from "@/db";
 import { auditLogs, memberships, users } from "@/db/schema";
 import { newId } from "@/lib/ids";
+import { motsRecherche, type FiltresListe } from "@/lib/recherche";
+import { dansPeriodeSql, motsDans } from "@/lib/recherche-sql";
 import { prochainNumero } from "@/lib/sequences";
 import { listerPieces } from "@/modules/facturation/requetes";
 import { employees } from "@/modules/personnes/schema";
@@ -218,6 +220,19 @@ export async function supprimerBrouillonPour(organizationId: string, campagneId:
   if (supprimees.length === 0) throw new Error("Seul un brouillon se supprime.");
 }
 
-export async function listerCampagnes(organizationId: string): Promise<Campagne[]> {
-  return db.select().from(campagnes).where(eq(campagnes.organizationId, organizationId)).orderBy(desc(campagnes.createdAt)).limit(100);
+export async function listerCampagnes(organizationId: string, filtres?: FiltresListe): Promise<Campagne[]> {
+  return db
+    .select()
+    .from(campagnes)
+    .where(
+      and(
+        eq(campagnes.organizationId, organizationId),
+        // Filtrés en base : la liste s'arrête aux cent derniers. Un brouillon
+        // n'a pas de date d'envoi : il ne répond qu'à une période vide.
+        filtres && motsDans([campagnes.numero, campagnes.titre, campagnes.objet, campagnes.corps], motsRecherche(filtres.q)),
+        filtres && dansPeriodeSql(campagnes.envoyeeLe, filtres.periode),
+      ),
+    )
+    .orderBy(desc(campagnes.createdAt))
+    .limit(100);
 }

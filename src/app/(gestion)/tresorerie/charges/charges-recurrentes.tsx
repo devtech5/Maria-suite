@@ -163,7 +163,7 @@ export function ChargesRecurrentes({
 /** Déclaration d'une charge récurrente. */
 export function FormulaireCharge({ fournisseurs, aujourdhui }: { fournisseurs: { id: string; nom: string }[]; aujourdhui: string }) {
   return (
-    <FormulaireRepliable libelle="Nouvelle charge récurrente" titre="Déclarer une charge récurrente" action={creerChargeRecurrente}>
+    <FormulaireRepliable libelle="Nouvelle charge récurrente" titre="Déclarer une charge récurrente" presentation="tiroir" action={creerChargeRecurrente}>
       <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
         <Champ libelle="Libellé">
           <input name="libelle" required placeholder="Loyer boutique Yopougon" className={CLASSE_CHAMP} />

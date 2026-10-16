@@ -1,11 +1,13 @@
 "use client";
 
-import { useRef, useState, useTransition, type ReactNode } from "react";
+import { useState, useTransition, type ReactNode } from "react";
 import { useRouter } from "next/navigation";
+
+import { Fenetre, type Presentation } from "./fenetre";
 
 /**
  * Briques communes aux écrans qui appellent une action serveur : retour
- * annoncé, formulaire repliable, opération en cours.
+ * annoncé, formulaire en fenêtre, opération en cours.
  */
 
 /** Ce que rend toute action serveur des modules : un succès ou un refus lisible. */
@@ -27,8 +29,13 @@ export function Retour({ resultat }: { resultat: Resultat | null }) {
 }
 
 /**
- * Formulaire repliable branché sur une action serveur à FormData.
- * Se referme et se vide sur un succès ; garde la saisie sur un refus.
+ * Formulaire ouvert par un bouton, dans une fenêtre : modale pour un
+ * formulaire court, tiroir à droite pour un long. Branché sur une action
+ * serveur à FormData.
+ *
+ * Se ferme et se vide sur un succès ; garde la saisie sur un refus. Fermer
+ * (Échap, ×) garde aussi la saisie ; « Annuler » la vide, après confirmation
+ * si elle avait commencé.
  */
 export function FormulaireRepliable({
   libelle,
@@ -36,77 +43,92 @@ export function FormulaireRepliable({
   action,
   children,
   desactive,
+  presentation = "modale",
 }: {
   libelle: string;
   titre: string;
   action: (donnees: FormData) => Promise<Resultat>;
   children: ReactNode;
   desactive?: boolean;
+  presentation?: Presentation;
 }) {
   const [ouvert, setOuvert] = useState(false);
+  const [modifie, setModifie] = useState(false);
   const [resultat, setResultat] = useState<Resultat | null>(null);
+  // Changer la clé remonte le formulaire : champs ET état des composants enfants (lignes ajoutées…) repartent à zéro.
+  const [generation, setGeneration] = useState(0);
   const [enCours, demarrer] = useTransition();
-  const formulaire = useRef<HTMLFormElement>(null);
   const routeur = useRouter();
 
-  if (!ouvert) {
-    return (
-      <div className="flex flex-col items-end">
-        <button
-          type="button"
-          disabled={desactive}
-          onClick={() => {
-            setOuvert(true);
-            setResultat(null);
-          }}
-          className="h-cible rounded-lg bg-marque-600 px-3.5 text-sm font-semibold text-white hover:bg-marque-700 disabled:opacity-50"
-        >
-          {libelle}
-        </button>
-        {resultat?.ok && <Retour resultat={resultat} />}
-      </div>
-    );
-  }
+  const vider = () => {
+    setGeneration((g) => g + 1);
+    setModifie(false);
+  };
+
+  const abandonner = () => {
+    if (modifie && !window.confirm("Abandonner la saisie en cours ?")) return;
+    vider();
+    setResultat(null);
+    setOuvert(false);
+  };
 
   return (
-    <form
-      ref={formulaire}
-      onSubmit={(e) => {
-        e.preventDefault();
-        const donnees = new FormData(e.currentTarget);
-        demarrer(async () => {
-          const r = await action(donnees);
-          setResultat(r);
-          if (r.ok) {
-            setOuvert(false);
-            routeur.refresh();
-          }
-        });
-      }}
-      className="mb-5 w-full rounded-xl border border-[var(--filet)] bg-[var(--surface)] p-4 text-left"
-    >
-      <div className="mb-4 flex items-center justify-between gap-3">
-        <h2 className="text-sm font-semibold">{titre}</h2>
-        <button
-          type="button"
-          onClick={() => setOuvert(false)}
-          className="text-sm text-[var(--encre-faible)] hover:underline"
+    <div className="flex flex-col items-end">
+      <button
+        type="button"
+        disabled={desactive}
+        onClick={() => {
+          setOuvert(true);
+          if (resultat?.ok) setResultat(null);
+        }}
+        className="h-cible rounded-lg bg-marque-600 px-3.5 text-sm font-semibold text-white hover:bg-marque-700 disabled:opacity-50"
+      >
+        {libelle}
+      </button>
+      {!ouvert && resultat?.ok && <Retour resultat={resultat} />}
+
+      <Fenetre ouverte={ouvert} titre={titre} presentation={presentation} retenir={modifie} onFermer={() => setOuvert(false)}>
+        <form
+          key={generation}
+          onInput={() => setModifie(true)}
+          onSubmit={(e) => {
+            e.preventDefault();
+            const donnees = new FormData(e.currentTarget);
+            demarrer(async () => {
+              const r = await action(donnees);
+              setResultat(r);
+              if (r.ok) {
+                vider();
+                setOuvert(false);
+                routeur.refresh();
+              }
+            });
+          }}
+          className="flex flex-1 flex-col"
         >
-          Annuler
-        </button>
-      </div>
-      {children}
-      {resultat && !resultat.ok && <Retour resultat={resultat} />}
-      <div className="mt-4 flex justify-end">
-        <button
-          type="submit"
-          disabled={enCours}
-          className="h-cible rounded-lg bg-marque-600 px-4 text-sm font-semibold text-white hover:bg-marque-700 disabled:opacity-50"
-        >
-          {enCours ? "Enregistrement…" : "Enregistrer"}
-        </button>
-      </div>
-    </form>
+          <div className="flex-1 px-5 py-4">
+            {children}
+            {resultat && !resultat.ok && <Retour resultat={resultat} />}
+          </div>
+          <div className="sticky bottom-0 flex justify-end gap-2 border-t border-[var(--filet)] bg-[var(--surface)] px-5 py-3">
+            <button
+              type="button"
+              onClick={abandonner}
+              className="h-cible rounded-lg border border-[var(--filet)] px-3.5 text-sm font-semibold hover:bg-[var(--surface-creuse)]"
+            >
+              Annuler
+            </button>
+            <button
+              type="submit"
+              disabled={enCours}
+              className="h-cible rounded-lg bg-marque-600 px-4 text-sm font-semibold text-white hover:bg-marque-700 disabled:opacity-50"
+            >
+              {enCours ? "Enregistrement…" : "Enregistrer"}
+            </button>
+          </div>
+        </form>
+      </Fenetre>
+    </div>
   );
 }
 

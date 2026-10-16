@@ -2,9 +2,11 @@ import type { Metadata } from "next";
 import Link from "next/link";
 
 import { CarteIndicateur, EnTetePage, EtatVide } from "@/components/ui/primitives";
+import { Recherche } from "@/components/ui/recherche";
 import { exigerEntreprise } from "@/lib/auth/dal";
 import { peut } from "@/lib/droits/garde";
-import { fmt } from "@/lib/format";
+import { fmt, fmtEntier } from "@/lib/format";
+import { correspond, lireFiltresListe } from "@/lib/recherche";
 import { echeanceDeclarations, libelleMois, moisCourant, moisValide } from "@/modules/paie/calcul";
 import { baremeDe } from "@/modules/paie/creation";
 import { listerPeriodes, periodeDetail } from "@/modules/paie/requetes";
@@ -25,7 +27,10 @@ const date = (iso: string) => JOUR.format(new Date(`${iso}T00:00:00Z`));
 export default async function PagePaie({ searchParams }: PageProps<"/rh/paie">) {
   const session = await exigerEntreprise();
   const [preparer, valider, payer] = await Promise.all([peut("personnes.paie.preparer"), peut("personnes.paie.valider"), peut("personnes.paie.payer")]);
-  const { mois: demande } = await searchParams;
+  const parametres = await searchParams;
+  const { mois: demande } = parametres;
+  // Recherche seule, sans période : le mois de paie choisi plus haut en tient lieu.
+  const filtres = lireFiltresListe(parametres);
   const [periodes, bareme] = await Promise.all([listerPeriodes(session.organizationId), baremeDe(session.organizationId)]);
   const mois = typeof demande === "string" && moisValide(demande) ? demande : (periodes[0]?.mois ?? moisCourant());
   const [detail, comptes] = await Promise.all([periodeDetail(session.organizationId, mois), payer ? listerComptes(session.organizationId) : Promise.resolve([])]);
@@ -35,6 +40,8 @@ export default async function PagePaie({ searchParams }: PageProps<"/rh/paie">) 
   const validee = detail?.periode.statut === "validee";
   const somme = (f: (b: (typeof bulletins)[number]) => number) => bulletins.reduce((s, b) => s + f(b), 0);
   const nonPayes = bulletins.filter((b) => !b.payeLe && b.net > 0);
+  // Les totaux et les versements portent sur tout le mois ; seul le tableau suit la recherche.
+  const affiches = bulletins.filter((b) => correspond(filtres.q, [b.nom, b.matricule, b.numero, b.poste, b.numeroCnps]));
 
   return (
     <>
@@ -135,33 +142,46 @@ export default async function PagePaie({ searchParams }: PageProps<"/rh/paie">) 
             aujourdhui={aujourdhui}
           />
 
-          <TableBulletins
-            bulletins={bulletins.map((b) => ({
-              id: b.id,
-              numero: b.numero,
-              matricule: b.matricule,
-              nom: b.nom,
-              poste: b.poste,
-              numeroCnps: b.numeroCnps,
-              salaireBase: b.salaireBase,
-              joursMois: b.joursMois,
-              joursHorsContrat: b.joursHorsContrat,
-              joursSansSolde: b.joursSansSolde,
-              joursAbsenceSaisis: b.joursAbsenceSaisis,
-              retenueAbsence: b.retenueAbsence,
-              primesImposables: b.primesImposables,
-              rappel: b.rappel,
-              rappelLibelle: b.rappelLibelle,
-              indemnitesNonImposables: b.indemnitesNonImposables,
-              retenuesDiverses: b.retenuesDiverses,
-              brut: b.brut,
-              cnpsSalarie: b.cnpsSalarie,
-              impot: b.impot,
-              net: b.net,
-              payeLe: b.payeLe ? String(b.payeLe).slice(0, 10) : null,
-            }))}
-            modifiable={preparer && !validee}
+          <Recherche
+            // « Tout afficher » reste sur le même mois ; le champ caché le garde à la soumission.
+            chemin={`/rh/paie?mois=${mois}`}
+            valeur={filtres.q}
+            placeholder="Salarié, matricule, n° de bulletin, poste…"
+            filtres={<input type="hidden" name="mois" value={mois} />}
+            resultats={filtres.q ? `${fmtEntier(affiches.length)} sur ${fmtEntier(bulletins.length)}` : undefined}
           />
+
+          {affiches.length === 0 && bulletins.length > 0 ? (
+            <EtatVide titre="Aucun résultat" message={`Aucun bulletin de ${libelleMois(mois)} ne répond à cette recherche.`} />
+          ) : (
+            <TableBulletins
+              bulletins={affiches.map((b) => ({
+                id: b.id,
+                numero: b.numero,
+                matricule: b.matricule,
+                nom: b.nom,
+                poste: b.poste,
+                numeroCnps: b.numeroCnps,
+                salaireBase: b.salaireBase,
+                joursMois: b.joursMois,
+                joursHorsContrat: b.joursHorsContrat,
+                joursSansSolde: b.joursSansSolde,
+                joursAbsenceSaisis: b.joursAbsenceSaisis,
+                retenueAbsence: b.retenueAbsence,
+                primesImposables: b.primesImposables,
+                rappel: b.rappel,
+                rappelLibelle: b.rappelLibelle,
+                indemnitesNonImposables: b.indemnitesNonImposables,
+                retenuesDiverses: b.retenuesDiverses,
+                brut: b.brut,
+                cnpsSalarie: b.cnpsSalarie,
+                impot: b.impot,
+                net: b.net,
+                payeLe: b.payeLe ? String(b.payeLe).slice(0, 10) : null,
+              }))}
+              modifiable={preparer && !validee}
+            />
+          )}
         </>
       )}
     </>

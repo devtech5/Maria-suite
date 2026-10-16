@@ -44,6 +44,7 @@ export * from "@/modules/monnaie/schema";
 export * from "@/modules/projets/schema";
 export * from "@/modules/parc-auto/schema";
 export * from "@/modules/parc-informatique/schema";
+export * from "@/modules/moyens-generaux/schema";
 export * from "@/modules/communication/schema";
 export * from "@/modules/messagerie/schema";
 export * from "@/modules/prestataires/schema";

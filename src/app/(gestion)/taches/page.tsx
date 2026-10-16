@@ -6,6 +6,7 @@ import { CarteIndicateur, EnTetePage, EtatVide } from "@/components/ui/primitive
 import { exigerEntreprise } from "@/lib/auth/dal";
 import { peut } from "@/lib/droits/garde";
 import { fmtEntier } from "@/lib/format";
+import { lireFiltresListe } from "@/lib/recherche";
 import { creerTache } from "@/modules/taches/actions";
 import { enRetard } from "@/modules/taches/calcul";
 import { listerTaches, personnelActif, type VueTaches } from "@/modules/taches/requetes";
@@ -31,7 +32,10 @@ export default async function PageTaches({ searchParams }: PageProps<"/taches">)
   const session = await exigerEntreprise();
   const [executer, attribue] = await Promise.all([peut("taches.executer"), peut("taches.attribuer")]);
 
-  const { vue: demandee } = await searchParams;
+  const parametres = await searchParams;
+  const { vue: demandee } = parametres;
+  // `?q=` arrive de la recherche globale ; la liste filtre ensuite sur place.
+  const filtres = lireFiltresListe(parametres);
   const vue: VueTaches =
     demandee === "confiees" ? "confiees" : demandee === "toutes" && attribue ? "toutes" : "miennes";
 
@@ -125,6 +129,8 @@ export default async function PageTaches({ searchParams }: PageProps<"/taches">)
           personnel={personnel}
           aujourdhui={aujourdhui}
           montrerAssignee={vue !== "miennes"}
+          rechercheInitiale={filtres.q}
+          periodeInitiale={filtres.periode}
         />
       )}
     </>

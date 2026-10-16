@@ -1,11 +1,13 @@
 import type { Metadata } from "next";
 
 import { FormulaireEcheance } from "@/components/actifs/formulaire-echeance";
-import { ListeEcheances } from "@/components/actifs/liste-echeances";
+import { LIBELLE_ECHEANCE, ListeEcheances } from "@/components/actifs/liste-echeances";
 import { CarteIndicateur, EnTetePage, EtatVide } from "@/components/ui/primitives";
+import { Recherche } from "@/components/ui/recherche";
 import { exigerEntreprise } from "@/lib/auth/dal";
 import { peut } from "@/lib/droits/garde";
 import { fmtEntier } from "@/lib/format";
+import { correspond, dansPeriode, lireFiltresListe } from "@/lib/recherche";
 import { listerEcheances } from "@/modules/actifs/requetes";
 import { listerVehicules } from "@/modules/parc-auto/requetes";
 
@@ -16,8 +18,9 @@ export const metadata: Metadata = { title: "Échéances du parc auto" };
  * patente, entretien au kilométrage. Rouler sans assurance ou visite valide
  * immobilise le véhicule au premier contrôle.
  */
-export default async function PageEcheancesParcAuto() {
+export default async function PageEcheancesParcAuto({ searchParams }: PageProps<"/parc-auto/echeances">) {
   const session = await exigerEntreprise();
+  const filtres = lireFiltresListe(await searchParams);
   const [vehicules, toutes, echeancer] = await Promise.all([
     listerVehicules(session.organizationId),
     listerEcheances(session.organizationId),
@@ -27,6 +30,14 @@ export default async function PageEcheancesParcAuto() {
   const echeances = toutes.filter((e) => ids.has(e.actifId));
   const depassees = echeances.filter((e) => e.gravite === "depassee").length;
   const proches = echeances.filter((e) => e.gravite === "proche").length;
+  // Les indicateurs portent sur toutes les échéances suivies ; seule la liste suit la recherche.
+  // Une échéance au seul kilométrage n'a pas de date : une période l'écarte.
+  const immatriculations = new Map(vehicules.map((v) => [v.id, v.fiche?.immatriculation]));
+  const lignes = echeances.filter(
+    (e) =>
+      dansPeriode(e.echeanceLe, filtres.periode) &&
+      correspond(filtres.q, [e.actifCode, e.actifDesignation, immatriculations.get(e.actifId), e.libelle, LIBELLE_ECHEANCE[e.nature]]),
+  );
 
   return (
     <>
@@ -51,7 +62,18 @@ export default async function PageEcheancesParcAuto() {
             <CarteIndicateur libelle="Proches" valeur={fmtEntier(proches)} ton={proches > 0 ? "alerte" : "valide"} precision="Dans les 30 jours" />
             <CarteIndicateur libelle="Suivies" valeur={fmtEntier(echeances.length)} precision="Non honorées" />
           </section>
-          <ListeEcheances echeances={echeances} />
+          <Recherche
+            chemin="/parc-auto/echeances"
+            valeur={filtres.q}
+            placeholder="Immatriculation, véhicule, assurance, visite…"
+            periode={{ ...filtres.periode, libelle: "Échéance" }}
+            resultats={filtres.actif ? `${fmtEntier(lignes.length)} sur ${fmtEntier(echeances.length)}` : undefined}
+          />
+          {lignes.length === 0 ? (
+            <EtatVide titre="Aucun résultat" message="Aucune échéance ne répond. Élargissez la période ou retirez un mot de la recherche." />
+          ) : (
+            <ListeEcheances echeances={lignes} />
+          )}
         </>
       )}
     </>

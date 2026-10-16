@@ -3,9 +3,11 @@ import Link from "next/link";
 
 import { AccesRefuse } from "@/components/coque/acces-refuse";
 import { CarteIndicateur, EnTetePage, EtatVide, Pastille, Tableau, Td, Th, type TonPastille } from "@/components/ui/primitives";
+import { Recherche } from "@/components/ui/recherche";
 import { exigerEntreprise } from "@/lib/auth/dal";
 import { peut } from "@/lib/droits/garde";
 import { fmtEntier } from "@/lib/format";
+import { correspond, dansPeriode, lireFiltresListe } from "@/lib/recherche";
 import { ALERTE_TERME_JOURS, ETATS_CONTRAT_SALARIE, etatContratSalarie, type EtatContratSalarie } from "@/modules/personnes/calcul";
 import { listerSalaries } from "@/modules/personnes/requetes";
 
@@ -26,9 +28,10 @@ function delai(etat: EtatContratSalarie, jours: number | null): string | null {
 }
 
 /** Contrats de travail des salariés en poste, échéances en tête. */
-export default async function PageContratsSalaries() {
+export default async function PageContratsSalaries({ searchParams }: PageProps<"/contrats">) {
   if (!(await peut("personnes.consulter"))) return <AccesRefuse droit="personnes.consulter" />;
   const session = await exigerEntreprise();
+  const filtres = lireFiltresListe(await searchParams);
   const aujourdhui = new Date().toISOString().slice(0, 10);
 
   const lignes = (await listerSalaries(session.organizationId))
@@ -37,6 +40,11 @@ export default async function PageContratsSalaries() {
 
   const compte = (e: EtatContratSalarie) => lignes.filter((l) => l.etat === e).length;
   const essais = lignes.filter((l) => l.essaiEnCours).length;
+  // Les indicateurs portent sur tous les contrats ; seul le tableau suit la recherche.
+  // La période porte sur le terme : un contrat sans terme n'y entre pas.
+  const affiches = lignes.filter(
+    (l) => correspond(filtres.q, [l.nom, l.matricule, l.poste, CONTRAT[l.contrat], ETATS_CONTRAT_SALARIE[l.etat]]) && dansPeriode(l.fin, filtres.periode),
+  );
 
   return (
     <>
@@ -60,49 +68,62 @@ export default async function PageContratsSalaries() {
       {lignes.length === 0 ? (
         <EtatVide titre="Aucun salarié en poste" message="Les contrats apparaissent ici dès la première embauche, depuis le module Personnel." />
       ) : (
-        <Tableau>
-          <thead>
-            <tr>
-              <Th>Salarié</Th>
-              <Th>Fonction</Th>
-              <Th>Contrat</Th>
-              <Th>Entrée</Th>
-              <Th>Terme</Th>
-              <Th>Fin d&apos;essai</Th>
-              <Th>État</Th>
-            </tr>
-          </thead>
-          <tbody>
-            {lignes.map((l) => (
-              <tr key={l.id}>
-                <Td>
-                  <Link href={`/rh/salaries/${l.id}`} className="font-semibold text-marque-600 hover:underline">
-                    {l.nom}
-                  </Link>
-                  <span className="chiffres block text-xs text-[var(--encre-faible)]">{l.matricule}</span>
-                </Td>
-                <Td>{l.poste}</Td>
-                <Td>{CONTRAT[l.contrat]}</Td>
-                <Td chiffres>{date(l.debut)}</Td>
-                <Td chiffres>{l.fin ? date(l.fin) : "Sans terme"}</Td>
-                <Td chiffres>
-                  {l.finPeriodeEssai ? (
-                    <>
-                      {date(l.finPeriodeEssai)}
-                      {l.essaiEnCours && <span className="block text-xs text-alerte-600">en cours</span>}
-                    </>
-                  ) : (
-                    "—"
-                  )}
-                </Td>
-                <Td>
-                  <Pastille ton={TON[l.etat]}>{ETATS_CONTRAT_SALARIE[l.etat]}</Pastille>
-                  {delai(l.etat, l.jours) && <span className="block text-xs text-[var(--encre-faible)]">{delai(l.etat, l.jours)}</span>}
-                </Td>
-              </tr>
-            ))}
-          </tbody>
-        </Tableau>
+        <>
+          <Recherche
+            chemin="/contrats"
+            valeur={filtres.q}
+            placeholder="Nom, matricule, fonction, CDD…"
+            periode={{ ...filtres.periode, libelle: "Terme" }}
+            resultats={filtres.actif ? `${fmtEntier(affiches.length)} sur ${fmtEntier(lignes.length)}` : undefined}
+          />
+          {affiches.length === 0 ? (
+            <EtatVide titre="Aucun contrat ne répond" message="Élargissez la période ou retirez un mot de la recherche." />
+          ) : (
+            <Tableau>
+              <thead>
+                <tr>
+                  <Th>Salarié</Th>
+                  <Th>Fonction</Th>
+                  <Th>Contrat</Th>
+                  <Th>Entrée</Th>
+                  <Th>Terme</Th>
+                  <Th>Fin d&apos;essai</Th>
+                  <Th>État</Th>
+                </tr>
+              </thead>
+              <tbody>
+                {affiches.map((l) => (
+                  <tr key={l.id}>
+                    <Td>
+                      <Link href={`/rh/salaries/${l.id}`} className="font-semibold text-marque-600 hover:underline">
+                        {l.nom}
+                      </Link>
+                      <span className="chiffres block text-xs text-[var(--encre-faible)]">{l.matricule}</span>
+                    </Td>
+                    <Td>{l.poste}</Td>
+                    <Td>{CONTRAT[l.contrat]}</Td>
+                    <Td chiffres>{date(l.debut)}</Td>
+                    <Td chiffres>{l.fin ? date(l.fin) : "Sans terme"}</Td>
+                    <Td chiffres>
+                      {l.finPeriodeEssai ? (
+                        <>
+                          {date(l.finPeriodeEssai)}
+                          {l.essaiEnCours && <span className="block text-xs text-alerte-600">en cours</span>}
+                        </>
+                      ) : (
+                        "—"
+                      )}
+                    </Td>
+                    <Td>
+                      <Pastille ton={TON[l.etat]}>{ETATS_CONTRAT_SALARIE[l.etat]}</Pastille>
+                      {delai(l.etat, l.jours) && <span className="block text-xs text-[var(--encre-faible)]">{delai(l.etat, l.jours)}</span>}
+                    </Td>
+                  </tr>
+                ))}
+              </tbody>
+            </Tableau>
+          )}
+        </>
       )}
     </>
   );

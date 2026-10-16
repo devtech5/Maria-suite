@@ -1,9 +1,11 @@
 import "server-only";
 
-import { and, asc, desc, eq, gte, inArray, isNull, lte, or } from "drizzle-orm";
+import { and, asc, desc, eq, gte, inArray, isNull, lte, or, sql } from "drizzle-orm";
 
 import { db } from "@/db";
 import { users } from "@/db/schema";
+import { motsRecherche, type FiltresListe } from "@/lib/recherche";
+import { dansPeriodeSql, motsDans } from "@/lib/recherche-sql";
 import { employees } from "@/modules/personnes/schema";
 
 import { NATURES_CONGE, ajouterJours, calculerSolde, etatDuJour, heureLocale, joursEntre, type EtatJour, type NatureConge, type Solde } from "./calcul";
@@ -220,10 +222,31 @@ export interface LigneConge {
   creeLe: Date;
 }
 
-export async function listerConges(organizationId: string, filtre: { employeeId?: string; statuts?: LigneConge["statut"][]; limite?: number } = {}): Promise<LigneConge[]> {
+/** Libellé de la nature, en base : « payé » ou « maternité » se cherchent comme l'écran les affiche. */
+const libelleNatureSql = sql`(case ${conges.nature}::text ${sql.join(
+  Object.entries(NATURES_CONGE).map(([cle, n]) => sql`when ${cle} then ${n.libelle}`),
+  sql` `,
+)} end)`;
+
+export async function listerConges(
+  organizationId: string,
+  filtre: { employeeId?: string; statuts?: LigneConge["statut"][]; limite?: number; filtres?: FiltresListe } = {},
+): Promise<LigneConge[]> {
   const conditions = [eq(conges.organizationId, organizationId)];
   if (filtre.employeeId) conditions.push(eq(conges.employeeId, filtre.employeeId));
   if (filtre.statuts?.length) conditions.push(inArray(conges.statut, filtre.statuts));
+  if (filtre.filtres) {
+    // Filtrés en base, pas après coup : l'historique s'arrête aux cent derniers.
+    // Un congé répond à la période s'il la chevauche : du 28 au 3, il compte
+    // dans « au 1er » comme dans « du 2 ».
+    const { q, periode } = filtre.filtres;
+    const recherche = and(
+      motsDans([conges.numero, employees.nom, employees.matricule, libelleNatureSql, conges.motif, conges.commentaire], motsRecherche(q)),
+      dansPeriodeSql(conges.fin, { du: periode.du, au: null }),
+      dansPeriodeSql(conges.debut, { du: null, au: periode.au }),
+    );
+    if (recherche) conditions.push(recherche);
+  }
   const lignes = await db
     .select({
       id: conges.id,

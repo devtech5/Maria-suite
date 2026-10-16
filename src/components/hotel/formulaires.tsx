@@ -10,7 +10,7 @@ const CLASSE_LIEN = "font-medium text-marque-600 hover:underline disabled:opacit
 
 export function FormulaireChambre() {
   return (
-    <FormulaireRepliable libelle="Ajouter une chambre" titre="Nouvelle chambre" action={creerChambre}>
+    <FormulaireRepliable libelle="Ajouter une chambre" titre="Nouvelle chambre" presentation="tiroir" action={creerChambre}>
       <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
         <Champ libelle="Numéro" precision="Celui de la porte">
           <input name="numero" required maxLength={20} placeholder="101" className={`${CLASSE_CHAMP} chiffres`} />
@@ -130,7 +130,7 @@ export function FormulaireSejour({
 }) {
   const [client, setClient] = useState(clients.length > 0 ? "" : "nouveau");
   return (
-    <FormulaireRepliable libelle="Nouvelle réservation" titre="Réserver une chambre" action={reserverSejour} desactive={chambres.length === 0}>
+    <FormulaireRepliable libelle="Nouvelle réservation" titre="Réserver une chambre" presentation="tiroir" action={reserverSejour} desactive={chambres.length === 0}>
       <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
         <Champ libelle="Chambre">
           <select name="ressourceId" required className={CLASSE_CHAMP}>

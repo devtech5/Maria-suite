@@ -1,20 +1,25 @@
 import Link from "next/link";
 import type { ReactNode } from "react";
 
+import type { Periode } from "@/lib/recherche";
+
 import { CLASSE_CHAMP_COMPACT } from "./primitives";
 
 /**
- * Recherche d'une liste, par l'adresse de la page (`?q=`).
+ * Recherche d'une liste, par l'adresse de la page (`?q=`, et `?du=` / `?au=`
+ * quand la liste a une date).
  *
  * Un simple formulaire GET : il marche sans JavaScript, se partage par lien,
  * et le bouton « Retour » du navigateur rend la recherche précédente. La
- * liste se filtre côté serveur, avec la même normalisation partout.
+ * liste se filtre côté serveur, avec la même normalisation partout
+ * (`lireFiltresListe`, `correspond`, `dansPeriode` de `@/lib/recherche`).
  */
 export function Recherche({
   valeur,
   placeholder,
   chemin,
   filtres,
+  periode,
   resultats,
 }: {
   valeur: string;
@@ -23,6 +28,11 @@ export function Recherche({
   chemin: string;
   /** Champs supplémentaires du formulaire (un `select` de famille…). */
   filtres?: ReactNode;
+  /**
+   * Filtre « du … au … » sur la date qui compte pour la liste (date de
+   * facture, échéance, début…), que `libelle` nomme.
+   */
+  periode?: Periode & { libelle: string };
   /** « 12 sur 36 » : affiché quand un filtre est actif. */
   resultats?: string;
 }) {
@@ -37,6 +47,15 @@ export function Recherche({
         className={`${CLASSE_CHAMP_COMPACT} min-w-0 flex-1 sm:max-w-sm`}
       />
       {filtres}
+      {periode && (
+        <fieldset className="flex flex-wrap items-center gap-1.5 text-sm">
+          <legend className="sr-only">{periode.libelle}</legend>
+          <span className="text-[var(--encre-faible)]">{periode.libelle} du</span>
+          <input type="date" name="du" defaultValue={periode.du ?? ""} aria-label={`${periode.libelle} : du`} className={`${CLASSE_CHAMP_COMPACT} chiffres`} />
+          <span className="text-[var(--encre-faible)]">au</span>
+          <input type="date" name="au" defaultValue={periode.au ?? ""} aria-label={`${periode.libelle} : au`} className={`${CLASSE_CHAMP_COMPACT} chiffres`} />
+        </fieldset>
+      )}
       <button
         type="submit"
         className="h-cible rounded-lg border border-[var(--filet)] px-3.5 text-sm font-semibold hover:bg-[var(--surface-creuse)]"
@@ -55,19 +74,4 @@ export function Recherche({
   );
 }
 
-/** Minuscules, sans accents : « Bébé » se trouve en tapant « bebe ». */
-export function normaliser(texte: string): string {
-  return texte
-    .normalize("NFD")
-    .replace(/[̀-ͯ]/g, "")
-    .toLowerCase()
-    .trim();
-}
-
-/** Vrai si tous les mots cherchés figurent dans l'un des champs. */
-export function correspond(recherche: string, champs: (string | null | undefined)[]): boolean {
-  const mots = normaliser(recherche).split(/\s+/).filter(Boolean);
-  if (mots.length === 0) return true;
-  const texte = normaliser(champs.filter(Boolean).join(" "));
-  return mots.every((mot) => texte.includes(mot));
-}
+export { correspond, normaliser } from "@/lib/recherche";
