@@ -38,6 +38,22 @@ export function statutConnu(s: string): s is StatutPlanning {
   return s in STATUTS;
 }
 
+/** Module d'où vient une période que personne n'a saisie dans le planning. */
+export type SourcePeriode = "conge" | "mission" | "reunion";
+
+/**
+ * Ce qui distingue une période déduite d'un créneau saisi : sa pièce
+ * d'origine. Le titre et le lien ne sont remplis que pour qui peut ouvrir
+ * cette pièce ; les autres voient le statut et la référence, rien de plus.
+ */
+export interface Origine {
+  source: SourcePeriode;
+  /** CONG-2026-00012, LIV-2026-00003, REU-2026-00042. */
+  reference: string;
+  titre: string | null;
+  lien: string | null;
+}
+
 export interface Creneau {
   id: string;
   userId: string;
@@ -46,6 +62,8 @@ export interface Creneau {
   fin: Date;
   lieu: string | null;
   note: string | null;
+  /** Absent pour un créneau saisi ; présent pour une période lue dans un autre module. */
+  origine?: Origine | null;
 }
 
 /** Une plage d'horaires habituels : un jour de la semaine, de telle minute à telle minute. */
@@ -131,8 +149,8 @@ export interface EtatActuel {
   joignable: boolean;
   /** Jusqu'à quand cet état tient, s'il est connu. */
   jusqua: Date | null;
-  /** D'où vient l'état : un créneau déclaré, les horaires habituels, ou rien. */
-  source: "creneau" | "horaires" | "aucune";
+  /** D'où vient l'état : un créneau déclaré, une période déduite (congé, mission, réunion), les horaires habituels, ou rien. */
+  source: "creneau" | "deduite" | "horaires" | "aucune";
   creneau: Creneau | null;
 }
 
@@ -162,19 +180,30 @@ function prochaineReprise(maintenant: Date, plages: readonly Plage[], fuseau: st
 }
 
 /**
+ * Parmi des créneaux qui se chevauchent, celui qui dit où est la personne :
+ * le dernier commencé. Une réunion de 10 h tenue pendant une mission de la
+ * journée, une pause posée pendant un congé — le plus récent est le plus
+ * précis. À début égal, le plus court ; puis le créneau saisi, que la
+ * personne a posé en connaissance de cause, avant la période déduite.
+ */
+export function comparerPriorite(a: Creneau, b: Creneau): number {
+  return b.debut.getTime() - a.debut.getTime() || a.fin.getTime() - b.fin.getTime() || Number(Boolean(a.origine)) - Number(Boolean(b.origine));
+}
+
+/**
  * Où en est la personne à cet instant.
  *
- * Un créneau déclaré l'emporte. Sans créneau, les horaires habituels disent
- * « disponible » ou « hors horaires ». Sans horaires, on ne sait pas — et on
- * le dit, plutôt que d'afficher « disponible » à tort.
+ * Un créneau — saisi, ou déduit d'un congé, d'une mission, d'une réunion —
+ * l'emporte ; s'ils se chevauchent, `comparerPriorite` tranche. Sans
+ * créneau, les horaires habituels disent « disponible » ou « hors
+ * horaires ». Sans horaires, on ne sait pas — et on le dit, plutôt que
+ * d'afficher « disponible » à tort.
  */
 export function etatActuel(maintenant: Date, creneaux: readonly Creneau[], plages: readonly Plage[], fuseau = "Africa/Abidjan"): EtatActuel {
-  const enCours = creneaux
-    .filter((c) => c.debut <= maintenant && maintenant < c.fin)
-    .sort((a, b) => b.debut.getTime() - a.debut.getTime())[0];
+  const enCours = creneaux.filter((c) => c.debut <= maintenant && maintenant < c.fin).sort(comparerPriorite)[0];
   if (enCours) {
     const s = STATUTS[enCours.statut];
-    return { statut: enCours.statut, ...s, jusqua: enCours.fin, source: "creneau", creneau: enCours };
+    return { statut: enCours.statut, ...s, jusqua: enCours.fin, source: enCours.origine ? "deduite" : "creneau", creneau: enCours };
   }
 
   if (plages.length === 0) {
@@ -212,6 +241,8 @@ export interface Bloc {
   depuisAvant: boolean;
   /** Le créneau continue le lendemain. */
   continueApres: boolean;
+  /** Nul pour un créneau saisi, qui se modifie ; une période déduite renvoie à sa pièce. */
+  origine: Origine | null;
 }
 
 /** Les créneaux d'un jour, coupés à minuit de part et d'autre, dans l'ordre. */
@@ -233,6 +264,7 @@ export function blocsDuJour(jour: string, creneaux: readonly Creneau[], fuseau =
       note: c.note,
       depuisAvant: c.debut < debutJour,
       continueApres: c.fin > finJour,
+      origine: c.origine ?? null,
     }));
 }
 

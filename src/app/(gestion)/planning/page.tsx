@@ -3,11 +3,11 @@ import Link from "next/link";
 
 import { EnTetePage } from "@/components/ui/primitives";
 import { exigerEntreprise } from "@/lib/auth/dal";
-import { peut } from "@/lib/droits/garde";
+import { droitsActifs } from "@/lib/droits/garde";
 import { ajouterJours, jourLocal } from "@/modules/presences/calcul";
 import { bornesSemaine, creneauAffiche, etatAffiche, semaineAffichee, titreJour } from "@/modules/planning/affichage";
 import { etatActuel, lundiDe } from "@/modules/planning/calcul";
-import { creneauxSur, fuseauEntreprise, horairesDe, membresPlanning } from "@/modules/planning/requetes";
+import { fuseauEntreprise, horairesDe, membresPlanning, planningSur } from "@/modules/planning/requetes";
 
 import { CarteStatut, ChoixMembre, Semaine } from "./composants";
 
@@ -19,11 +19,15 @@ const DATE_ISO = /^\d{4}-\d{2}-\d{2}$/;
 /**
  * Mon planning : le statut de maintenant, posé en un geste, et les créneaux
  * de la semaine. Qui gère le planning de tous choisit la personne en haut.
+ *
+ * Congés accordés, missions confiées et réunions programmées s'y inscrivent
+ * d'eux-mêmes, en lecture : ils se corrigent dans leur module.
  */
 export default async function PagePlanning({ searchParams }: PageProps<"/planning">) {
   const session = await exigerEntreprise();
   const { pour, semaine } = await searchParams;
-  const gere = await peut("planning.gerer");
+  const droits = await droitsActifs();
+  const gere = droits.has("planning.gerer");
 
   const [fuseau, membres] = await Promise.all([fuseauEntreprise(session.organizationId), gere ? membresPlanning(session.organizationId) : Promise.resolve([])]);
   const autre = gere && typeof pour === "string" && UUID.test(pour) ? membres.find((m) => m.userId === pour && m.userId !== session.userId) : undefined;
@@ -34,14 +38,14 @@ export default async function PagePlanning({ searchParams }: PageProps<"/plannin
   const lundi = lundiDe(typeof semaine === "string" && DATE_ISO.test(semaine) ? semaine : aujourdhui);
   const { du, au } = bornesSemaine(lundi, fuseau);
 
-  const [creneaux, actuels, horaires] = await Promise.all([
-    creneauxSur(session.organizationId, du, au, [cible]),
-    // Ce qui est en cours et ce qui suit, pour le statut de maintenant.
-    creneauxSur(session.organizationId, maintenant, new Date(maintenant.getTime() + 8 * 86_400_000), [cible]),
+  // La semaine affichée, plus ce qui est en cours et ce qui suit, pour le statut de maintenant.
+  const horizon = new Date(maintenant.getTime() + 8 * 86_400_000);
+  const [creneaux, horaires] = await Promise.all([
+    planningSur(session.organizationId, du < maintenant ? du : maintenant, au > horizon ? au : horizon, [cible], { userId: session.userId, droits }, fuseau, maintenant),
     horairesDe(session.organizationId, [cible]),
   ]);
   const plages = horaires.get(cible) ?? [];
-  const etat = etatAffiche(etatActuel(maintenant, actuels, plages, fuseau), maintenant, fuseau);
+  const etat = etatAffiche(etatActuel(maintenant, creneaux, plages, fuseau), maintenant, fuseau);
 
   const lien = (s: string) => `/planning?${new URLSearchParams({ ...(autre ? { pour: autre.userId } : {}), semaine: s })}`;
 
@@ -72,7 +76,7 @@ export default async function PagePlanning({ searchParams }: PageProps<"/plannin
 
       <Semaine
         jours={semaineAffichee(lundi, aujourdhui, creneaux, plages, fuseau)}
-        creneaux={creneaux.map((c) => creneauAffiche(c, fuseau))}
+        creneaux={creneaux.filter((c) => !c.origine).map((c) => creneauAffiche(c, fuseau))}
         pourUserId={autre?.userId ?? null}
       />
     </>

@@ -36,6 +36,7 @@ export function etatAffiche(etat: EtatActuel, maintenant: Date, fuseau: string) 
     jusqua: formaterEcheance(etat.jusqua, maintenant, fuseau),
     source: etat.source,
     lieu: etat.creneau?.lieu ?? null,
+    origine: etat.creneau?.origine ?? null,
   };
 }
 

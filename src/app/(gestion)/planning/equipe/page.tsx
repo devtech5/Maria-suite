@@ -5,12 +5,13 @@ import { AccesRefuse } from "@/components/coque/acces-refuse";
 import { Avatar } from "@/components/ui/courrier";
 import { CarteIndicateur, EnTetePage, EtatVide, Tableau, Td, Th } from "@/components/ui/primitives";
 import { exigerEntreprise } from "@/lib/auth/dal";
-import { peut } from "@/lib/droits/garde";
+import { droitsActifs, peut } from "@/lib/droits/garde";
 import { fmtEntier } from "@/lib/format";
 import { ajouterJours, jourLocal } from "@/modules/presences/calcul";
 import { bornesSemaine, formaterEcheance, resumeHoraires, titreJour } from "@/modules/planning/affichage";
 import { blocsDuJour, etatActuel, lundiDe, minutesEnHeure, STATUTS } from "@/modules/planning/calcul";
-import { creneauxSur, fuseauEntreprise, horairesDe, membresPlanning } from "@/modules/planning/requetes";
+import { libelleOrigine } from "@/modules/planning/deduites";
+import { fuseauEntreprise, horairesDe, membresPlanning, planningSur } from "@/modules/planning/requetes";
 
 import { PastilleStatut } from "../composants";
 
@@ -36,7 +37,8 @@ const FILTRES = [
 export default async function PageEquipe({ searchParams }: PageProps<"/planning/equipe">) {
   if (!(await peut("planning.equipe.consulter"))) return <AccesRefuse droit="planning.equipe.consulter" />;
   const session = await exigerEntreprise();
-  const gere = await peut("planning.gerer");
+  const droits = await droitsActifs();
+  const gere = droits.has("planning.gerer");
   const { semaine, filtre: demande } = await searchParams;
   const filtre = FILTRES.find((f) => f.cle === demande)?.cle ?? "tous";
 
@@ -48,16 +50,17 @@ export default async function PageEquipe({ searchParams }: PageProps<"/planning/
   const jours = Array.from({ length: 7 }, (_, i) => ajouterJours(lundi, i));
 
   const ids = membres.map((m) => m.userId);
-  const [creneaux, actuels, horaires] = await Promise.all([
-    creneauxSur(session.organizationId, du, au, ids),
-    creneauxSur(session.organizationId, maintenant, new Date(maintenant.getTime() + 8 * 86_400_000), ids),
+  // La semaine affichée, plus ce qui est en cours et ce qui suit, pour la colonne « Maintenant ».
+  const horizon = new Date(maintenant.getTime() + 8 * 86_400_000);
+  const [creneaux, horaires] = await Promise.all([
+    planningSur(session.organizationId, du < maintenant ? du : maintenant, au > horizon ? au : horizon, ids, { userId: session.userId, droits }, fuseau, maintenant),
     horairesDe(session.organizationId, ids),
   ]);
 
   const lignes = membres.map((m) => {
     const plages = horaires.get(m.userId) ?? [];
-    const etat = etatActuel(maintenant, actuels.filter((c) => c.userId === m.userId), plages, fuseau);
     const siens = creneaux.filter((c) => c.userId === m.userId);
+    const etat = etatActuel(maintenant, siens, plages, fuseau);
     return {
       ...m,
       etat,
@@ -160,6 +163,17 @@ export default async function PageEquipe({ searchParams }: PageProps<"/planning/
                       {l.etat.creneau?.lieu && ` · ${l.etat.creneau.lieu}`}
                     </span>
                   )}
+                  {l.etat.creneau?.origine && (
+                    <span className="mt-0.5 block text-[11px] text-[var(--encre-faible)]">
+                      {l.etat.creneau.origine.lien ? (
+                        <Link href={l.etat.creneau.origine.lien} className="hover:underline">
+                          {libelleOrigine(l.etat.creneau.origine)}
+                        </Link>
+                      ) : (
+                        libelleOrigine(l.etat.creneau.origine)
+                      )}
+                    </span>
+                  )}
                 </Td>
                 {l.jours.map((j) => (
                   <td key={j.jour} className={`min-w-28 border-b border-[var(--filet)] px-2 py-2 ${j.jour === aujourdhui ? "bg-marque-50/40" : ""}`}>
@@ -167,14 +181,34 @@ export default async function PageEquipe({ searchParams }: PageProps<"/planning/
                       <span className="text-[11px] text-[var(--encre-faible)]">{j.horaires ?? "—"}</span>
                     ) : (
                       <ul className="space-y-1">
-                        {j.blocs.map((b) => (
-                          <li key={b.id} className="rounded border-l-[3px] bg-[var(--surface-creuse)] px-1.5 py-0.5" style={{ borderLeftColor: STATUTS[b.statut].couleur }} title={b.lieu ?? undefined}>
-                            <span className="chiffres block text-[10px] text-[var(--encre-faible)]">
-                              {minutesEnHeure(b.debutMinutes)}–{minutesEnHeure(b.finMinutes)}
-                            </span>
-                            <span className="block truncate text-[11px] font-semibold">{STATUTS[b.statut].libelle}</span>
-                          </li>
-                        ))}
+                        {j.blocs.map((b) => {
+                          const contenu = (
+                            <>
+                              <span className="chiffres block text-[10px] text-[var(--encre-faible)]">
+                                {minutesEnHeure(b.debutMinutes)}–{minutesEnHeure(b.finMinutes)}
+                              </span>
+                              <span className="block truncate text-[11px] font-semibold">{STATUTS[b.statut].libelle}</span>
+                              {b.origine && <span className="block truncate text-[10px] text-[var(--encre-faible)]">{libelleOrigine(b.origine)}</span>}
+                            </>
+                          );
+                          const titre = [b.origine && libelleOrigine(b.origine), b.lieu].filter(Boolean).join(" · ") || undefined;
+                          return (
+                            <li
+                              key={b.id}
+                              className={`rounded border-l-[3px] bg-[var(--surface-creuse)] px-1.5 py-0.5 ${b.origine ? "border-dashed" : ""}`}
+                              style={{ borderLeftColor: STATUTS[b.statut].couleur }}
+                              title={titre}
+                            >
+                              {b.origine?.lien ? (
+                                <Link href={b.origine.lien} className="block hover:underline">
+                                  {contenu}
+                                </Link>
+                              ) : (
+                                contenu
+                              )}
+                            </li>
+                          );
+                        })}
                       </ul>
                     )}
                   </td>

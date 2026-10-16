@@ -1,12 +1,14 @@
 "use client";
 
 import { useState } from "react";
+import Link from "next/link";
 import { useRouter } from "next/navigation";
 
 import { Retour, useOperation } from "@/components/ui/operations";
 import { Champ, CLASSE_CHAMP, CLASSE_CHAMP_COMPACT } from "@/components/ui/primitives";
 import { enregistrerCreneau, enregistrerHoraires, poserStatut, supprimerCreneau, terminerStatut } from "@/modules/planning/actions";
-import { DUREES_RAPIDES, LIBELLES_JOURS, LISTE_STATUTS, minutesEnHeure, STATUTS, type Bloc, type CleDuree, type StatutPlanning } from "@/modules/planning/calcul";
+import { DUREES_RAPIDES, LIBELLES_JOURS, LISTE_STATUTS, minutesEnHeure, STATUTS, type Bloc, type CleDuree, type Origine, type StatutPlanning } from "@/modules/planning/calcul";
+import { libelleOrigine, SOURCES } from "@/modules/planning/deduites";
 
 // ------------------------------------------------------------- pastille
 
@@ -49,8 +51,9 @@ export interface EtatAffiche {
   couleur: string;
   /** Déjà formaté : « 18:00 » ou « mar. 07/10 à 08:00 ». */
   jusqua: string | null;
-  source: "creneau" | "horaires" | "aucune";
+  source: "creneau" | "deduite" | "horaires" | "aucune";
   lieu: string | null;
+  origine: Origine | null;
 }
 
 export function CarteStatut({ etat, pourUserId, nom }: { etat: EtatAffiche; pourUserId: string | null; nom: string | null }) {
@@ -70,7 +73,13 @@ export function CarteStatut({ etat, pourUserId, nom }: { etat: EtatAffiche; pour
             {etat.jusqua ? (etat.source === "horaires" && etat.libelle !== "Disponible" ? `Reprise ${etat.jusqua}` : `Jusqu'à ${etat.jusqua}`) : etat.source === "aucune" ? "Aucun horaire ni statut déclaré." : ""}
             {etat.lieu && ` · ${etat.lieu}`}
           </p>
+          {etat.origine && <p className="mt-0.5 text-xs text-[var(--encre-faible)]">D&apos;après {libelleOrigine(etat.origine)}</p>}
         </div>
+        {etat.origine?.lien && (
+          <Link href={etat.origine.lien} className="flex h-cible items-center rounded-lg border border-[var(--filet)] px-3.5 text-sm font-medium hover:bg-[var(--surface-creuse)]">
+            {SOURCES[etat.origine.source].ouvrir}
+          </Link>
+        )}
         {etat.source === "creneau" && (
           <button
             type="button"
@@ -155,7 +164,10 @@ export function Semaine({ jours, creneaux, pourUserId }: { jours: JourAffiche[];
   return (
     <section>
       <div className="mb-2 flex items-center justify-between gap-2">
-        <h2 className="text-base font-semibold">Créneaux de la semaine</h2>
+        <div className="min-w-0">
+          <h2 className="text-base font-semibold">Créneaux de la semaine</h2>
+          <p className="text-xs text-[var(--encre-faible)]">Congés accordés, missions et réunions s&apos;ajoutent d&apos;eux-mêmes, en pointillé ; ils se corrigent dans leur module.</p>
+        </div>
         <button
           type="button"
           onClick={() => setEdition({ mode: "nouveau", jour: aujourdhui })}
@@ -200,22 +212,38 @@ export function Semaine({ jours, creneaux, pourUserId }: { jours: JourAffiche[];
             <ul className="space-y-1">
               {j.blocs.map((b) => {
                 const creneau = creneaux.find((c) => c.id === b.id);
+                const contenu = (
+                  <>
+                    <span className="chiffres block text-[11px] text-[var(--encre-faible)]">
+                      {b.depuisAvant ? "…" : ""}
+                      {minutesEnHeure(b.debutMinutes)} – {minutesEnHeure(b.finMinutes)}
+                      {b.continueApres ? "…" : ""}
+                    </span>
+                    <span className="block truncate text-xs font-semibold">{STATUTS[b.statut].libelle}</span>
+                    {b.lieu && <span className="block truncate text-[11px] text-[var(--encre-douce)]">{b.lieu}</span>}
+                    {b.origine && <span className="block truncate text-[10px] text-[var(--encre-faible)]">{libelleOrigine(b.origine)}</span>}
+                  </>
+                );
+                const classe = "block w-full rounded-md border-l-4 bg-[var(--surface-creuse)] px-2 py-1 text-left";
+                const style = { borderLeftColor: STATUTS[b.statut].couleur };
                 return (
                   <li key={`${b.id}-${j.jour}`}>
-                    <button
-                      type="button"
-                      onClick={() => creneau && setEdition({ mode: "modifier", creneau })}
-                      className="block w-full rounded-md border-l-4 bg-[var(--surface-creuse)] px-2 py-1 text-left hover:brightness-95"
-                      style={{ borderLeftColor: STATUTS[b.statut].couleur }}
-                    >
-                      <span className="chiffres block text-[11px] text-[var(--encre-faible)]">
-                        {b.depuisAvant ? "…" : ""}
-                        {minutesEnHeure(b.debutMinutes)} – {minutesEnHeure(b.finMinutes)}
-                        {b.continueApres ? "…" : ""}
-                      </span>
-                      <span className="block truncate text-xs font-semibold">{STATUTS[b.statut].libelle}</span>
-                      {b.lieu && <span className="block truncate text-[11px] text-[var(--encre-douce)]">{b.lieu}</span>}
-                    </button>
+                    {/* Une période déduite ne se modifie pas ici : elle renvoie à sa pièce, quand on peut l'ouvrir. */}
+                    {b.origine ? (
+                      b.origine.lien ? (
+                        <Link href={b.origine.lien} title={`${libelleOrigine(b.origine)} — ${SOURCES[b.origine.source].ouvrir.toLowerCase()}`} className={`${classe} border-dashed hover:brightness-95`} style={style}>
+                          {contenu}
+                        </Link>
+                      ) : (
+                        <div title={libelleOrigine(b.origine)} className={`${classe} border-dashed`} style={style}>
+                          {contenu}
+                        </div>
+                      )
+                    ) : (
+                      <button type="button" onClick={() => creneau && setEdition({ mode: "modifier", creneau })} className={`${classe} hover:brightness-95`} style={style}>
+                        {contenu}
+                      </button>
+                    )}
                   </li>
                 );
               })}
