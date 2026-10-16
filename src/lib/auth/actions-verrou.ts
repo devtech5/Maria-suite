@@ -14,6 +14,7 @@ import {
   deverrouillerSessionId,
   fermerSession,
   lireSession,
+  maintenirSessionId,
   signalerPresence,
   verrouillerSessionId,
 } from "./session";
@@ -34,6 +35,28 @@ export async function signalerActivite(): Promise<{ verrouillee: boolean }> {
   // écriture toutes les cinq minutes, voir `pointerPresence`).
   if (vivante) pointerApresReponse(active.organizationId, active.userId);
   return { verrouillee: !vivante };
+}
+
+/**
+ * Signe de vie d'un écran exempté du verrou (caisse, salle Meeting) affiché,
+ * envoyé une fois par minute même sans geste : il tient la session ouverte
+ * au-delà des trente minutes d'inactivité, sans lever ni retarder le verrou
+ * de la gestion. Rend `ouverte: false` si la session a déjà pris fin.
+ */
+export async function maintenirSession(): Promise<{ ouverte: boolean }> {
+  const active = await lireSession();
+  if (!active) return { ouverte: false };
+  await maintenirSessionId(active.sessionId);
+  return { ouverte: true };
+}
+
+/**
+ * La session vit-elle encore ? Posé par un écran voilé dont l'inactivité
+ * atteint le délai de déconnexion : le serveur seul en juge, car une caisse
+ * ouverte dans un autre onglet peut l'avoir maintenue.
+ */
+export async function sessionOuverte(): Promise<boolean> {
+  return (await lireSession()) !== null;
 }
 
 /**

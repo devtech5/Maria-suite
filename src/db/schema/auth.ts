@@ -126,6 +126,13 @@ export const sessions = pgTable(
      * avant que le mot de passe ait été ressaisi.
      */
     verrouilleeLe: timestamp("verrouillee_le", { withTimezone: true }),
+    /**
+     * Dernier signe d'un écran exempté du verrou (caisse, salle Meeting) resté
+     * affiché. Ne compte pas comme activité pour le verrou — une caisse ouverte
+     * ne doit pas rouvrir la gestion —, seulement contre la déconnexion après
+     * inactivité. Voir `sessionEchue`.
+     */
+    maintenueLe: timestamp("maintenue_le", { withTimezone: true }),
 
     ...timestamps,
   },

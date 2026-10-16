@@ -5,7 +5,7 @@ import { useState } from "react";
 import { Retour, useOperation } from "@/components/ui/operations";
 import { CLASSE_CHAMP_COMPACT, Champ } from "@/components/ui/primitives";
 import { modifierDelaiVerrouillage } from "@/lib/identite-actions";
-import { DELAIS_VERROUILLAGE } from "@/lib/auth/verrou";
+import { DECONNEXION_INACTIVITE_MINUTES, DELAIS_VERROUILLAGE } from "@/lib/auth/verrou";
 
 /** Délai d'inactivité avant que l'écran se verrouille, pour toute l'entreprise. */
 export function FormulaireSecurite({ delai }: { delai: number }) {
@@ -24,8 +24,10 @@ export function FormulaireSecurite({ delai }: { delai: number }) {
         <h2 className="text-base font-semibold">Sécurité</h2>
         <p className="mt-1 text-sm text-[var(--encre-douce)]">
           Sans souris, clavier ni toucher pendant ce délai, l&apos;écran se verrouille et ne
-          s&apos;ouvre qu&apos;avec le mot de passe. Le travail en cours est conservé. La caisse
-          n&apos;est pas concernée : elle reste ouverte entre deux clients.
+          s&apos;ouvre qu&apos;avec le mot de passe. Le travail en cours est conservé. Après{" "}
+          {DECONNEXION_INACTIVITE_MINUTES} minutes sans activité, la session prend fin et il faut
+          se reconnecter. La caisse et la salle de réunion ne sont pas concernées tant
+          qu&apos;elles restent affichées.
         </p>
       </div>
       <div className="flex flex-wrap items-end gap-3">
@@ -37,7 +39,7 @@ export function FormulaireSecurite({ delai }: { delai: number }) {
           >
             {DELAIS_VERROUILLAGE.map((d) => (
               <option key={d} value={d}>
-                {d === 60 ? "1 heure" : `${d} minutes`} d&apos;inactivité
+                {d} minutes d&apos;inactivité
               </option>
             ))}
           </select>

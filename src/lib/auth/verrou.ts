@@ -18,11 +18,33 @@
  * Ce fichier ne dépend de rien : il est lu par le serveur et par le navigateur.
  */
 
-/** Délai proposé à la création de l'entreprise, en minutes. */
-export const DELAI_VERROUILLAGE_DEFAUT = 10;
+/**
+ * Où renvoyer quand le cookie est là mais ne désigne plus aucune session
+ * (révoquée, expirée). Le paramètre demande au proxy d'effacer le cookie :
+ * sans quoi le proxy, qui ne voit que sa présence, renverrait vers
+ * l'application, et l'application vers la connexion, sans fin.
+ */
+export const CONNEXION_EXPIREE = "/connexion?expiree=1";
 
-/** Délais que l'entreprise peut choisir, en minutes. */
-export const DELAIS_VERROUILLAGE = [5, 10, 15, 30, 60] as const;
+/** Délai proposé à la création de l'entreprise, en minutes. */
+export const DELAI_VERROUILLAGE_DEFAUT = 15;
+
+/**
+ * Délais que l'entreprise peut choisir, en minutes. Tous inférieurs à
+ * `DECONNEXION_INACTIVITE_MINUTES` : un verrou qui tomberait après la
+ * déconnexion ne voilerait jamais rien.
+ */
+export const DELAIS_VERROUILLAGE = [5, 10, 15] as const;
+
+/**
+ * Minutes sans activité au-delà desquelles la session prend fin.
+ *
+ * Le verrou protège un poste dont on s'éloigne un moment ; passé ce délai,
+ * personne ne reviendra : la session est révoquée et il faut se reconnecter.
+ * La caisse et la salle Meeting en sont exemptées tant que leur écran est
+ * affiché (voir `sessionEchue`).
+ */
+export const DECONNEXION_INACTIVITE_MINUTES = 30;
 
 /**
  * Intervalle minimal entre deux signaux de présence envoyés au serveur.
@@ -62,6 +84,25 @@ export function sessionVerrouillee(etat: {
   if (etat.verrouilleeLe) return true;
   const limite = (etat.delaiMinutes + MARGE_SERVEUR_MINUTES) * 60_000;
   return etat.maintenant.getTime() - etat.derniereActivite.getTime() > limite;
+}
+
+/**
+ * Vrai si la session a pris fin faute d'activité.
+ *
+ * Compte la dernière activité réelle (`derniereActivite`, gestes de la
+ * personne) ou, à défaut, le dernier signe d'un écran exempté resté affiché
+ * (`maintenueLe`, caisse ou salle Meeting) — le plus récent des deux. Le serveur
+ * ne connaît l'activité qu'à la minute près : il ajoute sa marge, comme pour le
+ * verrou.
+ */
+export function sessionEchue(etat: {
+  derniereActivite: Date;
+  maintenueLe: Date | null;
+  maintenant: Date;
+}): boolean {
+  const derniere = Math.max(etat.derniereActivite.getTime(), etat.maintenueLe?.getTime() ?? 0);
+  const limite = (DECONNEXION_INACTIVITE_MINUTES + MARGE_SERVEUR_MINUTES) * 60_000;
+  return etat.maintenant.getTime() - derniere > limite;
 }
 
 /**

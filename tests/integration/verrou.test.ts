@@ -3,7 +3,8 @@ import { afterAll, beforeAll, describe, expect, it } from "vitest";
 
 import type { db as Db } from "@/db";
 import { organizations, sessions } from "@/db/schema";
-import { deverrouillerSessionId, signalerPresence, verrouillerSessionId } from "@/lib/auth/session";
+import { deverrouillerSessionId, maintenirSessionId, signalerPresence, verrouillerSessionId } from "@/lib/auth/session";
+import { sessionEchue, sessionVerrouillee } from "@/lib/auth/verrou";
 import { newId } from "@/lib/ids";
 
 import { ouvrirBaseDeTest, semerEntreprise } from "./base";
@@ -35,9 +36,9 @@ async function nouvelleSession(derniereActivite = new Date()) {
 const etat = async (id: string) => (await db.select().from(sessions).where(eq(sessions.id, id)))[0];
 
 describe("verrou de session en base", () => {
-  it("le délai par défaut est de dix minutes, et la base refuse un délai absurde", async () => {
+  it("le délai par défaut est de quinze minutes, et la base refuse un délai absurde", async () => {
     const [o] = await db.select({ d: organizations.delaiVerrouillageMinutes }).from(organizations).where(eq(organizations.id, org));
-    expect(o.d).toBe(10);
+    expect(o.d).toBe(15);
     await expect(db.update(organizations).set({ delaiVerrouillageMinutes: 0 }).where(eq(organizations.id, org))).rejects.toThrow();
   });
 
@@ -69,5 +70,17 @@ describe("verrou de session en base", () => {
     await deverrouillerSessionId(id);
     expect((await etat(id)).verrouilleeLe).toBeNull();
     expect(await signalerPresence(id, 10)).toBe(true);
+  });
+
+  it("une caisse affichée maintient la session sans lever ni retarder le verrou", async () => {
+    const id = await nouvelleSession(new Date(Date.now() - 60 * 60_000));
+    await maintenirSessionId(id);
+    const s = await etat(id);
+    expect(Date.now() - (s.maintenueLe?.getTime() ?? 0)).toBeLessThan(5_000);
+    // La dernière activité ne bouge pas : la gestion reste à verrouiller.
+    expect(Date.now() - s.lastSeenAt.getTime()).toBeGreaterThan(59 * 60_000);
+    expect(sessionVerrouillee({ verrouilleeLe: s.verrouilleeLe, derniereActivite: s.lastSeenAt, delaiMinutes: 15, maintenant: new Date() })).toBe(true);
+    expect(sessionEchue({ derniereActivite: s.lastSeenAt, maintenueLe: s.maintenueLe, maintenant: new Date() })).toBe(false);
+    expect(await signalerPresence(id, 15)).toBe(false);
   });
 });

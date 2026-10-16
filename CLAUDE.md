@@ -276,11 +276,19 @@ Les colonnes d'abonnement d'`organizations` et la table
 ## Verrouillage après inactivité
 
 Sans souris, clavier ni toucher pendant `organizations.delai_verrouillage_minutes`
-(10 par défaut, réglable sur `/entreprise`), l'écran se voile et ne s'ouvre
+(15 par défaut ; 5, 10 ou 15 sur `/entreprise`), l'écran se voile et ne s'ouvre
 qu'avec le mot de passe ; la page reste montée, la saisie est conservée.
 `exigerSession` refuse toute page et toute action à une session verrouillée
 (`sessions.verrouillee_le`, ou `last_seen_at` plus vieux que délai + marge) :
 recharger ne contourne pas le voile. Règles pures : `src/lib/auth/verrou.ts`.
+
+**Déconnexion après 30 minutes sans activité** (`DECONNEXION_INACTIVITE_MINUTES`,
+`sessionEchue`) : `lireSession` révoque la session et l'écran voilé part vers
+`/connexion?expiree=1`. La durée de 30 jours n'est plus qu'un plafond. La
+caisse et la salle affichées (onglet visible, non voilées) envoient
+`maintenirSession` chaque minute : `sessions.maintenue_le` les tient ouvertes
+sans toucher `last_seen_at`, donc sans lever ni retarder le verrou de la
+gestion.
 
 **La caisse et la salle Meeting sont exemptées** : elles passent
 `exigerEntreprise({ malgreVerrou: true })` — pour la caisse : page,

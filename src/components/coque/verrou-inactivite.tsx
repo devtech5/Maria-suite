@@ -2,8 +2,13 @@
 
 import { useCallback, useEffect, useRef, useState } from "react";
 
-import { signalerActivite, verrouiller } from "@/lib/auth/actions-verrou";
-import { PAS_PRESENCE_MS, inactiviteEcoulee } from "@/lib/auth/verrou";
+import { maintenirSession, sessionOuverte, signalerActivite, verrouiller } from "@/lib/auth/actions-verrou";
+import {
+  CONNEXION_EXPIREE,
+  DECONNEXION_INACTIVITE_MINUTES,
+  PAS_PRESENCE_MS,
+  inactiviteEcoulee,
+} from "@/lib/auth/verrou";
 import { EcranVerrouillage } from "./ecran-verrouillage";
 
 /**
@@ -70,7 +75,8 @@ interface Props {
   /**
    * `verrouiller` pour la gestion. `presence` pour la caisse : ses gestes
    * comptent comme activité, mais elle ne se voile jamais — elle reste ouverte
-   * entre deux clients.
+   * entre deux clients. Affichée, elle tient aussi la session ouverte au-delà
+   * du délai de déconnexion.
    */
   mode?: "verrouiller" | "presence";
   /** Identifiant du conteneur rendu inerte pendant le verrou : le clavier ne passe plus dessous. */
@@ -89,6 +95,9 @@ interface Props {
  * Le voile est opaque, pas flouté : un flou laisse lire un total en gros
  * caractères. Sous le voile, la page reste montée — formulaire à moitié saisi,
  * panier, filtre — et se retrouve intacte au déverrouillage.
+ *
+ * Au-delà de `DECONNEXION_INACTIVITE_MINUTES`, la session prend fin : l'écran
+ * demande au serveur si elle vit encore et, sinon, part vers la connexion.
  */
 export function VerrouInactivite({
   delaiMinutes,
@@ -104,6 +113,8 @@ export function VerrouInactivite({
   const derniere = useRef(0);
   const dernierEcrit = useRef(0);
   const dernierSignal = useRef(0);
+  const dernierMaintien = useRef(0);
+  const derniereQuestion = useRef(0);
 
   const voiler = useCallback((avertirServeur: boolean, manuel = false) => {
     if (verrouilleRef.current) return;
@@ -164,9 +175,41 @@ export function VerrouInactivite({
       }
     };
 
+    // Session terminée : la page conservée sous le voile est abandonnée, la
+    // connexion efface le cookie.
+    const partir = () => window.location.assign(CONNEXION_EXPIREE);
+
     const controler = () => {
-      if (mode !== "verrouiller" || verrouilleRef.current) return;
-      if (inactiviteEcoulee(derniereConnue(), Date.now(), delaiMinutes)) voiler(true);
+      const t = Date.now();
+      if (mode === "verrouiller" && !verrouilleRef.current && inactiviteEcoulee(derniereConnue(), t, delaiMinutes)) {
+        voiler(true);
+      }
+
+      // Onglet caché : rien ne s'interroge. Le contrôle reprend à son retour.
+      if (document.visibilityState !== "visible") return;
+
+      // Caisse ou salle affichée et non voilée : elle tient la session.
+      if (mode === "presence" && !verrouilleRef.current) {
+        if (t - dernierMaintien.current >= PAS_PRESENCE_MS) {
+          dernierMaintien.current = t;
+          void maintenirSession().then((r) => {
+            if (!r.ouverte) partir();
+          });
+        }
+        return;
+      }
+
+      // Délai de déconnexion atteint : le serveur seul juge, une caisse
+      // affichée dans un autre onglet a pu maintenir la session.
+      if (
+        inactiviteEcoulee(derniereConnue(), t, DECONNEXION_INACTIVITE_MINUTES) &&
+        t - derniereQuestion.current >= PAS_PRESENCE_MS
+      ) {
+        derniereQuestion.current = t;
+        void sessionOuverte().then((ouverte) => {
+          if (!ouverte) partir();
+        });
+      }
     };
 
     const surStockage = (e: StorageEvent) => {

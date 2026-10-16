@@ -9,19 +9,17 @@ import { db } from "@/db";
 import { memberships, organizations, roles, sessions, users } from "@/db/schema";
 import { newId } from "@/lib/ids";
 import { adresseAutorisee } from "./identifiants";
-import { DELAI_VERROUILLAGE_DEFAUT, MARGE_SERVEUR_MINUTES, sessionVerrouillee } from "./verrou";
+import { DELAI_VERROUILLAGE_DEFAUT, MARGE_SERVEUR_MINUTES, sessionEchue, sessionVerrouillee } from "./verrou";
 
 export const COOKIE_SESSION = "maria_session";
 
-/**
- * Où renvoyer quand le cookie est là mais ne désigne plus aucune session
- * (révoquée, expirée). Le paramètre demande au proxy d'effacer le cookie :
- * sans quoi le proxy, qui ne voit que sa présence, renverrait vers
- * l'application, et l'application vers la connexion, sans fin.
- */
-export const CONNEXION_EXPIREE = "/connexion?expiree=1";
+// Défini avec les règles du verrou : le navigateur y renvoie aussi.
+export { CONNEXION_EXPIREE } from "./verrou";
 
-/** Trente jours : une caisse ne redemande pas ses identifiants chaque matin. */
+/**
+ * Durée maximale d'une session, activité ou pas. En pratique elle finit bien
+ * avant : trente minutes sans activité la ferment (`sessionEchue`).
+ */
 const DUREE_SESSION_JOURS = 30;
 
 /**
@@ -136,6 +134,7 @@ export async function lireSession(): Promise<SessionActive | null> {
       deviceId: sessions.deviceId,
       derniereActivite: sessions.lastSeenAt,
       verrouilleeLe: sessions.verrouilleeLe,
+      maintenueLe: sessions.maintenueLe,
     })
     .from(sessions)
     .innerJoin(users, eq(users.id, sessions.userId))
@@ -150,6 +149,15 @@ export async function lireSession(): Promise<SessionActive | null> {
 
   const ligne = lignes[0];
   if (!ligne || ligne.statut !== "actif") return null;
+  // Trente minutes sans activité : la session prend fin. Révoquée plutôt que
+  // seulement refusée, pour que la piste d'audit dise jusqu'à quand elle a vécu.
+  if (sessionEchue({ derniereActivite: ligne.derniereActivite, maintenueLe: ligne.maintenueLe, maintenant: new Date() })) {
+    await db
+      .update(sessions)
+      .set({ revokedAt: new Date() })
+      .where(and(eq(sessions.id, ligne.sessionId), isNull(sessions.revokedAt)));
+    return null;
+  }
   // Une session ouverte avant la règle des adresses ne lui survit pas.
   if (!adresseAutorisee(ligne.email)) return null;
 
@@ -246,6 +254,19 @@ export async function signalerPresence(sessionId: string, delaiMinutes: number):
   if (vivantes.length > 0) return true;
   await verrouillerSessionId(sessionId);
   return false;
+}
+
+/**
+ * Signe d'un écran exempté du verrou (caisse, salle Meeting) resté affiché.
+ *
+ * Retient la session contre la déconnexion après inactivité, sans compter
+ * comme activité pour le verrou : la gestion se voile toujours à l'heure.
+ */
+export async function maintenirSessionId(sessionId: string): Promise<void> {
+  await db
+    .update(sessions)
+    .set({ maintenueLe: new Date() })
+    .where(and(eq(sessions.id, sessionId), isNull(sessions.revokedAt)));
 }
 
 /** Voile la session. Sans effet si elle l'est déjà : la première heure reste. */

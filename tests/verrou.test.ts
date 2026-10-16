@@ -1,10 +1,13 @@
 import { describe, expect, it } from "vitest";
 
 import {
+  DECONNEXION_INACTIVITE_MINUTES,
   DELAIS_VERROUILLAGE,
+  DELAI_VERROUILLAGE_DEFAUT,
   MARGE_SERVEUR_MINUTES,
   delaiValide,
   inactiviteEcoulee,
+  sessionEchue,
   sessionVerrouillee,
 } from "@/lib/auth/verrou";
 
@@ -45,5 +48,36 @@ describe("verrouillage d'une session inactive", () => {
     expect(delaiValide(0)).toBe(false);
     expect(delaiValide(7)).toBe(false);
     expect(delaiValide(-10)).toBe(false);
+    expect(delaiValide(30)).toBe(false);
+  });
+
+  it("le verrou tombe à quinze minutes par défaut, toujours avant la déconnexion", () => {
+    expect(DELAI_VERROUILLAGE_DEFAUT).toBe(15);
+    expect(delaiValide(DELAI_VERROUILLAGE_DEFAUT)).toBe(true);
+    for (const d of DELAIS_VERROUILLAGE) expect(d).toBeLessThan(DECONNEXION_INACTIVITE_MINUTES);
+  });
+});
+
+describe("déconnexion après inactivité", () => {
+  const echue = (minutes: number, maintenueIlYa: number | null = null) =>
+    sessionEchue({
+      derniereActivite: ilYa(minutes),
+      maintenueLe: maintenueIlYa === null ? null : ilYa(maintenueIlYa),
+      maintenant,
+    });
+
+  it("la session prend fin après trente minutes sans activité, marge du serveur comprise", () => {
+    expect(DECONNEXION_INACTIVITE_MINUTES).toBe(30);
+    expect(echue(29)).toBe(false);
+    expect(echue(30 + MARGE_SERVEUR_MINUTES)).toBe(false);
+    expect(echue(30 + MARGE_SERVEUR_MINUTES + 0.1)).toBe(true);
+    expect(echue(24 * 60)).toBe(true);
+  });
+
+  it("une caisse ou une salle affichée la maintient, un vieux maintien non", () => {
+    expect(echue(120, 1)).toBe(false);
+    expect(echue(120, 60)).toBe(true);
+    // Le maintien ne recule jamais une activité plus récente.
+    expect(echue(5, 120)).toBe(false);
   });
 });
