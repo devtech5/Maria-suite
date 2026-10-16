@@ -7,9 +7,17 @@ import * as schema from "./schema";
 type Database = ReturnType<typeof drizzle<typeof schema>>;
 
 /**
- * En développement, Next recharge les modules à chaque modification. Sans ce
- * cache, chaque rechargement ouvrirait un pool supplémentaire et finirait par
- * saturer les connexions de PostgreSQL.
+ * Un seul pool par processus, en développement COMME en production.
+ *
+ * En développement, Next recharge les modules à chaque modification. En
+ * production, le serveur charge ce module plusieurs fois — un paquet pour le
+ * rendu des pages, un autre pour les routes d'API — qui ne partagent pas leurs
+ * variables de module. Seul `globalThis` est commun.
+ *
+ * Ce cache était réservé au développement. En production, chaque accès à `db`
+ * ouvrait alors un pool neuf : les vingt requêtes parallèles du tableau de
+ * bord ouvraient chacune le leur, gardé vingt secondes, et PostgreSQL refusait
+ * la suite (« too many clients already », 15/10/2026).
  */
 const globalForDb = globalThis as unknown as {
   mariaConnection?: ReturnType<typeof postgres>;
@@ -74,10 +82,8 @@ function resolveDb(): Database {
 
   const instance = drizzle(connection, { schema });
 
-  if (env.NODE_ENV !== "production") {
-    globalForDb.mariaConnection = connection;
-    globalForDb.mariaDb = instance;
-  }
+  globalForDb.mariaConnection = connection;
+  globalForDb.mariaDb = instance;
 
   return instance;
 }
@@ -89,8 +95,9 @@ function resolveDb(): Database {
  */
 export const db = new Proxy({} as Database, {
   get: (_target, key: string | symbol) => {
-    const value = resolveDb()[key as keyof Database];
-    return typeof value === "function" ? value.bind(resolveDb()) : value;
+    const instance = resolveDb();
+    const value = instance[key as keyof Database];
+    return typeof value === "function" ? value.bind(instance) : value;
   },
 });
 

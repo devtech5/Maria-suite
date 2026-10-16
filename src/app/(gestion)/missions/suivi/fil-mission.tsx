@@ -48,6 +48,8 @@ interface Props {
   etapes: EtapeVue[];
   peutSaisir: boolean;
   peutGerer: boolean;
+  /** Recherche et période de la liste (`q=…&du=…`), gardées d'une mission à l'autre. */
+  filtres?: string;
 }
 
 /**
@@ -65,6 +67,7 @@ export function FilMission({
   etapes,
   peutSaisir,
   peutGerer,
+  filtres,
 }: Props) {
   const remontee = useRemontee();
   const routeur = useRouter();
@@ -114,7 +117,7 @@ export function FilMission({
               <li key={m.id}>
                 <button
                   type="button"
-                  onClick={() => routeur.push(`/missions/suivi?mission=${m.id}`)}
+                  onClick={() => routeur.push(`/missions/suivi?mission=${m.id}${filtres ? `&${filtres}` : ""}`)}
                   aria-current={actif ? "true" : undefined}
                   className={`w-full px-4 py-3 text-left ${
                     actif ? "bg-[var(--surface-creuse)]" : "hover:bg-[var(--surface-creuse)]"

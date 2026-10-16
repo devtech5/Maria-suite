@@ -7,6 +7,7 @@ import { ActionsFiche } from "@/components/ui/actions-fiche";
 import { Pastille } from "@/components/ui/primitives";
 import { fmt, fmtDateIso } from "@/lib/format";
 import { ContactsTiers } from "@/components/tiers/contacts";
+import { correspond } from "@/lib/recherche";
 import type { FicheTiers } from "@/modules/tiers/requetes";
 
 /**
@@ -25,27 +26,25 @@ export function ListeClients({
   clients,
   modifiable = false,
   supprimable = false,
+  rechercheInitiale = "",
 }: {
   clients: FicheTiers[];
   modifiable?: boolean;
   supprimable?: boolean;
+  /** `?q=` de l'adresse : la recherche globale renvoie ici avec le nom cherché. */
+  rechercheInitiale?: string;
 }) {
-  const [recherche, setRecherche] = useState("");
+  const [recherche, setRecherche] = useState(rechercheInitiale);
+  // Arrivé par lien sur un client précis, c'est sa fiche qui s'ouvre, pas celle du premier du fichier.
   const [selectionId, setSelectionId] = useState<string | null>(
-    clients[0]?.id ?? null,
+    () => (clients.find((client) => correspond(rechercheInitiale, champs(client))) ?? clients[0])?.id ?? null,
   );
 
-  const resultats = useMemo(() => {
-    const terme = recherche.trim().toLowerCase();
-    if (!terme) return clients;
-    return clients.filter(
-      (client) =>
-        client.nom.toLowerCase().includes(terme) ||
-        client.code.toLowerCase().includes(terme) ||
-        client.telephone?.includes(terme) ||
-        client.identifiantFiscal?.toLowerCase().includes(terme),
-    );
-  }, [recherche, clients]);
+  // Même normalisation que la recherche globale : sans accents, tous les mots requis.
+  const resultats = useMemo(
+    () => clients.filter((client) => correspond(recherche, champs(client))),
+    [recherche, clients],
+  );
 
   const selection =
     clients.find((client) => client.id === selectionId) ?? resultats[0] ?? null;
@@ -57,7 +56,9 @@ export function ListeClients({
         <input
           value={recherche}
           onChange={(e) => setRecherche(e.target.value)}
-          placeholder="Nom, référence, téléphone ou numéro de compte contribuable"
+          type="search"
+          aria-label="Rechercher un client"
+          placeholder="Nom, référence, téléphone, ville, contact ou numéro de compte contribuable"
           className="h-cible mb-3 w-full rounded-lg border border-[var(--filet)] bg-[var(--surface)] px-3.5 text-sm outline-none focus:border-marque-500"
         />
 
@@ -261,6 +262,19 @@ export function ListeClients({
       )}
     </div>
   );
+}
+
+/** Ce que la recherche lit d'une fiche client. */
+function champs(client: FicheTiers): (string | null)[] {
+  return [
+    client.nom,
+    client.code,
+    client.telephone,
+    client.email,
+    client.ville,
+    client.identifiantFiscal,
+    ...client.contacts.map((contact) => contact.nom),
+  ];
 }
 
 /** L'encours dépasse-t-il le crédit accordé ? Sans plafond, rien à dépasser. */

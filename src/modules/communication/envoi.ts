@@ -6,6 +6,8 @@ import { db } from "@/db";
 import { envoyerCourriel } from "@/lib/courriel";
 import { newId } from "@/lib/ids";
 import { signerLien, urlAbsolue } from "@/lib/liens-publics";
+import { motsRecherche, type FiltresListe } from "@/lib/recherche";
+import { dansPeriodeSql, motsDans } from "@/lib/recherche-sql";
 import { envoyerWhatsApp } from "@/lib/whatsapp";
 
 import { CANAUX, normaliserDestinataire } from "./calcul";
@@ -118,6 +120,19 @@ function versHtml(corps: string, entreprise: string, desinscription: string): st
   return `<div style="font-family:Arial,sans-serif;font-size:15px;line-height:1.5;color:#1a1a1a;max-width:560px">${paragraphes}<p style="margin:24px 0 0;color:#555">— ${echapper(entreprise)}</p><p style="margin:16px 0 0;font-size:12px;color:#888"><a href="${desinscription}" style="color:#888">Ne plus recevoir nos messages</a></p></div>`;
 }
 
-export async function listerEnvois(organizationId: string, limite = 200): Promise<Envoi[]> {
-  return db.select().from(envois).where(eq(envois.organizationId, organizationId)).orderBy(desc(envois.createdAt)).limit(limite);
+export async function listerEnvois(organizationId: string, limite = 200, filtres?: FiltresListe): Promise<Envoi[]> {
+  return db
+    .select()
+    .from(envois)
+    .where(
+      and(
+        eq(envois.organizationId, organizationId),
+        // Filtrés en base : sinon la recherche ne verrait que les derniers envois.
+        // La date est celle du journal, l'envoi tenté : un échec n'a pas d'`envoye_le`.
+        filtres && motsDans([envois.destinataire, envois.nom, envois.objet, envois.corps, envois.origine, envois.raison], motsRecherche(filtres.q)),
+        filtres && dansPeriodeSql(envois.createdAt, filtres.periode),
+      ),
+    )
+    .orderBy(desc(envois.createdAt))
+    .limit(limite);
 }

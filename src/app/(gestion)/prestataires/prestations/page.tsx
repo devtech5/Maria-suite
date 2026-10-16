@@ -2,10 +2,12 @@ import type { Metadata } from "next";
 
 import { ListePrestations } from "@/components/prestataires/liste-prestations";
 import { FormulairePrestation } from "@/components/prestataires/formulaires";
-import { CarteIndicateur, EnTetePage } from "@/components/ui/primitives";
+import { CarteIndicateur, EnTetePage, EtatVide } from "@/components/ui/primitives";
+import { Recherche } from "@/components/ui/recherche";
 import { exigerEntreprise } from "@/lib/auth/dal";
 import { peut } from "@/lib/droits/garde";
 import { fmtCompact, fmtEntier } from "@/lib/format";
+import { correspond, dansPeriode, lireFiltresListe } from "@/lib/recherche";
 import { compteParDefaut } from "@/modules/prestataires/calcul";
 import { listerPrestataires, listerPrestations } from "@/modules/prestataires/creation";
 import { comptesDisponibles } from "@/modules/tresorerie/actions";
@@ -13,8 +15,9 @@ import { comptesDisponibles } from "@/modules/tresorerie/actions";
 export const metadata: Metadata = { title: "Prestations" };
 
 /** Toutes les prestations confiées, de la demande au paiement. */
-export default async function PagePrestations() {
+export default async function PagePrestations({ searchParams }: PageProps<"/prestataires/prestations">) {
   const session = await exigerEntreprise();
+  const filtres = lireFiltresListe(await searchParams);
   const [liste, prestataires, gerer, payer] = await Promise.all([
     listerPrestations(session.organizationId),
     listerPrestataires(session.organizationId),
@@ -26,6 +29,12 @@ export default async function PagePrestations() {
   const enCours = liste.filter((x) => x.statut === "demandee" || x.statut === "confirmee").length;
   const aPayer = liste.filter((x) => x.statut === "realisee");
   const duMois = liste.filter((x) => x.payeeLe && x.payeeLe.toISOString().slice(0, 7) === new Date().toISOString().slice(0, 7));
+  // Les indicateurs portent sur toutes les prestations ; seule la liste suit la recherche.
+  const affichees = liste.filter(
+    (x) =>
+      correspond(filtres.q, [x.numero, x.objet, x.prestataire, x.lieu, x.description, x.ecritureNumero]) &&
+      dansPeriode(x.prevueLe, filtres.periode),
+  );
 
   return (
     <>
@@ -40,14 +49,27 @@ export default async function PagePrestations() {
         <CarteIndicateur libelle="Payé ce mois" valeur={fmtCompact(duMois.reduce((s, x) => s + (x.montantPaye ?? 0), 0))} unite="FCFA" precision={`${duMois.length} prestation${duMois.length > 1 ? "s" : ""}`} />
         <CarteIndicateur libelle="Prestataires" valeur={fmtEntier(prestataires.length)} precision="Inscrits à l'annuaire" />
       </section>
-      <ListePrestations
-        prestations={liste.map((x) => ({ ...x, compteDefaut: compteParDefaut(metierDe.get(x.prestataireId)) }))}
-        compteDefaut="621"
-        comptes={comptes.map((c) => ({ id: c.id, nom: c.nom }))}
-        peutGerer={gerer}
-        peutPayer={payer}
-        avecPrestataire
-      />
+      {liste.length > 0 && (
+        <Recherche
+          chemin="/prestataires/prestations"
+          valeur={filtres.q}
+          placeholder="Numéro, objet, prestataire, lieu…"
+          periode={{ ...filtres.periode, libelle: "Prévue" }}
+          resultats={filtres.actif ? `${fmtEntier(affichees.length)} sur ${fmtEntier(liste.length)}` : undefined}
+        />
+      )}
+      {liste.length > 0 && affichees.length === 0 ? (
+        <EtatVide titre="Aucune prestation ne répond" message="Élargissez la période ou retirez un mot de la recherche." />
+      ) : (
+        <ListePrestations
+          prestations={affichees.map((x) => ({ ...x, compteDefaut: compteParDefaut(metierDe.get(x.prestataireId)) }))}
+          compteDefaut="621"
+          comptes={comptes.map((c) => ({ id: c.id, nom: c.nom }))}
+          peutGerer={gerer}
+          peutPayer={payer}
+          avecPrestataire
+        />
+      )}
     </>
   );
 }

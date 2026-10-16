@@ -13,6 +13,7 @@ const TYPES: Record<TypeActif, string> = {
   informatique: "Informatique",
   engin: "Engin",
   mobilier: "Mobilier",
+  local: "Local",
 };
 
 const NATURES_ECHEANCE: Record<NatureEcheance, string> = {
@@ -28,7 +29,7 @@ export const RAPPORTS_ACTIFS: DefinitionRapport[] = [
   {
     cle: "entretien-par-actif",
     module: "actifs",
-    rubrique: "Actifs",
+    rubrique: "Actifs / Biens",
     titre: "Coût d'entretien par actif",
     description: "Interventions de la période, actif par actif : préventif, correctif, contrôles, et ce qui est à refacturer au client.",
     droit: "actifs.consulter",
@@ -89,7 +90,7 @@ export const RAPPORTS_ACTIFS: DefinitionRapport[] = [
   {
     cle: "echeances-actifs",
     module: "actifs",
-    rubrique: "Actifs",
+    rubrique: "Actifs / Biens",
     titre: "Échéances à honorer",
     description: `Assurances, visites techniques, vignettes, garanties : ce qui est dépassé à la date choisie ou tombe dans les ${SEUIL_JOURS_PROCHE} jours.`,
     droit: "actifs.consulter",

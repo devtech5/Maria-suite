@@ -5,7 +5,6 @@ import { and, asc, desc, eq, isNull, sql } from "drizzle-orm";
 import { db } from "@/db";
 import { depots } from "@/modules/stock/schema";
 import {
-  lignesVente,
   postesCaisse,
   ventes,
   type MoyenReglementVente,
@@ -247,33 +246,6 @@ export interface LigneTicket {
   montantTva: number;
   parentLineId: string | null;
   lineKind: "article" | "prestation" | "frais";
-}
-
-/** Lignes d'un ticket, dans l'ordre où elles ont été saisies. */
-export async function lignesDuTicket(
-  organizationId: string,
-  venteId: string,
-): Promise<LigneTicket[]> {
-  return db
-    .select({
-      designation: lignesVente.designation,
-      quantite: lignesVente.quantite,
-      unite: lignesVente.unite,
-      prixUnitaire: lignesVente.prixUnitaire,
-      remise: lignesVente.remise,
-      montantHt: lignesVente.montantHt,
-      montantTva: lignesVente.montantTva,
-      parentLineId: lignesVente.parentLineId,
-      lineKind: lignesVente.lineKind,
-    })
-    .from(lignesVente)
-    .where(
-      and(
-        eq(lignesVente.organizationId, organizationId),
-        eq(lignesVente.venteId, venteId),
-      ),
-    )
-    .orderBy(asc(lignesVente.ordre));
 }
 
 /**

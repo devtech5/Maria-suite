@@ -7,7 +7,9 @@ import { creerSalariePour } from "@/modules/personnes/creation";
 import {
   ajouterPiecePour,
   changerPhotoPour,
+  collegues,
   etatDossiers,
+  modifierEtatProfessionnelPour,
   ouvrirPiecePour,
   piecesDuSalarie,
   retirerPiecePour,
@@ -94,5 +96,32 @@ describe("dossier du salarié en base", () => {
     await changerPhotoPour(org, user, id, "data:image/jpeg;base64,AAAA");
     const [s] = await db.select({ photo: employees.photo }).from(employees).where(eq(employees.id, id));
     expect(s.photo).toBe("data:image/jpeg;base64,AAAA");
+  });
+
+  it("état professionnel : supérieur, boucle refusée, essai après l'entrée", async () => {
+    const { organizationId: o } = await semerEntreprise(db, "Hiérarchie");
+    const { id: chef } = await creerSalariePour(o, { nom: "Kouassi Yao", poste: "Directeur", debut: "2024-01-02", salaireBase: 0 });
+    const { id: adjoint } = await creerSalariePour(o, { nom: "Adama Traoré", poste: "Chef de service", debut: "2025-03-01", salaireBase: 0 });
+    const etat = { emailProfessionnel: "adama.traore@maria-groupe.com", poste: "Chef de service", service: "Logistique", superieurId: chef, finPeriodeEssai: "2025-05-31" };
+
+    await modifierEtatProfessionnelPour(o, user, adjoint, etat);
+    const [ligne] = await db.select().from(employees).where(eq(employees.id, adjoint));
+    expect(ligne).toMatchObject({ superieurId: chef, service: "Logistique", emailProfessionnel: "adama.traore@maria-groupe.com", finPeriodeEssai: "2025-05-31" });
+    expect(ligne.version).toBe(2);
+
+    // Le chef sous son adjoint : la chaîne bouclerait.
+    await expect(
+      modifierEtatProfessionnelPour(o, user, chef, { ...etat, poste: "Directeur", superieurId: adjoint, finPeriodeEssai: null }),
+    ).rejects.toThrow(/supérieur de son propre supérieur/);
+    // Ni soi-même, ni un essai qui finit avant l'entrée, ni un salarié d'ailleurs.
+    await expect(modifierEtatProfessionnelPour(o, user, adjoint, { ...etat, superieurId: adjoint })).rejects.toThrow(/propre supérieur/);
+    await expect(modifierEtatProfessionnelPour(o, user, adjoint, { ...etat, finPeriodeEssai: "2025-02-28" })).rejects.toThrow(/avant l'entrée/);
+    const { id: etranger } = await creerSalariePour(org, { nom: "Hors", poste: "A", debut: "2026-01-01", salaireBase: 0 });
+    await expect(modifierEtatProfessionnelPour(o, user, adjoint, { ...etat, superieurId: etranger })).rejects.toThrow(/inconnu/);
+
+    // La base tient la règle même sans passer par le module.
+    await expect(db.update(employees).set({ superieurId: chef }).where(eq(employees.id, chef))).rejects.toThrow();
+
+    expect((await collegues(o, adjoint)).map((c) => c.nom)).toEqual(["Kouassi Yao"]);
   });
 });

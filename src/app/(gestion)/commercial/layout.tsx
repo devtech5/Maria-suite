@@ -4,23 +4,14 @@ import { lienRapports } from "@/lib/rapports/registre";
 import { peut } from "@/lib/droits/garde";
 
 /**
- * Quatre sections, pas dix.
+ * Les sections du module — Clients, Commerciaux, Fournisseurs, Devis et
+ * factures — sont des onglets du domaine Commerce, dans la rangée sous la
+ * barre du haut (`src/lib/navigation.ts`). Les répéter ici en pastilles
+ * afficherait deux fois la même rangée ; seul reste le lien vers les rapports.
  *
- * « Devis et factures » regroupe devis, factures et avoirs : ce sont trois
- * états d'un même flux commercial, pas trois métiers. Le concurrent éclate le
- * tout en huit onglets, abonnements, prestations et « meilleures ventes »
- * compris.
- *
- * Pas d'onglet « Caisse » chez MARIA GROUP SARL : les ventes au comptoir
- * (`/commercial/ventes`) ne sont plus proposées depuis ce menu.
+ * Pas d'entrée « Caisse » chez MARIA GROUP SARL : les ventes au comptoir
+ * (`/commercial/ventes`) ne sont plus proposées depuis le menu.
  */
-const SECTIONS = [
-  { href: "/commercial", libelle: "Clients" },
-  { href: "/commercial/factures", libelle: "Devis et factures" },
-  { href: "/commercial/commerciaux", libelle: "Commerciaux" },
-  { href: "/commercial/fournisseurs", libelle: "Fournisseurs" },
-];
-
 export default async function LayoutCommercial({
   children,
 }: LayoutProps<"/commercial">) {
@@ -28,7 +19,7 @@ export default async function LayoutCommercial({
 
   return (
     <>
-      <SousNavigation entrees={SECTIONS} rapports={await lienRapports("tiers", "pos")} />
+      <SousNavigation entrees={[]} rapports={await lienRapports("tiers", "pos")} />
       {children}
     </>
   );

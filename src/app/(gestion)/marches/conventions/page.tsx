@@ -3,9 +3,11 @@ import Link from "next/link";
 
 import { FormulaireRepliable } from "@/components/ui/operations";
 import { CLASSE_CHAMP, CarteIndicateur, Champ, EnTetePage, EtatVide, Pastille, Tableau, Td, Th, type TonPastille } from "@/components/ui/primitives";
+import { Recherche } from "@/components/ui/recherche";
 import { exigerEntreprise } from "@/lib/auth/dal";
 import { peut } from "@/lib/droits/garde";
 import { fmt, fmtEntier } from "@/lib/format";
+import { correspond, dansPeriode, lireFiltresListe } from "@/lib/recherche";
 import { creerConvention } from "@/modules/marches/actions";
 import { ETATS_CONVENTION, type EtatConvention } from "@/modules/marches/calcul";
 import { listerConventions } from "@/modules/marches/creation";
@@ -19,12 +21,17 @@ const SENS = { client: "Client", fournisseur: "Fournisseur", partenariat: "Parte
 const date = (iso: string | null) => (iso ? iso.split("-").reverse().join("/") : "—");
 
 /** Conventions et contrats-cadres : échéance, préavis, reconduction, avenants. */
-export default async function PageConventions() {
+export default async function PageConventions({ searchParams }: PageProps<"/marches/conventions">) {
   const session = await exigerEntreprise();
+  const filtres = lireFiltresListe(await searchParams);
   const [liste, gerer] = await Promise.all([listerConventions(session.organizationId), peut("marches.convention.gerer")]);
   const partenaires = gerer ? await listerTiers(session.organizationId) : [];
   const aRenouveler = liste.filter((c) => c.etat === "a_renouveler").length;
   const enVigueur = liste.filter((c) => c.etat === "en_vigueur" || c.etat === "a_renouveler").length;
+  // Les indicateurs portent sur toutes les conventions ; seul le tableau suit la recherche.
+  const affiches = liste.filter(
+    (c) => correspond(filtres.q, [c.numero, c.intitule, c.partenaire, c.objet, SENS[c.sens], ETATS_CONVENTION[c.etat]]) && dansPeriode(c.debut, filtres.periode),
+  );
 
   return (
     <>
@@ -33,7 +40,7 @@ export default async function PageConventions() {
         sousTitre="Contrats-cadres avec vos clients, fournisseurs et partenaires"
         actions={
           gerer ? (
-            <FormulaireRepliable libelle="Nouvelle convention" titre="Convention" action={creerConvention}>
+            <FormulaireRepliable libelle="Nouvelle convention" titre="Convention" presentation="tiroir" action={creerConvention}>
               <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
                 <Champ libelle="Intitulé">
                   <input name="intitule" required placeholder="Contrat de maintenance annuel" className={CLASSE_CHAMP} />
@@ -96,46 +103,57 @@ export default async function PageConventions() {
             <CarteIndicateur libelle="À renouveler" valeur={fmtEntier(aRenouveler)} ton={aRenouveler > 0 ? "alerte" : "valide"} precision="Dans leur préavis" />
             <CarteIndicateur libelle="Total" valeur={fmtEntier(liste.length)} precision="Toutes conventions" />
           </section>
-          <Tableau>
-            <thead>
-              <tr>
-                <Th>N°</Th>
-                <Th>Convention</Th>
-                <Th>Partenaire</Th>
-                <Th>Période</Th>
-                <Th aligne="droite">Montant</Th>
-                <Th>État</Th>
-              </tr>
-            </thead>
-            <tbody>
-              {liste.map((c) => (
-                <tr key={c.id}>
-                  <Td chiffres>{c.numero}</Td>
-                  <Td fort>
-                    <Link href={`/marches/conventions/${c.id}`} className="hover:underline">
-                      {c.intitule}
-                    </Link>
-                    {c.avenants.length > 0 && <span className="block text-xs font-normal text-[var(--encre-douce)]">{c.avenants.length} avenant{c.avenants.length > 1 ? "s" : ""}</span>}
-                  </Td>
-                  <Td>
-                    {c.partenaire}
-                    <span className="block text-xs text-[var(--encre-faible)]">{SENS[c.sens]}</span>
-                  </Td>
-                  <Td chiffres>
-                    {date(c.debut)} → {c.finEffective ? date(c.finEffective) : "indéterminée"}
-                    {c.reconductionTacite && <span className="block text-xs text-[var(--encre-faible)]">reconduction tacite</span>}
-                  </Td>
-                  <Td aligne="droite" chiffres>
-                    {c.montantEffectif !== null ? fmt(c.montantEffectif) : "—"}
-                  </Td>
-                  <Td>
-                    <Pastille ton={TON[c.etat]}>{ETATS_CONVENTION[c.etat]}</Pastille>
-                    {c.etat === "a_renouveler" && c.jours !== null && <span className="block text-xs text-alerte-600">Fin dans {c.jours} j</span>}
-                  </Td>
+          <Recherche
+            chemin="/marches/conventions"
+            valeur={filtres.q}
+            placeholder="Numéro, intitulé, partenaire, objet…"
+            periode={{ ...filtres.periode, libelle: "Début" }}
+            resultats={filtres.actif ? `${fmtEntier(affiches.length)} sur ${fmtEntier(liste.length)}` : undefined}
+          />
+          {affiches.length === 0 ? (
+            <EtatVide titre="Aucune convention ne répond" message="Élargissez la période ou retirez un mot de la recherche." />
+          ) : (
+            <Tableau>
+              <thead>
+                <tr>
+                  <Th>N°</Th>
+                  <Th>Convention</Th>
+                  <Th>Partenaire</Th>
+                  <Th>Période</Th>
+                  <Th aligne="droite">Montant</Th>
+                  <Th>État</Th>
                 </tr>
-              ))}
-            </tbody>
-          </Tableau>
+              </thead>
+              <tbody>
+                {affiches.map((c) => (
+                  <tr key={c.id}>
+                    <Td chiffres>{c.numero}</Td>
+                    <Td fort>
+                      <Link href={`/marches/conventions/${c.id}`} className="hover:underline">
+                        {c.intitule}
+                      </Link>
+                      {c.avenants.length > 0 && <span className="block text-xs font-normal text-[var(--encre-douce)]">{c.avenants.length} avenant{c.avenants.length > 1 ? "s" : ""}</span>}
+                    </Td>
+                    <Td>
+                      {c.partenaire}
+                      <span className="block text-xs text-[var(--encre-faible)]">{SENS[c.sens]}</span>
+                    </Td>
+                    <Td chiffres>
+                      {date(c.debut)} → {c.finEffective ? date(c.finEffective) : "indéterminée"}
+                      {c.reconductionTacite && <span className="block text-xs text-[var(--encre-faible)]">reconduction tacite</span>}
+                    </Td>
+                    <Td aligne="droite" chiffres>
+                      {c.montantEffectif !== null ? fmt(c.montantEffectif) : "—"}
+                    </Td>
+                    <Td>
+                      <Pastille ton={TON[c.etat]}>{ETATS_CONVENTION[c.etat]}</Pastille>
+                      {c.etat === "a_renouveler" && c.jours !== null && <span className="block text-xs text-alerte-600">Fin dans {c.jours} j</span>}
+                    </Td>
+                  </tr>
+                ))}
+              </tbody>
+            </Tableau>
+          )}
         </>
       )}
     </>

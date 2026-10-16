@@ -5,7 +5,6 @@ import { useState } from "react";
 import { useApercu } from "@/components/ui/apercu";
 import { Retour, useOperation } from "@/components/ui/operations";
 import { CLASSE_CHAMP_COMPACT, Pastille, Tableau, Td, Th } from "@/components/ui/primitives";
-import { correspond } from "@/components/ui/recherche";
 import { fmt } from "@/lib/format";
 import { annulerFacture, ouvrirJustificatifFacture } from "@/modules/achats/actions";
 import { etatDette } from "@/modules/achats/calcul";
@@ -14,16 +13,14 @@ import type { FactureVue } from "@/modules/achats/requetes";
 const JOUR = new Intl.DateTimeFormat("fr-FR", { day: "2-digit", month: "2-digit", year: "numeric", timeZone: "UTC" });
 const date = (iso: string) => JOUR.format(new Date(`${iso}T00:00:00Z`));
 
+/** Les factures arrivent déjà filtrées : la recherche est celle de la page (`?q=`, `?du=`, `?au=`), faite en base. */
 export function ListeFactures({ factures, annuler, aujourdhui }: { factures: FactureVue[]; annuler: boolean; aujourdhui: string }) {
   const op = useOperation();
   const apercu = useApercu();
-  const [recherche, setRecherche] = useState("");
   const [motif, setMotif] = useState<{ id: string; texte: string } | null>(null);
-  const visibles = factures.filter((f) => correspond(recherche, [f.numero, f.reference, f.fournisseur, f.commande]));
 
   return (
     <>
-      <input value={recherche} onChange={(e) => setRecherche(e.target.value)} placeholder="Fournisseur, numéro, commande…" aria-label="Rechercher une facture" className={`${CLASSE_CHAMP_COMPACT} mb-3 w-full`} />
       {op.resultat && (
         <div className="mb-3">
           <Retour resultat={op.resultat} />
@@ -42,7 +39,7 @@ export function ListeFactures({ factures, annuler, aujourdhui }: { factures: Fac
           </tr>
         </thead>
         <tbody>
-          {visibles.map((f) => {
+          {factures.map((f) => {
             const etat = f.statut === "annulee" ? null : etatDette(f.reste, f.echeance, aujourdhui);
             return (
               <tr key={f.id} className={f.statut === "annulee" ? "opacity-60" : undefined}>

@@ -14,7 +14,6 @@ import {
   Th,
   type TonPastille,
 } from "@/components/ui/primitives";
-import { BoutonDemonstration } from "@/components/bouton-demonstration";
 import { db } from "@/db";
 import { exigerEntreprise } from "@/lib/auth/dal";
 import { peut } from "@/lib/droits/garde";
@@ -119,9 +118,6 @@ export default async function PageContrats() {
             parc.length === 0
               ? "Ajoutez d'abord une ressource louable dans l'onglet Ressources : matériel, chambre, salle."
               : "Une réservation bloque des exemplaires sur une période. À la remise, le client paie et dépose la caution ; au retour, la caution se rend, moins une éventuelle retenue."
-          }
-          actions={
-            parc.length === 0 ? <BoutonDemonstration libelle="Installer le jeu de démonstration" /> : undefined
           }
         />
       ) : (

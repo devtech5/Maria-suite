@@ -1,6 +1,6 @@
 import "server-only";
 
-import { and, asc, eq, isNull, sql } from "drizzle-orm";
+import { and, asc, eq, gte, inArray, isNull, lt, lte, or, sql } from "drizzle-orm";
 
 import { db } from "@/db";
 import { auditLogs } from "@/db/schema";
@@ -8,20 +8,28 @@ import { newId } from "@/lib/ids";
 import { prochainNumero, type Transaction } from "@/lib/sequences";
 import { enregistrerEcritureDans } from "@/modules/comptabilite/enregistrement";
 import { employees } from "@/modules/personnes/schema";
+import { feriesEntre, reglagesDe } from "@/modules/presences/creation";
+import { soldesConges } from "@/modules/presences/requetes";
+import { conges } from "@/modules/presences/schema";
 import { exigerProvision } from "@/modules/tresorerie/creation";
 import { comptesTresorerie } from "@/modules/tresorerie/schema";
 
 import {
   BAREME_PAR_DEFAUT,
+  absencesDuMois,
+  bornesMois,
   calculerBulletinPaie,
   ecriturePaie,
   ecriturePaiementSalaire,
   ecritureVersement,
   finDeMois,
   moisValide,
+  rappelRetroactif,
   refusBareme,
+  retenueAbsence,
   totaliser,
   type BaremePaie,
+  type ContexteAbsences,
   type ElementsVariables,
 } from "./calcul";
 import { bulletinsPaie, parametresPaie, periodesPaie } from "./schema";
@@ -60,6 +68,38 @@ export async function enregistrerBaremeDans(tx: Transaction, organizationId: str
   await journaliser(tx, organizationId, userId, "bareme_paie.modifier", organizationId, { bareme: triees, atteste });
 }
 
+// ------------------------------------------------------------------ absences
+
+/**
+ * Ce que Présences sait du mois : décompte des jours, congés accordés, soldes
+ * en fin de mois. Lu AVANT la transaction de paie, qui le reçoit tout fait.
+ */
+export async function contexteAbsences(organizationId: string, mois: string): Promise<ContexteAbsences> {
+  const { debut, fin } = bornesMois(mois);
+  const [reglages, feries, accordes] = await Promise.all([
+    reglagesDe(organizationId),
+    feriesEntre(organizationId, debut, fin),
+    db
+      .select({ employeeId: conges.employeeId, nature: conges.nature, debut: conges.debut, fin: conges.fin, debutDemi: conges.debutDemi, finDemi: conges.finDemi })
+      .from(conges)
+      .where(
+        and(
+          eq(conges.organizationId, organizationId),
+          eq(conges.statut, "approuve"),
+          inArray(conges.nature, ["paye", "sans_solde"]),
+          lte(conges.debut, fin),
+          gte(conges.fin, debut),
+        ),
+      ),
+  ]);
+  const soldes = await soldesConges(organizationId, reglages, fin);
+  return {
+    options: { decompte: reglages.decompte, joursTravailles: reglages.joursTravailles, feries: new Set(feries.keys()) },
+    conges: accordes.map((c) => ({ ...c, nature: c.nature as "paye" | "sans_solde" })),
+    soldes: new Map(soldes.map((s) => [s.salarie.id, s.solde])),
+  };
+}
+
 // ------------------------------------------------------------------ périodes
 
 async function periodeVerrouillee(tx: Transaction, organizationId: string, id: string) {
@@ -69,12 +109,20 @@ async function periodeVerrouillee(tx: Transaction, organizationId: string, id: s
 }
 
 /**
- * Prépare la paie d'un mois : un bulletin par salarié actif, calculé sur son
- * salaire de base. Relancée, elle ajoute les nouveaux salariés et recalcule
- * les bulletins déjà là avec le barème du jour, sans toucher aux éléments
- * variables saisis.
+ * Prépare la paie d'un mois : un bulletin par salarié sous contrat pendant le
+ * mois, calculé sur son salaire de base moins les jours non dus (entrée ou
+ * sortie en cours de mois, congé sans solde). Relancée, elle ajoute les
+ * nouveaux salariés et recalcule les bulletins déjà là avec le barème et les
+ * congés du jour, sans toucher aux éléments variables saisis.
  */
-export async function preparerPeriodeDans(tx: Transaction, organizationId: string, mois: string, bareme: BaremePaie, userId: string): Promise<{ id: string; bulletins: number }> {
+export async function preparerPeriodeDans(
+  tx: Transaction,
+  organizationId: string,
+  mois: string,
+  bareme: BaremePaie,
+  absences: ContexteAbsences,
+  userId: string,
+): Promise<{ id: string; bulletins: number }> {
   if (!moisValide(mois)) throw new Error("Mois invalide.");
   let [periode] = await tx.select().from(periodesPaie).where(and(eq(periodesPaie.organizationId, organizationId), eq(periodesPaie.mois, mois))).for("update");
   if (periode?.statut === "validee") throw new Error(`La paie de ce mois est déjà validée.`);
@@ -84,21 +132,34 @@ export async function preparerPeriodeDans(tx: Transaction, organizationId: strin
     [periode] = await tx.select().from(periodesPaie).where(eq(periodesPaie.id, id));
   }
 
+  const bornes = bornesMois(mois);
   const salaries = await tx
     .select()
     .from(employees)
-    .where(and(eq(employees.organizationId, organizationId), eq(employees.actif, true), isNull(employees.deletedAt)))
+    .where(
+      and(
+        eq(employees.organizationId, organizationId),
+        eq(employees.actif, true),
+        isNull(employees.deletedAt),
+        lte(employees.debut, bornes.fin),
+        or(isNull(employees.fin), gte(employees.fin, bornes.debut)),
+      ),
+    )
     .orderBy(asc(employees.matricule));
   const existants = await tx.select().from(bulletinsPaie).where(eq(bulletinsPaie.periodeId, periode.id));
   const parSalarie = new Map(existants.map((b) => [b.employeId, b]));
 
   for (const s of salaries) {
     const deja = parSalarie.get(s.id);
+    const a = absencesDuMois(mois, s, absences);
+    const joursAbsenceSaisis = Math.min(deja?.joursAbsenceSaisis ?? 0, a.joursMois - a.joursHorsContrat - a.joursSansSolde);
     const elements: ElementsVariables = {
       salaireBase: s.salaireBase,
+      retenueAbsence: retenueAbsence(s.salaireBase, a.joursHorsContrat + a.joursSansSolde + joursAbsenceSaisis, a.joursMois),
       primesImposables: deja?.primesImposables ?? 0,
       indemnitesNonImposables: deja?.indemnitesNonImposables ?? 0,
       retenuesDiverses: deja?.retenuesDiverses ?? 0,
+      rappel: deja?.rappel ?? 0,
     };
     const c = calculerBulletinPaie(elements, bareme);
     const valeurs = {
@@ -107,6 +168,13 @@ export async function preparerPeriodeDans(tx: Transaction, organizationId: strin
       poste: s.poste,
       numeroCnps: s.numeroCnps,
       ...elements,
+      joursMois: a.joursMois,
+      joursHorsContrat: a.joursHorsContrat,
+      joursSansSolde: a.joursSansSolde,
+      rappelLibelle: deja?.rappelLibelle ?? null,
+      joursAbsenceSaisis,
+      congesPris: a.congesPris,
+      soldeConges: a.soldeConges,
       brut: c.brut,
       cnpsSalarie: c.cnpsSalarie,
       baseImposable: c.baseImposable,
@@ -127,12 +195,24 @@ export async function preparerPeriodeDans(tx: Transaction, organizationId: strin
   return { id: periode.id, bulletins: salaries.length };
 }
 
-/** Éléments variables d'un bulletin en préparation : primes, indemnités, retenues. */
+/** Ce qui se saisit sur un bulletin en préparation. */
+export interface SaisieElements {
+  primesImposables: number;
+  indemnitesNonImposables: number;
+  retenuesDiverses: number;
+  /** Absences non rémunérées constatées, en centièmes de jour. */
+  joursAbsenceSaisis: number;
+  /** Rappel de salaire, signé, et ce qu'il rattrape. */
+  rappel: number;
+  rappelLibelle: string | null;
+}
+
+/** Éléments variables d'un bulletin en préparation : primes, indemnités, retenues, absences. */
 export async function modifierElementsDans(
   tx: Transaction,
   organizationId: string,
   bulletinId: string,
-  elements: Omit<ElementsVariables, "salaireBase">,
+  saisie: SaisieElements,
   bareme: BaremePaie,
   userId: string,
 ): Promise<{ nom: string; net: number }> {
@@ -140,11 +220,21 @@ export async function modifierElementsDans(
   if (!b) throw new Error("Bulletin introuvable.");
   const periode = await periodeVerrouillee(tx, organizationId, b.periodeId);
   if (periode.statut === "validee") throw new Error("La paie de ce mois est validée : ses bulletins ne se modifient plus.");
+  const { joursAbsenceSaisis, rappelLibelle: libelle, ...montants } = saisie;
+  const rappelLibelle = montants.rappel ? libelle?.trim() || null : null;
+  if (montants.rappel && !rappelLibelle) throw new Error("Dites ce que le rappel rattrape : « Rappel de salaire de mars 2026 ».");
+  if (!Number.isInteger(joursAbsenceSaisis) || joursAbsenceSaisis < 0 || joursAbsenceSaisis % 50 !== 0) throw new Error("Les absences se comptent en jours ou demi-journées.");
+  if (joursAbsenceSaisis > 0 && b.joursMois === 0) throw new Error("Recalculez d'abord la paie du mois : ce bulletin ne connaît pas encore ses jours.");
+  const nonPayes = b.joursHorsContrat + b.joursSansSolde + joursAbsenceSaisis;
+  if (nonPayes > b.joursMois) throw new Error("Plus de jours d'absence que de jours dans le mois.");
+  const elements = { ...montants, retenueAbsence: retenueAbsence(b.salaireBase, nonPayes, b.joursMois) };
   const c = calculerBulletinPaie({ salaireBase: b.salaireBase, ...elements }, bareme);
   await tx
     .update(bulletinsPaie)
     .set({
       ...elements,
+      joursAbsenceSaisis,
+      rappelLibelle,
       brut: c.brut,
       cnpsSalarie: c.cnpsSalarie,
       baseImposable: c.baseImposable,
@@ -158,8 +248,43 @@ export async function modifierElementsDans(
       version: sql`${bulletinsPaie.version} + 1`,
     })
     .where(eq(bulletinsPaie.id, b.id));
-  await journaliser(tx, organizationId, userId, "paie.elements", b.id, { salarie: b.nom, ...elements, net: c.net });
+  await journaliser(tx, organizationId, userId, "paie.elements", b.id, { salarie: b.nom, ...elements, joursAbsenceSaisis, net: c.net });
   return { nom: b.nom, net: c.net };
+}
+
+/**
+ * Rappel proposé pour un bulletin en préparation : relit les bulletins validés
+ * du salarié depuis `depuis`, avant le mois de ce bulletin, et chiffre l'écart
+ * avec `nouveauSalaire`. Ne modifie rien : la saisie reste à faire.
+ */
+export async function proposerRappel(
+  organizationId: string,
+  bulletinId: string,
+  depuis: string,
+  nouveauSalaire: number,
+): Promise<{ montant: number; mois: string[]; libelle: string }> {
+  if (!moisValide(depuis)) throw new Error("Mois de départ invalide.");
+  const [b] = await db
+    .select({ employeId: bulletinsPaie.employeId, mois: periodesPaie.mois })
+    .from(bulletinsPaie)
+    .innerJoin(periodesPaie, eq(periodesPaie.id, bulletinsPaie.periodeId))
+    .where(and(eq(bulletinsPaie.id, bulletinId), eq(bulletinsPaie.organizationId, organizationId)));
+  if (!b) throw new Error("Bulletin introuvable.");
+  if (depuis >= b.mois) throw new Error("Le rappel porte sur des mois déjà payés, avant celui-ci.");
+  const passes = await db
+    .select({ mois: periodesPaie.mois, salaireBase: bulletinsPaie.salaireBase, retenueAbsence: bulletinsPaie.retenueAbsence })
+    .from(bulletinsPaie)
+    .innerJoin(periodesPaie, eq(periodesPaie.id, bulletinsPaie.periodeId))
+    .where(
+      and(
+        eq(bulletinsPaie.organizationId, organizationId),
+        eq(bulletinsPaie.employeId, b.employeId),
+        eq(periodesPaie.statut, "validee"),
+        gte(periodesPaie.mois, depuis),
+        lt(periodesPaie.mois, b.mois),
+      ),
+    );
+  return rappelRetroactif(passes, nouveauSalaire);
 }
 
 /** Retire un salarié de la paie du mois (absent tout le mois, sorti avant le début). */

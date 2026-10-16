@@ -326,16 +326,6 @@ export async function enregistrerPointageDans(
   return { id, piece, montant };
 }
 
-export async function enregistrerPointagePour(
-  organizationId: string,
-  donnees: NouveauPointage,
-  userId?: string,
-): Promise<{ id: string; piece: string; montant: number }> {
-  return db.transaction((tx) =>
-    enregistrerPointageDans(tx, organizationId, donnees, userId),
-  );
-}
-
 // ----------------------------------------------------------- bons de paiement
 
 export interface NouveauBonPaiement {
@@ -439,14 +429,4 @@ export async function enregistrerBonPaiementDans(
   });
 
   return { id, numero, ecriture: numeroEcriture };
-}
-
-export async function enregistrerBonPaiementPour(
-  organizationId: string,
-  donnees: NouveauBonPaiement,
-  userId: string,
-): Promise<{ id: string; numero: string; ecriture: string }> {
-  return db.transaction((tx) =>
-    enregistrerBonPaiementDans(tx, organizationId, donnees, userId),
-  );
 }

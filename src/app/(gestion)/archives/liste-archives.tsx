@@ -5,8 +5,8 @@ import { useRouter } from "next/navigation";
 
 import { useApercu } from "@/components/ui/apercu";
 import { Retour, type Resultat } from "@/components/ui/operations";
-import { CLASSE_CHAMP, Pastille } from "@/components/ui/primitives";
-import { correspond } from "@/components/ui/recherche";
+import { CLASSE_CHAMP, CLASSE_CHAMP_COMPACT, Pastille } from "@/components/ui/primitives";
+import { correspond, dansPeriode, lirePeriode, type Periode } from "@/lib/recherche";
 import { ouvrirArchive, retirerArchive, verifierArchive } from "@/modules/archives/actions";
 import { familleDe, heuresAvantScellement, LIBELLE_FAMILLE, tailleLisible, type Famille } from "@/modules/archives/calcul";
 
@@ -65,6 +65,8 @@ export function ListeArchives({
   mode,
   peutRetirer = false,
   moi,
+  rechercheInitiale = "",
+  periodeInitiale = { du: null, au: null },
 }: {
   archives: ArchiveAffichee[];
   /** personnel : son espace · dossier : un dossier partagé · supervision : tout. */
@@ -72,8 +74,13 @@ export function ListeArchives({
   peutRetirer?: boolean;
   /** Utilisateur courant : dans un dossier partagé, on ne retire que ce qu'on a déposé. */
   moi?: string;
+  /** `?q=` de l'adresse : la recherche globale y renvoie avec le mot déjà posé. */
+  rechercheInitiale?: string;
+  periodeInitiale?: Periode;
 }) {
-  const [recherche, setRecherche] = useState("");
+  const [recherche, setRecherche] = useState(rechercheInitiale);
+  const [du, setDu] = useState(periodeInitiale.du ?? "");
+  const [au, setAu] = useState(periodeInitiale.au ?? "");
   const [dossier, setDossier] = useState<string | null>(null);
   const [retrait, setRetrait] = useState<{ id: string; motif: string } | null>(null);
   const [resultat, setResultat] = useState<Resultat | null>(null);
@@ -89,10 +96,13 @@ export function ListeArchives({
     return [...compte.entries()].sort((x, y) => x[0].localeCompare(y[0], "fr"));
   }, [archives]);
 
+  // Période sur la date d'archivage, celle du dépôt qui scelle le fichier.
+  const periode = lirePeriode(du, au);
   const visibles = archives.filter(
     (a) =>
       (dossier === null || (a.dossier ?? "") === dossier) &&
-      correspond(recherche, [a.titre, a.numero, a.nomFichier, a.dossier, a.dossierPartage?.nom, a.description, a.auteur]),
+      correspond(recherche, [a.titre, a.numero, a.nomFichier, a.dossier, a.dossierPartage?.nom, a.description, a.auteur]) &&
+      dansPeriode(a.deposeLeIso, periode),
   );
 
   function ouvrir(a: ArchiveAffichee) {
@@ -130,6 +140,26 @@ export function ListeArchives({
           aria-label="Rechercher une archive"
           className={CLASSE_CHAMP}
         />
+        <fieldset className="flex flex-wrap items-center gap-1.5 text-sm">
+          <legend className="sr-only">Archivée</legend>
+          <span className="text-[var(--encre-faible)]">Archivée du</span>
+          <input type="date" value={du} onChange={(e) => setDu(e.target.value)} aria-label="Archivée : du" className={`${CLASSE_CHAMP_COMPACT} chiffres`} />
+          <span className="text-[var(--encre-faible)]">au</span>
+          <input type="date" value={au} onChange={(e) => setAu(e.target.value)} aria-label="Archivée : au" className={`${CLASSE_CHAMP_COMPACT} chiffres`} />
+          {(recherche.trim() !== "" || du !== "" || au !== "") && (
+            <button
+              type="button"
+              onClick={() => {
+                setRecherche("");
+                setDu("");
+                setAu("");
+              }}
+              className="text-xs font-semibold text-marque-600 hover:underline"
+            >
+              Tout afficher
+            </button>
+          )}
+        </fieldset>
         {dossiers.length > 1 && (
           <div className="flex gap-1.5 overflow-x-auto pb-0.5">
             <button

@@ -22,6 +22,7 @@ const TYPES = [
   { valeur: "engin", libelle: "Engin", unite: "h" },
   { valeur: "informatique", libelle: "Informatique", unite: "" },
   { valeur: "mobilier", libelle: "Mobilier et équipement", unite: "" },
+  { valeur: "local", libelle: "Local (bureau, entrepôt, magasin)", unite: "" },
 ] as const;
 
 type Type = (typeof TYPES)[number]["valeur"];

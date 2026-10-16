@@ -18,7 +18,7 @@ export function FormulaireDepense({
   fournisseurs: { id: string; nom: string }[];
 }) {
   return (
-    <FormulaireRepliable libelle="Nouvelle dépense" titre="Demander une dépense" action={demanderDepense}>
+    <FormulaireRepliable libelle="Nouvelle dépense" titre="Demander une dépense" presentation="tiroir" action={demanderDepense}>
       <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
         <Champ libelle="Objet de l'achat">
           <input name="objet" required placeholder="Ciment CPJ 45 — 40 sacs" className={CLASSE_CHAMP} />

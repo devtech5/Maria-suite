@@ -24,6 +24,7 @@ const PREFIXE: Record<TypeActif, string> = {
   informatique: "INF-",
   engin: "ENG-",
   mobilier: "MOB-",
+  local: "LOC-",
 };
 
 /** Unité de compteur usuelle, quand la saisie ne la précise pas. */
@@ -379,12 +380,4 @@ export async function creerEcheanceDans(
   }
 
   return id;
-}
-
-export async function creerEcheancePour(
-  organizationId: string,
-  donnees: NouvelleEcheance,
-  userId?: string,
-): Promise<string> {
-  return db.transaction((tx) => creerEcheanceDans(tx, organizationId, donnees, userId));
 }

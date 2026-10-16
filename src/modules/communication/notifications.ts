@@ -6,6 +6,8 @@ import { db } from "@/db";
 import { utilisateursAyantDroit } from "@/lib/droits/destinataires";
 import type { Droit } from "@/lib/droits/catalogue";
 import { newId } from "@/lib/ids";
+import { motsRecherche, type FiltresListe } from "@/lib/recherche";
+import { dansPeriodeSql, motsDans } from "@/lib/recherche-sql";
 
 import { notifications, type NotificationInterne } from "./schema";
 
@@ -60,11 +62,20 @@ export async function notifierDetenteurs(
   }
 }
 
-export async function notificationsDe(organizationId: string, userId: string, limite = 30): Promise<NotificationInterne[]> {
+export async function notificationsDe(organizationId: string, userId: string, limite = 30, filtres?: FiltresListe): Promise<NotificationInterne[]> {
   return db
     .select()
     .from(notifications)
-    .where(and(eq(notifications.organizationId, organizationId), eq(notifications.userId, userId), isNull(notifications.deletedAt)))
+    .where(
+      and(
+        eq(notifications.organizationId, organizationId),
+        eq(notifications.userId, userId),
+        isNull(notifications.deletedAt),
+        // Filtrés en base : la page s'arrête aux cent dernières.
+        filtres && motsDans([notifications.titre, notifications.corps], motsRecherche(filtres.q)),
+        filtres && dansPeriodeSql(notifications.createdAt, filtres.periode),
+      ),
+    )
     .orderBy(desc(notifications.createdAt))
     .limit(limite);
 }

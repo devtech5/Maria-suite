@@ -371,12 +371,3 @@ export async function enregistrerMouvementPour(
     enregistrerMouvementDans(tx, organizationId, donnees, userId),
   );
 }
-
-/** Même chose, hors d'une transaction existante. */
-export async function transfererPour(
-  organizationId: string,
-  donnees: NouveauTransfert,
-  userId?: string,
-): Promise<{ piece: string; groupeId: string }> {
-  return db.transaction((tx) => transfererDans(tx, organizationId, donnees, userId));
-}

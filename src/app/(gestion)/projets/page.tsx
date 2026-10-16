@@ -1,7 +1,6 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 
-import { BoutonDemonstration } from "@/components/bouton-demonstration";
 import { FormulaireRepliable } from "@/components/ui/operations";
 import {
   CarteIndicateur,
@@ -12,15 +11,16 @@ import {
   Pastille,
   type TonPastille,
 } from "@/components/ui/primitives";
+import { Recherche } from "@/components/ui/recherche";
 import { exigerEntreprise } from "@/lib/auth/dal";
 import { peut } from "@/lib/droits/garde";
 import { fmt, fmtCompact, fmtEntier } from "@/lib/format";
+import { correspond, dansPeriode, lireFiltresListe } from "@/lib/recherche";
 import { creerProjet } from "@/modules/projets/actions";
 import { LIBELLE_STATUT_PROJET, tauxReussitePortefeuille } from "@/modules/projets/calcul";
 import { listerProjets, membresActifs } from "@/modules/projets/requetes";
 import type { StatutProjet } from "@/modules/projets/schema";
 import { listerTiers } from "@/modules/tiers/requetes";
-
 
 export const metadata: Metadata = { title: "Projets" };
 
@@ -36,8 +36,9 @@ const TON: Record<StatutProjet, TonPastille> = {
  * Projets : à quoi l'argent a servi. Chaque carte dit le budget, ce qui est
  * engagé, ce qui est payé et ce qui attend une signature.
  */
-export default async function PageProjets() {
+export default async function PageProjets({ searchParams }: PageProps<"/projets">) {
   const session = await exigerEntreprise();
+  const filtres = lireFiltresListe(await searchParams);
   const [projets, gerer, membres, clients] = await Promise.all([
     listerProjets(session.organizationId),
     peut("projet.gerer"),
@@ -51,6 +52,11 @@ export default async function PageProjets() {
   const depasses = actifs.filter((p) => p.suivi.reste !== null && p.suivi.reste < 0).length;
   const resultatCumule = projets.filter((p) => p.statut !== "annule").reduce((s, p) => s + p.bilan.resultat, 0);
   const portefeuille = tauxReussitePortefeuille(projets);
+  // Les indicateurs portent sur tout le portefeuille ; seules les cartes suivent la recherche.
+  const affiches = projets.filter(
+    (p) =>
+      correspond(filtres.q, [p.code, p.nom, p.client, p.responsable, p.description]) && dansPeriode(p.debut, filtres.periode),
+  );
 
   return (
     <>
@@ -60,8 +66,7 @@ export default async function PageProjets() {
         actions={
           gerer ? (
             <div className="flex flex-col items-end gap-2">
-              {projets.length === 0 && <BoutonDemonstration libelle="Installer le jeu de démonstration" />}
-              <FormulaireRepliable libelle="Nouveau projet" titre="Nouveau projet" action={creerProjet}>
+              <FormulaireRepliable libelle="Nouveau projet" titre="Nouveau projet" presentation="tiroir" action={creerProjet}>
                 <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
                   <Champ libelle="Nom du projet">
                     <input name="nom" required placeholder="Ouverture boutique Yopougon" className={CLASSE_CHAMP} />
@@ -151,93 +156,105 @@ export default async function PageProjets() {
 
           </section>
 
-          <ul className="grid grid-cols-1 gap-2 lg:grid-cols-2">
-            {projets.map((p) => {
-              const taux = p.suivi.taux ?? 0;
-              return (
-                <li key={p.id}>
-                  <Link
-                    href={`/projets/${p.id}`}
-                    className="block rounded-xl border border-[var(--filet)] bg-[var(--surface)] p-4 hover:border-marque-400"
-                  >
-                    <div className="flex items-start justify-between gap-2">
-                      <div className="min-w-0">
-                        <p className="chiffres text-xs text-[var(--encre-faible)]">
-                          {p.code}
-                          {p.client ? ` · ${p.client}` : ""}
-                        </p>
-                        <p className="truncate text-sm font-semibold">{p.nom}</p>
-                      </div>
-                      <Pastille ton={TON[p.statut]}>{LIBELLE_STATUT_PROJET[p.statut]}</Pastille>
-                    </div>
-                    <p className="mt-1 text-xs text-[var(--encre-douce)]">
-                      {p.responsable ? `Responsable : ${p.responsable}` : "Non affecté"} · {p.depenses} dépense
-                      {p.depenses > 1 ? "s" : ""} · {p.photos} photo{p.photos > 1 ? "s" : ""}
-                    </p>
+          <Recherche
+            chemin="/projets"
+            valeur={filtres.q}
+            placeholder="Code, nom, client, responsable…"
+            periode={{ ...filtres.periode, libelle: "Début" }}
+            resultats={filtres.actif ? `${fmtEntier(affiches.length)} sur ${fmtEntier(projets.length)}` : undefined}
+          />
 
-                    <div className="mt-3">
-                      <div className="mb-1 flex items-baseline justify-between gap-2 text-xs">
-                        <span className="text-[var(--encre-faible)]">
-                          {fmt(p.suivi.engage)} engagés{p.budget !== null ? ` sur ${fmt(p.budget)}` : ""} · {fmt(p.suivi.paye)} payés
-                        </span>
-                        {p.suivi.taux !== null && <span className="chiffres font-semibold">{taux} %</span>}
-                      </div>
-                      {p.budget !== null && (
-                        <div
-                          className="h-1.5 overflow-hidden rounded-full bg-[var(--surface-creuse)]"
-                          role="progressbar"
-                          aria-valuenow={taux}
-                          aria-valuemin={0}
-                          aria-valuemax={100}
-                          aria-label={`Budget consommé du projet ${p.code}`}
-                        >
-                          <div
-                            className={`h-full rounded-full ${taux > 100 ? "bg-danger-500" : taux >= 85 ? "bg-alerte-500" : "bg-marque-600"}`}
-                            style={{ width: `${Math.min(100, taux)}%` }}
-                          />
+          {affiches.length === 0 ? (
+            <EtatVide titre="Aucun projet ne répond" message="Élargissez la période ou retirez un mot de la recherche." />
+          ) : (
+            <ul className="grid grid-cols-1 gap-2 lg:grid-cols-2">
+              {affiches.map((p) => {
+                const taux = p.suivi.taux ?? 0;
+                return (
+                  <li key={p.id}>
+                    <Link
+                      href={`/projets/${p.id}`}
+                      className="block rounded-xl border border-[var(--filet)] bg-[var(--surface)] p-4 hover:border-marque-400"
+                    >
+                      <div className="flex items-start justify-between gap-2">
+                        <div className="min-w-0">
+                          <p className="chiffres text-xs text-[var(--encre-faible)]">
+                            {p.code}
+                            {p.client ? ` · ${p.client}` : ""}
+                          </p>
+                          <p className="truncate text-sm font-semibold">{p.nom}</p>
                         </div>
-                      )}
-                    </div>
-                    <div className="mt-3 flex flex-wrap items-baseline justify-between gap-2 border-t border-[var(--filet)] pt-2 text-xs">
-                      {p.statut !== "termine" && p.bilan.resultatPrevu !== null ? (
-                        // En cours, le prix convenu dit ce que le projet rapportera ;
-                        // le facturé à date n'en est qu'une partie.
-                        <span className="text-[var(--encre-douce)]">
-                          <span className={`chiffres font-semibold ${p.bilan.resultatPrevu >= 0 ? "text-valide-600" : "text-danger-600"}`}>
-                            {p.bilan.resultatPrevu >= 0 ? "Bénéfice prévu " : "Perte prévue "}
-                            {fmt(Math.abs(p.bilan.resultatPrevu))} HT
+                        <Pastille ton={TON[p.statut]}>{LIBELLE_STATUT_PROJET[p.statut]}</Pastille>
+                      </div>
+                      <p className="mt-1 text-xs text-[var(--encre-douce)]">
+                        {p.responsable ? `Responsable : ${p.responsable}` : "Non affecté"} · {p.depenses} dépense
+                        {p.depenses > 1 ? "s" : ""} · {p.photos} photo{p.photos > 1 ? "s" : ""}
+                      </p>
+
+                      <div className="mt-3">
+                        <div className="mb-1 flex items-baseline justify-between gap-2 text-xs">
+                          <span className="text-[var(--encre-faible)]">
+                            {fmt(p.suivi.engage)} engagés{p.budget !== null ? ` sur ${fmt(p.budget)}` : ""} · {fmt(p.suivi.paye)} payés
                           </span>
-                          {p.facture > 0 && <span className="chiffres"> · facturé {fmt(p.facture)}</span>}
-                        </span>
-                      ) : p.facture > 0 || p.prixVente !== null ? (
-                        <span className={`chiffres font-semibold ${p.bilan.resultat >= 0 ? "text-valide-600" : "text-danger-600"}`}>
-                          {p.bilan.resultat >= 0 ? "Bénéfice " : "Perte "}
-                          {fmt(Math.abs(p.bilan.resultat))} HT
-                        </span>
-                      ) : (
-                        <span className="text-[var(--encre-faible)]">Projet interne · coût {fmt(p.coutEngageHt)} HT</span>
-                      )}
-                      {p.bilan.tauxReussite !== null && (
-                        <span className="text-[var(--encre-douce)]">
-                          Réussite{" "}
-                          <span
-                            className={`chiffres font-semibold ${
-                              p.bilan.tauxReussite === 100 ? "text-valide-600" : p.bilan.tauxReussite >= 50 ? "text-alerte-600" : "text-danger-600"
-                            }`}
+                          {p.suivi.taux !== null && <span className="chiffres font-semibold">{taux} %</span>}
+                        </div>
+                        {p.budget !== null && (
+                          <div
+                            className="h-1.5 overflow-hidden rounded-full bg-[var(--surface-creuse)]"
+                            role="progressbar"
+                            aria-valuenow={taux}
+                            aria-valuemin={0}
+                            aria-valuemax={100}
+                            aria-label={`Budget consommé du projet ${p.code}`}
                           >
-                            {p.bilan.tauxReussite} %
+                            <div
+                              className={`h-full rounded-full ${taux > 100 ? "bg-danger-500" : taux >= 85 ? "bg-alerte-500" : "bg-marque-600"}`}
+                              style={{ width: `${Math.min(100, taux)}%` }}
+                            />
+                          </div>
+                        )}
+                      </div>
+                      <div className="mt-3 flex flex-wrap items-baseline justify-between gap-2 border-t border-[var(--filet)] pt-2 text-xs">
+                        {p.statut !== "termine" && p.bilan.resultatPrevu !== null ? (
+                          // En cours, le prix convenu dit ce que le projet rapportera ;
+                          // le facturé à date n'en est qu'une partie.
+                          <span className="text-[var(--encre-douce)]">
+                            <span className={`chiffres font-semibold ${p.bilan.resultatPrevu >= 0 ? "text-valide-600" : "text-danger-600"}`}>
+                              {p.bilan.resultatPrevu >= 0 ? "Bénéfice prévu " : "Perte prévue "}
+                              {fmt(Math.abs(p.bilan.resultatPrevu))} HT
+                            </span>
+                            {p.facture > 0 && <span className="chiffres"> · facturé {fmt(p.facture)}</span>}
                           </span>
-                        </span>
+                        ) : p.facture > 0 || p.prixVente !== null ? (
+                          <span className={`chiffres font-semibold ${p.bilan.resultat >= 0 ? "text-valide-600" : "text-danger-600"}`}>
+                            {p.bilan.resultat >= 0 ? "Bénéfice " : "Perte "}
+                            {fmt(Math.abs(p.bilan.resultat))} HT
+                          </span>
+                        ) : (
+                          <span className="text-[var(--encre-faible)]">Projet interne · coût {fmt(p.coutEngageHt)} HT</span>
+                        )}
+                        {p.bilan.tauxReussite !== null && (
+                          <span className="text-[var(--encre-douce)]">
+                            Réussite{" "}
+                            <span
+                              className={`chiffres font-semibold ${
+                                p.bilan.tauxReussite === 100 ? "text-valide-600" : p.bilan.tauxReussite >= 50 ? "text-alerte-600" : "text-danger-600"
+                              }`}
+                            >
+                              {p.bilan.tauxReussite} %
+                            </span>
+                          </span>
+                        )}
+                      </div>
+                      {p.suivi.enAttente > 0 && (
+                        <p className="mt-2 text-xs font-medium text-alerte-600">{fmt(p.suivi.enAttente)} F en attente d&apos;approbation</p>
                       )}
-                    </div>
-                    {p.suivi.enAttente > 0 && (
-                      <p className="mt-2 text-xs font-medium text-alerte-600">{fmt(p.suivi.enAttente)} F en attente d&apos;approbation</p>
-                    )}
-                  </Link>
-                </li>
-              );
-            })}
-          </ul>
+                    </Link>
+                  </li>
+                );
+              })}
+            </ul>
+          )}
         </>
       )}
     </>

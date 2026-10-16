@@ -1,6 +1,6 @@
 {
-  "id": "5973e866-ba6f-428a-a8c9-a4fd78f52c46",
-  "prevId": "5b4284b8-e061-40a3-a61c-49836faaa518",
+  "id": "5c5422f9-c2b2-44af-9797-78bebcc3a03e",
+  "prevId": "7eb56357-161e-4d7b-ae33-3433c736bda8",
   "version": "7",
   "dialect": "postgresql",
   "tables": {
@@ -78,12 +78,6 @@
         },
         "verrouillee_le": {
           "name": "verrouillee_le",
-          "type": "timestamp with time zone",
-          "primaryKey": false,
-          "notNull": false
-        },
-        "maintenue_le": {
-          "name": "maintenue_le",
           "type": "timestamp with time zone",
           "primaryKey": false,
           "notNull": false
@@ -1073,12 +1067,6 @@
           "primaryKey": false,
           "notNull": false
         },
-        "couleur_secondaire": {
-          "name": "couleur_secondaire",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": false
-        },
         "pied_de_page": {
           "name": "pied_de_page",
           "type": "text",
@@ -1116,7 +1104,7 @@
           "type": "integer",
           "primaryKey": false,
           "notNull": true,
-          "default": 15
+          "default": 10
         },
         "created_at": {
           "name": "created_at",
@@ -1171,10 +1159,6 @@
         "organizations_couleur": {
           "name": "organizations_couleur",
           "value": "\"organizations\".\"couleur_documents\" IS NULL OR \"organizations\".\"couleur_documents\" ~ '^#[0-9a-fA-F]{6}$'"
-        },
-        "organizations_couleur_secondaire": {
-          "name": "organizations_couleur_secondaire",
-          "value": "\"organizations\".\"couleur_secondaire\" IS NULL OR \"organizations\".\"couleur_secondaire\" ~ '^#[0-9a-fA-F]{6}$'"
         }
       },
       "isRLSEnabled": false
@@ -12996,6 +12980,54 @@
           "primaryKey": false,
           "notNull": true
         },
+        "jours_mois": {
+          "name": "jours_mois",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true,
+          "default": 0
+        },
+        "jours_hors_contrat": {
+          "name": "jours_hors_contrat",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true,
+          "default": 0
+        },
+        "jours_sans_solde": {
+          "name": "jours_sans_solde",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true,
+          "default": 0
+        },
+        "jours_absence_saisis": {
+          "name": "jours_absence_saisis",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true,
+          "default": 0
+        },
+        "retenue_absence": {
+          "name": "retenue_absence",
+          "type": "bigint",
+          "primaryKey": false,
+          "notNull": true,
+          "default": 0
+        },
+        "conges_pris": {
+          "name": "conges_pris",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true,
+          "default": 0
+        },
+        "solde_conges": {
+          "name": "solde_conges",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": false
+        },
         "primes_imposables": {
           "name": "primes_imposables",
           "type": "bigint",
@@ -13016,6 +13048,19 @@
           "primaryKey": false,
           "notNull": true,
           "default": 0
+        },
+        "rappel": {
+          "name": "rappel",
+          "type": "bigint",
+          "primaryKey": false,
+          "notNull": true,
+          "default": 0
+        },
+        "rappel_libelle": {
+          "name": "rappel_libelle",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
         },
         "brut": {
           "name": "brut",
@@ -13233,6 +13278,14 @@
         "bulletins_paie_net": {
           "name": "bulletins_paie_net",
           "value": "\"bulletins_paie\".\"net\" >= 0 AND \"bulletins_paie\".\"brut\" >= 0"
+        },
+        "bulletins_paie_rappel": {
+          "name": "bulletins_paie_rappel",
+          "value": "\"bulletins_paie\".\"rappel\" = 0 OR \"bulletins_paie\".\"rappel_libelle\" IS NOT NULL"
+        },
+        "bulletins_paie_absences": {
+          "name": "bulletins_paie_absences",
+          "value": "\"bulletins_paie\".\"jours_mois\" >= 0 AND \"bulletins_paie\".\"jours_hors_contrat\" >= 0 AND \"bulletins_paie\".\"jours_sans_solde\" >= 0 AND \"bulletins_paie\".\"jours_absence_saisis\" >= 0 AND \"bulletins_paie\".\"conges_pris\" >= 0 AND \"bulletins_paie\".\"retenue_absence\" BETWEEN 0 AND \"bulletins_paie\".\"salaire_base\""
         },
         "bulletins_paie_paye": {
           "name": "bulletins_paie_paye",

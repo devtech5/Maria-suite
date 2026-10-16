@@ -4,6 +4,12 @@ import Link from "next/link";
 /**
  * Indicateur de tête. Une valeur, son libellé, une précision facultative.
  *
+ * Carte pleine en dégradé, reprise de Ferme360 : le ton se lit avant le
+ * chiffre — bleu nuit pour un compte, vert pour ce qui va bien, or pour ce qui
+ * demande de l'attention, rouge pour ce qui presse. Les couleurs sont fixes
+ * dans les deux thèmes (`.carte-degrade`, `globals.css`) : le texte blanc y
+ * garde son contraste.
+ *
  * Avec `href`, la carte devient cliquable et prend un survol, sans changer
  * d'allure. C'est ce qui permet à une alerte du tableau de bord de mener vers
  * son module tout en se rangeant dans la même grille qu'un indicateur : deux
@@ -25,39 +31,25 @@ export function CarteIndicateur({
   ton?: "neutre" | "marque" | "alerte" | "danger" | "valide";
   href?: string;
 }) {
-  const tons = {
-    neutre: "text-[var(--encre)]",
-    marque: "text-marque-600",
-    alerte: "text-alerte-600",
-    danger: "text-danger-600",
-    valide: "text-valide-600",
-  } as const;
-
   const contenu = (
     <>
-      <p className="text-xs font-medium text-[var(--encre-faible)]">{libelle}</p>
-      <p className={`chiffres mt-1 text-xl font-bold sm:text-2xl ${tons[ton]}`}>
+      <p className="text-[10px] font-bold uppercase tracking-wider opacity-90">{libelle}</p>
+      <p className="chiffres mt-1 text-xl font-bold sm:text-2xl">
         {valeur}
-        {unite && (
-          <span className="ml-1 text-sm font-medium text-[var(--encre-faible)]">
-            {unite}
-          </span>
-        )}
+        {unite && <span className="ml-1 text-sm font-semibold opacity-85">{unite}</span>}
       </p>
-      {precision && (
-        <div className="mt-0.5 text-xs text-[var(--encre-faible)]">{precision}</div>
-      )}
+      {precision && <div className="mt-0.5 text-xs text-[var(--encre-douce)]">{precision}</div>}
     </>
   );
 
   // `min-w-0` : dans une grille à deux colonnes sur téléphone, un montant long
   // ne doit pas pousser sa voisine hors de l'écran.
-  const habillage = "min-w-0 rounded-xl border border-[var(--filet)] bg-[var(--surface)] p-3 sm:p-4";
+  const habillage = `carte-degrade carte-${ton} min-w-0 rounded-2xl p-3 shadow-sm sm:p-4`;
 
   // `h-full` sur le lien : dans une grille, une carte au texte plus court
   // laisserait sinon un vide sous elle et casserait l'alignement de la rangée.
   return href ? (
-    <Link href={href} className={`${habillage} block h-full hover:border-marque-400`}>
+    <Link href={href} className={`${habillage} block h-full transition hover:-translate-y-px hover:shadow-md hover:brightness-110`}>
       {contenu}
     </Link>
   ) : (
@@ -86,7 +78,7 @@ export function Pastille({
 
   return (
     <span
-      className={`inline-block whitespace-nowrap rounded-full px-2 py-0.5 text-[11px] font-semibold ${tons[ton]}`}
+      className={`inline-block whitespace-nowrap rounded-full px-2 py-0.5 text-[10px] font-bold uppercase tracking-wide ${tons[ton]}`}
     >
       {children}
     </span>
@@ -122,7 +114,7 @@ export function EnTetePage({
  */
 export function Tableau({ children }: { children: ReactNode }) {
   return (
-    <div className="overflow-x-auto rounded-xl border border-[var(--filet)] bg-[var(--surface)]">
+    <div className="overflow-x-auto rounded-2xl border border-[var(--filet)] bg-[var(--surface)] shadow-sm">
       <table className="w-full min-w-[640px] border-collapse text-sm">{children}</table>
     </div>
   );
@@ -137,7 +129,7 @@ export function Th({
 }) {
   return (
     <th
-      className={`whitespace-nowrap border-b border-[var(--filet)] bg-[var(--surface-creuse)] px-3.5 py-2.5 text-xs font-semibold text-[var(--encre-faible)] ${
+      className={`whitespace-nowrap border-b border-[var(--filet)] bg-[var(--surface-creuse)] px-3.5 py-2.5 text-[11px] font-bold uppercase tracking-wider text-[var(--encre-faible)] ${
         aligne === "droite" ? "text-right" : "text-left"
       }`}
     >
@@ -167,24 +159,6 @@ export function Td({
           sur une ligne et « 000 » sur la suivante se lit 1 770. */}
       {children}
     </td>
-  );
-}
-
-export function BoutonSecondaire({
-  children,
-  onClick,
-}: {
-  children: ReactNode;
-  onClick?: () => void;
-}) {
-  return (
-    <button
-      type="button"
-      onClick={onClick}
-      className="h-cible rounded-lg border border-[var(--filet)] bg-[var(--surface)] px-3.5 text-sm font-medium hover:bg-[var(--surface-creuse)]"
-    >
-      {children}
-    </button>
   );
 }
 
@@ -224,7 +198,7 @@ export function EtatVide({
   actions?: ReactNode;
 }) {
   return (
-    <div className="rounded-xl border border-dashed border-[var(--filet)] bg-[var(--surface)] px-6 py-12 text-center">
+    <div className="rounded-2xl border border-[var(--filet)] bg-[var(--surface)] px-6 py-12 text-center shadow-sm">
       <p className="text-base font-semibold">{titre}</p>
       <p className="mx-auto mt-1.5 max-w-md text-sm text-[var(--encre-douce)]">
         {message}

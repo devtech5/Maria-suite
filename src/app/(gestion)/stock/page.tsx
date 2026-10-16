@@ -1,7 +1,6 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 
-import { BoutonDemonstration } from "@/components/bouton-demonstration";
 import {
   CarteIndicateur,
   EnTetePage,
@@ -54,8 +53,7 @@ export default async function PageStock() {
       {lieux.length === 0 ? (
         <EtatVide
           titre="Aucun dépôt"
-          message="Le stock se compte par lieu, jamais globalement : ouvrez d'abord un dépôt ou un magasin. Vous pouvez aussi installer le jeu de démonstration — une supérette d'Abidjan avec ses quatre lieux de stockage et un mois de mouvements."
-          actions={<BoutonDemonstration libelle="Installer le jeu de démonstration" />}
+          message="Le stock se compte par lieu, jamais globalement : ouvrez d'abord un dépôt ou un magasin."
         />
       ) : (
         <>

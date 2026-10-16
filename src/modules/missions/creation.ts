@@ -2,7 +2,6 @@ import "server-only";
 
 import { and, asc, eq, isNull, sql } from "drizzle-orm";
 
-import { db } from "@/db";
 import { auditLogs } from "@/db/schema";
 import { newId } from "@/lib/ids";
 import { prochainNumero, type Transaction } from "@/lib/sequences";
@@ -537,13 +536,4 @@ export async function enregistrerReponseDans(
   });
 
   return { ok: true, deja: false };
-}
-
-/** Même chose, hors d'une transaction existante. */
-export async function creerMissionPour(
-  organizationId: string,
-  donnees: NouvelleMission,
-  userId?: string,
-) {
-  return db.transaction((tx) => creerMissionDans(tx, organizationId, donnees, userId));
 }

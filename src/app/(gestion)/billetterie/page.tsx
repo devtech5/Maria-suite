@@ -9,7 +9,6 @@ import {
   Pastille,
   type TonPastille,
 } from "@/components/ui/primitives";
-import { BoutonDemonstration } from "@/components/bouton-demonstration";
 import { FormulaireRepliable } from "@/components/ui/operations";
 import { exigerEntreprise } from "@/lib/auth/dal";
 import { peut } from "@/lib/droits/garde";
@@ -106,8 +105,6 @@ export default async function PageDeparts() {
                 </Champ>
               </div>
             </FormulaireRepliable>
-          ) : lignes.length === 0 ? (
-            <BoutonDemonstration libelle="Installer le jeu de démonstration" />
           ) : undefined
         }
       />

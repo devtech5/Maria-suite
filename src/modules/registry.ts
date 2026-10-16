@@ -109,9 +109,13 @@ export const MODULES: ModuleDefinition[] = [
     // Dossier du salarié avec ses pièces. Paie émise : barème par entreprise
     // attesté vérifié, bulletins numérotés et figés, écriture de paie,
     // salaires payés depuis la trésorerie, versements CNPS et impôt, état
-    // mensuel des cotisations. Restent les congés dans le bulletin (les
-    // soldes vivent dans Présences), la DISA annuelle et les rappels de
-    // salaire.
+    // mensuel des cotisations. Le bulletin se cale sur Présences : entrée ou
+    // sortie dans le mois, congé sans solde et absences saisies retenus au
+    // prorata des jours, congés payés pris et solde imprimés. Rappel de
+    // salaire ou reprise de trop-perçu sur le bulletin, chiffré depuis les
+    // mois validés après une augmentation rétroactive. État annuel DISA par
+    // salarié, assiette retraite plafonnée mois par mois. Restent
+    // l'allocation de congés payés et le fichier de dépôt au gabarit e-CNPS.
     status: "en_cours",
     requires: [],
     description:
@@ -157,7 +161,7 @@ export const MODULES: ModuleDefinition[] = [
     // et fiche salarié), pointage et correction à la main, horaires et
     // retards, jours fériés du pays, demandes de congé numérotées et
     // décidées, soldes en centièmes de jour avec reprise et majorations.
-    // Restent l'effet des absences sans solde sur la paie et le badge QR.
+    // Le sans solde accordé est retenu sur la paie du mois. Reste le badge QR.
     status: "en_cours",
     requires: ["personnes"],
     description: "Pointage automatique à la connexion, registre des présences, retards, congés et soldes.",
@@ -315,7 +319,7 @@ export const MODULES: ModuleDefinition[] = [
   // --------------------------------------------------------------- moteurs
   {
     key: "actifs",
-    name: "Actifs & Maintenance",
+    name: "Actifs / Biens & Maintenance",
     layer: "moteur",
     // En base : fiches d'actifs, interventions, relevés de compteur et
     // échéances à double déclencheur. Le coût d'entretien est la somme des
@@ -465,6 +469,18 @@ export const MODULES: ModuleDefinition[] = [
     requires: ["actifs"],
     description: "Ordinateurs, imprimantes, réseau, téléphones : utilisateur, garantie, pannes, licences logicielles.",
   },
+  {
+    key: "moyens_generaux",
+    name: "Moyens généraux",
+    layer: "metier",
+    // En base : fournitures de bureau (catalogue, entrées chiffrées, remises
+    // à un salarié ou un service, stock tiré des mouvements, alerte au seuil).
+    // L'entretien des locaux passe par le moteur : un local est un actif de
+    // type « local », avec ses interventions et ses échéances.
+    status: "en_cours",
+    requires: ["actifs", "personnes"],
+    description: "Fournitures de bureau et entretien des locaux : stock, remises, nettoyage, réparations, contrôles.",
+  },
   { key: "fitness", name: "Fitness", layer: "metier", status: "planifie", requires: ["reservation", "pos"], description: "Adhérents, formules, contrôle d'accès." },
   {
     key: "projet",
@@ -499,10 +515,6 @@ export function getModule(key: string): ModuleDefinition | undefined {
   return BY_KEY.get(key);
 }
 
-export function modulesByLayer(layer: ModuleLayer): ModuleDefinition[] {
-  return MODULES.filter((m) => m.layer === layer);
-}
-
 /**
  * Vrai quand les écrans du module lisent la base et non un jeu d'essai.
  *
@@ -519,24 +531,3 @@ export function estLivre(key: string): boolean {
 export const MODULES_LIVRES: string[] = MODULES.filter((m) =>
   estLivre(m.key),
 ).map((m) => m.key);
-
-/**
- * Développe la liste des modules à activer en y ajoutant leurs dépendances.
- * Activer « garage » entraîne « actifs », « tiers » et « personnes ».
- */
-export function resolveDependencies(keys: string[]): string[] {
-  const resolved = new Set<string>();
-
-  // Nommé `definition` et non `module` : ce dernier est réservé par CommonJS,
-  // et Next refuse qu'on lui assigne quoi que ce soit.
-  const visit = (key: string) => {
-    if (resolved.has(key)) return;
-    const definition = BY_KEY.get(key);
-    if (!definition) throw new Error(`Module inconnu : ${key}`);
-    resolved.add(key);
-    definition.requires.forEach(visit);
-  };
-
-  keys.forEach(visit);
-  return [...resolved];
-}

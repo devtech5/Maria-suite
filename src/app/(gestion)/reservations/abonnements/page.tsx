@@ -60,7 +60,7 @@ export default async function PageAbonnements() {
         sousTitre="Adhérents, formules et entrées"
         actions={
           gerer ? (
-            <FormulaireRepliable libelle="Nouvel adhérent" titre="Inscrire un adhérent" action={inscrireAdherent}>
+            <FormulaireRepliable libelle="Nouvel adhérent" titre="Inscrire un adhérent" presentation="tiroir" action={inscrireAdherent}>
               <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
                 <Champ libelle="Nom">
                   <input name="nom" required className={CLASSE_CHAMP} />

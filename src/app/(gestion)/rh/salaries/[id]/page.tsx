@@ -4,6 +4,7 @@ import { notFound } from "next/navigation";
 
 import {
   FormulaireEtatCivil,
+  FormulaireEtatProfessionnel,
   FormulairePiece,
   ListePieces,
   PhotoSalarie,
@@ -17,9 +18,9 @@ import { exigerEntreprise } from "@/lib/auth/dal";
 import { peut } from "@/lib/droits/garde";
 import { fmt } from "@/lib/format";
 import { stockageConfigure } from "@/lib/stockage";
-import { piecesDuSalarie, salarieDe } from "@/modules/personnes/dossier";
+import { collegues, piecesDuSalarie, salarieDe } from "@/modules/personnes/dossier";
 import { etatsPieces, piecesManquantes } from "@/modules/personnes/pieces";
-import { LIENS_URGENCE, lienUrgenceConnu } from "@/modules/personnes/calcul";
+import { LIENS_URGENCE, anciennete, libelleAnciennete, lienUrgenceConnu } from "@/modules/personnes/calcul";
 
 export const metadata: Metadata = { title: "Fiche salarié" };
 
@@ -29,7 +30,8 @@ const JOUR = new Intl.DateTimeFormat("fr-FR", { day: "2-digit", month: "2-digit"
 const date = (iso: string | null) => (iso ? JOUR.format(new Date(`${iso}T00:00:00Z`)) : "—");
 
 /**
- * Fiche d'un salarié : contrat, état civil, photo et dossier de pièces.
+ * Fiche d'un salarié : contrat, état civil, état professionnel, photo et
+ * dossier de pièces.
  *
  * Le dossier ne se montre qu'avec `personnes.dossier.consulter`, et chaque
  * affichage du dossier se trace : savoir qui a lu le casier judiciaire d'un
@@ -50,7 +52,12 @@ export default async function PageFicheSalarie({ params }: { params: Promise<{ i
   const voitLeDossier = consulter || gerer;
 
   const aujourdhui = new Date().toISOString().slice(0, 10);
-  const pieces = voitLeDossier ? await piecesDuSalarie(session.organizationId, id) : [];
+  const [pieces, autres] = await Promise.all([
+    voitLeDossier ? piecesDuSalarie(session.organizationId, id) : Promise.resolve([]),
+    collegues(session.organizationId, id),
+  ]);
+  const superieur = autres.find((c) => c.id === salarie.superieurId) ?? null;
+  const encadres = autres.filter((c) => c.actif && c.superieurId === id);
   const etats = etatsPieces(
     pieces.map((p) => ({ id: p.id, nature: p.nature, delivreeLe: p.delivreeLe, expireLe: p.expireLe, creeLe: p.createdAt })),
     aujourdhui,
@@ -146,6 +153,82 @@ export default async function PageFicheSalarie({ params }: { params: Promise<{ i
             ))}
           </dl>
         )}
+      </section>
+
+      <section className="mb-8">
+        <h2 className="mb-3 text-base font-semibold">État professionnel</h2>
+        <div className="space-y-4 rounded-xl border border-[var(--filet)] bg-[var(--surface)] p-4">
+          {/* Ce qui vient de l'embauche : lu ici, jamais réécrit. Le matricule dérive de la date d'entrée. */}
+          <dl className="grid gap-3 rounded-lg bg-[var(--surface-creuse)] p-3 text-sm sm:grid-cols-2 lg:grid-cols-5">
+            {[
+              ["Matricule", salarie.matricule],
+              ["Type de contrat", CONTRAT[salarie.contrat]],
+              ["Date d'entrée", date(salarie.debut)],
+              ["Fin du contrat", salarie.fin ? date(salarie.fin) : "Sans terme (CDI)"],
+              ["Ancienneté", libelleAnciennete(anciennete(salarie.debut, aujourdhui))],
+            ].map(([libelle, valeur]) => (
+              <div key={libelle}>
+                <dt className="text-xs text-[var(--encre-faible)]">{libelle}</dt>
+                <dd className="chiffres font-semibold">{valeur}</dd>
+              </div>
+            ))}
+          </dl>
+
+          {encadres.length > 0 && (
+            <p className="text-sm text-[var(--encre-douce)]">
+              Encadre {encadres.length === 1 ? "une personne" : `${encadres.length} personnes`} :{" "}
+              {encadres.map((c, i) => (
+                <span key={c.id}>
+                  {i > 0 && ", "}
+                  <Link href={`/rh/salaries/${c.id}`} className="font-medium text-marque-600 hover:underline">
+                    {c.nom}
+                  </Link>
+                </span>
+              ))}
+              .
+            </p>
+          )}
+
+          {salarie.finPeriodeEssai && (
+            <p className="text-sm">
+              <Pastille ton={salarie.finPeriodeEssai >= aujourdhui ? "alerte" : "valide"}>
+                {salarie.finPeriodeEssai >= aujourdhui ? "En période d'essai" : "Essai concluant"}
+              </Pastille>{" "}
+              <span className="text-[var(--encre-douce)]">
+                {salarie.finPeriodeEssai >= aujourdhui ? "jusqu'au" : "terminé le"} {date(salarie.finPeriodeEssai)}
+              </span>
+            </p>
+          )}
+
+          {gerer ? (
+            <FormulaireEtatProfessionnel
+              employeeId={id}
+              collegues={autres}
+              initial={{
+                emailProfessionnel: salarie.emailProfessionnel,
+                poste: salarie.poste,
+                service: salarie.service,
+                superieurId: salarie.superieurId,
+                finPeriodeEssai: salarie.finPeriodeEssai,
+              }}
+            />
+          ) : (
+            <dl className="grid gap-3 text-sm sm:grid-cols-2 lg:grid-cols-3">
+              {[
+                ["Adresse e-mail professionnelle", salarie.emailProfessionnel],
+                ["Fonction", salarie.poste],
+                ["Service", salarie.service],
+                ["Supérieur hiérarchique", superieur ? `${superieur.nom} · ${superieur.poste}` : null],
+                ["Fin de la période d'essai", salarie.finPeriodeEssai ? date(salarie.finPeriodeEssai) : null],
+              ].map(([libelle, valeur]) => (
+                <div key={libelle}>
+                  <dt className="text-xs text-[var(--encre-faible)]">{libelle}</dt>
+                  <dd>{valeur || "—"}</dd>
+                </div>
+              ))}
+            </dl>
+          )}
+        </div>
       </section>
 
       <section>

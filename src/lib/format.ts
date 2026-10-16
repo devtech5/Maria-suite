@@ -8,12 +8,6 @@ const nombre = new Intl.NumberFormat("fr-FR");
 export const fmt = (montant: number) => nombre.format(montant);
 
 /**
- * Montant avec sa devise, pour un total isolé ou une valeur mise en avant.
- */
-export const fmtDevise = (montant: number, devise = "FCFA") =>
-  `${nombre.format(montant)} ${devise}`;
-
-/**
  * Abrège les grands montants pour les indicateurs de tête, où la précision
  * au franc près n'apporte rien : « 48,8 M » plutôt que « 48 750 450 ».
  */
@@ -52,13 +46,6 @@ export function fmtDateIso(iso: string): string {
   const [annee, mois, jour] = iso.split("-");
   return jour ? `${jour}/${mois}/${annee}` : iso;
 }
-
-/**
- * Montant retranché, pour une colonne de retenues ou de charges.
- * Un montant nul n'est pas « − 0 » : il n'y a rien à retrancher.
- */
-export const fmtRetenue = (montant: number) =>
-  montant === 0 ? "—" : `− ${nombre.format(montant)}`;
 
 /**
  * Période courte : « 03/10 → 06/10/2026 » dans une même année, les deux

@@ -2,8 +2,9 @@ import { EnTeteDocument, PiedDocument } from "@/components/impression/entete-doc
 import { FeuilleA4 } from "@/components/impression/feuille-a4";
 import { fmt, fmtTauxBp } from "@/lib/format";
 import type { IdentiteEntreprise } from "@/lib/identite";
-import { libelleMois } from "@/modules/paie/calcul";
+import { finDeMois, libelleMois } from "@/modules/paie/calcul";
 import type { bulletinDetail } from "@/modules/paie/requetes";
+import { formatJours } from "@/modules/presences/calcul";
 
 type Detail = NonNullable<Awaited<ReturnType<typeof bulletinDetail>>>;
 
@@ -15,9 +16,21 @@ export function BulletinDocument({ detail, identite }: { detail: Detail; identit
   const { bulletin: b, periode } = detail;
   const bareme = periode.baremeApplique!;
 
+  const absences: [string, number][] = (
+    [
+      ["Jours hors contrat (entrée ou sortie dans le mois)", b.joursHorsContrat],
+      ["Congé sans solde", b.joursSansSolde],
+      ["Absences non rémunérées", b.joursAbsenceSaisis],
+    ] as [string, number][]
+  ).filter(([, jours]) => jours > 0);
+  const nonPayes = b.joursHorsContrat + b.joursSansSolde + b.joursAbsenceSaisis;
   const lignes: [string, string, number | null, number | null][] = [
-    ["Salaire de base", "", b.salaireBase, null],
+    ["Salaire de base", b.joursMois ? formatJours(b.joursMois) : "", b.salaireBase, null],
+    ...(b.retenueAbsence
+      ? [[absences.length === 1 ? absences[0][0] : "Jours non payés", formatJours(nonPayes), null, b.retenueAbsence] as [string, string, null, number]]
+      : []),
     ...(b.primesImposables ? [["Primes et heures supplémentaires", "", b.primesImposables, null] as [string, string, number, null]] : []),
+    ...(b.rappel ? [[b.rappelLibelle ?? "Rappel de salaire", "", b.rappel > 0 ? b.rappel : null, b.rappel < 0 ? -b.rappel : null] as [string, string, number | null, number | null]] : []),
     ["Salaire brut", "", b.brut, null],
     ["CNPS retraite, part salariale", fmtTauxBp(bareme.cnpsRetraiteSalarieBp), null, b.cnpsSalarie],
     ["Impôt sur salaire", "", null, b.impot],
@@ -66,6 +79,22 @@ export function BulletinDocument({ detail, identite }: { detail: Detail; identit
         <span>Net à payer</span>
         <span>{fmt(b.net)} FCFA</span>
       </p>
+      {(b.congesPris > 0 || b.soldeConges !== null || absences.length > 1) && (
+        <section className="mt-4 rounded border border-black/20 p-2 text-[9pt]">
+          {absences.length > 1 && <p>Jours non payés : {absences.map(([libelle, jours]) => `${libelle.toLowerCase()} ${formatJours(jours)}`).join(" · ")}.</p>}
+          {(b.congesPris > 0 || b.soldeConges !== null) && (
+            <p>
+              Congés payés —{" "}
+              {[
+                b.congesPris > 0 ? `pris ce mois : ${formatJours(b.congesPris)}` : null,
+                b.soldeConges !== null ? `solde au ${new Date(`${finDeMois(periode.mois)}T00:00:00Z`).toLocaleDateString("fr-FR", { timeZone: "UTC" })} : ${formatJours(b.soldeConges)}` : null,
+              ]
+                .filter(Boolean)
+                .join(" · ")}
+            </p>
+          )}
+        </section>
+      )}
       <section className="mt-6 text-[9pt] text-black/70">
         <p className="font-semibold uppercase">Charges patronales</p>
         <p className="tabular-nums">

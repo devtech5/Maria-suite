@@ -73,11 +73,6 @@ export const GROUPES_PIECE: { cle: DefinitionPiece["groupe"]; libelle: string }[
   { cle: "recrutement", libelle: "Recrutement" },
   { cle: "autre", libelle: "Autres pièces" },
 ];
-
-export function estNaturePiece(valeur: string): valeur is NaturePiece {
-  return (NATURES_PIECE as readonly string[]).includes(valeur);
-}
-
 /** En deçà, une pièce qui expire est signalée. */
 export const SEUIL_EXPIRATION_JOURS = 30;
 

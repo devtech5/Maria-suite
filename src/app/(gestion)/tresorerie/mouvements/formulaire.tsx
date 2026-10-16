@@ -34,7 +34,7 @@ export function FormulaireMouvement({
   const tiers = role === "client" ? clients : role === "fournisseur" ? fournisseurs : [];
 
   return (
-    <FormulaireRepliable libelle="Nouveau mouvement" titre="Enregistrer un mouvement" action={enregistrerMouvement}>
+    <FormulaireRepliable libelle="Nouveau mouvement" titre="Enregistrer un mouvement" presentation="tiroir" action={enregistrerMouvement}>
       <input type="hidden" name="compteId" value={compteId} />
       <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
         <Champ libelle="Nature" precision={definition.aide}>

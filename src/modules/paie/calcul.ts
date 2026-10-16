@@ -1,6 +1,7 @@
 import type { CodeJournal, Ecriture, LigneEcriture } from "@/lib/comptabilite/ecritures";
-import { rateOf } from "@/lib/money";
+import { divideMoney, rateOf } from "@/lib/money";
 import { BAREME_CI } from "@/modules/personnes/paie";
+import { jourDecompte, joursDecomptes, joursEntre, type OptionsDecompte } from "@/modules/presences/calcul";
 
 /**
  * Paie : règles pures, sans base ni React.
@@ -79,12 +80,20 @@ export function impotProgressif(base: number, tranches: readonly TrancheImpot[])
 
 export interface ElementsVariables {
   salaireBase: number;
+  /** Part du salaire de base non due : jours hors contrat, sans solde, absences. */
+  retenueAbsence?: number;
   /** Primes et heures supplémentaires : soumises à cotisations et à l'impôt. */
   primesImposables: number;
   /** Indemnités de transport, de panier : ni cotisées ni imposées, dans les limites légales. */
   indemnitesNonImposables: number;
   /** Retenues sur le net : remboursement d'avance, de prêt, cantine. */
   retenuesDiverses: number;
+  /**
+   * Rappel de salaire : ce qu'un mois validé aurait dû payer et n'a pas payé
+   * (augmentation rétroactive, prime oubliée). Négatif, il reprend un
+   * trop-perçu. Cotisé et imposé avec le brut du mois où il est versé.
+   */
+  rappel?: number;
 }
 
 export interface CalculBulletin {
@@ -107,10 +116,15 @@ export interface CalculBulletin {
  * prestations familiales et de l'accident du travail ne le sont pas.
  */
 export function calculerBulletinPaie(e: ElementsVariables, b: BaremePaie): CalculBulletin {
-  for (const v of [e.salaireBase, e.primesImposables, e.indemnitesNonImposables, e.retenuesDiverses]) {
+  const retenueAbsence = e.retenueAbsence ?? 0;
+  for (const v of [e.salaireBase, retenueAbsence, e.primesImposables, e.indemnitesNonImposables, e.retenuesDiverses]) {
     if (!Number.isInteger(v) || v < 0) throw new Error("Les éléments de paie sont des montants entiers positifs.");
   }
-  const brut = e.salaireBase + e.primesImposables;
+  if (retenueAbsence > e.salaireBase) throw new Error("La retenue pour absence dépasse le salaire de base.");
+  const rappel = e.rappel ?? 0;
+  if (!Number.isInteger(rappel)) throw new Error("Le rappel est un montant entier.");
+  const brut = e.salaireBase - retenueAbsence + e.primesImposables + rappel;
+  if (brut < 0) throw new Error("Le trop-perçu à reprendre dépasse le salaire du mois : étalez-le sur plusieurs paies.");
   const assietteCnps = Math.min(brut, b.cnpsPlafondMensuel);
   const cnpsSalarie = rateOf(assietteCnps, b.cnpsRetraiteSalarieBp);
   const baseImposable = brut - cnpsSalarie;
@@ -171,9 +185,6 @@ const C = {
   cnps: { numero: "431", libelle: "Sécurité sociale (CNPS)" },
   impot: { numero: "447", libelle: "État, impôts retenus à la source" },
 } as const;
-
-export const COMPTES_PAIE = C;
-
 const ligne = (c: { numero: string; libelle: string }, debit: number, credit: number): LigneEcriture => ({ compte: c.numero, libelleCompte: c.libelle, debit, credit });
 
 /**
@@ -240,6 +251,138 @@ export function ecritureVersement(v: {
     libelle: `${v.organisme === "cnps" ? "Cotisations CNPS" : "Impôt sur salaires"} de ${libelleMois(v.mois)}`,
     lignes: [ligne(compte, v.montant, 0), ligne(v.tresorerie, 0, v.montant)],
   };
+}
+
+// ------------------------------------------------------------------ absences
+
+/**
+ * Jours payés ou non : la paie se cale sur le même décompte que les congés
+ * (jours ouvrables ou ouvrés, fériés exclus, réglés dans Présences). Un mois
+ * compte ses jours décomptables ; un salarié entré le 15, parti le 10 ou en
+ * congé sans solde ne touche que la part de son salaire de base qui
+ * correspond aux jours dus. Tout en CENTIÈMES de jour, comme les congés.
+ *
+ * Les autres natures d'absence (maladie, maternité, événement familial) ne
+ * retiennent rien d'elles-mêmes : leur maintien de salaire dépend de
+ * l'ancienneté et de la convention, et se règle à la main sur le bulletin.
+ */
+export interface PeriodeAbsence {
+  debut: string;
+  fin: string;
+  /** Part l'après-midi du premier jour. */
+  debutDemi: boolean;
+  /** Rentre l'après-midi du dernier jour. */
+  finDemi: boolean;
+}
+
+export interface CongeDuMois extends PeriodeAbsence {
+  employeeId: string;
+  nature: "paye" | "sans_solde";
+}
+
+/** Ce que Présences sait du mois, lu une fois pour toute la paie. */
+export interface ContexteAbsences {
+  options: OptionsDecompte;
+  /** Congés ACCORDÉS qui touchent le mois, payés et sans solde. */
+  conges: readonly CongeDuMois[];
+  /** Solde de congés payés de chaque salarié à la fin du mois, en centièmes. */
+  soldes: ReadonlyMap<string, number>;
+}
+
+export interface AbsencesDuMois {
+  /** Jours décomptables du mois : la base du prorata. */
+  joursMois: number;
+  /** Jours avant l'embauche ou après le terme du contrat. */
+  joursHorsContrat: number;
+  /** Jours de congé sans solde accordés. */
+  joursSansSolde: number;
+  /** Jours de congé payé accordés : sans effet sur le salaire, imprimés sur le bulletin. */
+  congesPris: number;
+  /** Solde de congés payés en fin de mois ; `null` si Présences ne le connaît pas. */
+  soldeConges: number | null;
+}
+
+/** Premier et dernier jour d'un mois `AAAA-MM`. */
+export function bornesMois(mois: string): { debut: string; fin: string } {
+  return { debut: `${mois}-01`, fin: finDeMois(mois) };
+}
+
+/**
+ * Jours décomptés d'une absence, rognée aux bornes données. Une demi-journée
+ * ne vaut qu'au bord réel de l'absence : un congé du 28 au 3 qui part
+ * l'après-midi du 28 ne retire pas une demi-journée au 1er du mois suivant.
+ */
+function joursDansBornes(a: PeriodeAbsence, debut: string, fin: string, o: OptionsDecompte): number {
+  const d = a.debut > debut ? a.debut : debut;
+  const f = a.fin < fin ? a.fin : fin;
+  if (f < d) return 0;
+  return joursDecomptes(d, f, o, { debut: a.debutDemi && d === a.debut, fin: a.finDemi && f === a.fin });
+}
+
+export function absencesDuMois(mois: string, salarie: { id: string; debut: string; fin: string | null }, ctx: ContexteAbsences): AbsencesDuMois {
+  const bornes = bornesMois(mois);
+  const jours = joursEntre(bornes.debut, bornes.fin).filter((j) => jourDecompte(j, ctx.options));
+  const joursMois = jours.length * 100;
+  const joursHorsContrat = jours.filter((j) => j < salarie.debut || (salarie.fin !== null && j > salarie.fin)).length * 100;
+
+  // Les congés ne comptent que pendant le contrat : le hors-contrat est déjà retenu.
+  const debut = salarie.debut > bornes.debut ? salarie.debut : bornes.debut;
+  const fin = salarie.fin !== null && salarie.fin < bornes.fin ? salarie.fin : bornes.fin;
+  const siens = ctx.conges.filter((c) => c.employeeId === salarie.id);
+  const somme = (nature: CongeDuMois["nature"]) => siens.filter((c) => c.nature === nature).reduce((t, c) => t + joursDansBornes(c, debut, fin, ctx.options), 0);
+
+  return {
+    joursMois,
+    joursHorsContrat,
+    joursSansSolde: Math.min(somme("sans_solde"), joursMois - joursHorsContrat),
+    congesPris: somme("paye"),
+    soldeConges: ctx.soldes.get(salarie.id) ?? null,
+  };
+}
+
+/**
+ * Part du salaire de base retenue pour `joursNonPayes` sur `joursMois`. Tout
+ * le mois non payé retient tout le salaire, au franc près.
+ */
+export function retenueAbsence(salaireBase: number, joursNonPayes: number, joursMois: number): number {
+  if (joursMois <= 0 || joursNonPayes <= 0) return 0;
+  if (joursNonPayes >= joursMois) return salaireBase;
+  return divideMoney(salaireBase * joursNonPayes, joursMois);
+}
+
+// ------------------------------------------------------------------ rappels
+
+/** Un bulletin déjà validé, tel que le rappel le relit. */
+export interface BulletinPasse {
+  mois: string;
+  salaireBase: number;
+  retenueAbsence: number;
+}
+
+/**
+ * Rappel après une augmentation rétroactive : pour chaque mois validé, l'écart
+ * entre le nouveau salaire et celui payé, au prorata des jours payés ce
+ * mois-là (un mois à moitié absent ne rappelle que la moitié de l'écart).
+ * Un nouveau salaire plus bas donne un rappel négatif : un trop-perçu.
+ */
+export function rappelRetroactif(passes: readonly BulletinPasse[], nouveauSalaire: number): { montant: number; mois: string[]; libelle: string } {
+  if (!Number.isInteger(nouveauSalaire) || nouveauSalaire < 0) throw new Error("Le nouveau salaire est un montant entier positif.");
+  const concernes = [...passes].sort((a, b) => a.mois.localeCompare(b.mois)).filter((b) => b.salaireBase !== nouveauSalaire);
+  let montant = 0;
+  for (const b of concernes) {
+    const ecart = nouveauSalaire - b.salaireBase;
+    montant += b.salaireBase > 0 ? divideMoney(ecart * (b.salaireBase - b.retenueAbsence), b.salaireBase) : ecart;
+  }
+  const mois = concernes.map((b) => b.mois);
+  return { montant, mois, libelle: mois.length ? libelleRappel(mois[0], mois[mois.length - 1]) : "" };
+}
+
+/** « Rappel de salaire de mars 2026 », « … d'avril à septembre 2026 ». */
+export function libelleRappel(du: string, au: string): string {
+  const de = (mot: string) => (/^[aeiouâ]/.test(mot) ? `d'${mot}` : `de ${mot}`);
+  if (du === au) return `Rappel de salaire ${de(libelleMois(du))}`;
+  const memeAnnee = du.slice(0, 4) === au.slice(0, 4);
+  return `Rappel de salaire ${de(memeAnnee ? MOIS[Number(du.slice(5, 7)) - 1] : libelleMois(du))} à ${libelleMois(au)}`;
 }
 
 // ------------------------------------------------------------------ périodes

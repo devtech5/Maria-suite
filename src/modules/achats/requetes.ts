@@ -3,6 +3,8 @@ import "server-only";
 import { and, asc, eq, sql } from "drizzle-orm";
 
 import { db } from "@/db";
+import { motsRecherche, type FiltresListe } from "@/lib/recherche";
+import { dansPeriodeSql, motsDans } from "@/lib/recherche-sql";
 import { contactsParTiers, libelleContact } from "@/modules/tiers/contacts";
 import { articles, famillesArticle } from "@/modules/catalogue/schema";
 import { depots } from "@/modules/stock/schema";
@@ -27,7 +29,20 @@ export interface CommandeVue {
   depot: string | null;
 }
 
-export async function listerCommandes(organizationId: string): Promise<CommandeVue[]> {
+/**
+ * Les commandes de l'écran Achats : toutes celles en cours, et les autres
+ * touchées depuis cent vingt jours.
+ *
+ * Avec `filtres`, la recherche porte sur tout l'historique, en base : sans
+ * quoi une commande soldée l'an dernier ne se retrouverait jamais.
+ */
+export async function listerCommandes(organizationId: string, filtres?: FiltresListe): Promise<CommandeVue[]> {
+  const recherche = filtres?.actif
+    ? and(
+        motsDans([sql`c.numero`, sql`c.fournisseur_nom`, sql`c.contact_nom`, sql`c.notes`, sql`d.nom`], motsRecherche(filtres.q)),
+        dansPeriodeSql(sql`c.date_commande`, filtres.periode),
+      )
+    : undefined;
   const lignes = await db.execute<{
     id: string;
     numero: string;
@@ -45,7 +60,7 @@ export async function listerCommandes(organizationId: string): Promise<CommandeV
            d.nom as depot
     from commandes_achat c left join depots d on d.id = c.depot_id
     where c.organization_id = ${organizationId} and c.deleted_at is null
-      and (c.statut in ('brouillon', 'envoyee', 'partielle') or c.updated_at > now() - interval '120 days')
+      and ${recherche ?? sql`(c.statut in ('brouillon', 'envoyee', 'partielle') or c.updated_at > now() - interval '120 days')`}
     order by case c.statut when 'brouillon' then 0 when 'envoyee' then 1 when 'partielle' then 2 else 3 end, c.date_commande desc, c.numero desc
     limit 300
   `);
@@ -125,7 +140,28 @@ export interface FactureVue {
   reglements: { numero: string; date: string; montant: number; compte: string; ecriture: string }[];
 }
 
-export async function listerFactures(organizationId: string, filtre: { fournisseurId?: string | null; ouvertesSeulement?: boolean } = {}): Promise<FactureVue[]> {
+/**
+ * Factures fournisseurs, cinq cents au plus.
+ *
+ * `recherche` filtre en base, avant la limite : numéro, référence du
+ * fournisseur, fournisseur, commande, note ; et la période sur la date de
+ * facture ou sur l'échéance, selon `periodeSur`.
+ */
+export async function listerFactures(
+  organizationId: string,
+  filtre: {
+    fournisseurId?: string | null;
+    ouvertesSeulement?: boolean;
+    recherche?: FiltresListe;
+    periodeSur?: "date_facture" | "echeance";
+  } = {},
+): Promise<FactureVue[]> {
+  const recherche = filtre.recherche?.actif
+    ? and(
+        motsDans([sql`f.numero`, sql`f.reference_fournisseur`, sql`f.fournisseur_nom`, sql`c.numero`, sql`f.notes`], motsRecherche(filtre.recherche.q)),
+        dansPeriodeSql(filtre.periodeSur === "echeance" ? sql`f.echeance` : sql`f.date_facture`, filtre.recherche.periode),
+      )
+    : undefined;
   const lignes = await db.execute<{
     id: string;
     numero: string;
@@ -150,6 +186,7 @@ export async function listerFactures(organizationId: string, filtre: { fournisse
     from factures_fournisseur f left join commandes_achat c on c.id = f.commande_id
     where f.organization_id = ${organizationId} and f.deleted_at is null
       and (${filtre.fournisseurId ?? null}::uuid is null or f.fournisseur_id = ${filtre.fournisseurId ?? null}::uuid)
+      and ${recherche ?? sql`true`}
     order by f.echeance, f.numero
     limit 500
   `);
@@ -266,17 +303,3 @@ export async function etatAchats(organizationId: string): Promise<EtatAchats> {
     livraisonsEnRetard: Number(l?.retard ?? 0),
   };
 }
-
-/** Dettes fournisseurs ouvertes, pour le plan de trésorerie : chacune à son échéance. */
-export async function dettesOuvertes(organizationId: string): Promise<{ numero: string; fournisseur: string; echeance: string; reste: number }[]> {
-  const lignes = await db.execute<{ numero: string; fournisseur_nom: string; reference_fournisseur: string; echeance: string | Date; reste: string }>(sql`
-    select f.numero, f.fournisseur_nom, f.reference_fournisseur, f.echeance,
-           f.total_ttc - coalesce((select sum(r.montant) from reglements_fournisseur r where r.facture_id = f.id), 0) as reste
-    from factures_fournisseur f
-    where f.organization_id = ${organizationId} and f.statut = 'comptabilisee'
-  `);
-  return lignes
-    .map((l) => ({ numero: `${l.numero} (${l.reference_fournisseur})`, fournisseur: l.fournisseur_nom, echeance: jour(l.echeance)!, reste: Number(l.reste) }))
-    .filter((l) => l.reste > 0);
-}
-

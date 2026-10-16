@@ -1,12 +1,14 @@
 import type { Metadata } from "next";
 
 import { AccesRefuse } from "@/components/coque/acces-refuse";
-import { CarteIndicateur, EnTetePage, EtatVide, Pastille, Tableau, Td, Th } from "@/components/ui/primitives";
 import { ActionsFiche } from "@/components/ui/actions-fiche";
+import { CarteIndicateur, EnTetePage, EtatVide, Pastille, Tableau, Td, Th } from "@/components/ui/primitives";
+import { Recherche } from "@/components/ui/recherche";
 import { listerMembres } from "@/lib/auth/membres";
 import { exigerEntreprise } from "@/lib/auth/dal";
 import { peut } from "@/lib/droits/garde";
-import { fmt, fmtCompact, fmtTauxBp } from "@/lib/format";
+import { fmt, fmtCompact, fmtEntier, fmtTauxBp } from "@/lib/format";
+import { correspond, lireFiltresListe } from "@/lib/recherche";
 import { tableauCommissions } from "@/modules/commerciaux/requetes";
 import { libelleMois, moisCourant } from "@/modules/paie/calcul";
 import { listerSalaries } from "@/modules/personnes/requetes";
@@ -23,10 +25,13 @@ const moisValide = (m: unknown): m is string => typeof m === "string" && /^\d{4}
  * rapporte sa règle (part fixe et part variable, sur le CA ou la marge), et
  * le geste de fin de mois — valider, puis payer ou reporter en paie.
  */
-export default async function PageCommerciaux({ searchParams }: { searchParams: Promise<Record<string, string | string[] | undefined>> }) {
+export default async function PageCommerciaux({ searchParams }: PageProps<"/commercial/commerciaux">) {
   if (!(await peut("commercial.commission.gerer"))) return <AccesRefuse droit="commercial.commission.gerer" />;
   const session = await exigerEntreprise();
-  const { mois: demande } = await searchParams;
+  const parametres = await searchParams;
+  const { mois: demande } = parametres;
+  // La période, c'est le mois choisi en haut : la recherche ne porte que sur le texte.
+  const filtres = lireFiltresListe({ q: parametres.q });
   const courant = moisCourant();
   const mois = moisValide(demande) && demande <= courant ? demande : courant;
   const payer = await peut("commercial.commission.payer");
@@ -45,6 +50,15 @@ export default async function PageCommerciaux({ searchParams }: { searchParams: 
   const nomMembre = new Map(membres.map((m) => [m.userId, m.nom]));
   const nomSalarie = new Map(salaries.map((s) => [s.id, `${s.nom} (${s.matricule})`]));
   const aujourdhui = new Date().toISOString().slice(0, 10);
+  // Les indicateurs portent sur tous les commerciaux du mois ; seul le tableau suit la recherche.
+  const visibles = lignes.filter(({ commercial: c }) =>
+    correspond(filtres.q, [
+      c.nom,
+      c.telephone,
+      c.employeeId ? nomSalarie.get(c.employeeId) : "Externe",
+      c.userId ? nomMembre.get(c.userId) : null,
+    ]),
+  );
 
   return (
     <>
@@ -65,96 +79,111 @@ export default async function PageCommerciaux({ searchParams }: { searchParams: 
       {lignes.length === 0 ? (
         <EtatVide titre="Aucun commercial" message="Créez un commercial, liez-le à un utilisateur pour lui attribuer ses tickets de caisse, ou choisissez-le sur chaque devis et facture." />
       ) : (
-        <Tableau>
-          <thead>
-            <tr>
-              <Th>Commercial</Th>
-              <Th>Règle</Th>
-              <Th aligne="droite">CA HT</Th>
-              <Th aligne="droite">Marge</Th>
-              <Th aligne="droite">Objectif</Th>
-              <Th aligne="droite">Commission</Th>
-              <Th>État</Th>
-              <Th aligne="droite">Gestes</Th>
-            </tr>
-          </thead>
-          <tbody>
-            {lignes.map(({ commercial: c, realisation: r, calcul, objectif, validee }) => {
-              const regle = c.paliers?.length
-                ? `Paliers : ${c.paliers.map((p) => `${fmtTauxBp(p.tauxBp)} dès ${fmtCompact(p.seuil)}`).join(", ")}`
-                : `${fmtTauxBp(c.tauxBp)}`;
-              const ecart = validee && validee.total !== calcul.total ? calcul.total - validee.total : 0;
-              return (
-                <tr key={c.id} className={c.actif ? "" : "opacity-60"}>
-                  <Td fort>
-                    {c.nom}
-                    <span className="block text-[11px] font-normal text-[var(--encre-faible)]">
-                      {c.employeeId ? `Salarié · ${nomSalarie.get(c.employeeId) ?? "?"}` : "Externe"}
-                      {c.userId ? ` · caisse de ${nomMembre.get(c.userId) ?? "?"}` : ""}
-                    </span>
-                  </Td>
-                  <Td>
-                    <span className="text-xs">
-                      {regle} {c.base === "marge" ? "de la marge" : "du CA"}
-                      {c.fixeMensuel > 0 && ` + ${fmt(c.fixeMensuel)} F fixe`}
-                    </span>
-                  </Td>
-                  <Td aligne="droite" chiffres>
-                    {fmt(r.caHt)}
-                  </Td>
-                  <Td aligne="droite" chiffres>
-                    {fmt(r.marge)}
-                  </Td>
-                  <Td aligne="droite" chiffres>
-                    {objectif === null ? "—" : <span className={objectif >= 10_000 ? "font-semibold text-valide-600" : ""}>{fmtTauxBp(objectif)}</span>}
-                  </Td>
-                  <Td aligne="droite" chiffres fort>
-                    {fmt(validee?.total ?? calcul.total)}
-                    {ecart !== 0 && <span className="block text-[11px] font-normal text-alerte-600">{ecart > 0 ? "+" : ""}{fmt(ecart)} depuis la validation</span>}
-                  </Td>
-                  <Td>
-                    {validee ? (
-                      <Pastille ton={validee.statut === "payee" ? "valide" : "alerte"}>
-                        {validee.statut === "payee" ? (validee.modePaiement === "paie" ? "En paie" : "Payée") : "Validée"}
-                      </Pastille>
-                    ) : (
-                      <Pastille ton="neutre">{termine ? "À valider" : "En cours"}</Pastille>
-                    )}
-                  </Td>
-                  <Td aligne="droite">
-                    <ActionsCommission
-                      commercialId={c.id}
-                      mois={mois}
-                      termine={termine}
-                      salarie={Boolean(c.employeeId)}
-                      validee={validee ? { id: validee.id, statut: validee.statut, total: validee.total } : null}
-                      peutPayer={payer}
-                      comptes={comptes.filter((x) => x.actif).map((x) => ({ id: x.id, nom: x.nom, nature: x.nature, solde: x.solde }))}
-                      aujourdhui={aujourdhui}
-                      fiche={{
-                        id: c.id,
-                        nom: c.nom,
-                        telephone: c.telephone ?? "",
-                        userId: c.userId ?? "",
-                        employeeId: c.employeeId ?? "",
-                        base: c.base,
-                        tauxBp: c.tauxBp,
-                        paliers: c.paliers ?? [],
-                        fixeMensuel: c.fixeMensuel,
-                        objectifMensuel: c.objectifMensuel,
-                        actif: c.actif,
-                      }}
-                      membres={membres.filter((m) => m.statut === "actif").map((m) => ({ id: m.userId, nom: m.nom }))}
-                      salaries={salaries.map((s) => ({ id: s.id, nom: `${s.nom} — ${s.poste}` }))}
-                    />
-                    {/* La mise en off passe par la fiche ; ici, l'effacement d'une saisie erronée. */}
-                    <ActionsFiche type="commercial" id={c.id} libelle={c.nom} peutGerer={false} peutSupprimer={supprimer} />
-                  </Td>
+        <>
+          <Recherche
+            // Le mois survit à la soumission (champ caché) comme à « Tout afficher » (adresse).
+            chemin={`/commercial/commerciaux?mois=${mois}`}
+            valeur={filtres.q}
+            placeholder="Nom, téléphone, salarié ou caissier lié…"
+            filtres={<input type="hidden" name="mois" value={mois} />}
+            resultats={filtres.actif ? `${fmtEntier(visibles.length)} sur ${fmtEntier(lignes.length)}` : undefined}
+          />
+
+          {visibles.length === 0 ? (
+            <EtatVide titre="Aucun commercial ne répond" message="Retirez un mot de la recherche, ou cherchez par téléphone." />
+          ) : (
+            <Tableau>
+              <thead>
+                <tr>
+                  <Th>Commercial</Th>
+                  <Th>Règle</Th>
+                  <Th aligne="droite">CA HT</Th>
+                  <Th aligne="droite">Marge</Th>
+                  <Th aligne="droite">Objectif</Th>
+                  <Th aligne="droite">Commission</Th>
+                  <Th>État</Th>
+                  <Th aligne="droite">Gestes</Th>
                 </tr>
-              );
-            })}
-          </tbody>
-        </Tableau>
+              </thead>
+              <tbody>
+                {visibles.map(({ commercial: c, realisation: r, calcul, objectif, validee }) => {
+                  const regle = c.paliers?.length
+                    ? `Paliers : ${c.paliers.map((p) => `${fmtTauxBp(p.tauxBp)} dès ${fmtCompact(p.seuil)}`).join(", ")}`
+                    : `${fmtTauxBp(c.tauxBp)}`;
+                  const ecart = validee && validee.total !== calcul.total ? calcul.total - validee.total : 0;
+                  return (
+                    <tr key={c.id} className={c.actif ? "" : "opacity-60"}>
+                      <Td fort>
+                        {c.nom}
+                        <span className="block text-[11px] font-normal text-[var(--encre-faible)]">
+                          {c.employeeId ? `Salarié · ${nomSalarie.get(c.employeeId) ?? "?"}` : "Externe"}
+                          {c.userId ? ` · caisse de ${nomMembre.get(c.userId) ?? "?"}` : ""}
+                        </span>
+                      </Td>
+                      <Td>
+                        <span className="text-xs">
+                          {regle} {c.base === "marge" ? "de la marge" : "du CA"}
+                          {c.fixeMensuel > 0 && ` + ${fmt(c.fixeMensuel)} F fixe`}
+                        </span>
+                      </Td>
+                      <Td aligne="droite" chiffres>
+                        {fmt(r.caHt)}
+                      </Td>
+                      <Td aligne="droite" chiffres>
+                        {fmt(r.marge)}
+                      </Td>
+                      <Td aligne="droite" chiffres>
+                        {objectif === null ? "—" : <span className={objectif >= 10_000 ? "font-semibold text-valide-600" : ""}>{fmtTauxBp(objectif)}</span>}
+                      </Td>
+                      <Td aligne="droite" chiffres fort>
+                        {fmt(validee?.total ?? calcul.total)}
+                        {ecart !== 0 && <span className="block text-[11px] font-normal text-alerte-600">{ecart > 0 ? "+" : ""}{fmt(ecart)} depuis la validation</span>}
+                      </Td>
+                      <Td>
+                        {validee ? (
+                          <Pastille ton={validee.statut === "payee" ? "valide" : "alerte"}>
+                            {validee.statut === "payee" ? (validee.modePaiement === "paie" ? "En paie" : "Payée") : "Validée"}
+                          </Pastille>
+                        ) : (
+                          <Pastille ton="neutre">{termine ? "À valider" : "En cours"}</Pastille>
+                        )}
+                      </Td>
+                      <Td aligne="droite">
+                        <ActionsCommission
+                          commercialId={c.id}
+                          mois={mois}
+                          termine={termine}
+                          salarie={Boolean(c.employeeId)}
+                          validee={validee ? { id: validee.id, statut: validee.statut, total: validee.total } : null}
+                          peutPayer={payer}
+                          comptes={comptes.filter((x) => x.actif).map((x) => ({ id: x.id, nom: x.nom, nature: x.nature, solde: x.solde }))}
+                          aujourdhui={aujourdhui}
+                          fiche={{
+                            id: c.id,
+                            nom: c.nom,
+                            telephone: c.telephone ?? "",
+                            userId: c.userId ?? "",
+                            employeeId: c.employeeId ?? "",
+                            base: c.base,
+                            tauxBp: c.tauxBp,
+                            paliers: c.paliers ?? [],
+                            fixeMensuel: c.fixeMensuel,
+                            objectifMensuel: c.objectifMensuel,
+                            actif: c.actif,
+                          }}
+                          membres={membres.filter((m) => m.statut === "actif").map((m) => ({ id: m.userId, nom: m.nom }))}
+                          salaries={salaries.map((s) => ({ id: s.id, nom: `${s.nom} — ${s.poste}` }))}
+                        />
+                        {/* La mise en off passe par la fiche ; ici, l'effacement d'une saisie erronée. */}
+                        <ActionsFiche type="commercial" id={c.id} libelle={c.nom} peutGerer={false} peutSupprimer={supprimer} />
+                      </Td>
+                    </tr>
+                  );
+                })}
+              </tbody>
+            </Tableau>
+          )}
+        </>
       )}
 
       <p className="mt-4 max-w-[75ch] text-xs text-[var(--encre-faible)]">

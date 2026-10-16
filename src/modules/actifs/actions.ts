@@ -59,7 +59,7 @@ export interface EtatActif {
 
 const schemaActif = z.object({
   designation: z.string().trim().min(2, "Indiquez la désignation de l'actif."),
-  type: z.enum(["vehicule", "informatique", "engin", "mobilier"]),
+  type: z.enum(["vehicule", "informatique", "engin", "mobilier", "local"]),
   statut: z.enum(["actif", "entretien", "immobilise", "cede"]),
   site: z.string().trim().max(80).optional(),
   dateAcquisition: z.string().regex(DATE_ISO).optional(),

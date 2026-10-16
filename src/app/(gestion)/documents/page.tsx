@@ -1,9 +1,9 @@
 import type { Metadata } from "next";
 
-import { BoutonDemonstration } from "@/components/bouton-demonstration";
 import { CarteIndicateur, EnTetePage, EtatVide } from "@/components/ui/primitives";
 import { exigerEntreprise } from "@/lib/auth/dal";
 import { fmtEntier } from "@/lib/format";
+import { lireFiltresListe } from "@/lib/recherche";
 import { stockageConfigure } from "@/lib/stockage";
 import { listerActifs } from "@/modules/actifs/requetes";
 import { listerDocuments } from "@/modules/documents/requetes";
@@ -25,11 +25,16 @@ const dateCourte = new Intl.DateTimeFormat("fr-FR", {
 /** Au-delà, une échéance de document n'appelle pas encore d'action. */
 const SEUIL_EXPIRATION_JOURS = 30;
 
-export default async function PageDocuments() {
+export default async function PageDocuments({ searchParams }: PageProps<"/documents">) {
   const session = await exigerEntreprise();
+  // `?q=` arrive de la recherche globale ; la bibliothèque filtre ensuite sur place.
+  const filtres = lireFiltresListe(await searchParams);
 
-  const [pieces, partenaires, salaries, intervenants, parc] = await Promise.all([
+  const [pieces, trouves, partenaires, salaries, intervenants, parc] = await Promise.all([
     listerDocuments(session.organizationId),
+    // Une recherche par lien se fait aussi en base : une pièce plus ancienne
+    // que les deux cents dernières doit répondre. Même requête, mêmes règles.
+    filtres.actif ? listerDocuments(session.organizationId, new Date(), 200, filtres) : Promise.resolve([]),
     listerTiers(session.organizationId),
     listerSalaries(session.organizationId),
     listerIntervenants(session.organizationId),
@@ -46,7 +51,12 @@ export default async function PageDocuments() {
     pieces.filter((doc) => doc.entiteType).map((doc) => doc.entiteType),
   ).size;
 
-  const affiches: DocumentAffiche[] = pieces.map((doc) => ({
+  // Les indicateurs gardent les deux cents dernières ; la liste y ajoute ce
+  // que la recherche a trouvé plus loin, sans doublon.
+  const dejaLa = new Set(pieces.map((doc) => doc.id));
+  const listees = [...pieces, ...trouves.filter((doc) => !dejaLa.has(doc.id))];
+
+  const affiches: DocumentAffiche[] = listees.map((doc) => ({
     id: doc.id,
     nom: doc.nom,
     categorie: doc.categorie,
@@ -57,6 +67,7 @@ export default async function PageDocuments() {
     nomFichier: doc.nomFichier,
     tailleOctets: doc.tailleOctets,
     joursAvantExpiration: doc.joursAvantExpiration,
+    expireLe: doc.expireLe,
     deposeLeIso: dateCourte.format(doc.deposeLe),
   }));
 
@@ -114,7 +125,6 @@ export default async function PageDocuments() {
         <EtatVide
           titre="Aucun document"
           message="Un document se range par ce à quoi il se rattache : le contrat de son client, l'assurance de son véhicule, l'attestation de son salarié. Un fichier qui ne pointe vers rien n'est qu'un fichier."
-          actions={<BoutonDemonstration libelle="Installer le jeu de démonstration" />}
         />
       ) : (
         <>
@@ -137,7 +147,7 @@ export default async function PageDocuments() {
             />
           </section>
 
-          <Bibliotheque documents={affiches} />
+          <Bibliotheque documents={affiches} rechercheInitiale={filtres.q} periodeInitiale={filtres.periode} />
         </>
       )}
 

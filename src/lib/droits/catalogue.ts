@@ -554,6 +554,20 @@ export const DROITS = [
     description: "Enregistrer une licence, voir sa clé, l'installer sur un poste ou l'en retirer.",
   },
 
+  // ---------------------------------------------------- moyens généraux
+  {
+    cle: "moyens_generaux.consulter",
+    moduleKey: "moyens_generaux",
+    libelle: "Consulter les moyens généraux",
+    description: "Voir les fournitures de bureau, leur stock, et l'entretien des locaux.",
+  },
+  {
+    cle: "moyens_generaux.gerer",
+    moduleKey: "moyens_generaux",
+    libelle: "Gérer les moyens généraux",
+    description: "Ajouter une fourniture, enregistrer un achat ou une remise, ouvrir la fiche d'un local.",
+  },
+
   // ---------------------------------------------------------- facturation
   {
     cle: "commercial.piece.consulter",

@@ -167,10 +167,6 @@ const COMPTE_PRESTATION: Record<NaturePrestation, { numero: string; libelle: str
   marchandise: COMPTES.ventesMarchandises,
 };
 
-export function compteDePrestation(nature: NaturePrestation) {
-  return COMPTE_PRESTATION[nature];
-}
-
 function journalDe(moyen: MoyenLocation) {
   return moyen === "banque" ? "BQ" : "CA";
 }

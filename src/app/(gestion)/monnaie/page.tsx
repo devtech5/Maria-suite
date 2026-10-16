@@ -1,6 +1,5 @@
 import type { Metadata } from "next";
 
-import { BoutonDemonstration } from "@/components/bouton-demonstration";
 import { EnTetePage } from "@/components/ui/primitives";
 import { exigerEntreprise } from "@/lib/auth/dal";
 import { peut } from "@/lib/droits/garde";
@@ -33,7 +32,6 @@ export default async function PageGuichet() {
         <EnTetePage
           titre="Point de vente"
           sousTitre="Transfert d'argent et vente de crédit — point de vente fermé"
-          actions={proposition ? undefined : <BoutonDemonstration libelle="Installer le jeu de démonstration" />}
         />
         <OuvertureGuichet proposition={proposition} autorise={saisir} />
       </>
