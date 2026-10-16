@@ -4,6 +4,7 @@ import { useRef, useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 
 import { Portrait, reduirePhoto } from "@/components/personnes/photo";
+import { useApercu } from "@/components/ui/apercu";
 import { Retour, useOperation, type Resultat } from "@/components/ui/operations";
 import { CLASSE_CHAMP, Champ, Pastille, type TonPastille } from "@/components/ui/primitives";
 import { LIENS_URGENCE } from "@/modules/personnes/calcul";
@@ -55,30 +56,15 @@ export function ListePieces({ pieces, peutGerer }: { pieces: PieceAffichee[]; pe
   const [resultat, setResultat] = useState<Resultat | null>(null);
   const [enCours, demarrer] = useTransition();
   const routeur = useRouter();
+  const apercu = useApercu();
 
   if (pieces.length === 0) {
     return <p className="text-sm text-[var(--encre-faible)]">Aucune pièce au dossier.</p>;
   }
 
-  function ouvrir(id: string) {
+  function ouvrir(p: PieceAffichee, titre: string) {
     setResultat(null);
-    // La fenêtre s'ouvre AVANT l'appel : ouverte après un `await`, elle serait
-    // bloquée comme fenêtre surgissante.
-    const fenetre = window.open("about:blank", "_blank");
-    demarrer(async () => {
-      const url = await ouvrirPiece(id);
-      if (!url) {
-        fenetre?.close();
-        setResultat({ ok: false, message: "Fichier indisponible : dépôt de fichiers muet, ou accès refusé." });
-        return;
-      }
-      if (fenetre) {
-        fenetre.opener = null;
-        fenetre.location.href = url;
-      } else {
-        window.location.href = url;
-      }
-    });
+    apercu.ouvrir({ titre, nomFichier: p.nomFichier, signer: () => ouvrirPiece(p.id) });
   }
 
   function retirer(id: string, libelle: string) {
@@ -128,8 +114,7 @@ export function ListePieces({ pieces, peutGerer }: { pieces: PieceAffichee[]; pe
                       {p.nomFichier ? (
                         <button
                           type="button"
-                          disabled={enCours}
-                          onClick={() => ouvrir(p.id)}
+                          onClick={() => ouvrir(p, titre)}
                           className="h-8 rounded-lg border border-[var(--filet)] px-3 text-xs font-medium hover:bg-[var(--surface-creuse)]"
                           title={p.nomFichier}
                         >
@@ -157,6 +142,7 @@ export function ListePieces({ pieces, peutGerer }: { pieces: PieceAffichee[]; pe
         );
       })}
       <Retour resultat={resultat} />
+      {apercu.fenetre}
     </div>
   );
 }

@@ -2,6 +2,8 @@
 
 import { useEffect, useRef, useState, type ReactNode } from "react";
 
+import { useApercu } from "./apercu";
+
 /**
  * Choix de photos et de PDF, avec aperçu avant envoi.
  *
@@ -159,29 +161,57 @@ export function ChoixFichiers({
 
 /**
  * Visionneuse : vignettes, puis plein écran avec navigation au clavier.
- * Les adresses sont signées et expirent : on les reçoit au rendu de la page.
+ *
+ * Les adresses ne viennent PAS du rendu de la page : posées dans le HTML,
+ * elles resteraient valables pour qui retrouve la page en cache. Le
+ * navigateur les fait signer (`signer`) une fois monté, et les renouvelle
+ * avant qu'elles n'expirent. Ce qui n'est pas une image s'ouvre dans l'aperçu.
  */
 export interface ImageVisionnable {
   id: string;
-  url: string | null;
   titre: string;
   sousTitre?: string;
   typeMime: string;
+  nomFichier?: string;
 }
+
+/** Les URL signées valent cinq minutes : on les renouvelle avant. */
+const RENOUVELLEMENT_MS = 4 * 60 * 1000;
 
 export function Visionneuse({
   elements,
+  signer,
   taille = "petite",
   pieds,
 }: {
   elements: ImageVisionnable[];
+  /** Action serveur : URL signée par identifiant, pour ceux que la session peut voir. */
+  signer: (ids: string[]) => Promise<Record<string, string>>;
   taille?: "petite" | "grande";
   /** Contenu ajouté sous une vignette, par identifiant (bouton de retrait…). */
   pieds?: Record<string, ReactNode>;
 }) {
   const [ouvert, setOuvert] = useState<number | null>(null);
-  const images = elements.filter((e) => e.url && e.typeMime.startsWith("image/"));
-  const autres = elements.filter((e) => !(e.url && e.typeMime.startsWith("image/")));
+  const [urls, setUrls] = useState<Record<string, string>>({});
+  const apercu = useApercu();
+  const images = elements.filter((e) => e.typeMime.startsWith("image/"));
+  const autres = elements.filter((e) => !e.typeMime.startsWith("image/"));
+  const idsImages = images.map((e) => e.id).join(",");
+
+  useEffect(() => {
+    if (!idsImages) return;
+    let actif = true;
+    const charger = () =>
+      signer(idsImages.split(","))
+        .then((r) => actif && setUrls(r))
+        .catch(() => undefined);
+    void charger();
+    const minuterie = window.setInterval(charger, RENOUVELLEMENT_MS);
+    return () => {
+      actif = false;
+      window.clearInterval(minuterie);
+    };
+  }, [idsImages, signer]);
 
   useEffect(() => {
     if (ouvert === null) return;
@@ -195,6 +225,7 @@ export function Visionneuse({
   }, [ouvert, images.length]);
 
   const courant = ouvert === null ? null : images[ouvert];
+  const urlCourante = courant ? urls[courant.id] : undefined;
   const vignette = taille === "grande" ? "aspect-[4/3] w-full" : "size-12";
 
   return (
@@ -205,12 +236,17 @@ export function Visionneuse({
             <button
               type="button"
               onClick={() => setOuvert(i)}
+              disabled={!urls[e.id]}
               aria-label={`Voir ${e.titre}`}
               className={`block overflow-hidden ${taille === "grande" ? "w-full" : "rounded-lg border border-[var(--filet)]"}`}
             >
-              {/* URL signée et éphémère : l'optimiseur d'images la mettrait en cache au-delà de son expiration. */}
-              {/* eslint-disable-next-line @next/next/no-img-element */}
-              <img src={e.url!} alt={e.titre} loading="lazy" className={`${vignette} object-cover transition hover:opacity-90`} />
+              {urls[e.id] ? (
+                // URL signée et éphémère : l'optimiseur d'images la mettrait en cache au-delà de son expiration.
+                // eslint-disable-next-line @next/next/no-img-element
+                <img src={urls[e.id]} alt={e.titre} loading="lazy" className={`${vignette} object-cover transition hover:opacity-90`} />
+              ) : (
+                <span className={`${vignette} block animate-pulse bg-[var(--surface-creuse)]`} />
+              )}
             </button>
             {taille === "grande" && (
               <div className="flex items-start justify-between gap-2 p-2">
@@ -228,19 +264,27 @@ export function Visionneuse({
         <ul className="mt-1 space-y-0.5 text-xs">
           {autres.map((e) => (
             <li key={e.id}>
-              {e.url ? (
-                <a href={e.url} target="_blank" rel="noopener noreferrer" className="text-marque-600 hover:underline">
-                  {e.titre}
-                </a>
-              ) : (
-                <span>{e.titre}</span>
-              )}
+              <button
+                type="button"
+                onClick={() =>
+                  apercu.ouvrir({
+                    titre: e.titre,
+                    nomFichier: e.nomFichier,
+                    typeMime: e.typeMime,
+                    signer: async () => (await signer([e.id]))[e.id] ?? null,
+                  })
+                }
+                className="text-left text-marque-600 hover:underline"
+              >
+                {e.titre}
+              </button>
             </li>
           ))}
         </ul>
       )}
+      {apercu.fenetre}
 
-      {courant && (
+      {courant && urlCourante && (
         <div
           role="dialog"
           aria-modal="true"
@@ -250,7 +294,7 @@ export function Visionneuse({
         >
           {/* eslint-disable-next-line @next/next/no-img-element */}
           <img
-            src={courant.url!}
+            src={urlCourante}
             alt={courant.titre}
             onClick={(e) => e.stopPropagation()}
             className="max-h-[80vh] max-w-full rounded-lg object-contain"

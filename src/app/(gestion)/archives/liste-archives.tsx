@@ -3,6 +3,7 @@
 import { useMemo, useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 
+import { useApercu } from "@/components/ui/apercu";
 import { Retour, type Resultat } from "@/components/ui/operations";
 import { CLASSE_CHAMP, Pastille } from "@/components/ui/primitives";
 import { correspond } from "@/components/ui/recherche";
@@ -78,6 +79,7 @@ export function ListeArchives({
   const [resultat, setResultat] = useState<Resultat | null>(null);
   const [enCours, demarrer] = useTransition();
   const routeur = useRouter();
+  const apercu = useApercu();
   // Une seule horloge par rendu : toutes les lignes jugent le délai au même instant.
   const [maintenant] = useState(() => Date.now());
 
@@ -93,16 +95,18 @@ export function ListeArchives({
       correspond(recherche, [a.titre, a.numero, a.nomFichier, a.dossier, a.dossierPartage?.nom, a.description, a.auteur]),
   );
 
-  function ouvrir(id: string) {
+  function ouvrir(a: ArchiveAffichee) {
     setResultat(null);
-    demarrer(async () => {
-      const url = await ouvrirArchive(id);
-      if (!url) {
-        setResultat({ ok: false, message: "Archive indisponible : dépôt de fichiers muet, ou accès refusé." });
-        return;
-      }
-      window.open(url, "_blank", "noopener,noreferrer");
-      routeur.refresh();
+    apercu.ouvrir({
+      titre: a.titre,
+      nomFichier: a.nomFichier,
+      typeMime: a.typeMime,
+      signer: async () => {
+        // Chaque ouverture est tracée côté serveur : la liste se remet à jour.
+        const url = await ouvrirArchive(a.id);
+        if (url) routeur.refresh();
+        return url;
+      },
     });
   }
 
@@ -170,7 +174,7 @@ export function ListeArchives({
                 <div className="flex items-start gap-3">
                   <button
                     type="button"
-                    onClick={() => ouvrir(a.id)}
+                    onClick={() => ouvrir(a)}
                     disabled={enCours}
                     title={`Ouvrir ${a.nomFichier}`}
                     aria-label={`Ouvrir ${a.titre}`}
@@ -290,6 +294,7 @@ export function ListeArchives({
           })}
         </ul>
       )}
+      {apercu.fenetre}
     </div>
   );
 }

@@ -3,6 +3,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 
+import { BoutonApercu } from "@/components/ui/apercu";
 import { ActionRuban, Avatar, EntreeDossier, Icone, LigneListe, Ruban, SeparateurRuban, TitreLecture, type NomIcone } from "@/components/ui/courrier";
 import { CLASSE_CHAMP, CLASSE_CHAMP_COMPACT, Champ } from "@/components/ui/primitives";
 import {
@@ -452,20 +453,12 @@ function Bulle({ message, mien, groupe }: { message: MessageAffiche; mien: boole
       <div className={`max-w-[80%] rounded-2xl px-3 py-2 text-sm shadow-sm ${mien ? "rounded-br-sm bg-marque-500 text-white" : "rounded-bl-sm bg-[var(--surface)]"}`}>
         {groupe && !mien && <p className="mb-0.5 text-xs font-semibold text-marque-600">{message.auteur}</p>}
         {message.piece && (
-          <button
-            type="button"
-            onClick={async () => {
-              const fenetre = window.open("about:blank", "_blank");
-              const url = await ouvrirPieceJointe(message.id);
-              if (url && fenetre) {
-                fenetre.opener = null;
-                fenetre.location.href = url;
-              } else fenetre?.close();
-            }}
+          <BoutonApercu
+            piece={{ titre: message.piece.nom, nomFichier: message.piece.nom, typeMime: message.piece.typeMime, signer: () => ouvrirPieceJointe(message.id) }}
             className={`mb-1 block underline ${mien ? "text-white" : "text-marque-600"}`}
           >
             📎 {message.piece.nom}
-          </button>
+          </BoutonApercu>
         )}
         {message.corps && <p className="whitespace-pre-wrap break-words">{message.corps}</p>}
         <p className={`mt-0.5 flex items-center justify-end gap-1 text-[10px] ${mien ? "text-white/80" : "text-[var(--encre-faible)]"}`}>

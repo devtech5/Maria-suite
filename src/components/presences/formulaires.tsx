@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 
+import { useApercu } from "@/components/ui/apercu";
 import { FormulaireRepliable, Retour, useOperation } from "@/components/ui/operations";
 import { CLASSE_CHAMP, Champ } from "@/components/ui/primitives";
 import {
@@ -136,6 +137,7 @@ export function ActionsConge({ id, peutDecider, peutAnnuler, aJustificatif }: { 
   const [refus, setRefus] = useState(false);
   const [commentaire, setCommentaire] = useState("");
   const [erreur, setErreur] = useState<string | null>(null);
+  const apercu = useApercu();
 
   return (
     <div className="flex flex-col items-end gap-1">
@@ -144,11 +146,17 @@ export function ActionsConge({ id, peutDecider, peutAnnuler, aJustificatif }: { 
           <button
             type="button"
             className="text-sm text-marque-600 hover:underline"
-            onClick={async () => {
+            onClick={() => {
               setErreur(null);
-              const r = await ouvrirJustificatif(id);
-              if (r.ok) window.open(r.url, "_blank", "noopener");
-              else setErreur(r.message);
+              apercu.ouvrir({
+                titre: "Justificatif de congé",
+                signer: async () => {
+                  const r = await ouvrirJustificatif(id);
+                  if (r.ok) return r.url;
+                  setErreur(r.message);
+                  return null;
+                },
+              });
             }}
           >
             Justificatif
@@ -183,6 +191,7 @@ export function ActionsConge({ id, peutDecider, peutAnnuler, aJustificatif }: { 
       )}
       {erreur && <p className="text-xs text-danger-600">{erreur}</p>}
       <Retour resultat={op.resultat} />
+      {apercu.fenetre}
     </div>
   );
 }

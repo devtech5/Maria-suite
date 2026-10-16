@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 
+import { useApercu } from "@/components/ui/apercu";
 import { Retour, useOperation } from "@/components/ui/operations";
 import { CLASSE_CHAMP_COMPACT, Pastille, Tableau, Td, Th } from "@/components/ui/primitives";
 import { correspond } from "@/components/ui/recherche";
@@ -15,6 +16,7 @@ const date = (iso: string) => JOUR.format(new Date(`${iso}T00:00:00Z`));
 
 export function ListeFactures({ factures, annuler, aujourdhui }: { factures: FactureVue[]; annuler: boolean; aujourdhui: string }) {
   const op = useOperation();
+  const apercu = useApercu();
   const [recherche, setRecherche] = useState("");
   const [motif, setMotif] = useState<{ id: string; texte: string } | null>(null);
   const visibles = factures.filter((f) => correspond(recherche, [f.numero, f.reference, f.fournisseur, f.commande]));
@@ -74,10 +76,7 @@ export function ListeFactures({ factures, annuler, aujourdhui }: { factures: Fac
                     {f.avecJustificatif && (
                       <button
                         type="button"
-                        onClick={async () => {
-                          const url = await ouvrirJustificatifFacture(f.id);
-                          if (url) window.open(url, "_blank", "noopener,noreferrer");
-                        }}
+                        onClick={() => apercu.ouvrir({ titre: `Justificatif ${f.numero} · ${f.fournisseur}`, signer: () => ouvrirJustificatifFacture(f.id) })}
                         className="text-xs font-semibold text-marque-600 hover:underline"
                       >
                         Justificatif
@@ -109,6 +108,7 @@ export function ListeFactures({ factures, annuler, aujourdhui }: { factures: Fac
           })}
         </tbody>
       </Tableau>
+      {apercu.fenetre}
     </>
   );
 }

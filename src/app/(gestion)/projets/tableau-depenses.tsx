@@ -5,6 +5,7 @@ import type { DepenseVue, PieceVue } from "@/modules/projets/requetes";
 import type { StatutDepense } from "@/modules/projets/schema";
 
 import { Visionneuse } from "@/components/ui/fichiers";
+import { signerPiecesProjet } from "@/modules/projets/actions";
 
 import { ActionsDepense, AjoutPiece } from "./outils";
 
@@ -104,10 +105,11 @@ export function TableauDepenses({
               <Td>
                 {jointes.length > 0 && (
                   <Visionneuse
+                    signer={signerPiecesProjet}
                     elements={jointes.map((p) => ({
                       id: p.id,
-                      url: p.url,
                       typeMime: p.typeMime,
+                      nomFichier: p.nomFichier,
                       titre: `${NATURE[p.nature]} · ${d.numero}`,
                       sousTitre: p.legende ?? p.nomFichier,
                     }))}

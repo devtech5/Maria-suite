@@ -1,13 +1,14 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
+import { and, eq, inArray } from "drizzle-orm";
 import { z } from "zod";
 
 import { db } from "@/db";
 import { exigerEntreprise } from "@/lib/auth/dal";
 import type { Droit } from "@/lib/droits/catalogue";
 import { refusDroit } from "@/lib/droits/garde";
-import { stockageConfigure } from "@/lib/stockage";
+import { stockageConfigure, urlSignee } from "@/lib/stockage";
 
 import {
   approuverDepenseDans,
@@ -20,6 +21,7 @@ import {
   retirerPiece,
   type FichierJoint,
 } from "./creation";
+import { piecesProjet } from "./schema";
 import { notifierDetenteurs } from "@/modules/communication/notifications";
 
 const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
@@ -275,6 +277,29 @@ export async function ajouterPiece(donnees: FormData): Promise<Resultat> {
     const mot = nature.data === "photo" ? "photo" : nature.data === "preuve_paiement" ? "preuve" : "pièce";
     return { ok: true, message: `${pluriel(fichiers.length, mot)} ajoutée${fichiers.length > 1 ? "s" : ""}.` };
   });
+}
+
+/**
+ * URL signées des pièces que l'écran affiche, demandées par le navigateur
+ * une fois la page montée. Jamais au rendu : posée dans le HTML, une adresse
+ * signée resterait valable pour qui retrouve la page en cache.
+ */
+export async function signerPiecesProjet(ids: string[]): Promise<Record<string, string>> {
+  const session = await exigerEntreprise();
+  if (await refusDroit("projet.consulter")) return {};
+  const valides = ids.filter((id) => UUID.test(id)).slice(0, 200);
+  if (valides.length === 0) return {};
+  const lignes = await db
+    .select({ id: piecesProjet.id, chemin: piecesProjet.chemin })
+    .from(piecesProjet)
+    .where(and(eq(piecesProjet.organizationId, session.organizationId), inArray(piecesProjet.id, valides)));
+  const signees = await Promise.all(lignes.map(async (l) => [l.id, await urlSignee(l.chemin)] as const));
+  return Object.fromEntries(signees.filter((s): s is readonly [string, string] => s[1] !== null));
+}
+
+/** URL signée d'une seule pièce, demandée au clic par l'aperçu. */
+export async function ouvrirPieceProjet(id: string): Promise<string | null> {
+  return (await signerPiecesProjet([id]))[id] ?? null;
 }
 
 export async function supprimerPiece(pieceId: string): Promise<Resultat> {

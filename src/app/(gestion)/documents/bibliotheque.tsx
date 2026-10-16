@@ -1,7 +1,8 @@
 "use client";
 
-import { useMemo, useState, useTransition } from "react";
+import { useMemo, useState } from "react";
 
+import { useApercu } from "@/components/ui/apercu";
 import { Pastille, type TonPastille } from "@/components/ui/primitives";
 import { fmtEntier } from "@/lib/format";
 import { ouvrirDocument } from "@/modules/documents/actions";
@@ -18,6 +19,7 @@ export interface DocumentAffiche {
   entiteLibelle: string | null;
   visibilite: VisibiliteDocument;
   avecFichier: boolean;
+  nomFichier: string | null;
   tailleOctets: number | null;
   joursAvantExpiration: number | null;
   deposeLeIso: string;
@@ -71,8 +73,7 @@ function taille(octets: number | null): string {
 export function Bibliotheque({ documents }: { documents: DocumentAffiche[] }) {
   const [recherche, setRecherche] = useState("");
   const [entite, setEntite] = useState<string | null>(null);
-  const [erreur, setErreur] = useState<string | null>(null);
-  const [enCours, demarrer] = useTransition();
+  const apercu = useApercu();
 
   const resultats = useMemo(() => {
     const terme = recherche.trim().toLowerCase();
@@ -107,18 +108,8 @@ export function Bibliotheque({ documents }: { documents: DocumentAffiche[] }) {
    * retrouve la page en cache — alors que ce module existe précisément pour que
    * les pièces personnelles ne circulent pas.
    */
-  function ouvrir(id: string) {
-    setErreur(null);
-    demarrer(async () => {
-      const url = await ouvrirDocument(id);
-      if (!url) {
-        setErreur(
-          "Pièce indisponible : le dépôt de fichiers n'est pas configuré, ou le fichier a été retiré.",
-        );
-        return;
-      }
-      window.open(url, "_blank", "noopener,noreferrer");
-    });
+  function ouvrir(doc: DocumentAffiche) {
+    apercu.ouvrir({ titre: doc.nom, nomFichier: doc.nomFichier, signer: () => ouvrirDocument(doc.id) });
   }
 
   return (
@@ -164,15 +155,6 @@ export function Bibliotheque({ documents }: { documents: DocumentAffiche[] }) {
         </div>
       </div>
 
-      {erreur && (
-        <p
-          role="alert"
-          className="mb-4 rounded-lg bg-danger-50 px-3 py-2.5 text-sm font-medium text-danger-600"
-        >
-          {erreur}
-        </p>
-      )}
-
       {resultats.length === 0 ? (
         <p className="py-10 text-center text-sm text-[var(--encre-faible)]">
           Aucun document ne correspond.
@@ -186,8 +168,8 @@ export function Bibliotheque({ documents }: { documents: DocumentAffiche[] }) {
             >
               <button
                 type="button"
-                onClick={() => doc.avecFichier && ouvrir(doc.id)}
-                disabled={!doc.avecFichier || enCours}
+                onClick={() => doc.avecFichier && ouvrir(doc)}
+                disabled={!doc.avecFichier}
                 title={
                   doc.avecFichier
                     ? "Ouvrir la pièce"
@@ -246,6 +228,7 @@ export function Bibliotheque({ documents }: { documents: DocumentAffiche[] }) {
           ))}
         </ul>
       )}
+      {apercu.fenetre}
     </>
   );
 }

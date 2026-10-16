@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 
+import { BoutonApercu } from "@/components/ui/apercu";
 import { Visionneuse } from "@/components/ui/fichiers";
 import { CarteIndicateur, EnTetePage, EtatVide, Pastille, Tableau, Td, Th } from "@/components/ui/primitives";
 import { exigerEntreprise } from "@/lib/auth/dal";
@@ -9,6 +10,7 @@ import { peut } from "@/lib/droits/garde";
 import { fmt, fmtCompact, fmtTauxBp } from "@/lib/format";
 import { moduleOuvert } from "@/lib/modules/garde";
 import { listerEnquetes } from "@/modules/enquetes/requetes";
+import { ouvrirPieceProjet, signerPiecesProjet } from "@/modules/projets/actions";
 import { LIBELLE_STATUT_PROJET } from "@/modules/projets/calcul";
 import { ficheProjet, membresActifs, type PieceVue } from "@/modules/projets/requetes";
 import { listerTiers } from "@/modules/tiers/requetes";
@@ -266,10 +268,11 @@ export default async function PageProjet({ params }: { params: Promise<{ id: str
         ) : (
           <Visionneuse
             taille="grande"
+            signer={signerPiecesProjet}
             elements={photos.map((p) => ({
               id: p.id,
-              url: p.url,
               typeMime: p.typeMime,
+              nomFichier: p.nomFichier,
               titre: p.legende ?? p.nomFichier,
               sousTitre: `${JOUR.format(p.depose)}${p.auteur ? ` · ${p.auteur}` : ""}`,
             }))}
@@ -285,13 +288,12 @@ export default async function PageProjet({ params }: { params: Promise<{ id: str
             {autres.map((p) => (
               <li key={p.id} className="flex items-center justify-between gap-3 px-3 py-2 text-sm">
                 <span className="min-w-0">
-                  {p.url ? (
-                    <a href={p.url} target="_blank" rel="noopener noreferrer" className="text-marque-600 hover:underline">
-                      {p.legende ?? p.nomFichier}
-                    </a>
-                  ) : (
-                    p.legende ?? p.nomFichier
-                  )}
+                  <BoutonApercu
+                    piece={{ titre: p.legende ?? p.nomFichier, nomFichier: p.nomFichier, typeMime: p.typeMime, signer: ouvrirPieceProjet.bind(null, p.id) }}
+                    className="text-left text-marque-600 hover:underline"
+                  >
+                    {p.legende ?? p.nomFichier}
+                  </BoutonApercu>
                   <span className="block text-xs text-[var(--encre-faible)]">
                     {NATURE[p.nature]}
                     {p.depenseId ? ` · ${depenses.find((d) => d.id === p.depenseId)?.numero ?? "dépense"}` : ""} ·{" "}

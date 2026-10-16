@@ -3,6 +3,7 @@
 import { useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 
+import { useApercu } from "@/components/ui/apercu";
 import { ChoixFichiers } from "@/components/ui/fichiers";
 import { Retour, type Resultat } from "@/components/ui/operations";
 import { CLASSE_CHAMP, Pastille, type TonPastille } from "@/components/ui/primitives";
@@ -57,6 +58,7 @@ export function ListeBons({
   const [resultat, setResultat] = useState<Resultat | null>(null);
   const [enCours, demarrer] = useTransition();
   const routeur = useRouter();
+  const apercu = useApercu();
 
   function lancer(action: () => Promise<Resultat>) {
     setResultat(null);
@@ -68,12 +70,8 @@ export function ListeBons({
     });
   }
 
-  function voir(id: string) {
-    demarrer(async () => {
-      const url = await ouvrirJustificatif(id);
-      if (url) window.open(url, "_blank", "noopener,noreferrer");
-      else setResultat({ ok: false, message: "Justificatif indisponible." });
-    });
+  function voir(b: BonAffiche) {
+    apercu.ouvrir({ titre: `Justificatif du bon ${b.numero}`, signer: () => ouvrirJustificatif(b.id) });
   }
 
   if (bons.length === 0) return <p className="py-6 text-center text-sm text-[var(--encre-faible)]">Aucun bon de caisse.</p>;
@@ -116,7 +114,7 @@ export function ListeBons({
                 </div>
                 <div className="flex shrink-0 flex-wrap items-center gap-1.5">
                   {b.avecJustificatif && (
-                    <button type="button" onClick={() => voir(b.id)} className="rounded-lg border border-[var(--filet)] px-2.5 py-1.5 text-xs font-semibold hover:bg-[var(--surface-creuse)]">
+                    <button type="button" onClick={() => voir(b)} className="rounded-lg border border-[var(--filet)] px-2.5 py-1.5 text-xs font-semibold hover:bg-[var(--surface-creuse)]">
                       Justificatif
                     </button>
                   )}
@@ -213,6 +211,7 @@ export function ListeBons({
           );
         })}
       </ul>
+      {apercu.fenetre}
     </>
   );
 }

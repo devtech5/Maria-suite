@@ -3,7 +3,6 @@ import "server-only";
 import { sql } from "drizzle-orm";
 
 import { db } from "@/db";
-import { urlSignee } from "@/lib/stockage";
 
 import { bilanProjet, suiviBudget, type Bilan, type SuiviBudget } from "./calcul";
 import type { MoyenDepense, NaturePieceProjet, StatutDepense, StatutProjet } from "./schema";
@@ -248,11 +247,12 @@ export interface PieceVue {
   depenseId: string | null;
   depose: Date;
   auteur: string | null;
-  /** URL signée, valable cinq minutes. Nulle si le dépôt n'est pas joignable. */
-  url: string | null;
 }
 
-/** Pièces d'un projet (y compris celles de ses dépenses), URL signées au rendu. */
+/**
+ * Pièces d'un projet (y compris celles de ses dépenses). Sans URL : le
+ * navigateur les fait signer une fois la page montée (`signerPiecesProjet`).
+ */
 export async function piecesDuProjet(organizationId: string, projetId: string): Promise<PieceVue[]> {
   const lignes = await db.execute<{
     id: string;
@@ -263,27 +263,23 @@ export async function piecesDuProjet(organizationId: string, projetId: string): 
     depense_id: string | null;
     created_at: string | Date;
     auteur: string | null;
-    chemin: string;
   }>(sql`
     select x.id, x.nature, x.legende, x.nom_fichier, x.type_mime, x.depense_id, x.created_at,
-           u.full_name as auteur, x.chemin
+           u.full_name as auteur
     from pieces_projet x left join users u on u.id = x.depose_par_user_id
     where x.organization_id = ${organizationId} and x.projet_id = ${projetId}
     order by x.created_at desc
   `);
-  return Promise.all(
-    lignes.map(async (l) => ({
-      id: l.id,
-      nature: l.nature,
-      legende: l.legende,
-      nomFichier: l.nom_fichier,
-      typeMime: l.type_mime,
-      depenseId: l.depense_id,
-      depose: new Date(l.created_at),
-      auteur: l.auteur,
-      url: await urlSignee(l.chemin),
-    })),
-  );
+  return lignes.map((l) => ({
+    id: l.id,
+    nature: l.nature,
+    legende: l.legende,
+    nomFichier: l.nom_fichier,
+    typeMime: l.type_mime,
+    depenseId: l.depense_id,
+    depose: new Date(l.created_at),
+    auteur: l.auteur,
+  }));
 }
 
 export interface FactureProjet {
@@ -351,9 +347,8 @@ export async function piecesParDepense(organizationId: string): Promise<Map<stri
     type_mime: string;
     depense_id: string;
     created_at: string | Date;
-    chemin: string;
   }>(sql`
-    select id, nature, legende, nom_fichier, type_mime, depense_id, created_at, chemin
+    select id, nature, legende, nom_fichier, type_mime, depense_id, created_at
     from pieces_projet where organization_id = ${organizationId} and depense_id is not null
     order by created_at
   `);
@@ -368,7 +363,6 @@ export async function piecesParDepense(organizationId: string): Promise<Map<stri
       depenseId: l.depense_id,
       depose: new Date(l.created_at),
       auteur: null,
-      url: await urlSignee(l.chemin),
     };
     parDepense.set(l.depense_id, [...(parDepense.get(l.depense_id) ?? []), vue]);
   }

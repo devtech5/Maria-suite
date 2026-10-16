@@ -3,6 +3,7 @@
 import { useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 
+import { BoutonApercu } from "@/components/ui/apercu";
 import type { Resultat } from "@/components/ui/operations";
 import { CLASSE_CHAMP } from "@/components/ui/primitives";
 import { ajouterPieceDossier, cocherPiece, inviter, joindrePiece, ouvrirFichier, retirerPieceDossier } from "@/modules/marches/actions";
@@ -33,21 +34,11 @@ function Message({ r }: { r: Resultat | null }) {
 /** Ouvre le fichier d'une ligne par une URL signée demandée au clic. */
 export function BoutonFichier({ nature, id, nom }: { nature: "piece" | "offre" | "convention" | "avenant"; id: string; nom: string }) {
   return (
-    <button
-      type="button"
-      onClick={async () => {
-        const fenetre = window.open("about:blank", "_blank");
-        const url = await ouvrirFichier(nature, id);
-        if (url && fenetre) {
-          fenetre.opener = null;
-          fenetre.location.href = url;
-        } else fenetre?.close();
-      }}
-      className="text-xs text-marque-600 hover:underline"
-      title={nom}
-    >
-      📎 {nom.length > 28 ? `${nom.slice(0, 26)}…` : nom}
-    </button>
+    <span title={nom}>
+      <BoutonApercu piece={{ titre: nom, nomFichier: nom, signer: () => ouvrirFichier(nature, id) }} className="text-xs text-marque-600 hover:underline">
+        📎 {nom.length > 28 ? `${nom.slice(0, 26)}…` : nom}
+      </BoutonApercu>
+    </span>
   );
 }
 

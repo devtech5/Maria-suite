@@ -54,6 +54,7 @@ export default async function PageDocuments() {
     entiteLibelle: doc.entiteLibelle,
     visibilite: doc.visibilite,
     avecFichier: doc.avecFichier,
+    nomFichier: doc.nomFichier,
     tailleOctets: doc.tailleOctets,
     joursAvantExpiration: doc.joursAvantExpiration,
     deposeLeIso: dateCourte.format(doc.deposeLe),

@@ -1,8 +1,9 @@
 "use client";
 
 import { useRouter } from "next/navigation";
-import { useState, useTransition } from "react";
+import { useState } from "react";
 
+import { useApercu } from "@/components/ui/apercu";
 import { Pastille, type TonPastille } from "@/components/ui/primitives";
 import { fmt } from "@/lib/format";
 import {
@@ -288,7 +289,7 @@ function Etape({
 }
 
 function LignePreuve({ preuve }: { preuve: PreuveVue }) {
-  const [ouverture, demarrer] = useTransition();
+  const apercu = useApercu();
 
   let detail: React.ReactNode = preuve.texte;
   if (preuve.type === "position" && preuve.latitudeMicro !== null && preuve.longitudeMicro !== null) {
@@ -296,18 +297,8 @@ function LignePreuve({ preuve }: { preuve: PreuveVue }) {
   }
   if (preuve.type === "photo") {
     detail = (
-      <button
-        type="button"
-        disabled={ouverture}
-        onClick={() =>
-          demarrer(async () => {
-            const url = await ouvrirPhoto(preuve.id);
-            if (url) window.open(url, "_blank", "noopener");
-          })
-        }
-        className="text-marque-600 underline"
-      >
-        {ouverture ? "Ouverture…" : "Ouvrir la photo"}
+      <button type="button" onClick={() => apercu.ouvrir({ titre: "Photo de terrain", signer: () => ouvrirPhoto(preuve.id) })} className="text-marque-600 underline">
+        Ouvrir la photo
       </button>
     );
   }
@@ -325,6 +316,7 @@ function LignePreuve({ preuve }: { preuve: PreuveVue }) {
         {heure.format(preuve.priseLe)}
         {differe ? " · remontée plus tard" : ""}
       </span>
+      {apercu.fenetre}
     </li>
   );
 }
