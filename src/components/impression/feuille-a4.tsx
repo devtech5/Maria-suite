@@ -12,7 +12,7 @@ const montserrat = Montserrat({ subsets: ["latin"], weight: ["500", "600", "700"
  * Une feuille A4 (210 × 297 mm), telle qu'elle sort de l'imprimante.
  *
  * Elle s'affiche dans l'application, au milieu de l'écran, et s'imprime seule :
- * la coque de gestion masque menu, barre du haut et bandeaux à l'impression.
+ * la coque de gestion masque menu, en-tête et bandeaux à l'impression.
  * La page est réglée en A4 portrait sans marge d'imprimante — les marges de la
  * feuille en tiennent lieu. Un document plus long que la feuille continue sur
  * la suivante ; `pied` descend au bas de la dernière.

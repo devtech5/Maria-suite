@@ -11,7 +11,7 @@ const Loupe = ({ className }: { className: string }) => (
 );
 
 /**
- * Champ de recherche de la barre du haut : un formulaire GET vers
+ * Champ de recherche de l'en-tête : un formulaire GET vers
  * `/recherche`, qui marche sans JavaScript et se partage par lien.
  *
  * Ctrl+K (⌘K) ou « / » y place le curseur depuis n'importe quel écran,
@@ -37,18 +37,21 @@ export function RechercheGlobale() {
 
   return (
     <>
-      <form role="search" method="get" action="/recherche" className="relative hidden lg:block">
+      <form role="search" method="get" action="/recherche" className="relative hidden w-full max-w-md lg:block">
         <Loupe className="pointer-events-none absolute left-2.5 top-1/2 size-4 -translate-y-1/2 text-[var(--encre-faible)]" />
         <input
           ref={champ}
           type="search"
           name="q"
           maxLength={80}
-          placeholder="Rechercher…"
+          placeholder="Rechercher un client, une facture, un salarié…"
           aria-label="Rechercher dans Maria Suite (Ctrl+K)"
           title="Rechercher dans Maria Suite (Ctrl+K)"
-          className="h-9 w-40 rounded-lg border border-[var(--filet)] bg-[var(--surface-creuse)] pl-8 pr-2.5 text-sm text-white outline-none placeholder:text-[var(--encre-faible)] focus:w-56 focus:border-or xl:w-48 transition-[width]"
+          className="h-9 w-full rounded-lg border border-[var(--filet)] bg-[var(--surface)] pl-8 pr-16 text-sm text-[var(--encre)] outline-none placeholder:text-[var(--encre-faible)] focus:border-marque-500"
         />
+        <kbd className="pointer-events-none absolute right-2 top-1/2 -translate-y-1/2 rounded border border-[var(--filet)] px-1.5 py-0.5 font-sans text-[10px] text-[var(--encre-faible)]">
+          Ctrl K
+        </kbd>
       </form>
       <Link
         href="/recherche"

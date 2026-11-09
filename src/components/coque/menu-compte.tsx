@@ -9,7 +9,7 @@ import { seDeconnecter } from "@/lib/auth/actions";
 import { verrouillerMaintenant } from "./verrou-inactivite";
 
 /**
- * Menu de compte, à droite de la barre du haut.
+ * Menu de compte, à droite de l'en-tête.
  *
  * Regroupe ce qui relève de la personne et non du métier : préférences, aide,
  * déconnexion. Le thème y figure parce qu'une caisse en plein soleil et un
@@ -29,9 +29,9 @@ export function MenuCompte({
   gereLesMembres: boolean;
   /** Raccourcis vers les modules ouverts, filtrés par l'appelant. */
   raccourcis: { href: string; libelle: string }[];
-  /** `bas` sous la barre du haut ou dans un coin d'écran ; `haut` s'il est posé en pied de page. */
+  /** `bas` sous l'en-tête ou dans un coin d'écran ; `haut` s'il est posé en pied de page. */
   ouverture?: "haut" | "bas";
-  /** Les initiales seules, sans le nom : la barre du haut n'a pas la place. */
+  /** Les initiales seules, sans le nom : l'en-tête n'a pas la place. */
   compact?: boolean;
 }) {
   const [ouvert, setOuvert] = useState(false);

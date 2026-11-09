@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
 
 import { definitionDroit } from "@/lib/droits/catalogue";
-import { destinationApresConnexion, domaineDe, GROUPES_MODULES, groupesVisibles } from "@/lib/navigation";
+import { destinationApresConnexion, domaineDe, entreeCourante, GROUPES_MODULES, groupesVisibles } from "@/lib/navigation";
 
 const tous = GROUPES_MODULES.flatMap((g) => g.modules);
 const modulesDe = (droits: string[]) => droits.map((d) => definitionDroit(d as never).moduleKey);
@@ -73,5 +73,28 @@ describe("destinationApresConnexion", () => {
 
   it("ne renvoie pas vers la connexion elle-même", () => {
     expect(destinationApresConnexion("/connexion")).toBe("/accueil");
+  });
+});
+
+describe("entreeCourante", () => {
+  const entrees = [
+    { href: "/accueil", racine: "/accueil" },
+    { href: "/", racine: "/" },
+    { href: "/tresorerie", racine: "/tresorerie" },
+    { href: "/tresorerie/caisse", racine: "/tresorerie/caisse" },
+    { href: "/commercial", racine: "/commercial" },
+    { href: "/commercial/fournisseurs", racine: "/commercial/fournisseurs" },
+  ];
+
+  it("allume l'entrée la plus précise", () => {
+    expect(entreeCourante("/tresorerie/caisse/12", entrees)).toBe("/tresorerie/caisse");
+    expect(entreeCourante("/tresorerie/banques", entrees)).toBe("/tresorerie");
+    expect(entreeCourante("/commercial/fournisseurs", entrees)).toBe("/commercial/fournisseurs");
+    expect(entreeCourante("/commercial/factures", entrees)).toBe("/commercial");
+  });
+
+  it("n'allume le tableau de bord que sur sa propre page", () => {
+    expect(entreeCourante("/", entrees)).toBe("/");
+    expect(entreeCourante("/mot-de-passe", entrees)).toBeNull();
   });
 });

@@ -2,7 +2,7 @@ import { definitionDroit, type Droit } from "@/lib/droits/catalogue";
 import { REPRISE_OUVERTE } from "@/modules/reprise/calcul";
 
 /**
- * Carte des modules, partagée par la barre du haut et l'écran d'accueil.
+ * Carte des modules, partagée par la barre latérale et l'écran d'accueil.
  *
  * Une seule liste : un module ajouté ici apparaît aux deux endroits, sous le
  * même nom et dans le même groupe. Deux listes finiraient par diverger, et
@@ -33,29 +33,28 @@ export interface EntreeModule {
 }
 
 export interface GroupeModules {
-  /** Clé stable du domaine, pour la barre du haut. */
+  /** Clé stable du domaine. */
   cle: string;
   titre: string;
-  /** Libellé de la barre du haut, en capitales sous l'icône : court, ou il déborde. */
+  /** Libellé court, pour un espace étroit. */
   court: string;
   icone: CleIcone;
   modules: EntreeModule[];
 }
 
 /**
- * Les domaines, dans l'ordre de la barre du haut.
+ * Les domaines, dans l'ordre de la barre latérale.
  *
- * Trois niveaux, repris de Ferme360 : le domaine en haut (Finance), ses
- * modules en onglets de section (Comptabilité, Trésorerie), les sections du
- * module en pastilles (Écritures, Balance). Un domaine reste court — au-delà
- * de six ou sept modules, la rangée d'onglets se lit mal et il faut le couper.
+ * La barre montre chaque domaine en intertitre (FINANCE), ses entrées en
+ * dessous (Comptabilité, Trésorerie), et chaque module garde ses sections en
+ * pastilles (Écritures, Balance).
  *
  * Une entrée n'est pas forcément un module entier : « Clients », « Bons » ou
  * « Intervenants / manœuvres » ouvrent directement une section d'un module.
  * La barre allume l'entrée dont l'adresse correspond le plus précisément.
  *
- * Le tableau de bord n'est pas un module : la barre l'ajoute en tête du
- * Pilotage.
+ * L'accueil et le tableau de bord ne sont pas des modules : la barre les
+ * ajoute en tête du Pilotage.
  */
 export const GROUPES_MODULES: GroupeModules[] = [
   {
@@ -250,6 +249,22 @@ export function domaineDe(chemin: string, groupes: GroupeModules[]): string | nu
     }
   }
   return meilleur?.cle ?? null;
+}
+
+/**
+ * L'entrée à allumer pour la page courante : la plus précise parmi celles
+ * offertes. Sur /tresorerie/caisse, « Bons » et non « Trésorerie » ; sur
+ * /commercial/fournisseurs, « Fournisseurs » et non « Clients ». Nulle pour
+ * une page hors de toute carte (mot de passe, fiche isolée).
+ */
+export function entreeCourante(chemin: string, entrees: Pick<EntreeModule, "href" | "racine">[]): string | null {
+  let meilleure: { href: string; longueur: number } | null = null;
+  for (const e of entrees) {
+    if (relevDe(chemin, e.racine) && (!meilleure || e.racine.length > meilleure.longueur)) {
+      meilleure = { href: e.href, longueur: e.racine.length };
+    }
+  }
+  return meilleure?.href ?? null;
 }
 
 /**
