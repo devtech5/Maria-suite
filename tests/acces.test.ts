@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 
-import { appliquerRestrictions, niveauEffectif } from "@/lib/droits/acces";
+import { appliquerRestrictions, modulesDuRole, niveauEffectif } from "@/lib/droits/acces";
 import { PRESETS_ROLES, TOUS_LES_DROITS, type Droit } from "@/lib/droits/catalogue";
 
 /**
@@ -48,6 +48,14 @@ describe("appliquerRestrictions", () => {
     expect([...effectifs].some((d) => d.startsWith("comptabilite."))).toBe(false);
   });
 
+  it("retire un module désactivé pour le rôle, jamais au propriétaire", () => {
+    const desactive = { ...vide, modulesRole: new Set(["tresorerie"]) };
+    expect([...appliquerRestrictions(tous, desactive)].some((d) => d.startsWith("tresorerie."))).toBe(false);
+    expect(appliquerRestrictions(tous, desactive).has("stock.article.consulter")).toBe(true);
+    const proprietaire = appliquerRestrictions(tous, { ...desactive, estProprietaire: true });
+    expect([...proprietaire].some((d) => d.startsWith("tresorerie."))).toBe(true);
+  });
+
   it("n'ajoute jamais un droit que le rôle n'a pas", () => {
     const effectifs = appliquerRestrictions(caissier, {
       ...vide,
@@ -85,5 +93,14 @@ describe("niveauEffectif", () => {
   it("respecte la restriction demandée", () => {
     expect(niveauEffectif(tous, "stock", "consultation")).toBe("consultation");
     expect(niveauEffectif(tous, "stock", "aucun")).toBe("aucun");
+  });
+});
+
+describe("modulesDuRole", () => {
+  it("liste les modules où le rôle a un droit, sans le transverse", () => {
+    const modules = modulesDuRole(caissier);
+    expect(modules.has("organisation")).toBe(false);
+    expect(modules.size).toBeGreaterThan(0);
+    expect(modulesDuRole(tous).size).toBeGreaterThan(modules.size);
   });
 });

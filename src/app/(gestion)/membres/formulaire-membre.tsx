@@ -69,7 +69,7 @@ export function FormulaireMembre({ roles }: { roles: RoleAttribuable[] }) {
         onClick={() => setOuvert(true)}
         className="h-cible rounded-lg bg-marque-600 px-3.5 text-sm font-semibold text-white hover:bg-marque-700"
       >
-        Donner un accès
+        + Nouveau compte
       </button>
     );
   }

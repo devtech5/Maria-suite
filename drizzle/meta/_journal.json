@@ -484,6 +484,13 @@
       "when": 1794244552759,
       "tag": "0068_contrat_de_travail",
       "breakpoints": true
+    },
+    {
+      "idx": 69,
+      "version": "7",
+      "when": 1794246572191,
+      "tag": "0069_acces_modules_roles",
+      "breakpoints": true
     }
   ]
 }

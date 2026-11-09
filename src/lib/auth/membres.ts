@@ -17,6 +17,7 @@ export interface Membre {
   statut: "invite" | "actif" | "suspendu";
   proprietaire: boolean;
   rejointLe: Date | null;
+  derniereConnexion: Date | null;
 }
 
 /**
@@ -43,6 +44,7 @@ export async function listerMembres(organizationId: string): Promise<Membre[]> {
       statut: memberships.status,
       proprietaire: memberships.isOwner,
       rejointLe: memberships.joinedAt,
+      derniereConnexion: users.lastLoginAt,
     })
     .from(memberships)
     .innerJoin(users, eq(users.id, memberships.userId))

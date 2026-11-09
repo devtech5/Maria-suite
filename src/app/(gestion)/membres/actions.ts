@@ -7,6 +7,7 @@ import { z } from "zod";
 import { db } from "@/db";
 import {
   accesModules,
+  accesModulesRoles,
   auditLogs,
   memberships,
   organizationModules,
@@ -448,5 +449,110 @@ export async function basculerModule(moduleKey: string, actif: boolean): Promise
   return {
     ok: true,
     message: actif ? `${definition.name} activé.` : `${definition.name} coupé pour toute l'entreprise.`,
+  };
+}
+
+/**
+ * Coche et décoche les modules d'un membre en une fois, depuis la fenêtre
+ * « Modules de… » de la liste des comptes.
+ *
+ * Décoché : niveau « aucun », le module disparaît de son menu. Coché : un
+ * module fermé redevient « complet » ; un module en consultation le reste —
+ * la nuance se règle sur sa page d'accès.
+ */
+export async function reglerModulesMembre(membershipId: string, proposes: string[], actifs: string[]): Promise<ResultatAcces> {
+  const session = await exigerEntreprise();
+  const refus = await refusDroit("organisation.membre.gerer");
+  if (refus) return { ok: false, message: refus.erreur };
+  if (proposes.some((cle) => !getModule(cle))) return { ok: false, message: "Module inconnu." };
+
+  const rattachement = await rattachementDe(session.organizationId, membershipId);
+  if (!rattachement) return { ok: false, message: "Membre introuvable." };
+  if (rattachement.proprietaire) return { ok: false, message: "Le propriétaire a toujours accès à tout." };
+  if (rattachement.userId === session.userId) return { ok: false, message: "On ne règle pas ses propres accès." };
+
+  const ouverts = new Set(actifs);
+  const fermes: string[] = [];
+  await db.transaction(async (tx) => {
+    const actuels = await tx
+      .select({ cle: accesModules.moduleKey, niveau: accesModules.niveau })
+      .from(accesModules)
+      .where(eq(accesModules.membershipId, membershipId));
+    const niveau = new Map(actuels.map((a) => [a.cle, a.niveau]));
+    for (const cle of proposes) {
+      if (!ouverts.has(cle)) {
+        fermes.push(cle);
+        await tx
+          .insert(accesModules)
+          .values({ id: newId(), organizationId: session.organizationId, membershipId, moduleKey: cle, niveau: "aucun" })
+          .onConflictDoUpdate({
+            target: [accesModules.membershipId, accesModules.moduleKey],
+            set: { niveau: "aucun", updatedAt: new Date() },
+          });
+      } else if (niveau.get(cle) === "aucun") {
+        await tx.delete(accesModules).where(and(eq(accesModules.membershipId, membershipId), eq(accesModules.moduleKey, cle)));
+      }
+    }
+    await tx.insert(auditLogs).values({
+      id: newId(),
+      organizationId: session.organizationId,
+      userId: session.userId,
+      action: "membre.modules",
+      entityType: "membership",
+      entityId: rattachement.userId,
+      after: { fermes },
+    });
+  });
+
+  revalidatePath("/membres", "layout");
+  return {
+    ok: true,
+    message: fermes.length === 0 ? "Tous ses modules sont ouverts." : `${fermes.length} module${fermes.length > 1 ? "s" : ""} indisponible${fermes.length > 1 ? "s" : ""} pour cette personne.`,
+  };
+}
+
+/**
+ * Enregistre la grille « Modules par rôle » : la liste complète des couples
+ * (rôle, module) désactivés remplace la précédente. Réservé au propriétaire,
+ * comme le dit l'écran : c'est la porte de tous les comptes d'un rôle.
+ */
+export async function enregistrerModulesRoles(desactives: { roleId: string; moduleKey: string }[]): Promise<ResultatAcces> {
+  const session = await exigerEntreprise();
+  if (!session.estProprietaire) return { ok: false, message: "Seul le propriétaire règle les modules par rôle." };
+  if (desactives.some((d) => !getModule(d.moduleKey))) return { ok: false, message: "Module inconnu." };
+
+  const lesRoles = await db
+    .select({ id: roles.id, cle: roles.key })
+    .from(roles)
+    .where(eq(roles.organizationId, session.organizationId));
+  const connus = new Map(lesRoles.map((r) => [r.id, r.cle]));
+  if (desactives.some((d) => !connus.has(d.roleId))) return { ok: false, message: "Rôle inconnu." };
+  if (desactives.some((d) => connus.get(d.roleId) === "proprietaire")) {
+    return { ok: false, message: "Le rôle de propriétaire garde tous ses modules." };
+  }
+
+  const uniques = [...new Map(desactives.map((d) => [`${d.roleId}:${d.moduleKey}`, d])).values()];
+  await db.transaction(async (tx) => {
+    await tx.delete(accesModulesRoles).where(eq(accesModulesRoles.organizationId, session.organizationId));
+    if (uniques.length) {
+      await tx.insert(accesModulesRoles).values(
+        uniques.map((d) => ({ id: newId(), organizationId: session.organizationId, roleId: d.roleId, moduleKey: d.moduleKey })),
+      );
+    }
+    await tx.insert(auditLogs).values({
+      id: newId(),
+      organizationId: session.organizationId,
+      userId: session.userId,
+      action: "role.modules",
+      entityType: "organization",
+      entityId: session.organizationId,
+      after: { desactives: uniques },
+    });
+  });
+
+  revalidatePath("/membres", "layout");
+  return {
+    ok: true,
+    message: uniques.length === 0 ? "Chaque rôle a tous ses modules." : `${uniques.length} désactivation${uniques.length > 1 ? "s" : ""} enregistrée${uniques.length > 1 ? "s" : ""}.`,
   };
 }
