@@ -131,6 +131,8 @@ export const employees = pgTable(
     // État civil. Facultatif : il se complète après l'embauche, au fil des
     // pièces rapportées. Le nombre d'enfants à charge pèse sur l'impôt sur
     // salaire (parts), d'où sa place ici et non dans une note.
+    /** Civilité imprimée devant le nom : M., Mme, Mlle. Clé de `CIVILITES` (personnes/calcul.ts). */
+    civilite: text("civilite"),
     dateNaissance: date("date_naissance"),
     lieuNaissance: text("lieu_naissance"),
     nationalite: text("nationalite"),
@@ -164,6 +166,14 @@ export const employees = pgTable(
      */
     actif: boolean("actif").notNull().default(true),
 
+    /**
+     * Comment le salaire est versé : virement, mobile money, espèces, chèque.
+     * Clé de `PAIEMENTS_SALAIRE` (personnes/calcul.ts).
+     */
+    paiementSalaire: text("paiement_salaire"),
+    /** RIB, IBAN ou numéro Mobile Money où le verser. */
+    coordonneesPaiement: text("coordonnees_paiement"),
+
     notes: text("notes"),
 
     ...timestamps,
@@ -174,6 +184,11 @@ export const employees = pgTable(
     check("employees_salaire_positif", sql`${t.salaireBase} >= 0`),
     check("employees_photo", sql`${t.photo} IS NULL OR (length(${t.photo}) <= 131072 AND ${t.photo} LIKE 'data:image/%')`),
     check("employees_sexe", sql`${t.sexe} IS NULL OR ${t.sexe} IN ('F', 'M')`),
+    check("employees_civilite", sql`${t.civilite} IS NULL OR ${t.civilite} IN ('M', 'Mme', 'Mlle')`),
+    check(
+      "employees_paiement_salaire",
+      sql`${t.paiementSalaire} IS NULL OR ${t.paiementSalaire} IN ('virement', 'mobile_money', 'especes', 'cheque')`,
+    ),
     check("employees_enfants", sql`${t.enfantsACharge} IS NULL OR ${t.enfantsACharge} BETWEEN 0 AND 30`),
     check("employees_superieur_autre", sql`${t.superieurId} IS NULL OR ${t.superieurId} <> ${t.id}`),
     check("employees_essai_apres_entree", sql`${t.finPeriodeEssai} IS NULL OR ${t.finPeriodeEssai} >= ${t.debut}`),

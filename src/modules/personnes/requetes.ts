@@ -1,6 +1,6 @@
 import "server-only";
 
-import { and, asc, eq, isNull, sql } from "drizzle-orm";
+import { and, asc, eq, isNotNull, isNull, sql } from "drizzle-orm";
 
 import { db } from "@/db";
 
@@ -210,4 +210,20 @@ export async function salariesEnPoste(organizationId: string): Promise<{ id: str
     .from(employees)
     .where(and(eq(employees.organizationId, organizationId), eq(employees.actif, true), isNull(employees.deletedAt)))
     .orderBy(asc(employees.nom));
+}
+
+/**
+ * Services déjà portés par les fiches, pour la liste de choix de l'embauche.
+ * Pas de référentiel à tenir : un service naît sur la première fiche qui le
+ * porte, depuis le bouton « + » du formulaire.
+ */
+export async function servicesConnus(organizationId: string): Promise<string[]> {
+  const lignes = await db
+    .selectDistinct({ service: employees.service })
+    .from(employees)
+    .where(and(eq(employees.organizationId, organizationId), isNull(employees.deletedAt), isNotNull(employees.service)));
+  return lignes
+    .map((l) => l.service?.trim() ?? "")
+    .filter(Boolean)
+    .sort((a, b) => a.localeCompare(b, "fr"));
 }

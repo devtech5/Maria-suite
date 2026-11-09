@@ -59,6 +59,89 @@ export function finEssai(debut: string, mois: number = MOIS_ESSAI): string {
   return fin.toISOString().slice(0, 10);
 }
 
+/** Plafond d'une durée saisie en mois : au-delà, ce n'est plus un contrat à terme. */
+export const DUREE_CONTRAT_MAX_MOIS = 60;
+
+/**
+ * Terme d'un contrat à durée déterminée de `mois` mois : même règle que la
+ * période d'essai. Un CDD de 12 mois entré le 5 janvier 2026 finit le
+ * 4 janvier 2027.
+ */
+export function termeApresDuree(debut: string, mois: number): string {
+  if (!Number.isInteger(mois) || mois < 1 || mois > DUREE_CONTRAT_MAX_MOIS) {
+    throw new Error(`Une durée de contrat va de 1 à ${DUREE_CONTRAT_MAX_MOIS} mois.`);
+  }
+  return finEssai(debut, mois);
+}
+
+/** Durées proposées en un clic pour un CDD. */
+export const DUREES_CDD_MOIS = [3, 6, 12, 24] as const;
+
+/**
+ * Durée d'un contrat en mois entiers, si son terme tombe exactement sur une
+ * durée en mois depuis l'entrée ; nulle sinon (terme saisi à la main).
+ */
+export function dureeEnMois(debut: string, fin: string): number | null {
+  for (let mois = 1; mois <= DUREE_CONTRAT_MAX_MOIS; mois++) {
+    const terme = finEssai(debut, mois);
+    if (terme === fin) return mois;
+    if (terme > fin) return null;
+  }
+  return null;
+}
+
+/** Durée lisible : « 6 mois », « 1 an », « 2 ans », ou en jours pour un terme hors mois entiers. */
+export function libelleDuree(debut: string, fin: string): string {
+  const mois = dureeEnMois(debut, fin);
+  if (mois !== null) {
+    if (mois % 12 === 0) return mois === 12 ? "1 an" : `${mois / 12} ans`;
+    return `${mois} mois`;
+  }
+  const jours = Math.round((Date.parse(`${fin}T00:00:00Z`) - Date.parse(`${debut}T00:00:00Z`)) / 86_400_000) + 1;
+  return `${jours} jour${jours > 1 ? "s" : ""}`;
+}
+
+/** Civilité imprimée devant le nom. La clé est stockée, le libellé affiché. */
+export const CIVILITES = {
+  M: "M.",
+  Mme: "Mme",
+  Mlle: "Mlle",
+} as const;
+export type Civilite = keyof typeof CIVILITES;
+
+export function civiliteConnue(valeur: string): valeur is Civilite {
+  return valeur in CIVILITES;
+}
+
+/** Sexe déduit d'une civilité, pour préremplir le champ voisin. */
+export function sexeDeCivilite(civilite: string): "F" | "M" | null {
+  if (civilite === "M") return "M";
+  if (civilite === "Mme" || civilite === "Mlle") return "F";
+  return null;
+}
+
+/** Mode de versement du salaire. */
+export const PAIEMENTS_SALAIRE = {
+  virement: "Virement bancaire",
+  mobile_money: "Mobile Money",
+  especes: "Espèces",
+  cheque: "Chèque",
+} as const;
+export type PaiementSalaire = keyof typeof PAIEMENTS_SALAIRE;
+
+export function paiementSalaireConnu(valeur: string): valeur is PaiementSalaire {
+  return valeur in PAIEMENTS_SALAIRE;
+}
+
+/**
+ * Nom complet tel qu'il s'écrit sur la fiche : le nom de famille, puis les
+ * prénoms — « KOUASSI Yao Bernard ». Espaces superflus retirés ; sans prénoms,
+ * le nom seul.
+ */
+export function nomComplet(nom: string, prenoms?: string | null): string {
+  return [nom, prenoms ?? ""].map((p) => p.replace(/\s+/g, " ").trim()).filter(Boolean).join(" ");
+}
+
 /**
  * Lien entre le salarié et la personne à prévenir. Une liste plutôt qu'un
  * texte libre : « épouse », « Epouse » et « femme » ne doivent pas faire

@@ -42,6 +42,21 @@ export interface NouveauSalarie {
   notes?: string | null;
   /** Matricule imposé. Nul : attribué par le compteur. */
   matricule?: string | null;
+
+  // Facultatif, saisi à l'embauche ou complété ensuite sur le dossier.
+  civilite?: "M" | "Mme" | "Mlle" | null;
+  sexe?: "F" | "M" | null;
+  dateNaissance?: string | null;
+  lieuNaissance?: string | null;
+  nationalite?: string | null;
+  situationFamiliale?: string | null;
+  enfantsACharge?: number | null;
+  contactUrgence?: string | null;
+  contactUrgenceLien?: string | null;
+  contactUrgenceTelephone?: string | null;
+  service?: string | null;
+  paiementSalaire?: "virement" | "mobile_money" | "especes" | "cheque" | null;
+  coordonneesPaiement?: string | null;
 }
 
 /**
@@ -87,6 +102,19 @@ export async function creerSalarieDans(
     email: donnees.email ?? null,
     adresse: donnees.adresse ?? null,
     notes: donnees.notes ?? null,
+    civilite: donnees.civilite ?? null,
+    sexe: donnees.sexe ?? null,
+    dateNaissance: donnees.dateNaissance ?? null,
+    lieuNaissance: donnees.lieuNaissance ?? null,
+    nationalite: donnees.nationalite ?? null,
+    situationFamiliale: donnees.situationFamiliale ?? null,
+    enfantsACharge: donnees.enfantsACharge ?? null,
+    contactUrgence: donnees.contactUrgence ?? null,
+    contactUrgenceLien: donnees.contactUrgenceLien ?? null,
+    contactUrgenceTelephone: donnees.contactUrgenceTelephone ?? null,
+    service: donnees.service ?? null,
+    paiementSalaire: donnees.paiementSalaire ?? null,
+    coordonneesPaiement: donnees.coordonneesPaiement ?? null,
   });
 
   if (userId) {

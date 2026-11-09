@@ -21,7 +21,7 @@ import { naturesParSalarie } from "@/modules/personnes/dossier";
 import { calculerBulletin, joursAvantTerme } from "@/modules/personnes/paie";
 import { piecesManquantes } from "@/modules/personnes/pieces";
 import { postesActifs } from "@/modules/personnes/referentiel-postes";
-import { listerSalaries } from "@/modules/personnes/requetes";
+import { listerSalaries, servicesConnus } from "@/modules/personnes/requetes";
 import type { TypeContrat } from "@/modules/personnes/schema";
 
 import { FormulaireSalarie } from "./formulaire-salarie";
@@ -45,11 +45,12 @@ const TON_CONTRAT: Record<TypeContrat, TonPastille> = {
 export default async function PageSalaries({ searchParams }: PageProps<"/rh">) {
   const session = await exigerEntreprise();
   const filtres = lireFiltresListe(await searchParams);
-  const [salaries, voitLesDossiers, tientLesDossiers, postes] = await Promise.all([
+  const [salaries, voitLesDossiers, tientLesDossiers, postes, services] = await Promise.all([
     listerSalaries(session.organizationId),
     peut("personnes.dossier.consulter"),
     peut("personnes.dossier.gerer"),
     postesActifs(session.organizationId),
+    servicesConnus(session.organizationId),
   ]);
   const natures = voitLesDossiers ? await naturesParSalarie(session.organizationId) : null;
 
@@ -107,7 +108,7 @@ export default async function PageSalaries({ searchParams }: PageProps<"/rh">) {
             ? "Aucun salarié inscrit"
             : `${salaries.length} salariés · ${indetermines.length} en contrat à durée indéterminée`
         }
-        actions={<FormulaireSalarie premier={salaries.length === 0} dossier={tientLesDossiers} postes={postes} />}
+        actions={<FormulaireSalarie premier={salaries.length === 0} dossier={tientLesDossiers} postes={postes} services={services} />}
       />
 
       {salaries.length === 0 ? (

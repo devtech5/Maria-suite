@@ -19,14 +19,14 @@ function lisible(erreur: unknown): string {
 }
 
 /** Les postes se tiennent avec le droit de gérer les salariés : c'est là qu'ils se choisissent. */
-export async function ajouterPoste(donnees: FormData): Promise<Resultat> {
+export async function ajouterPoste(donnees: FormData): Promise<Resultat & { libelle?: string }> {
   const session = await exigerEntreprise();
   const refus = await refusDroit("personnes.salarie.gerer");
   if (refus) return { ok: false, message: refus.erreur };
   try {
     const libelle = await ajouterPostePour(session.organizationId, session.userId, String(donnees.get("libelle") ?? ""));
     revalidatePath("/rh", "layout");
-    return { ok: true, message: `« ${libelle} » ajouté à la liste des postes.` };
+    return { ok: true, message: `« ${libelle} » ajouté à la liste des postes.`, libelle };
   } catch (erreur) {
     return { ok: false, message: lisible(erreur) };
   }

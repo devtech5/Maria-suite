@@ -103,6 +103,7 @@ export async function ouvrirPiece(pieceId: string): Promise<string | null> {
 const facultatif = (max: number) => z.string().trim().max(max).nullable();
 
 const schemaEtatCivil = z.object({
+  civilite: z.enum(["M", "Mme", "Mlle"]).nullable(),
   dateNaissance: z.string().regex(DATE_ISO, "Date de naissance invalide.").nullable(),
   lieuNaissance: facultatif(120),
   nationalite: facultatif(80),
@@ -130,6 +131,7 @@ export async function modifierEtatCivil(employeeId: string, donnees: FormData): 
   if (!UUID.test(employeeId)) return { ok: false, message: "Salarié inconnu." };
 
   const analyse = schemaEtatCivil.safeParse({
+    civilite: texte(donnees, "civilite"),
     dateNaissance: texte(donnees, "dateNaissance"),
     lieuNaissance: texte(donnees, "lieuNaissance"),
     nationalite: texte(donnees, "nationalite"),
@@ -167,6 +169,8 @@ const schemaEtatProfessionnel = z.object({
   service: z.string().trim().max(120).nullable(),
   superieurId: z.string().regex(UUID, "Supérieur hiérarchique inconnu.").nullable(),
   finPeriodeEssai: z.string().regex(DATE_ISO, "Date de fin d'essai invalide.").nullable(),
+  paiementSalaire: z.enum(["virement", "mobile_money", "especes", "cheque"]).nullable(),
+  coordonneesPaiement: z.string().trim().max(60).nullable(),
 });
 
 export async function modifierEtatProfessionnel(employeeId: string, donnees: FormData): Promise<Resultat> {
@@ -181,6 +185,8 @@ export async function modifierEtatProfessionnel(employeeId: string, donnees: For
     service: texte(donnees, "service"),
     superieurId: texte(donnees, "superieurId"),
     finPeriodeEssai: texte(donnees, "finPeriodeEssai"),
+    paiementSalaire: texte(donnees, "paiementSalaire"),
+    coordonneesPaiement: texte(donnees, "coordonneesPaiement"),
   });
   if (!analyse.success) return { ok: false, message: analyse.error.issues[0].message };
 

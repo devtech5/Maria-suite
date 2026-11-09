@@ -21,7 +21,17 @@ import { stockageConfigure } from "@/lib/stockage";
 import { collegues, piecesDuSalarie, salarieDe } from "@/modules/personnes/dossier";
 import { etatsPieces, piecesManquantes } from "@/modules/personnes/pieces";
 import { postesActifs } from "@/modules/personnes/referentiel-postes";
-import { LIENS_URGENCE, anciennete, libelleAnciennete, lienUrgenceConnu } from "@/modules/personnes/calcul";
+import {
+  CIVILITES,
+  LIENS_URGENCE,
+  PAIEMENTS_SALAIRE,
+  anciennete,
+  civiliteConnue,
+  libelleAnciennete,
+  libelleDuree,
+  lienUrgenceConnu,
+  paiementSalaireConnu,
+} from "@/modules/personnes/calcul";
 
 export const metadata: Metadata = { title: "Fiche salarié" };
 
@@ -84,6 +94,7 @@ export default async function PageFicheSalarie({ params }: { params: Promise<{ i
   }
 
   const etatCivil = {
+    civilite: salarie.civilite,
     dateNaissance: salarie.dateNaissance,
     lieuNaissance: salarie.lieuNaissance,
     nationalite: salarie.nationalite,
@@ -134,6 +145,7 @@ export default async function PageFicheSalarie({ params }: { params: Promise<{ i
         ) : (
           <dl className="grid gap-3 rounded-xl border border-[var(--filet)] bg-[var(--surface)] p-4 text-sm sm:grid-cols-2 lg:grid-cols-3">
             {[
+              ["Civilité", etatCivil.civilite && civiliteConnue(etatCivil.civilite) ? CIVILITES[etatCivil.civilite] : null],
               ["Date de naissance", date(etatCivil.dateNaissance)],
               ["Lieu de naissance", etatCivil.lieuNaissance],
               ["Nationalité", etatCivil.nationalite],
@@ -161,11 +173,13 @@ export default async function PageFicheSalarie({ params }: { params: Promise<{ i
         <h2 className="mb-3 text-base font-semibold">État professionnel</h2>
         <div className="space-y-4 rounded-xl border border-[var(--filet)] bg-[var(--surface)] p-4">
           {/* Ce qui vient de l'embauche : lu ici, jamais réécrit. Le matricule dérive de la date d'entrée. */}
-          <dl className="grid gap-3 rounded-lg bg-[var(--surface-creuse)] p-3 text-sm sm:grid-cols-2 lg:grid-cols-5">
+          <dl className="grid gap-3 rounded-lg bg-[var(--surface-creuse)] p-3 text-sm sm:grid-cols-3 lg:grid-cols-6">
             {[
               ["Matricule", salarie.matricule],
               ["Type de contrat", CONTRAT[salarie.contrat]],
               ["Date d'entrée", date(salarie.debut)],
+              // Durée et terme : le suivi d'un contrat à durée déterminée.
+              ["Durée du contrat", salarie.fin ? libelleDuree(salarie.debut, salarie.fin) : "Indéterminée"],
               ["Fin du contrat", salarie.fin ? date(salarie.fin) : "Sans terme (CDI)"],
               ["Ancienneté", libelleAnciennete(anciennete(salarie.debut, aujourdhui))],
             ].map(([libelle, valeur]) => (
@@ -213,6 +227,8 @@ export default async function PageFicheSalarie({ params }: { params: Promise<{ i
                 service: salarie.service,
                 superieurId: salarie.superieurId,
                 finPeriodeEssai: salarie.finPeriodeEssai,
+                paiementSalaire: salarie.paiementSalaire,
+                coordonneesPaiement: salarie.coordonneesPaiement,
               }}
             />
           ) : (
@@ -223,6 +239,13 @@ export default async function PageFicheSalarie({ params }: { params: Promise<{ i
                 ["Service", salarie.service],
                 ["Supérieur hiérarchique", superieur ? `${superieur.nom} · ${superieur.poste}` : null],
                 ["Fin de la période d'essai", salarie.finPeriodeEssai ? date(salarie.finPeriodeEssai) : null],
+                // Le mode de versement et le compte relèvent du dossier : réservés à qui le consulte.
+                ...(voitLeDossier
+                  ? [
+                      ["Paiement du salaire", salarie.paiementSalaire && paiementSalaireConnu(salarie.paiementSalaire) ? PAIEMENTS_SALAIRE[salarie.paiementSalaire] : null],
+                      ["RIB ou n° Mobile Money", salarie.coordonneesPaiement],
+                    ]
+                  : []),
               ].map(([libelle, valeur]) => (
                 <div key={libelle}>
                   <dt className="text-xs text-[var(--encre-faible)]">{libelle}</dt>

@@ -20,6 +20,7 @@ import {
 } from "./creation";
 import { ajouterPiecePour, changerPhotoPour, fichierDe } from "./dossier";
 import { photoValide } from "./pieces";
+import { DUREE_CONTRAT_MAX_MOIS, lienUrgenceConnu, nomComplet, termeApresDuree } from "./calcul";
 import { posteRetenu } from "./postes";
 import { postesActifs } from "./referentiel-postes";
 import { employees, workers } from "./schema";
@@ -60,16 +61,50 @@ export interface EtatSalarie {
 }
 
 
+const facultatif = (max: number) => z.string().trim().max(max).optional();
+
 const schemaSalarie = z.object({
-  nom: z.string().trim().min(2, "Indiquez le nom du salarié."),
-  poste: z.string().trim().min(2, "Indiquez le poste occupé."),
+  civilite: z.enum(["M", "Mme", "Mlle"]).optional(),
+  sexe: z.enum(["F", "M"]).optional(),
+  nom: z.string().trim().min(2, "Indiquez le nom du salarié.").max(80),
+  prenoms: facultatif(120),
+  dateNaissance: z.string().regex(DATE_ISO, "Date de naissance invalide.").optional(),
+  lieuNaissance: facultatif(120),
+  nationalite: facultatif(80),
+  situationFamiliale: z.enum(["celibataire", "marie", "divorce", "veuf", "union_libre"]).optional(),
+  enfantsACharge: z.coerce.number().int().min(0, "Nombre d'enfants invalide.").max(30, "Nombre d'enfants invalide.").optional(),
+  pieceNature: z.enum(["cni", "passeport"]).optional(),
+  pieceNumero: facultatif(40),
+
+  telephone: facultatif(30),
+  email: z
+    .string()
+    .trim()
+    .max(120)
+    .refine((v) => /^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(v), "Adresse e-mail invalide.")
+    .optional(),
+  adresse: facultatif(200),
+  contactUrgence: facultatif(200),
+  contactUrgenceLien: z.string().refine(lienUrgenceConnu, "Lien avec le salarié inconnu.").optional(),
+  contactUrgenceTelephone: facultatif(30),
+
+  poste: z.string().trim().min(2, "Choisissez le poste occupé."),
+  service: facultatif(120),
   contrat: z.enum(["cdi", "cdd", "stage", "essai"]),
   debut: z.string().regex(DATE_ISO, "Indiquez la date d'embauche."),
-  fin: z.string().regex(DATE_ISO).optional(),
+  dureeMois: z.coerce
+    .number()
+    .int("Une durée de contrat se compte en mois entiers.")
+    .min(1, "Une durée de contrat compte au moins un mois.")
+    .max(DUREE_CONTRAT_MAX_MOIS, `Une durée de contrat va jusqu'à ${DUREE_CONTRAT_MAX_MOIS} mois.`)
+    .optional(),
+  fin: z.string().regex(DATE_ISO, "Terme du contrat invalide.").optional(),
+  numeroCnps: facultatif(30),
+
   salaireBase: montant,
-  numeroCnps: z.string().trim().max(30).optional(),
-  telephone: z.string().trim().max(30).optional(),
-  email: z.string().trim().max(120).optional(),
+  paiementSalaire: z.enum(["virement", "mobile_money", "especes", "cheque"]).optional(),
+  coordonneesPaiement: facultatif(60),
+  notes: facultatif(2000),
 });
 
 export async function embaucherSalarie(
@@ -81,24 +116,25 @@ export async function embaucherSalarie(
   const refus = await refusDroit("personnes.salarie.gerer");
   if (refus) return refus;
 
+  const champs = Object.keys(schemaSalarie.shape) as (keyof typeof schemaSalarie.shape)[];
   const analyse = schemaSalarie.safeParse({
-    nom: donnees.get("nom"),
-    poste: donnees.get("poste"),
-    contrat: donnees.get("contrat") ?? "cdi",
-    debut: donnees.get("debut"),
-    fin: texte(donnees, "fin"),
+    ...Object.fromEntries(champs.map((c) => [c, texte(donnees, c)])),
+    contrat: texte(donnees, "contrat") ?? "cdi",
     salaireBase: String(donnees.get("salaireBase") ?? "0"),
-    numeroCnps: texte(donnees, "numeroCnps"),
-    telephone: texte(donnees, "telephone"),
-    email: texte(donnees, "email"),
   });
 
   if (!analyse.success) return { erreur: analyse.error.issues[0].message };
 
   const valeurs = analyse.data;
 
-  if (valeurs.contrat !== "cdi" && !valeurs.fin) {
-    return { erreur: "Un contrat à durée déterminée porte un terme." };
+  // Le terme d'un CDD se déduit de sa durée quand il n'a pas été saisi : la
+  // durée sert au suivi, le terme à l'alerte d'échéance.
+  const fin =
+    valeurs.contrat === "cdi"
+      ? undefined
+      : (valeurs.fin ?? (valeurs.contrat === "cdd" && valeurs.dureeMois ? termeApresDuree(valeurs.debut, valeurs.dureeMois) : undefined));
+  if (valeurs.contrat !== "cdi" && !fin) {
+    return { erreur: "Un contrat à durée déterminée porte une durée ou un terme." };
   }
 
   // Le poste se choisit dans le référentiel : un texte libre qui n'y est pas
@@ -113,15 +149,30 @@ export async function embaucherSalarie(
         tx,
         session.organizationId,
         {
-          nom: valeurs.nom,
+          nom: nomComplet(valeurs.nom, valeurs.prenoms),
           poste,
           contrat: valeurs.contrat,
           debut: valeurs.debut,
-          fin: valeurs.fin ?? null,
+          fin: fin ?? null,
           salaireBase: valeurs.salaireBase,
           numeroCnps: valeurs.numeroCnps ?? null,
           telephone: valeurs.telephone ?? null,
           email: valeurs.email ?? null,
+          adresse: valeurs.adresse ?? null,
+          notes: valeurs.notes ?? null,
+          civilite: valeurs.civilite ?? null,
+          sexe: valeurs.sexe ?? null,
+          dateNaissance: valeurs.dateNaissance ?? null,
+          lieuNaissance: valeurs.lieuNaissance ?? null,
+          nationalite: valeurs.nationalite ?? null,
+          situationFamiliale: valeurs.situationFamiliale ?? null,
+          enfantsACharge: valeurs.enfantsACharge ?? null,
+          contactUrgence: valeurs.contactUrgence ?? null,
+          contactUrgenceLien: valeurs.contactUrgenceLien ?? null,
+          contactUrgenceTelephone: valeurs.contactUrgenceTelephone ?? null,
+          service: valeurs.service ?? null,
+          paiementSalaire: valeurs.paiementSalaire ?? null,
+          coordonneesPaiement: valeurs.coordonneesPaiement ?? null,
         },
         session.userId,
       ),
@@ -149,7 +200,9 @@ async function joindreAEmbauche(
   const photo = texte(donnees, "photo");
   const cv = await fichierDe(donnees, "cv");
   const lettre = await fichierDe(donnees, "lettre");
-  if (!photo && !cv && !lettre) return undefined;
+  const pieceNumero = texte(donnees, "pieceNumero");
+  const pieceNature = texte(donnees, "pieceNature") === "passeport" ? "passeport" : "cni";
+  if (!photo && !cv && !lettre && !pieceNumero) return undefined;
   if (!(await peut("personnes.dossier.gerer"))) {
     return "Salarié embauché, mais les pièces jointes n'ont pas été gardées : votre rôle ne permet pas de tenir les dossiers du personnel.";
   }
@@ -160,6 +213,15 @@ async function joindreAEmbauche(
       await changerPhotoPour(organizationId, userId, employeeId, photo);
     } else {
       refus.push("photo illisible");
+    }
+  }
+  // La pièce d'identité saisie à l'embauche entre au dossier par son numéro ;
+  // le scan s'y joint ensuite depuis la fiche.
+  if (pieceNumero) {
+    try {
+      await ajouterPiecePour(organizationId, userId, employeeId, { nature: pieceNature, numero: pieceNumero }, null);
+    } catch (erreur) {
+      refus.push(erreur instanceof Error ? erreur.message : "pièce d'identité refusée");
     }
   }
   for (const [nature, fichier] of [["cv", cv], ["lettre_motivation", lettre]] as const) {
