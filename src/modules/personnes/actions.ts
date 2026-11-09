@@ -20,6 +20,8 @@ import {
 } from "./creation";
 import { ajouterPiecePour, changerPhotoPour, fichierDe } from "./dossier";
 import { photoValide } from "./pieces";
+import { posteRetenu } from "./postes";
+import { postesActifs } from "./referentiel-postes";
 import { employees, workers } from "./schema";
 
 const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
@@ -99,6 +101,11 @@ export async function embaucherSalarie(
     return { erreur: "Un contrat à durée déterminée porte un terme." };
   }
 
+  // Le poste se choisit dans le référentiel : un texte libre qui n'y est pas
+  // ferait reparaître la dispersion que la liste supprime.
+  const poste = posteRetenu(valeurs.poste, await postesActifs(session.organizationId));
+  if (!poste) return { erreur: "Choisissez le poste dans la liste. Un poste manquant s'ajoute dans l'onglet Postes." };
+
   let cree: { id: string; matricule: string };
   try {
     cree = await db.transaction((tx) =>
@@ -107,7 +114,7 @@ export async function embaucherSalarie(
         session.organizationId,
         {
           nom: valeurs.nom,
-          poste: valeurs.poste,
+          poste,
           contrat: valeurs.contrat,
           debut: valeurs.debut,
           fin: valeurs.fin ?? null,

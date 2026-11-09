@@ -143,13 +143,13 @@
 /**
  * Navigation sombre, dans les deux thèmes.
  *
- * La barre du haut redéfinit pour elle seule les couleurs de surface et
+ * La barre latérale redéfinit pour elle seule les couleurs de surface et
  * d'encre : tout ce qu'elle contient — liens, titres de groupe, menu de
  * compte — passe en sombre sans une classe de plus. La page reste claire, et
  * l'œil sépare d'un coup ce qui navigue de ce qui se lit.
  *
- * Sa surface est le bleu nuit exact de la charte : le logo blanc et or, à
- * fond opaque, s'y pose sans cadre. L'or y marque l'élément actif.
+ * Sa surface est le bleu nuit de la charte. L'entrée active y passe en
+ * blanc, son icône en or.
  */
 .nav-sombre {
   --fond: #0f2236;
@@ -171,9 +171,9 @@
   scrollbar-color: var(--filet) transparent;
 }
 
-/* La barre du haut : le même bleu nuit, en léger dégradé vers la droite. */
-.barre-haut {
-  background: linear-gradient(90deg, #0f2236 0%, #162e49 55%, #1c3a5c 100%);
+/* La barre latérale : le même bleu nuit, en léger dégradé vers le bas. */
+.barre-laterale {
+  background: linear-gradient(180deg, #1c3a5c 0%, #162e49 45%, #0f2236 100%);
 }
 
 /**

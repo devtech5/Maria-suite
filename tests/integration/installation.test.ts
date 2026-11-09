@@ -7,6 +7,7 @@ import { migrate } from "drizzle-orm/pglite/migrator";
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
 
 import { installerEntreprise, MODULES_COUPES_A_LA_NAISSANCE, PROPRIETAIRE, type Requete } from "@/db/installation";
+import { POSTES_DE_DEPART } from "@/modules/personnes/postes";
 
 let client: PGlite;
 let requete: Requete;
@@ -73,6 +74,19 @@ describe("installation de MARIA GROUP SARL", () => {
     await requete(`update organization_modules set enabled = true where module_key = 'enquetes'`);
     await installerEntreprise(requete, options);
     expect(await coupes()).not.toContain("enquetes");
+  });
+
+  it("pose les postes de travail, une seule fois", async () => {
+    await installerEntreprise(requete, options);
+    const postes = async () => (await requete(`select libelle from postes order by ordre, libelle`)).map((l) => l.libelle);
+    expect(await postes()).toEqual([...POSTES_DE_DEPART]);
+
+    // Un poste renommé ne revient pas à la réinstallation.
+    await requete(`update postes set libelle = 'Comptable principal' where libelle = 'Comptable'`);
+    await installerEntreprise(requete, options);
+    expect(await postes()).toContain("Comptable principal");
+    expect(await postes()).not.toContain("Comptable");
+    expect(await postes()).toHaveLength(POSTES_DE_DEPART.length);
   });
 
   it("refuse une base qui porte une autre entreprise", async () => {

@@ -367,7 +367,7 @@ function Outils() {
 }
 
 /**
- * Calculette de la barre du haut, ouverte à tout utilisateur connecté : elle
+ * Calculette de l'en-tête, ouverte à tout utilisateur connecté : elle
  * ne lit ni n'écrit rien sur le serveur, et ne demande donc aucun droit.
  */
 export function Calculette() {

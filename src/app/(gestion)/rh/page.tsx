@@ -20,6 +20,7 @@ import { correspond, dansPeriode, lireFiltresListe } from "@/lib/recherche";
 import { naturesParSalarie } from "@/modules/personnes/dossier";
 import { calculerBulletin, joursAvantTerme } from "@/modules/personnes/paie";
 import { piecesManquantes } from "@/modules/personnes/pieces";
+import { postesActifs } from "@/modules/personnes/referentiel-postes";
 import { listerSalaries } from "@/modules/personnes/requetes";
 import type { TypeContrat } from "@/modules/personnes/schema";
 
@@ -44,10 +45,11 @@ const TON_CONTRAT: Record<TypeContrat, TonPastille> = {
 export default async function PageSalaries({ searchParams }: PageProps<"/rh">) {
   const session = await exigerEntreprise();
   const filtres = lireFiltresListe(await searchParams);
-  const [salaries, voitLesDossiers, tientLesDossiers] = await Promise.all([
+  const [salaries, voitLesDossiers, tientLesDossiers, postes] = await Promise.all([
     listerSalaries(session.organizationId),
     peut("personnes.dossier.consulter"),
     peut("personnes.dossier.gerer"),
+    postesActifs(session.organizationId),
   ]);
   const natures = voitLesDossiers ? await naturesParSalarie(session.organizationId) : null;
 
@@ -105,7 +107,7 @@ export default async function PageSalaries({ searchParams }: PageProps<"/rh">) {
             ? "Aucun salarié inscrit"
             : `${salaries.length} salariés · ${indetermines.length} en contrat à durée indéterminée`
         }
-        actions={<FormulaireSalarie premier={salaries.length === 0} dossier={tientLesDossiers} />}
+        actions={<FormulaireSalarie premier={salaries.length === 0} dossier={tientLesDossiers} postes={postes} />}
       />
 
       {salaries.length === 0 ? (

@@ -6,6 +6,7 @@ import { hash } from "@node-rs/argon2";
 // `pnpm installer`, que `tsx` lance sans résoudre les alias du tsconfig.
 import { ADRESSE_PROPRIETAIRE, MOTIF_ADRESSE_REFUSEE, adresseAutorisee } from "../lib/auth/identifiants";
 import { PRESETS_ROLES } from "../lib/droits/catalogue";
+import { POSTES_DE_DEPART } from "../modules/personnes/postes";
 
 /**
  * Installation de MARIA GROUP SARL et de son propriétaire.
@@ -112,6 +113,16 @@ export async function installerEntreprise(
       ENTREPRISE.slogan,
       ENTREPRISE.siteWeb,
     ],
+  );
+
+  // Les postes de travail, une seule fois : sur une entreprise qui en a déjà,
+  // un poste renommé ou retiré ne doit pas revenir à chaque installation.
+  await requete(
+    `insert into postes (organization_id, libelle, ordre)
+    select $1, p.libelle, p.ordre
+    from unnest($2::text[]) with ordinality as p(libelle, ordre)
+    where not exists (select 1 from postes where organization_id = $1)`,
+    [entreprise.id, [...POSTES_DE_DEPART]],
   );
 
   // Les rôles préréglés, comme dans toute entreprise : un caissier ne doit

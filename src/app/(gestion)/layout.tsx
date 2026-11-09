@@ -1,5 +1,5 @@
 import { BandeauDemo } from "@/components/coque/bandeau-demo";
-import { BarreDomaines, OngletsSection } from "@/components/coque/barre-domaines";
+import { BarreLaterale, EnTete } from "@/components/coque/barre-laterale";
 import { Calculette } from "@/components/coque/calculette";
 import { Cloche } from "@/components/coque/cloche";
 import { FilAriane } from "@/components/coque/fil-ariane";
@@ -13,11 +13,11 @@ import { pointerApresReponse } from "@/modules/presences/pointage";
 /**
  * Coque des écrans de gestion.
  *
- * Disposition reprise de Ferme360, en trois niveaux : la barre du haut porte
- * les domaines (Finance), la rangée claire en dessous les modules du domaine
- * (Comptabilité, Trésorerie), et chaque module ses sections en pastilles.
- * Pas de barre latérale : la largeur revient aux tableaux. Le contexte de
- * travail — entreprise, exercice — reste lisible en permanence.
+ * Une barre latérale bleu nuit porte tous les domaines en intertitres
+ * (FINANCE) et leurs entrées (Comptabilité, Trésorerie) ; chaque module garde
+ * ses sections en pastilles. Au-dessus du contenu, un en-tête clair : le
+ * contexte de travail — entreprise, exercice — la recherche, les outils et
+ * le compte. Sur téléphone, la barre latérale passe en tiroir.
  *
  * La caisse n'en fait pas partie : elle occupe tout l'écran, sans navigation.
  * Un caissier n'a rien à chercher pendant un encaissement.
@@ -49,7 +49,7 @@ export default async function LayoutGestion({ children }: LayoutProps<"/">) {
      * `h-dvh` plutôt que `min-h-dvh`, et le débordement est coupé ici. Le seul
      * élément qui défile est le contenu, plus bas.
      *
-     * C'est ce qui garde la barre du haut et les onglets de section à l'écran en
+     * C'est ce qui garde la barre latérale et l'en-tête à l'écran en
      * permanence. Avec une page qui défile d'un bloc, ils disparaissaient dès
      * le premier écran de liste — et sur un catalogue de quatre cents articles,
      * changer de module obligeait à remonter tout le tableau.
@@ -58,41 +58,40 @@ export default async function LayoutGestion({ children }: LayoutProps<"/">) {
      * défilement et `vh` laisse alors une bande morte en bas de l'écran.
      */
     <>
-      <div id="coque-gestion" className="flex h-dvh flex-col overflow-hidden print:block print:h-auto print:overflow-visible">
-        {/* À l'impression, seule la page sort : ni bandeaux, ni menu, ni barre du haut. */}
+      <div id="coque-gestion" className="flex h-dvh overflow-hidden print:block print:h-auto print:overflow-visible">
+        {/* À l'impression, seule la page sort : ni bandeaux, ni menu, ni en-tête. */}
         <div className="contents print:hidden">
-          <BandeauDemo />
+          <BarreLaterale droits={droits} modulesOuverts={ouverts} />
         </div>
 
-        <div className="contents print:hidden">
-          <BarreDomaines
-            droits={droits}
-            modulesOuverts={ouverts}
-            nomUtilisateur={session.nom}
-            entrepriseActive={session.organizationNom}
-            outils={
-              <>
-                <Calculette />
-                <Cloche />
-              </>
-            }
-          />
-          <OngletsSection
-            droits={droits}
-            modulesOuverts={ouverts}
-            contexte={<FilAriane entreprise={session.organizationNom} exercice={exerciceCourant} exercices={[exerciceCourant]} />}
-          />
-        </div>
+        <div className="flex min-w-0 flex-1 flex-col print:block">
+          <div className="contents print:hidden">
+            <BandeauDemo />
+            <EnTete
+              droits={droits}
+              modulesOuverts={ouverts}
+              nomUtilisateur={session.nom}
+              entrepriseActive={session.organizationNom}
+              contexte={<FilAriane entreprise={session.organizationNom} exercice={exerciceCourant} exercices={[exerciceCourant]} />}
+              outils={
+                <>
+                  <Calculette />
+                  <Cloche />
+                </>
+              }
+            />
+          </div>
 
-        {/*
-          Le contenu est le conteneur de défilement. `min-h-0` est
-          indispensable : un enfant de flexbox refuse par défaut de devenir
-          plus petit que son contenu, et sans lui `overflow-y-auto` n'a rien
-          à faire déborder — la page recommencerait à défiler d'un bloc.
-        */}
-        <main className="min-h-0 min-w-0 flex-1 overflow-y-auto p-4 lg:px-8 lg:py-6 print:overflow-visible print:p-0">
-          {children}
-        </main>
+          {/*
+            Le contenu est le conteneur de défilement. `min-h-0` est
+            indispensable : un enfant de flexbox refuse par défaut de devenir
+            plus petit que son contenu, et sans lui `overflow-y-auto` n'a rien
+            à faire déborder — la page recommencerait à défiler d'un bloc.
+          */}
+          <main className="min-h-0 min-w-0 flex-1 overflow-y-auto p-4 lg:px-8 lg:py-6 print:overflow-visible print:p-0">
+            {children}
+          </main>
+        </div>
       </div>
       <VerrouInactivite
         cible="coque-gestion"

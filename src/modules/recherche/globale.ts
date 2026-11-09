@@ -19,7 +19,7 @@ import { projets } from "@/modules/projets/schema";
 import { tiers } from "@/modules/tiers/schema";
 
 /**
- * Recherche de la barre du haut : un mot, toutes les fiches qu'il désigne.
+ * Recherche de l'en-tête : un mot, toutes les fiches qu'il désigne.
  *
  * Chaque source déclare l'écran qui la montre (`racine`). Elle n'est
  * interrogée que si cet écran est visible pour la session — droit accordé

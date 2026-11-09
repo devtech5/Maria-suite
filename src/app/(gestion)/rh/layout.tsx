@@ -16,6 +16,7 @@ const SECTIONS = [
   { href: "/rh", libelle: "Salariés" },
   { href: "/rh/intervenants", libelle: "Intervenants" },
   { href: "/rh/paie", libelle: "Paie" },
+  { href: "/rh/postes", libelle: "Postes" },
 ];
 
 export default async function LayoutRh({
