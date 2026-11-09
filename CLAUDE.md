@@ -133,6 +133,13 @@ Le schéma sous `db/schema` ne contient que le socle : entreprises, comptes,
 droits, numérotation, audit, synchronisation. Les tables métier vivent dans
 leur module et sont réexportées depuis `db/schema/index.ts`.
 
+## Travail terminé : commit et push, sans attendre
+
+Consigne du propriétaire : dès qu'un travail est fini et vérifié, il se
+committe et se pousse sur la branche de travail, sans qu'on le demande. Un
+travail laissé dans l'arbre de travail se perd avec la session. Les
+vérifications ci-dessous passent avant, toujours ; jamais de force-push.
+
 ## Avant chaque commit
 
 `pnpm lint`, `pnpm typecheck` **et** `pnpm test` doivent passer. Les trois, pas
