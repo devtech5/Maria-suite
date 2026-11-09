@@ -9,6 +9,7 @@ import { newId } from "@/lib/ids";
 import { montantLigne } from "@/lib/quantite";
 import { prochainNumero, prochainNumeroLibre, type Transaction } from "@/lib/sequences";
 import { enregistrerEcritureDans } from "@/modules/comptabilite/enregistrement";
+import { affecterPostesDans } from "@/modules/personnes/referentiel-postes";
 
 import {
   bonsPaiement,
@@ -42,6 +43,8 @@ export interface NouveauSalarie {
   notes?: string | null;
   /** Matricule imposé. Nul : attribué par le compteur. */
   matricule?: string | null;
+  /** Postes occupés en plus du principal (`poste`). Une personne peut en tenir plusieurs. */
+  postesAutres?: string[];
 
   // Facultatif, saisi à l'embauche ou complété ensuite sur le dossier.
   civilite?: "M" | "Mme" | "Mlle" | null;
@@ -116,6 +119,11 @@ export async function creerSalarieDans(
     paiementSalaire: donnees.paiementSalaire ?? null,
     coordonneesPaiement: donnees.coordonneesPaiement ?? null,
   });
+
+  // Le poste principal et les autres, au référentiel. Un poste encore
+  // inconnu y entre : reprise de l'existant ou démonstration ; l'écran
+  // d'embauche, lui, ne propose que des postes du référentiel.
+  await affecterPostesDans(tx, organizationId, id, [donnees.poste, ...(donnees.postesAutres ?? [])], { creerManquants: true });
 
   if (userId) {
     await tx.insert(auditLogs).values({

@@ -166,6 +166,7 @@ const schemaEtatProfessionnel = z.object({
     .refine((v) => /^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(v), "Adresse e-mail professionnelle invalide.")
     .nullable(),
   poste: z.string({ error: "La fonction est obligatoire." }).trim().min(1, "La fonction est obligatoire.").max(120),
+  postesAutres: z.array(z.string().trim().max(120)).max(20, "Vingt postes au plus."),
   service: z.string().trim().max(120).nullable(),
   superieurId: z.string().regex(UUID, "Supérieur hiérarchique inconnu.").nullable(),
   finPeriodeEssai: z.string().regex(DATE_ISO, "Date de fin d'essai invalide.").nullable(),
@@ -180,6 +181,7 @@ export async function modifierEtatProfessionnel(employeeId: string, donnees: For
   if (!UUID.test(employeeId)) return { ok: false, message: "Salarié inconnu." };
 
   const analyse = schemaEtatProfessionnel.safeParse({
+    postesAutres: donnees.getAll("postesAutres").filter((v) => typeof v === "string" && v.trim() !== ""),
     emailProfessionnel: texte(donnees, "emailProfessionnel"),
     poste: texte(donnees, "poste"),
     service: texte(donnees, "service"),

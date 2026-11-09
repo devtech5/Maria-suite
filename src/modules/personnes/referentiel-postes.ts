@@ -1,13 +1,14 @@
 import "server-only";
 
-import { and, asc, eq, isNull, sql } from "drizzle-orm";
+import { and, asc, desc, eq, isNull, sql } from "drizzle-orm";
 
 import { db } from "@/db";
 import { tracerPour } from "@/lib/audit";
 import { newId } from "@/lib/ids";
+import type { Transaction } from "@/lib/sequences";
 
-import { clePoste, motifRefusLibellePoste, normaliserLibellePoste } from "./postes";
-import { employees, postes } from "./schema";
+import { clePoste, motifRefusLibellePoste, normaliserLibellePoste, selectionPostes } from "./postes";
+import { affectationsPostes, employees, postes } from "./schema";
 
 /**
  * Référentiel des postes de travail, côté base. Règles de libellé dans
@@ -32,13 +33,28 @@ export async function postesActifs(organizationId: string): Promise<string[]> {
   return lignes.map((l) => l.libelle);
 }
 
-/** Tous les postes, retirés compris, avec le nombre de salariés en poste qui les occupent. */
+/**
+ * Tous les postes, retirés compris, avec le nombre de salariés en poste qui
+ * les occupent — à titre principal ou non : une personne qui tient deux
+ * postes compte dans les deux.
+ */
 export async function listerPostes(organizationId: string): Promise<LignePoste[]> {
   const occupants = db
-    .select({ cle: sql<string>`lower(${employees.poste})`.as("cle"), nombre: sql<number>`count(*)::int`.as("nombre") })
-    .from(employees)
-    .where(and(eq(employees.organizationId, organizationId), eq(employees.actif, true), isNull(employees.deletedAt)))
-    .groupBy(sql`lower(${employees.poste})`)
+    .select({
+      posteId: affectationsPostes.posteId,
+      nombre: sql<number>`count(distinct ${affectationsPostes.employeeId})::int`.as("nombre"),
+    })
+    .from(affectationsPostes)
+    .innerJoin(employees, eq(employees.id, affectationsPostes.employeeId))
+    .where(
+      and(
+        eq(affectationsPostes.organizationId, organizationId),
+        isNull(affectationsPostes.deletedAt),
+        eq(employees.actif, true),
+        isNull(employees.deletedAt),
+      ),
+    )
+    .groupBy(affectationsPostes.posteId)
     .as("occupants");
 
   return db
@@ -49,9 +65,117 @@ export async function listerPostes(organizationId: string): Promise<LignePoste[]
       occupants: sql<number>`coalesce(${occupants.nombre}, 0)::int`,
     })
     .from(postes)
-    .leftJoin(occupants, eq(occupants.cle, sql`lower(${postes.libelle})`))
+    .leftJoin(occupants, eq(occupants.posteId, postes.id))
     .where(and(eq(postes.organizationId, organizationId), isNull(postes.deletedAt)))
     .orderBy(sql`${postes.actif} desc`, asc(postes.ordre), asc(postes.libelle));
+}
+
+/** Les postes d'un salarié, principal en tête. */
+export async function postesDuSalarie(organizationId: string, employeeId: string): Promise<string[]> {
+  const lignes = await db
+    .select({ libelle: postes.libelle })
+    .from(affectationsPostes)
+    .innerJoin(postes, eq(postes.id, affectationsPostes.posteId))
+    .where(
+      and(
+        eq(affectationsPostes.organizationId, organizationId),
+        eq(affectationsPostes.employeeId, employeeId),
+        isNull(affectationsPostes.deletedAt),
+      ),
+    )
+    .orderBy(desc(affectationsPostes.principal), asc(postes.ordre), asc(postes.libelle));
+  return lignes.map((l) => l.libelle);
+}
+
+/** Les postes de chaque salarié de l'entreprise, principal en tête : pour les listes. */
+export async function postesParSalarie(organizationId: string): Promise<Map<string, string[]>> {
+  const lignes = await db
+    .select({ employeeId: affectationsPostes.employeeId, libelle: postes.libelle })
+    .from(affectationsPostes)
+    .innerJoin(postes, eq(postes.id, affectationsPostes.posteId))
+    .where(and(eq(affectationsPostes.organizationId, organizationId), isNull(affectationsPostes.deletedAt)))
+    .orderBy(desc(affectationsPostes.principal), asc(postes.ordre), asc(postes.libelle));
+  const parSalarie = new Map<string, string[]>();
+  for (const l of lignes) parSalarie.set(l.employeeId, [...(parSalarie.get(l.employeeId) ?? []), l.libelle]);
+  return parSalarie;
+}
+
+/**
+ * Donne à un salarié ses postes, dans la transaction qui écrit sa fiche : le
+ * premier est le principal, recopié dans `employees.poste`, les suivants
+ * s'y ajoutent. Les postes qu'il n'a plus sont retirés (logiquement), ceux
+ * qu'il retrouve sont ranimés.
+ *
+ * Les libellés sont supposés validés par l'appelant (`postesRetenus`). Un
+ * libellé absent du référentiel n'est créé que sur demande (`creerManquants`)
+ * — reprise de l'existant, jeux de démonstration — sinon il est refusé.
+ */
+export async function affecterPostesDans(
+  tx: Transaction,
+  organizationId: string,
+  employeeId: string,
+  libelles: readonly string[],
+  options: { creerManquants?: boolean } = {},
+): Promise<string[]> {
+  const voulus = selectionPostes(libelles[0] ?? "", libelles.slice(1));
+  if (voulus.length === 0) throw new Error("Un salarié occupe au moins un poste.");
+
+  const referentiel = await tx
+    .select({ id: postes.id, libelle: postes.libelle, ordre: postes.ordre })
+    .from(postes)
+    .where(and(eq(postes.organizationId, organizationId), isNull(postes.deletedAt)));
+  const ids: { id: string; libelle: string }[] = [];
+  for (const voulu of voulus) {
+    let trouve = referentiel.find((p) => clePoste(p.libelle) === clePoste(voulu));
+    if (!trouve) {
+      if (!options.creerManquants) throw new Error(`Poste inconnu : « ${voulu} ». Il s'ajoute dans l'onglet Postes.`);
+      const id = newId();
+      const ordre = Math.max(0, ...referentiel.map((p) => p.ordre)) + 1;
+      await tx.insert(postes).values({ id, organizationId, libelle: voulu, ordre });
+      trouve = { id, libelle: voulu, ordre };
+      referentiel.push(trouve);
+    }
+    if (!ids.some((x) => x.id === trouve.id)) ids.push({ id: trouve.id, libelle: trouve.libelle });
+  }
+
+  const maintenant = new Date();
+  // Le principal se libère d'abord : l'index unique n'en tolère qu'un.
+  await tx
+    .update(affectationsPostes)
+    .set({ principal: false, updatedAt: maintenant, version: sql`${affectationsPostes.version} + 1` })
+    .where(and(eq(affectationsPostes.employeeId, employeeId), eq(affectationsPostes.principal, true)));
+  await tx
+    .update(affectationsPostes)
+    .set({ deletedAt: maintenant, updatedAt: maintenant, version: sql`${affectationsPostes.version} + 1` })
+    .where(
+      and(
+        eq(affectationsPostes.employeeId, employeeId),
+        isNull(affectationsPostes.deletedAt),
+        sql`${affectationsPostes.posteId} NOT IN (${sql.join(
+          ids.map((x) => sql`${x.id}`),
+          sql`, `,
+        )})`,
+      ),
+    );
+  for (const [rang, { id: posteId }] of ids.entries()) {
+    await tx
+      .insert(affectationsPostes)
+      .values({ id: newId(), organizationId, employeeId, posteId, principal: rang === 0 })
+      .onConflictDoUpdate({
+        target: [affectationsPostes.employeeId, affectationsPostes.posteId],
+        set: {
+          principal: rang === 0,
+          deletedAt: null,
+          updatedAt: maintenant,
+          version: sql`${affectationsPostes.version} + 1`,
+        },
+      });
+  }
+  await tx
+    .update(employees)
+    .set({ poste: ids[0].libelle })
+    .where(and(eq(employees.organizationId, organizationId), eq(employees.id, employeeId)));
+  return ids.map((x) => x.libelle);
 }
 
 async function libellesExistants(organizationId: string, saufId?: string): Promise<string[]> {

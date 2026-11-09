@@ -10,6 +10,7 @@ import {
   text,
   timestamp,
   unique,
+  uniqueIndex,
   uuid,
   type AnyPgColumn,
 } from "drizzle-orm/pg-core";
@@ -204,6 +205,44 @@ export const employees = pgTable(
     ),
     index("employees_org_actif_idx").on(t.organizationId, t.actif),
     index("employees_org_fin_idx").on(t.organizationId, t.fin),
+  ],
+);
+
+/**
+ * Postes occupés par un salarié : un ou plusieurs.
+ *
+ * Une personne peut tenir plusieurs postes — comptable et assistante de
+ * direction, gardien et chauffeur. Un seul est principal : c'est lui
+ * qu'imprime le bulletin, recopié en toutes lettres dans `employees.poste`.
+ * Les lignes pointent le référentiel : un poste renommé s'y lit renommé.
+ *
+ * Retirer un poste à quelqu'un le supprime logiquement (`deleted_at`) ; le
+ * lui rendre ranime la même ligne.
+ */
+export const affectationsPostes = pgTable(
+  "affectations_postes",
+  {
+    id: primaryId(),
+    organizationId: uuid("organization_id")
+      .notNull()
+      .references(() => organizations.id, { onDelete: "cascade" }),
+    employeeId: uuid("employee_id")
+      .notNull()
+      .references(() => employees.id, { onDelete: "cascade" }),
+    posteId: uuid("poste_id")
+      .notNull()
+      .references(() => postes.id, { onDelete: "restrict" }),
+    principal: boolean("principal").notNull().default(false),
+
+    ...timestamps,
+    ...rowVersion,
+  },
+  (t) => [
+    unique("affectations_postes_unique").on(t.employeeId, t.posteId),
+    uniqueIndex("affectations_postes_un_principal")
+      .on(t.employeeId)
+      .where(sql`${t.principal} AND ${t.deletedAt} IS NULL`),
+    index("affectations_postes_org_poste_idx").on(t.organizationId, t.posteId),
   ],
 );
 

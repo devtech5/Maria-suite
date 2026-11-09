@@ -21,7 +21,7 @@ import {
 import { ajouterPiecePour, changerPhotoPour, fichierDe } from "./dossier";
 import { photoValide } from "./pieces";
 import { DUREE_CONTRAT_MAX_MOIS, lienUrgenceConnu, nomComplet, termeApresDuree } from "./calcul";
-import { posteRetenu } from "./postes";
+import { postesRetenus } from "./postes";
 import { postesActifs } from "./referentiel-postes";
 import { employees, workers } from "./schema";
 
@@ -137,10 +137,13 @@ export async function embaucherSalarie(
     return { erreur: "Un contrat à durée déterminée porte une durée ou un terme." };
   }
 
-  // Le poste se choisit dans le référentiel : un texte libre qui n'y est pas
-  // ferait reparaître la dispersion que la liste supprime.
-  const poste = posteRetenu(valeurs.poste, await postesActifs(session.organizationId));
-  if (!poste) return { erreur: "Choisissez le poste dans la liste. Un poste manquant s'ajoute dans l'onglet Postes." };
+  // Les postes se choisissent dans le référentiel : un texte libre qui n'y
+  // est pas ferait reparaître la dispersion que la liste supprime. Une
+  // personne peut en occuper plusieurs ; le premier est le principal.
+  const autres = donnees.getAll("postesAutres").filter((v): v is string => typeof v === "string");
+  const choix = postesRetenus(valeurs.poste, autres, await postesActifs(session.organizationId));
+  if (!choix.ok) return { erreur: "Choisissez les postes dans la liste. Un poste manquant s'ajoute dans l'onglet Postes." };
+  const [poste, ...postesAutres] = choix.postes;
 
   let cree: { id: string; matricule: string };
   try {
@@ -151,6 +154,7 @@ export async function embaucherSalarie(
         {
           nom: nomComplet(valeurs.nom, valeurs.prenoms),
           poste,
+          postesAutres,
           contrat: valeurs.contrat,
           debut: valeurs.debut,
           fin: fin ?? null,

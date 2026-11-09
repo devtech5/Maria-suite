@@ -3,6 +3,7 @@
 import { useRef, useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 
+import { ChoixPostes } from "@/components/personnes/choix-postes";
 import { Portrait, reduirePhoto } from "@/components/personnes/photo";
 import { useApercu } from "@/components/ui/apercu";
 import { Retour, useOperation, type Resultat } from "@/components/ui/operations";
@@ -377,6 +378,7 @@ export function FormulaireEtatCivil({ employeeId, initial }: { employeeId: strin
 export interface EtatProfessionnelAffiche {
   emailProfessionnel: string | null;
   poste: string;
+  postesAutres: string[];
   service: string | null;
   superieurId: string | null;
   finPeriodeEssai: string | null;
@@ -416,15 +418,7 @@ export function FormulaireEtatProfessionnel({
         <Champ libelle="Adresse e-mail professionnelle" precision="Celle de l'entreprise, distincte de l'adresse personnelle.">
           <input name="emailProfessionnel" type="email" defaultValue={v("emailProfessionnel")} placeholder="prenom.nom@maria-groupe.com" className={CLASSE_CHAMP} />
         </Champ>
-        <Champ libelle="Poste">
-          <select name="poste" required defaultValue={initial.poste} className={CLASSE_CHAMP}>
-            {optionsPoste(postes, initial.poste).map((p) => (
-              <option key={p} value={p}>
-                {p}
-              </option>
-            ))}
-          </select>
-        </Champ>
+        <ChoixPostes postes={optionsPoste(postes, [initial.poste, ...initial.postesAutres])} principal={initial.poste} autres={initial.postesAutres} />
         <Champ libelle="Service">
           <input name="service" defaultValue={v("service")} placeholder="Comptabilité, Logistique…" className={CLASSE_CHAMP} />
         </Champ>

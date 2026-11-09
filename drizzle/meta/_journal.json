@@ -470,6 +470,13 @@
       "when": 1794240981775,
       "tag": "0066_postes_complementaires",
       "breakpoints": true
+    },
+    {
+      "idx": 67,
+      "version": "7",
+      "when": 1794244175953,
+      "tag": "0067_affectations_postes",
+      "breakpoints": true
     }
   ]
 }
