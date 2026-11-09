@@ -5,6 +5,7 @@ import { useState } from "react";
 import { Retour, useOperation } from "@/components/ui/operations";
 import { CLASSE_CHAMP_COMPACT } from "@/components/ui/primitives";
 import { assombrir, FILIGRANE_MARQUE, LOGO_MARQUE } from "@/components/impression/entete-document";
+import { montantSaisi } from "@/lib/saisie-montant";
 import { modifierIdentite } from "@/lib/identite-actions";
 
 interface Identite {
@@ -25,13 +26,6 @@ interface Identite {
   /** Saisi en chiffres, espaces tolérées ; vide : non renseigné. */
   capitalSocial: string;
   logo: string | null;
-}
-
-/** « 10 000 000 » → 10000000 ; vide → null ; illisible → NaN, que le serveur refuse. */
-function montantSaisi(texte: string): number | null {
-  const brut = texte.replace(/[s  .]/g, "");
-  if (brut === "") return null;
-  return /^d+$/.test(brut) ? Number(brut) : Number.NaN;
 }
 
 const POIDS_MAX = 96 * 1024;
