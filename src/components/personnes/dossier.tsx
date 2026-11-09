@@ -7,7 +7,7 @@ import { Portrait, reduirePhoto } from "@/components/personnes/photo";
 import { useApercu } from "@/components/ui/apercu";
 import { Retour, useOperation, type Resultat } from "@/components/ui/operations";
 import { CLASSE_CHAMP, Champ, Pastille, type TonPastille } from "@/components/ui/primitives";
-import { LIENS_URGENCE } from "@/modules/personnes/calcul";
+import { CIVILITES, LIENS_URGENCE, PAIEMENTS_SALAIRE } from "@/modules/personnes/calcul";
 import { optionsPoste } from "@/modules/personnes/postes";
 import {
   ajouterPiece,
@@ -258,6 +258,7 @@ export function FormulairePiece({ employeeId, depotActif }: { employeeId: string
 }
 
 export interface EtatCivilAffiche {
+  civilite: string | null;
   dateNaissance: string | null;
   lieuNaissance: string | null;
   nationalite: string | null;
@@ -303,6 +304,16 @@ export function FormulaireEtatCivil({ employeeId, initial }: { employeeId: strin
         </Champ>
         <Champ libelle="Nationalité">
           <input name="nationalite" defaultValue={v("nationalite")} placeholder="Ivoirienne" className={CLASSE_CHAMP} />
+        </Champ>
+        <Champ libelle="Civilité">
+          <select name="civilite" defaultValue={v("civilite")} className={CLASSE_CHAMP}>
+            <option value="">—</option>
+            {Object.entries(CIVILITES).map(([cle, libelle]) => (
+              <option key={cle} value={cle}>
+                {libelle}
+              </option>
+            ))}
+          </select>
         </Champ>
         <Champ libelle="Sexe">
           <select name="sexe" defaultValue={v("sexe")} className={CLASSE_CHAMP}>
@@ -369,6 +380,8 @@ export interface EtatProfessionnelAffiche {
   service: string | null;
   superieurId: string | null;
   finPeriodeEssai: string | null;
+  paiementSalaire: string | null;
+  coordonneesPaiement: string | null;
 }
 
 /**
@@ -429,6 +442,19 @@ export function FormulaireEtatProfessionnel({
         <Champ libelle="Fin de la période d'essai" precision="Vide s'il n'y a pas d'essai.">
           <input name="finPeriodeEssai" type="date" defaultValue={v("finPeriodeEssai")} className={`${CLASSE_CHAMP} chiffres`} />
         </Champ>
+        <Champ libelle="Paiement du salaire">
+          <select name="paiementSalaire" defaultValue={v("paiementSalaire")} className={CLASSE_CHAMP}>
+            <option value="">—</option>
+            {Object.entries(PAIEMENTS_SALAIRE).map(([cle, libelle]) => (
+              <option key={cle} value={cle}>
+                {libelle}
+              </option>
+            ))}
+          </select>
+        </Champ>
+        <Champ libelle="RIB ou n° Mobile Money">
+          <input name="coordonneesPaiement" maxLength={60} defaultValue={v("coordonneesPaiement")} className={`${CLASSE_CHAMP} chiffres`} />
+        </Champ>
       </div>
       <div className="flex items-center justify-end gap-3">
         <Retour resultat={op.resultat} />
@@ -448,7 +474,7 @@ export function PhotoSalarie({ employeeId, photo, nom, peutGerer }: { employeeId
 
   return (
     <div className="flex flex-col items-center gap-2">
-      <Portrait photo={photo} nom={nom} taille="grande" />
+      <Portrait photo={photo} nom={nom} taille="grande" forme="portrait" />
       {peutGerer && (
         <>
           <input

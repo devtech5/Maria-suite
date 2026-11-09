@@ -11,7 +11,11 @@
  * propage aux salariés qui l'occupent.
  */
 
-/** Les postes de MARIA GROUP SARL, dans l'ordre où la direction les a listés. */
+/**
+ * Les postes de MARIA GROUP SARL, dans l'ordre où la direction les a listés :
+ * les douze premiers (migration 0064), puis les postes complémentaires
+ * (migration 0066).
+ */
 export const POSTES_DE_DEPART = [
   "Assistant(e)",
   "Comptable",
@@ -25,6 +29,19 @@ export const POSTES_DE_DEPART = [
   "PDG",
   "Ménagère",
   "Gardien",
+  "Agent d'entretien",
+  "Assistant(e) de direction",
+  "Caissier(ère)",
+  "Chauffeur-livreur",
+  "Délégué(e) médical(e)",
+  "Directeur(trice) général(e)",
+  "Gérant(e)",
+  "Magasinier(ère)",
+  "Responsable administratif et financier",
+  "Responsable commercial(e)",
+  "Responsable des achats",
+  "Secrétaire",
+  "Technicien(ne) biomédical(e)",
 ] as const;
 
 export const LONGUEUR_MAX_POSTE = 80;

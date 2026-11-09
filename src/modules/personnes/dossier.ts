@@ -227,6 +227,7 @@ export async function ouvrirPiecePour(organizationId: string, userId: string, pi
 }
 
 export interface EtatCivil {
+  civilite: "M" | "Mme" | "Mlle" | null;
   dateNaissance: string | null;
   lieuNaissance: string | null;
   nationalite: string | null;
@@ -269,6 +270,8 @@ export interface EtatProfessionnel {
   service: string | null;
   superieurId: string | null;
   finPeriodeEssai: string | null;
+  paiementSalaire: "virement" | "mobile_money" | "especes" | "cheque" | null;
+  coordonneesPaiement: string | null;
 }
 
 /** Les autres salariés de l'entreprise, candidats au rôle de supérieur. Les sortis restent, pour qu'un ancien rattachement se lise. */

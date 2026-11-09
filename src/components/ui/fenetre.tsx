@@ -27,14 +27,20 @@ const rien = () => () => {};
 export function Fenetre({
   ouverte,
   titre,
+  sousTitre,
   presentation = "modale",
+  large = false,
   retenir = false,
   onFermer,
   children,
 }: {
   ouverte: boolean;
   titre: string;
+  /** Une phrase sous le titre : ce que la fenêtre attribue ou exige. */
+  sousTitre?: string;
   presentation?: Presentation;
+  /** Modale élargie, pour un formulaire long rangé en plusieurs colonnes. */
+  large?: boolean;
   /** Vrai quand la saisie a commencé : le clic sur le fond ne ferme plus. */
   retenir?: boolean;
   onFermer: () => void;
@@ -101,13 +107,18 @@ export function Fenetre({
         tabIndex={-1}
         onKeyDown={auClavier}
         className={`flex h-dvh w-full flex-col overflow-y-auto bg-[var(--surface)] text-left shadow-2xl outline-none ${
-          tiroir ? "sm:max-w-4xl sm:border-l sm:border-[var(--filet)]" : "sm:h-auto sm:max-h-[90dvh] sm:max-w-3xl sm:rounded-2xl"
+          tiroir
+            ? "sm:max-w-4xl sm:border-l sm:border-[var(--filet)]"
+            : `sm:h-auto sm:max-h-[92dvh] sm:rounded-2xl ${large ? "sm:max-w-6xl" : "sm:max-w-3xl"}`
         }`}
       >
         <div className="sticky top-0 z-[1] flex items-center justify-between gap-3 border-b border-[var(--filet)] bg-[var(--surface)] px-5 py-3.5">
-          <h2 id={idTitre} className="text-base font-semibold">
-            {titre}
-          </h2>
+          <div className="min-w-0">
+            <h2 id={idTitre} className="text-base font-semibold">
+              {titre}
+            </h2>
+            {sousTitre && <p className="mt-0.5 text-xs text-[var(--encre-faible)]">{sousTitre}</p>}
+          </div>
           <button
             type="button"
             onClick={onFermer}

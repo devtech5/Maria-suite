@@ -26,7 +26,15 @@ beforeAll(async () => {
 });
 afterAll(async () => fermer());
 
-const etat = (poste: string) => ({ emailProfessionnel: null, poste, service: null, superieurId: null, finPeriodeEssai: null });
+const etat = (poste: string) => ({
+  emailProfessionnel: null,
+  poste,
+  service: null,
+  superieurId: null,
+  finPeriodeEssai: null,
+  paiementSalaire: null,
+  coordonneesPaiement: null,
+});
 
 describe("référentiel des postes en base", () => {
   it("ajoute en fin de liste et refuse un doublon, casse et espaces ignorés", async () => {

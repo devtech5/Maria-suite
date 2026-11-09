@@ -456,6 +456,20 @@
       "when": 1794239138118,
       "tag": "0064_postes",
       "breakpoints": true
+    },
+    {
+      "idx": 65,
+      "version": "7",
+      "when": 1794240720371,
+      "tag": "0065_civilite_paiement_salaire",
+      "breakpoints": true
+    },
+    {
+      "idx": 66,
+      "version": "7",
+      "when": 1794240981775,
+      "tag": "0066_postes_complementaires",
+      "breakpoints": true
     }
   ]
 }
