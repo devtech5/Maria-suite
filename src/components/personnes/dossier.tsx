@@ -8,6 +8,7 @@ import { useApercu } from "@/components/ui/apercu";
 import { Retour, useOperation, type Resultat } from "@/components/ui/operations";
 import { CLASSE_CHAMP, Champ, Pastille, type TonPastille } from "@/components/ui/primitives";
 import { LIENS_URGENCE } from "@/modules/personnes/calcul";
+import { optionsPoste } from "@/modules/personnes/postes";
 import {
   ajouterPiece,
   changerPhoto,
@@ -379,10 +380,13 @@ export function FormulaireEtatProfessionnel({
   employeeId,
   initial,
   collegues,
+  postes,
 }: {
   employeeId: string;
   initial: EtatProfessionnelAffiche;
   collegues: { id: string; nom: string; poste: string; actif: boolean }[];
+  /** Postes actifs du référentiel. Le poste actuel s'y ajoute s'il n'y figure plus. */
+  postes: string[];
 }) {
   const op = useOperation();
   const v = (cle: keyof EtatProfessionnelAffiche) => (initial[cle] ?? "").toString();
@@ -399,8 +403,14 @@ export function FormulaireEtatProfessionnel({
         <Champ libelle="Adresse e-mail professionnelle" precision="Celle de l'entreprise, distincte de l'adresse personnelle.">
           <input name="emailProfessionnel" type="email" defaultValue={v("emailProfessionnel")} placeholder="prenom.nom@maria-groupe.com" className={CLASSE_CHAMP} />
         </Champ>
-        <Champ libelle="Fonction">
-          <input name="poste" required defaultValue={v("poste")} className={CLASSE_CHAMP} />
+        <Champ libelle="Poste">
+          <select name="poste" required defaultValue={initial.poste} className={CLASSE_CHAMP}>
+            {optionsPoste(postes, initial.poste).map((p) => (
+              <option key={p} value={p}>
+                {p}
+              </option>
+            ))}
+          </select>
         </Champ>
         <Champ libelle="Service">
           <input name="service" defaultValue={v("service")} placeholder="Comptabilité, Logistique…" className={CLASSE_CHAMP} />

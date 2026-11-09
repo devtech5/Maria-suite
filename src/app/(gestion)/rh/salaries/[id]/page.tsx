@@ -20,6 +20,7 @@ import { fmt } from "@/lib/format";
 import { stockageConfigure } from "@/lib/stockage";
 import { collegues, piecesDuSalarie, salarieDe } from "@/modules/personnes/dossier";
 import { etatsPieces, piecesManquantes } from "@/modules/personnes/pieces";
+import { postesActifs } from "@/modules/personnes/referentiel-postes";
 import { LIENS_URGENCE, anciennete, libelleAnciennete, lienUrgenceConnu } from "@/modules/personnes/calcul";
 
 export const metadata: Metadata = { title: "Fiche salarié" };
@@ -52,9 +53,10 @@ export default async function PageFicheSalarie({ params }: { params: Promise<{ i
   const voitLeDossier = consulter || gerer;
 
   const aujourdhui = new Date().toISOString().slice(0, 10);
-  const [pieces, autres] = await Promise.all([
+  const [pieces, autres, postes] = await Promise.all([
     voitLeDossier ? piecesDuSalarie(session.organizationId, id) : Promise.resolve([]),
     collegues(session.organizationId, id),
+    gerer ? postesActifs(session.organizationId) : Promise.resolve([]),
   ]);
   const superieur = autres.find((c) => c.id === salarie.superieurId) ?? null;
   const encadres = autres.filter((c) => c.actif && c.superieurId === id);
@@ -204,6 +206,7 @@ export default async function PageFicheSalarie({ params }: { params: Promise<{ i
             <FormulaireEtatProfessionnel
               employeeId={id}
               collegues={autres}
+              postes={postes}
               initial={{
                 emailProfessionnel: salarie.emailProfessionnel,
                 poste: salarie.poste,

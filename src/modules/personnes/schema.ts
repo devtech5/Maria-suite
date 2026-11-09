@@ -26,6 +26,35 @@ import { NATURES_PIECE } from "./pieces";
 import { moyenReglement } from "@/modules/ventes/schema";
 
 /**
+ * Poste de travail : Comptable, Chef de projet, Gardien.
+ *
+ * Le référentiel dans lequel se choisit le poste d'un salarié. La fiche garde
+ * le libellé en toutes lettres (`employees.poste`) ; un renommage ici s'y
+ * propage. Un poste ne se supprime pas : il se retire (`actif`), et les
+ * fiches qui le portent le gardent.
+ */
+export const postes = pgTable(
+  "postes",
+  {
+    id: primaryId(),
+    organizationId: uuid("organization_id")
+      .notNull()
+      .references(() => organizations.id, { onDelete: "cascade" }),
+
+    libelle: text("libelle").notNull(),
+    ordre: integer("ordre").notNull().default(0),
+    actif: boolean("actif").notNull().default(true),
+
+    ...timestamps,
+    ...rowVersion,
+  },
+  (t) => [
+    unique("postes_libelle_unique").on(t.organizationId, t.libelle),
+    index("postes_org_idx").on(t.organizationId, t.ordre),
+  ],
+);
+
+/**
  * Nature du contrat de travail.
  *
  * Seul le contrat à durée indéterminée n'a pas de terme : les trois autres en

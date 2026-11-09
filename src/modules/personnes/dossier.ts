@@ -15,7 +15,8 @@ import {
   type NaturePiece,
 } from "./pieces";
 import { formeUneBoucle } from "./calcul";
-import { employees, piecesEmploye, type PieceEmploye } from "./schema";
+import { posteRetenu } from "./postes";
+import { employees, piecesEmploye, postes, type PieceEmploye } from "./schema";
 
 /**
  * Dossier du salarié : état civil, photo, pièces.
@@ -290,11 +291,19 @@ export async function modifierEtatProfessionnelPour(
     // Toute la hiérarchie de l'entreprise, pour remonter la chaîne : quelques
     // dizaines de lignes, lues dans la transaction qui écrit.
     const tous = await tx
-      .select({ id: employees.id, superieurId: employees.superieurId, debut: employees.debut, nom: employees.nom })
+      .select({ id: employees.id, superieurId: employees.superieurId, debut: employees.debut, nom: employees.nom, poste: employees.poste })
       .from(employees)
       .where(and(eq(employees.organizationId, organizationId), isNull(employees.deletedAt)));
     const salarie = tous.find((e) => e.id === employeeId);
     if (!salarie) throw new Error("Salarié introuvable.");
+    // Un poste du référentiel, ou celui que la fiche portait déjà : un poste
+    // retiré de la liste reste à qui l'occupe, il ne s'attribue plus.
+    const actifs = await tx
+      .select({ libelle: postes.libelle })
+      .from(postes)
+      .where(and(eq(postes.organizationId, organizationId), eq(postes.actif, true), isNull(postes.deletedAt)));
+    const poste = posteRetenu(etat.poste, actifs.map((p) => p.libelle), salarie.poste);
+    if (!poste) throw new Error("Choisissez le poste dans la liste. Un poste manquant s'ajoute dans l'onglet Postes.");
     if (etat.superieurId && !tous.some((e) => e.id === etat.superieurId)) throw new Error("Supérieur hiérarchique inconnu.");
     if (formeUneBoucle(employeeId, etat.superieurId, new Map(tous.map((e) => [e.id, e.superieurId])))) {
       throw new Error("Ce choix ferait du salarié le supérieur de son propre supérieur.");
@@ -305,7 +314,7 @@ export async function modifierEtatProfessionnelPour(
 
     await tx
       .update(employees)
-      .set({ ...etat, updatedAt: new Date(), version: sql`${employees.version} + 1` })
+      .set({ ...etat, poste, updatedAt: new Date(), version: sql`${employees.version} + 1` })
       .where(and(eq(employees.organizationId, organizationId), eq(employees.id, employeeId)));
     return salarie.nom;
   });

@@ -39,7 +39,16 @@ type Contrat = (typeof CONTRATS)[number]["valeur"];
  * visible sur un CDI ferait saisir une date « au cas où », et l'écran des
  * échéances annoncerait des fins de contrat qui n'existent pas.
  */
-export function FormulaireSalarie({ premier = false, dossier = false }: { premier?: boolean; dossier?: boolean }) {
+export function FormulaireSalarie({
+  premier = false,
+  dossier = false,
+  postes,
+}: {
+  premier?: boolean;
+  dossier?: boolean;
+  /** Postes actifs du référentiel, dans leur ordre : le poste se choisit, il ne se tape pas. */
+  postes: string[];
+}) {
   const [ouvert, setOuvert] = useState(false);
   const [contrat, setContrat] = useState<Contrat>("cdi");
   const [debut, setDebut] = useState("");
@@ -110,8 +119,17 @@ export function FormulaireSalarie({ premier = false, dossier = false }: { premie
           <input name="nom" required placeholder="Koffi Bernard" className={CLASSE_CHAMP} />
         </Champ>
 
-        <Champ libelle="Poste">
-          <input name="poste" required placeholder="Magasinier" className={CLASSE_CHAMP} />
+        <Champ libelle="Poste" precision={postes.length === 0 ? "Aucun poste dans la liste : ajoutez-en dans l'onglet Postes." : undefined}>
+          <select name="poste" required defaultValue="" className={CLASSE_CHAMP}>
+            <option value="" disabled>
+              Choisir un poste…
+            </option>
+            {postes.map((p) => (
+              <option key={p} value={p}>
+                {p}
+              </option>
+            ))}
+          </select>
         </Champ>
 
         <Champ libelle="Contrat" precision={definition.precision}>
