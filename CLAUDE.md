@@ -133,12 +133,19 @@ Le schéma sous `db/schema` ne contient que le socle : entreprises, comptes,
 droits, numérotation, audit, synchronisation. Les tables métier vivent dans
 leur module et sont réexportées depuis `db/schema/index.ts`.
 
-## Travail terminé : commit et push, sans attendre
+## Travail terminé : commit, push, PR et fusion, sans attendre
 
-Consigne du propriétaire : dès qu'un travail est fini et vérifié, il se
-committe et se pousse sur la branche de travail, sans qu'on le demande. Un
-travail laissé dans l'arbre de travail se perd avec la session. Les
-vérifications ci-dessous passent avant, toujours ; jamais de force-push.
+Consigne du propriétaire, valable pour toute modification : dès qu'un
+travail est fini et vérifié, il se committe, se pousse sur la branche de
+travail, part en pull request vers `main` et se fusionne (squash) dès que la
+CI est verte — sans redemander à chaque fois. Un travail laissé dans l'arbre
+de travail se perd avec la session.
+
+Fusionner dans `main`, c'est mettre en production : Dokploy redéploie à
+chaque push sur `main` et applique les migrations au démarrage. D'où les
+garde-fous, eux non négociables : les vérifications ci-dessous passent
+avant, la CI est verte sur la tête de la PR, aucun conflit ; jamais de
+force-push, jamais de fusion d'une PR rouge.
 
 ## Avant chaque commit
 
