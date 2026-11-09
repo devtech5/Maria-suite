@@ -11,6 +11,7 @@ import {
   reinitialiserMotDePasse,
   type ResultatReinitialisation,
 } from "./actions";
+import { FenetreModules, type ModuleDuMembre } from "./fenetre-modules";
 import { MotDePasseRemis } from "./mot-de-passe-remis";
 
 export interface LigneMembre {
@@ -26,7 +27,20 @@ export interface LigneMembre {
   depuis: string | null;
   /** Modules restreints (consultation ou aucun) pour cette personne. */
   restrictions: number;
+  /** Dernière connexion, déjà mise en forme par le serveur. */
+  derniereConnexion: string | null;
+  /** Modules que son rôle ouvre, et leur état pour elle. */
+  modules: ModuleDuMembre[];
 }
+
+const Icone = ({ d, titre }: { d: string; titre: string }) => (
+  <svg viewBox="0 0 24 24" aria-hidden className="size-[18px]" fill="none" stroke="currentColor" strokeWidth={1.8} strokeLinecap="round" strokeLinejoin="round">
+    <title>{titre}</title>
+    <path d={d} />
+  </svg>
+);
+const CLASSE_ICONE =
+  "grid size-9 place-items-center rounded-lg text-[var(--encre-douce)] hover:bg-[var(--surface-creuse)] hover:text-[var(--encre)] disabled:opacity-40";
 
 const TONS = {
   actif: "valide",
@@ -63,6 +77,7 @@ export function ListeMembres({
     motDePasse: string;
   } | null>(null);
   const [erreur, setErreur] = useState<string | null>(null);
+  const [modulesDe, setModulesDe] = useState<LigneMembre | null>(null);
   const [enCours, demarrer] = useTransition();
 
   function reinitialiser(membre: LigneMembre) {
@@ -97,82 +112,83 @@ export function ListeMembres({
           {erreur}
         </p>
       )}
+      {modulesDe && (
+        <FenetreModules
+          key={modulesDe.membershipId}
+          ouverte
+          onFermer={() => setModulesDe(null)}
+          membershipId={modulesDe.membershipId}
+          nom={modulesDe.nom}
+          modules={modulesDe.modules}
+        />
+      )}
       <Tableau>
         <thead>
           <tr>
-            <Th>Personne</Th>
+            <Th>Nom</Th>
+            <Th>Identifiant</Th>
             <Th>Rôle</Th>
             <Th>Statut</Th>
-            <Th aligne="droite">Accès</Th>
+            <Th>Dernière connexion</Th>
+            <Th aligne="droite">Actions</Th>
           </tr>
         </thead>
         <tbody>
           {membres.map((membre) => {
             const fige = membre.proprietaire || membre.userId === moiId;
-
+            const indisponibles = membre.modules.filter((m) => !m.actif || m.roleDesactive).length;
             return (
               <tr key={membre.membershipId}>
                 <Td>
-                  <Link href={`/membres/${membre.membershipId}`} className="block font-medium hover:underline">
-                  {membre.nom}
-                </Link>
-                  <span className="block text-xs text-[var(--encre-faible)]">
-                    {membre.email ?? "Sans adresse — ne peut pas se connecter"}
-                    {membre.depuis && ` · depuis le ${membre.depuis}`}
+                  <span className="flex flex-wrap items-center gap-2">
+                    <span className="font-medium">{membre.nom}</span>
+                    {membre.userId === moiId && <Pastille ton="valide">Vous</Pastille>}
+                    {membre.proprietaire && <Pastille ton="marque">Propriétaire</Pastille>}
+                    {indisponibles > 0 && (
+                      <Pastille ton="alerte">
+                        {indisponibles} module{indisponibles > 1 ? "s" : ""} indisponible{indisponibles > 1 ? "s" : ""}
+                      </Pastille>
+                    )}
                   </span>
+                  {membre.depuis && <span className="block text-xs text-[var(--encre-faible)]">depuis le {membre.depuis}</span>}
                 </Td>
-
                 <Td>
-                  {fige ? (
-                    <span className="flex items-center gap-2">
-                      {membre.roleNom}
-                      {membre.proprietaire && <Pastille ton="marque">Propriétaire</Pastille>}
-                    </span>
-                  ) : (
-                    <SelecteurRole membre={membre} roles={roles} />
-                  )}
+                  <span className="font-mono text-[13px]">{membre.email ?? "—"}</span>
+                  {!membre.email && <span className="block text-xs text-[var(--encre-faible)]">Sans adresse : ne peut pas se connecter</span>}
                 </Td>
-
+                <Td>{fige ? membre.roleNom : <SelecteurRole membre={membre} roles={roles} />}</Td>
                 <Td>
-                  <Pastille ton={TONS[membre.statut]}>
-                    {ETIQUETTES[membre.statut]}
-                  </Pastille>
+                  <Pastille ton={TONS[membre.statut]}>{ETIQUETTES[membre.statut]}</Pastille>
                 </Td>
-
+                <Td chiffres>{membre.derniereConnexion ?? "—"}</Td>
                 <Td aligne="droite">
                   {fige ? (
-                    <span className="text-xs text-[var(--encre-faible)]">
-                      {membre.proprietaire ? "Ne se coupe pas" : "Vous"}
-                    </span>
+                    <span className="text-xs text-[var(--encre-faible)]">{membre.proprietaire ? "Accès complet" : "Vous"}</span>
                   ) : (
-                    <span className="inline-flex items-center gap-1">
-                      <Link
-                        href={`/membres/${membre.membershipId}`}
-                        className="rounded-lg px-2.5 py-1.5 text-sm font-medium text-marque-600 hover:bg-[var(--surface-creuse)]"
-                      >
-                        Accès{membre.restrictions > 0 ? ` (${membre.restrictions} restreint${membre.restrictions > 1 ? "s" : ""})` : ""}
-                      </Link>
+                    <span className="inline-flex items-center gap-0.5">
+                      <button type="button" onClick={() => setModulesDe(membre)} aria-label={`Modules de ${membre.nom}`} title="Modules" className={CLASSE_ICONE}>
+                        <Icone titre="Modules" d="M4 4h6v6H4zM14 4h6v6h-6zM4 14h6v6H4zM14 14h6v6h-6z" />
+                      </button>
                       <button
                         type="button"
                         disabled={enCours || !membre.email}
                         onClick={() => reinitialiser(membre)}
-                        className="rounded-lg px-2.5 py-1.5 text-sm font-medium text-[var(--encre-douce)] hover:bg-[var(--surface-creuse)] disabled:opacity-40"
+                        aria-label={`Nouveau mot de passe pour ${membre.nom}`}
+                        title="Nouveau mot de passe"
+                        className={CLASSE_ICONE}
                       >
-                        Nouveau mot de passe
+                        <Icone titre="Nouveau mot de passe" d="M15 7a4 4 0 1 1-3.9 4.9L4 19v-3h2v-2h2l1.1-1.1A4 4 0 0 1 15 7zm1.5 2.5h.01" />
                       </button>
+                      <Link href={`/membres/${membre.membershipId}`} aria-label={`Accès détaillés de ${membre.nom}`} title="Accès détaillés" className={CLASSE_ICONE}>
+                        <Icone titre="Accès détaillés" d="M4 20h4L19 9l-4-4L4 16v4zM13.5 6.5l4 4" />
+                      </Link>
                       <form action={changerStatutMembre} className="inline">
                         <input type="hidden" name="membershipId" value={membre.membershipId} />
-                        <input
-                          type="hidden"
-                          name="suspendre"
-                          value={membre.statut === "suspendu" ? "0" : "1"}
-                        />
+                        <input type="hidden" name="suspendre" value={membre.statut === "suspendu" ? "0" : "1"} />
                         <button
                           type="submit"
-                          className={`rounded-lg px-2.5 py-1.5 text-sm font-medium hover:bg-[var(--surface-creuse)] ${
-                            membre.statut === "suspendu"
-                              ? "text-valide-600"
-                              : "text-danger-600"
+                          className={`rounded-lg px-2 py-1.5 text-xs font-semibold hover:bg-[var(--surface-creuse)] ${
+                            membre.statut === "suspendu" ? "text-valide-600" : "text-danger-600"
                           }`}
                         >
                           {membre.statut === "suspendu" ? "Rétablir" : "Suspendre"}

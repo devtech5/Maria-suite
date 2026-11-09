@@ -110,3 +110,30 @@ export const accesModules = pgTable(
 );
 
 export type NiveauAcces = (typeof accesModules.$inferSelect)["niveau"];
+
+/**
+ * Modules désactivés pour un rôle : une ligne par couple (rôle, module).
+ *
+ * Le pendant de `acces_modules` pour tout un rôle : décocher « Trésorerie »
+ * pour les caissiers la retire à chacun d'eux sans toucher à leurs droits.
+ * Comme le niveau d'une personne, cela resserre et n'ajoute jamais ; le
+ * propriétaire n'en est jamais touché.
+ */
+export const accesModulesRoles = pgTable(
+  "acces_modules_roles",
+  {
+    id: primaryId(),
+    organizationId: uuid("organization_id")
+      .notNull()
+      .references(() => organizations.id, { onDelete: "cascade" }),
+    roleId: uuid("role_id")
+      .notNull()
+      .references(() => roles.id, { onDelete: "cascade" }),
+    moduleKey: text("module_key").notNull(),
+    ...timestamps,
+  },
+  (t) => [
+    unique("acces_modules_roles_unique").on(t.roleId, t.moduleKey),
+    index("acces_modules_roles_org_idx").on(t.organizationId),
+  ],
+);

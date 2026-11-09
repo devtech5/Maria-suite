@@ -5,6 +5,7 @@ import { and, eq } from "drizzle-orm";
 import { db } from "@/db";
 import {
   accesModules,
+  accesModulesRoles,
   memberships,
   organizationModules,
   rolePermissions,
@@ -105,4 +106,26 @@ export async function restrictionsParMembre(organizationId: string): Promise<Map
     compte.set(l.membershipId, (compte.get(l.membershipId) ?? 0) + 1);
   }
   return compte;
+}
+
+/** Modules désactivés pour chaque rôle de l'entreprise. */
+export async function modulesDesactivesParRole(organizationId: string): Promise<Map<string, Set<string>>> {
+  const lignes = await db
+    .select({ roleId: accesModulesRoles.roleId, cle: accesModulesRoles.moduleKey })
+    .from(accesModulesRoles)
+    .where(eq(accesModulesRoles.organizationId, organizationId));
+  const parRole = new Map<string, Set<string>>();
+  for (const l of lignes) parRole.set(l.roleId, (parRole.get(l.roleId) ?? new Set()).add(l.cle));
+  return parRole;
+}
+
+/** Niveaux posés pour chaque membre de l'entreprise, par module. */
+export async function niveauxParMembre(organizationId: string): Promise<Map<string, Map<string, NiveauAcces>>> {
+  const lignes = await db
+    .select({ membershipId: accesModules.membershipId, cle: accesModules.moduleKey, niveau: accesModules.niveau })
+    .from(accesModules)
+    .where(eq(accesModules.organizationId, organizationId));
+  const parMembre = new Map<string, Map<string, NiveauAcces>>();
+  for (const l of lignes) parMembre.set(l.membershipId, (parMembre.get(l.membershipId) ?? new Map()).set(l.cle, l.niveau));
+  return parMembre;
 }

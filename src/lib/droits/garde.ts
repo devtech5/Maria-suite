@@ -4,7 +4,7 @@ import { cache } from "react";
 import { and, eq } from "drizzle-orm";
 
 import { db } from "@/db";
-import { accesModules, memberships, organizationModules, rolePermissions } from "@/db/schema";
+import { accesModules, accesModulesRoles, memberships, organizationModules, rolePermissions } from "@/db/schema";
 import { exigerEntreprise } from "@/lib/auth/dal";
 import type { SessionActive } from "@/lib/auth/session";
 import { appliquerRestrictions, type NiveauAcces } from "./acces";
@@ -70,11 +70,11 @@ async function droitsDuRole(session: SessionEntreprise): Promise<Set<Droit>> {
 }
 
 /**
- * Modules coupés pour l'entreprise et niveaux de la personne.
- * Deux requêtes indexées par rendu, dédupliquées par `cache`.
+ * Modules coupés pour l'entreprise, désactivés pour le rôle, et niveaux de
+ * la personne. Trois requêtes indexées par rendu, dédupliquées par `cache`.
  */
 async function restrictionsDe(session: SessionEntreprise) {
-  const [coupes, niveaux] = await Promise.all([
+  const [coupes, niveaux, duRole] = await Promise.all([
     db
       .select({ cle: organizationModules.moduleKey })
       .from(organizationModules)
@@ -96,10 +96,22 @@ async function restrictionsDe(session: SessionEntreprise) {
               eq(memberships.userId, session.userId),
             ),
           ),
+    session.estProprietaire || !session.roleId
+      ? Promise.resolve([] as { cle: string }[])
+      : db
+          .select({ cle: accesModulesRoles.moduleKey })
+          .from(accesModulesRoles)
+          .where(
+            and(
+              eq(accesModulesRoles.organizationId, session.organizationId),
+              eq(accesModulesRoles.roleId, session.roleId),
+            ),
+          ),
   ]);
 
   return {
     modulesCoupes: new Set(coupes.map((c) => c.cle)),
+    modulesRole: new Set(duRole.map((r) => r.cle)),
     niveaux: new Map(niveaux.map((n) => [n.cle, n.niveau])),
     estProprietaire: session.estProprietaire,
   };

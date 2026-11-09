@@ -3,8 +3,14 @@ import type { Metadata } from "next";
 import { EnTetePage, EtatVide } from "@/components/ui/primitives";
 import { Recherche } from "@/components/ui/recherche";
 import { exigerEntreprise } from "@/lib/auth/dal";
-import { restrictionsParMembre } from "@/lib/auth/acces";
+import { modulesCoupes, modulesDesactivesParRole, niveauxParMembre, restrictionsParMembre } from "@/lib/auth/acces";
 import { listerMembres, rolesAttribuables } from "@/lib/auth/membres";
+import { rolesDeLEntreprise } from "@/lib/auth/roles";
+import { modulesDuRole } from "@/lib/droits/acces";
+import { TOUS_LES_DROITS } from "@/lib/droits/catalogue";
+import { iconeDuModule } from "@/lib/modules/icones";
+import { modulesOuverts } from "@/lib/modules/garde";
+import { getModule } from "@/modules/registry";
 import { fmtDateIso, fmtEntier } from "@/lib/format";
 import { correspond, lireFiltresListe } from "@/lib/recherche";
 import { FormulaireMembre } from "./formulaire-membre";
@@ -19,11 +25,21 @@ export default async function PageMembres({ searchParams }: PageProps<"/membres"
   const session = await exigerEntreprise();
   const { q } = lireFiltresListe(await searchParams);
 
-  const [membres, roles, restrictions] = await Promise.all([
+  const [membres, roles, restrictions, tousLesRoles, niveaux, desactivesParRole, coupes] = await Promise.all([
     listerMembres(session.organizationId),
     rolesAttribuables(session.organizationId),
     restrictionsParMembre(session.organizationId),
+    rolesDeLEntreprise(session.organizationId),
+    niveauxParMembre(session.organizationId),
+    modulesDesactivesParRole(session.organizationId),
+    modulesCoupes(session.organizationId),
   ]);
+
+  // Les modules proposés à une personne : ceux que son rôle ouvre, parmi les
+  // modules en service. Le propriétaire les a tous, sans désactivation.
+  const enService = modulesOuverts().filter((cle) => !coupes.has(cle) && getModule(cle));
+  const droitsDuRole = new Map(tousLesRoles.map((r) => [r.id, r.droits]));
+  const horodatage = new Intl.DateTimeFormat("fr-FR", { dateStyle: "short", timeStyle: "short", timeZone: "Africa/Abidjan" });
 
   const actifs = membres.filter((membre) => membre.statut === "actif").length;
 
@@ -40,6 +56,25 @@ export default async function PageMembres({ searchParams }: PageProps<"/membres"
     statut: membre.statut,
     proprietaire: membre.proprietaire,
     restrictions: restrictions.get(membre.membershipId) ?? 0,
+    derniereConnexion: membre.derniereConnexion ? horodatage.format(membre.derniereConnexion) : null,
+    modules: (() => {
+      const ouverts = modulesDuRole(membre.proprietaire ? TOUS_LES_DROITS : (droitsDuRole.get(membre.roleId) ?? []));
+      const sesNiveaux = niveaux.get(membre.membershipId);
+      const duRole = membre.proprietaire ? undefined : desactivesParRole.get(membre.roleId);
+      return enService
+        .filter((cle) => ouverts.has(cle))
+        .map((cle) => {
+          const niveau = membre.proprietaire ? "complet" : (sesNiveaux?.get(cle) ?? "complet");
+          return {
+            cle,
+            nom: getModule(cle)!.name,
+            icone: iconeDuModule(cle),
+            actif: niveau !== "aucun",
+            consultation: niveau === "consultation",
+            roleDesactive: duRole?.has(cle) ?? false,
+          };
+        });
+    })(),
     depuis: membre.rejointLe
       ? fmtDateIso(membre.rejointLe.toISOString().slice(0, 10))
       : null,
