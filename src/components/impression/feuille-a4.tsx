@@ -1,12 +1,26 @@
 import type { ReactNode } from "react";
-import { Montserrat } from "next/font/google";
+import localFont from "next/font/local";
 
 /**
- * Police du papier à en-tête de MARIA GROUP. Servie par l'application
- * (`next/font` la récupère au build) : aucune requête vers un tiers à
- * l'ouverture d'une facture.
+ * Police du papier à en-tête de MARIA GROUP : Montserrat (licence SIL OFL,
+ * `polices/OFL.txt`), jeu latin, graisses 500 à 700.
+ *
+ * Les fichiers vivent dans le dépôt et non chez Google : `next/font/google`
+ * les téléchargeait pendant la construction, et un serveur de déploiement
+ * qui ne joint pas fonts.gstatic.com faisait échouer tout le build. Servie
+ * par l'application, aucune requête vers un tiers à l'ouverture d'une facture.
  */
-const montserrat = Montserrat({ subsets: ["latin"], weight: ["500", "600", "700"], style: ["normal", "italic"], display: "swap" });
+const montserrat = localFont({
+  src: [
+    { path: "./polices/montserrat-latin-500-normal.woff2", weight: "500", style: "normal" },
+    { path: "./polices/montserrat-latin-500-italic.woff2", weight: "500", style: "italic" },
+    { path: "./polices/montserrat-latin-600-normal.woff2", weight: "600", style: "normal" },
+    { path: "./polices/montserrat-latin-600-italic.woff2", weight: "600", style: "italic" },
+    { path: "./polices/montserrat-latin-700-normal.woff2", weight: "700", style: "normal" },
+    { path: "./polices/montserrat-latin-700-italic.woff2", weight: "700", style: "italic" },
+  ],
+  display: "swap",
+});
 
 /**
  * Une feuille A4 (210 × 297 mm), telle qu'elle sort de l'imprimante.
