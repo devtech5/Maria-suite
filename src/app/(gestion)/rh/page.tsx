@@ -20,7 +20,7 @@ import { correspond, dansPeriode, lireFiltresListe } from "@/lib/recherche";
 import { naturesParSalarie } from "@/modules/personnes/dossier";
 import { calculerBulletin, joursAvantTerme } from "@/modules/personnes/paie";
 import { piecesManquantes } from "@/modules/personnes/pieces";
-import { postesActifs } from "@/modules/personnes/referentiel-postes";
+import { postesActifs, postesParSalarie } from "@/modules/personnes/referentiel-postes";
 import { listerSalaries, servicesConnus } from "@/modules/personnes/requetes";
 import type { TypeContrat } from "@/modules/personnes/schema";
 
@@ -45,13 +45,16 @@ const TON_CONTRAT: Record<TypeContrat, TonPastille> = {
 export default async function PageSalaries({ searchParams }: PageProps<"/rh">) {
   const session = await exigerEntreprise();
   const filtres = lireFiltresListe(await searchParams);
-  const [salaries, voitLesDossiers, tientLesDossiers, postes, services] = await Promise.all([
+  const [salaries, voitLesDossiers, tientLesDossiers, postes, services, postesDe] = await Promise.all([
     listerSalaries(session.organizationId),
     peut("personnes.dossier.consulter"),
     peut("personnes.dossier.gerer"),
     postesActifs(session.organizationId),
     servicesConnus(session.organizationId),
+    postesParSalarie(session.organizationId),
   ]);
+  /** Tous les postes d'une personne, principal en tête ; à défaut, celui de la fiche. */
+  const sesPostes = (s: { id: string; poste: string }) => postesDe.get(s.id) ?? [s.poste];
   const natures = voitLesDossiers ? await naturesParSalarie(session.organizationId) : null;
 
   const bulletins = salaries.map((salarie) =>
@@ -90,7 +93,7 @@ export default async function PageSalaries({ searchParams }: PageProps<"/rh">) {
       correspond(filtres.q, [
         salarie.nom,
         salarie.matricule,
-        salarie.poste,
+        ...sesPostes(salarie),
         salarie.service,
         salarie.telephone,
         salarie.emailProfessionnel,
@@ -181,7 +184,7 @@ export default async function PageSalaries({ searchParams }: PageProps<"/rh">) {
                     </Td>
                     <Td>
                       <span className="text-xs text-[var(--encre-douce)]">
-                        {salarie.poste}
+                        {sesPostes(salarie).join(" · ")}
                       </span>
                     </Td>
                     <Td>

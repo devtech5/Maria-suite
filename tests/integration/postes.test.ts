@@ -9,6 +9,7 @@ import {
   basculerPostePour,
   listerPostes,
   postesActifs,
+  postesDuSalarie,
   renommerPostePour,
 } from "@/modules/personnes/referentiel-postes";
 import { employees } from "@/modules/personnes/schema";
@@ -34,6 +35,7 @@ const etat = (poste: string) => ({
   finPeriodeEssai: null,
   paiementSalaire: null,
   coordonneesPaiement: null,
+  postesAutres: [] as string[],
 });
 
 describe("référentiel des postes en base", () => {
@@ -89,4 +91,34 @@ describe("référentiel des postes en base", () => {
     const chef = (await listerPostes(org)).find((p) => p.libelle === "Chef de projet")!;
     await expect(basculerPostePour(autre.organizationId, autre.userId, chef.id, true)).rejects.toThrow(/introuvable/);
   });
+
+  it("une personne occupe plusieurs postes, comptée dans chacun", async () => {
+    await ajouterPostePour(org, user, "Secrétaire");
+    const { id } = await creerSalariePour(
+      org,
+      { nom: "Aya", poste: "Comptable principal", postesAutres: ["Secrétaire"], debut: "2026-03-01", salaireBase: 0 },
+      user,
+    );
+    expect(await postesDuSalarie(org, id)).toEqual(["Comptable principal", "Secrétaire"]);
+    const compte = async (l: string) => (await listerPostes(org)).find((p) => p.libelle === l)?.occupants;
+    expect(await compte("Secrétaire")).toBe(1);
+
+    // Le secondaire devient principal, l'ancien principal est retiré.
+    await modifierEtatProfessionnelPour(org, user, id, { ...etat("Secrétaire"), postesAutres: [] });
+    expect(await postesDuSalarie(org, id)).toEqual(["Secrétaire"]);
+    const [ligne] = await db.select({ poste: employees.poste }).from(employees).where(eq(employees.id, id));
+    expect(ligne.poste).toBe("Secrétaire");
+
+    // Et le retrouve : la même ligne d'affectation est ranimée.
+    await modifierEtatProfessionnelPour(org, user, id, { ...etat("Secrétaire"), postesAutres: ["Comptable principal"] });
+    expect(await postesDuSalarie(org, id)).toEqual(["Secrétaire", "Comptable principal"]);
+    await expect(modifierEtatProfessionnelPour(org, user, id, { ...etat("Secrétaire"), postesAutres: ["Pilote"] })).rejects.toThrow(/dans la liste/);
+  });
+
+  it("un poste inconnu entre au référentiel à la reprise de l'existant", async () => {
+    const { id } = await creerSalariePour(org, { nom: "Repris", poste: "Pointeur", debut: "2025-01-01", salaireBase: 0 });
+    expect(await postesDuSalarie(org, id)).toEqual(["Pointeur"]);
+    expect(await postesActifs(org)).toContain("Pointeur");
+  });
 });
+

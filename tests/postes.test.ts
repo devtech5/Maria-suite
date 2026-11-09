@@ -7,6 +7,8 @@ import {
   optionsPoste,
   POSTES_DE_DEPART,
   posteRetenu,
+  postesRetenus,
+  selectionPostes,
 } from "@/modules/personnes/postes";
 
 describe("postes de travail", () => {
@@ -43,5 +45,25 @@ describe("postes de travail", () => {
     expect(posteRetenu("Magasinier", actifs)).toBeNull();
     expect(posteRetenu("Magasinier", actifs, "Magasinier")).toBe("Magasinier");
     expect(posteRetenu("", actifs)).toBeNull();
+  });
+});
+
+describe("plusieurs postes pour une personne", () => {
+  it("garde le principal en tête, sans doublon ni répétition", () => {
+    expect(selectionPostes("Comptable", ["Secrétaire", "comptable", " Secrétaire ", "Gardien"])).toEqual(["Comptable", "Secrétaire", "Gardien"]);
+    expect(selectionPostes("", ["Gardien"])).toEqual(["Gardien"]);
+  });
+
+  it("propose tous les postes actuels absents de la liste", () => {
+    expect(optionsPoste(["Comptable"], ["Magasinier", "Comptable", "Vendeur"])).toEqual(["Magasinier", "Vendeur", "Comptable"]);
+  });
+
+  it("valide chaque poste contre le référentiel, libellés exacts", () => {
+    const actifs = ["Comptable", "Secrétaire", "Gardien"];
+    expect(postesRetenus("comptable", ["SECRÉTAIRE"], actifs)).toEqual({ ok: true, postes: ["Comptable", "Secrétaire"] });
+    expect(postesRetenus("Comptable", ["Pilote"], actifs)).toEqual({ ok: false, refuse: "Pilote" });
+    // Un poste retiré reste recevable pour qui l'occupe déjà.
+    expect(postesRetenus("Gardien", ["Magasinier"], actifs, ["Magasinier"])).toEqual({ ok: true, postes: ["Gardien", "Magasinier"] });
+    expect(postesRetenus("", [], actifs).ok).toBe(false);
   });
 });

@@ -1,0 +1,1 @@
+ALTER TYPE "public"."nature_piece_employe" ADD VALUE 'contrat_travail';

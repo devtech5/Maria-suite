@@ -1,13 +1,13 @@
 "use client";
 
-import { useActionState, useState, useTransition, type ReactNode } from "react";
+import { useActionState, useState, type ReactNode } from "react";
 
+import { ChoixPostes } from "@/components/personnes/choix-postes";
 import { ChoixPhoto } from "@/components/personnes/photo";
 import { SITUATIONS } from "@/components/personnes/dossier";
 import { Fenetre } from "@/components/ui/fenetre";
 import { Champ, CLASSE_CHAMP, CLASSE_CHAMP_COMPACT } from "@/components/ui/primitives";
 import { embaucherSalarie, type EtatSalarie } from "@/modules/personnes/actions";
-import { ajouterPoste } from "@/modules/personnes/actions-postes";
 import {
   CIVILITES,
   DUREE_CONTRAT_MAX_MOIS,
@@ -124,65 +124,6 @@ function AjoutEnLigne({
         </button>
       </div>
       {erreur && <p className="mt-1 text-xs text-danger-600">{erreur}</p>}
-    </div>
-  );
-}
-
-/** Poste choisi dans le référentiel ; « + » en ajoute un au référentiel sans quitter l'embauche. */
-function ChampPoste({ postes }: { postes: string[] }) {
-  const [options, setOptions] = useState(postes);
-  const [choisi, setChoisi] = useState("");
-  const [ajout, setAjout] = useState(false);
-  const [erreur, setErreur] = useState<string | null>(null);
-  const [enCours, demarrer] = useTransition();
-
-  return (
-    <div>
-      <label htmlFor="embauche-poste" className="mb-1.5 block text-sm font-medium">
-        Poste <span className="text-danger-600">*</span>
-      </label>
-      <div className="flex gap-2">
-        <select id="embauche-poste" name="poste" required value={choisi} onChange={(e) => setChoisi(e.target.value)} className={CLASSE_CHAMP}>
-          <option value="" disabled>
-            Choisir un poste…
-          </option>
-          {options.map((p) => (
-            <option key={p} value={p}>
-              {p}
-            </option>
-          ))}
-        </select>
-        <button type="button" onClick={() => setAjout(true)} aria-label="Ajouter un poste à la liste" title="Ajouter un poste à la liste" className={CLASSE_PLUS}>
-          +
-        </button>
-      </div>
-      {ajout && (
-        <AjoutEnLigne
-          libelle="Nouveau poste"
-          enCours={enCours}
-          erreur={erreur}
-          onAnnuler={() => {
-            setAjout(false);
-            setErreur(null);
-          }}
-          onAjouter={(libelle) =>
-            demarrer(async () => {
-              const donnees = new FormData();
-              donnees.set("libelle", libelle);
-              const r = await ajouterPoste(donnees);
-              if (!r.ok || !r.libelle) {
-                setErreur(r.message);
-                return;
-              }
-              const ajoute = r.libelle;
-              setOptions((avant) => [...avant, ajoute]);
-              setChoisi(ajoute);
-              setAjout(false);
-              setErreur(null);
-            })
-          }
-        />
-      )}
     </div>
   );
 }
@@ -570,7 +511,7 @@ export function FormulaireSalarie({
             </Section>
 
             <Section titre="Contrat et poste">
-              <ChampPoste postes={postes} />
+              <ChoixPostes postes={postes} ajout />
               <ChampService services={services} />
               <Champ libelle="N° CNPS" precision="Sans lui, aucune déclaration sociale n'est possible.">
                 <input name="numeroCnps" maxLength={30} placeholder="0123456789" className={`${CLASSE_CHAMP} chiffres`} />
@@ -602,6 +543,9 @@ export function FormulaireSalarie({
                 salarié — CMU, casier, diplômes… */}
             {dossier && (
               <Section titre="Pièces jointes — facultatives">
+                <Champ libelle="Contrat signé" precision="Le contrat numérisé, versé au dossier avec son terme.">
+                  <input name="contrat" type="file" accept="application/pdf,.doc,.docx,image/*" className={CLASSE_FICHIER} />
+                </Champ>
                 <Champ libelle="CV" precision="PDF, Word ou photo.">
                   <input name="cv" type="file" accept="application/pdf,.doc,.docx,image/*" className={CLASSE_FICHIER} />
                 </Champ>

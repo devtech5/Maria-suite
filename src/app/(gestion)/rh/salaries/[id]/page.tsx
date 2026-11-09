@@ -20,7 +20,7 @@ import { fmt } from "@/lib/format";
 import { stockageConfigure } from "@/lib/stockage";
 import { collegues, piecesDuSalarie, salarieDe } from "@/modules/personnes/dossier";
 import { etatsPieces, piecesManquantes } from "@/modules/personnes/pieces";
-import { postesActifs } from "@/modules/personnes/referentiel-postes";
+import { postesActifs, postesDuSalarie } from "@/modules/personnes/referentiel-postes";
 import {
   CIVILITES,
   LIENS_URGENCE,
@@ -63,11 +63,14 @@ export default async function PageFicheSalarie({ params }: { params: Promise<{ i
   const voitLeDossier = consulter || gerer;
 
   const aujourdhui = new Date().toISOString().slice(0, 10);
-  const [pieces, autres, postes] = await Promise.all([
+  const [pieces, autres, postes, sesPostes] = await Promise.all([
     voitLeDossier ? piecesDuSalarie(session.organizationId, id) : Promise.resolve([]),
     collegues(session.organizationId, id),
     gerer ? postesActifs(session.organizationId) : Promise.resolve([]),
+    postesDuSalarie(session.organizationId, id),
   ]);
+  // Le principal d'abord, tel que la fiche l'écrit ; les autres ensuite.
+  const postesAutres = sesPostes.filter((p) => p.toLocaleLowerCase("fr") !== salarie.poste.toLocaleLowerCase("fr"));
   const superieur = autres.find((c) => c.id === salarie.superieurId) ?? null;
   const encadres = autres.filter((c) => c.actif && c.superieurId === id);
   const etats = etatsPieces(
@@ -121,7 +124,7 @@ export default async function PageFicheSalarie({ params }: { params: Promise<{ i
         <div className="min-w-0 flex-1">
           <h1 className="text-xl font-bold tracking-tight">{salarie.nom}</h1>
           <p className="mt-0.5 text-sm text-[var(--encre-douce)]">
-            <span className="chiffres">{salarie.matricule}</span> · {salarie.poste}
+            <span className="chiffres">{salarie.matricule}</span> · {[salarie.poste, ...postesAutres].join(" · ")}
           </p>
           <p className="mt-2 flex flex-wrap items-center gap-2 text-sm">
             <Pastille ton={salarie.actif ? "valide" : "neutre"}>{salarie.actif ? "En poste" : "Sorti des effectifs"}</Pastille>
@@ -224,6 +227,7 @@ export default async function PageFicheSalarie({ params }: { params: Promise<{ i
               initial={{
                 emailProfessionnel: salarie.emailProfessionnel,
                 poste: salarie.poste,
+                postesAutres,
                 service: salarie.service,
                 superieurId: salarie.superieurId,
                 finPeriodeEssai: salarie.finPeriodeEssai,
@@ -235,7 +239,8 @@ export default async function PageFicheSalarie({ params }: { params: Promise<{ i
             <dl className="grid gap-3 text-sm sm:grid-cols-2 lg:grid-cols-3">
               {[
                 ["Adresse e-mail professionnelle", salarie.emailProfessionnel],
-                ["Fonction", salarie.poste],
+                ["Poste principal", salarie.poste],
+                ["Autres postes", postesAutres.join(", ")],
                 ["Service", salarie.service],
                 ["Supérieur hiérarchique", superieur ? `${superieur.nom} · ${superieur.poste}` : null],
                 ["Fin de la période d'essai", salarie.finPeriodeEssai ? date(salarie.finPeriodeEssai) : null],
@@ -267,7 +272,18 @@ export default async function PageFicheSalarie({ params }: { params: Promise<{ i
               </p>
             )}
           </div>
-          {gerer && <FormulairePiece employeeId={id} depotActif={stockageConfigure()} />}
+          {gerer && (
+            <div className="flex flex-wrap items-start gap-2">
+              <FormulairePiece
+                employeeId={id}
+                depotActif={stockageConfigure()}
+                natureInitiale="contrat_travail"
+                libelle="Joindre le contrat"
+                secondaire
+              />
+              <FormulairePiece employeeId={id} depotActif={stockageConfigure()} />
+            </div>
+          )}
         </div>
 
         {!voitLeDossier ? (

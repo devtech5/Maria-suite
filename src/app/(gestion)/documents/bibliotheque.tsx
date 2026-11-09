@@ -134,7 +134,7 @@ export function Bibliotheque({
         <input
           value={recherche}
           onChange={(e) => setRecherche(e.target.value)}
-          placeholder="Nom du document, client, véhicule, employé…"
+          placeholder="Nom du document, client, véhicule, collaborateur…"
           aria-label="Rechercher un document"
           className="h-cible w-full rounded-lg border border-[var(--filet)] bg-[var(--surface)] px-3.5 text-sm outline-none focus:border-marque-500"
         />

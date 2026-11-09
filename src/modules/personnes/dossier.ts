@@ -15,8 +15,9 @@ import {
   type NaturePiece,
 } from "./pieces";
 import { formeUneBoucle } from "./calcul";
-import { posteRetenu } from "./postes";
-import { employees, piecesEmploye, postes, type PieceEmploye } from "./schema";
+import { postesRetenus } from "./postes";
+import { affecterPostesDans } from "./referentiel-postes";
+import { affectationsPostes, employees, piecesEmploye, postes, type PieceEmploye } from "./schema";
 
 /**
  * Dossier du salarié : état civil, photo, pièces.
@@ -266,7 +267,10 @@ export async function modifierEtatCivilPour(
 /** État professionnel modifiable. Matricule, contrat et dates d'entrée n'en font pas partie : ils viennent de l'embauche. */
 export interface EtatProfessionnel {
   emailProfessionnel: string | null;
+  /** Poste principal. */
   poste: string;
+  /** Postes occupés en plus du principal. */
+  postesAutres: string[];
   service: string | null;
   superieurId: string | null;
   finPeriodeEssai: string | null;
@@ -299,14 +303,24 @@ export async function modifierEtatProfessionnelPour(
       .where(and(eq(employees.organizationId, organizationId), isNull(employees.deletedAt)));
     const salarie = tous.find((e) => e.id === employeeId);
     if (!salarie) throw new Error("Salarié introuvable.");
-    // Un poste du référentiel, ou celui que la fiche portait déjà : un poste
+    // Des postes du référentiel, ou ceux que la fiche portait déjà : un poste
     // retiré de la liste reste à qui l'occupe, il ne s'attribue plus.
     const actifs = await tx
       .select({ libelle: postes.libelle })
       .from(postes)
       .where(and(eq(postes.organizationId, organizationId), eq(postes.actif, true), isNull(postes.deletedAt)));
-    const poste = posteRetenu(etat.poste, actifs.map((p) => p.libelle), salarie.poste);
-    if (!poste) throw new Error("Choisissez le poste dans la liste. Un poste manquant s'ajoute dans l'onglet Postes.");
+    const actuels = await tx
+      .select({ libelle: postes.libelle })
+      .from(affectationsPostes)
+      .innerJoin(postes, eq(postes.id, affectationsPostes.posteId))
+      .where(and(eq(affectationsPostes.employeeId, employeeId), isNull(affectationsPostes.deletedAt)));
+    const choix = postesRetenus(
+      etat.poste,
+      etat.postesAutres,
+      actifs.map((p) => p.libelle),
+      [salarie.poste, ...actuels.map((p) => p.libelle)],
+    );
+    if (!choix.ok) throw new Error("Choisissez les postes dans la liste. Un poste manquant s'ajoute dans l'onglet Postes.");
     if (etat.superieurId && !tous.some((e) => e.id === etat.superieurId)) throw new Error("Supérieur hiérarchique inconnu.");
     if (formeUneBoucle(employeeId, etat.superieurId, new Map(tous.map((e) => [e.id, e.superieurId])))) {
       throw new Error("Ce choix ferait du salarié le supérieur de son propre supérieur.");
@@ -317,15 +331,26 @@ export async function modifierEtatProfessionnelPour(
 
     await tx
       .update(employees)
-      .set({ ...etat, poste, updatedAt: new Date(), version: sql`${employees.version} + 1` })
+      .set({
+        emailProfessionnel: etat.emailProfessionnel,
+        service: etat.service,
+        superieurId: etat.superieurId,
+        finPeriodeEssai: etat.finPeriodeEssai,
+        paiementSalaire: etat.paiementSalaire,
+        coordonneesPaiement: etat.coordonneesPaiement,
+        poste: choix.postes[0],
+        updatedAt: new Date(),
+        version: sql`${employees.version} + 1`,
+      })
       .where(and(eq(employees.organizationId, organizationId), eq(employees.id, employeeId)));
+    await affecterPostesDans(tx, organizationId, employeeId, choix.postes);
     return salarie.nom;
   });
   await tracerPour(organizationId, userId, {
     action: "salarie.etat_professionnel",
     entite: "employe",
     entiteId: employeeId,
-    apres: { salarie: nom, poste: etat.poste, service: etat.service, superieurId: etat.superieurId },
+    apres: { salarie: nom, poste: etat.poste, postesAutres: etat.postesAutres, service: etat.service, superieurId: etat.superieurId },
   });
 }
 

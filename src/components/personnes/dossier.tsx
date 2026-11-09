@@ -3,6 +3,7 @@
 import { useRef, useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 
+import { ChoixPostes } from "@/components/personnes/choix-postes";
 import { Portrait, reduirePhoto } from "@/components/personnes/photo";
 import { useApercu } from "@/components/ui/apercu";
 import { Retour, useOperation, type Resultat } from "@/components/ui/operations";
@@ -150,9 +151,23 @@ export function ListePieces({ pieces, peutGerer }: { pieces: PieceAffichee[]; pe
 }
 
 /** Ajout d'une pièce : le formulaire ne montre que les champs que la nature porte. */
-export function FormulairePiece({ employeeId, depotActif }: { employeeId: string; depotActif: boolean }) {
+export function FormulairePiece({
+  employeeId,
+  depotActif,
+  natureInitiale = "cni",
+  libelle = "Ajouter une pièce",
+  secondaire = false,
+}: {
+  employeeId: string;
+  depotActif: boolean;
+  /** Pièce présélectionnée : « Joindre le contrat » ouvre sur le contrat de travail. */
+  natureInitiale?: NaturePiece;
+  libelle?: string;
+  /** Bouton clair, à côté du bouton principal. */
+  secondaire?: boolean;
+}) {
   const [ouvert, setOuvert] = useState(false);
-  const [nature, setNature] = useState<NaturePiece>("cni");
+  const [nature, setNature] = useState<NaturePiece>(natureInitiale);
   const formulaire = useRef<HTMLFormElement>(null);
   const op = useOperation();
   const def = PIECES[nature];
@@ -162,9 +177,13 @@ export function FormulairePiece({ employeeId, depotActif }: { employeeId: string
       <button
         type="button"
         onClick={() => setOuvert(true)}
-        className="h-cible rounded-lg bg-marque-500 px-4 text-sm font-semibold text-white hover:bg-marque-600"
+        className={
+          secondaire
+            ? "h-cible rounded-lg border border-[var(--filet)] bg-[var(--surface)] px-4 text-sm font-semibold hover:bg-[var(--surface-creuse)]"
+            : "h-cible rounded-lg bg-marque-500 px-4 text-sm font-semibold text-white hover:bg-marque-600"
+        }
       >
-        Ajouter une pièce
+        {libelle}
       </button>
     );
   }
@@ -221,12 +240,12 @@ export function FormulairePiece({ employeeId, depotActif }: { employeeId: string
           </Champ>
         )}
         {def.delivrance && (
-          <Champ libelle="Délivrée le">
+          <Champ libelle={def.libelleDelivrance ?? "Délivrée le"}>
             <input name="delivreeLe" type="date" className={`${CLASSE_CHAMP} chiffres`} />
           </Champ>
         )}
         {def.expiration && (
-          <Champ libelle="Valable jusqu'au" precision="Une alerte prévient 30 jours avant.">
+          <Champ libelle={def.libelleExpiration ?? "Valable jusqu'au"} precision="Une alerte prévient 30 jours avant.">
             <input name="expireLe" type="date" className={`${CLASSE_CHAMP} chiffres`} />
           </Champ>
         )}
@@ -377,6 +396,7 @@ export function FormulaireEtatCivil({ employeeId, initial }: { employeeId: strin
 export interface EtatProfessionnelAffiche {
   emailProfessionnel: string | null;
   poste: string;
+  postesAutres: string[];
   service: string | null;
   superieurId: string | null;
   finPeriodeEssai: string | null;
@@ -416,15 +436,7 @@ export function FormulaireEtatProfessionnel({
         <Champ libelle="Adresse e-mail professionnelle" precision="Celle de l'entreprise, distincte de l'adresse personnelle.">
           <input name="emailProfessionnel" type="email" defaultValue={v("emailProfessionnel")} placeholder="prenom.nom@maria-groupe.com" className={CLASSE_CHAMP} />
         </Champ>
-        <Champ libelle="Poste">
-          <select name="poste" required defaultValue={initial.poste} className={CLASSE_CHAMP}>
-            {optionsPoste(postes, initial.poste).map((p) => (
-              <option key={p} value={p}>
-                {p}
-              </option>
-            ))}
-          </select>
-        </Champ>
+        <ChoixPostes postes={optionsPoste(postes, [initial.poste, ...initial.postesAutres])} principal={initial.poste} autres={initial.postesAutres} />
         <Champ libelle="Service">
           <input name="service" defaultValue={v("service")} placeholder="Comptabilité, Logistique…" className={CLASSE_CHAMP} />
         </Champ>

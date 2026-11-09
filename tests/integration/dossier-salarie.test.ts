@@ -102,7 +102,7 @@ describe("dossier du salarié en base", () => {
     const { organizationId: o } = await semerEntreprise(db, "Hiérarchie");
     const { id: chef } = await creerSalariePour(o, { nom: "Kouassi Yao", poste: "Directeur", debut: "2024-01-02", salaireBase: 0 });
     const { id: adjoint } = await creerSalariePour(o, { nom: "Adama Traoré", poste: "Chef de service", debut: "2025-03-01", salaireBase: 0 });
-    const etat = { emailProfessionnel: "adama.traore@maria-groupe.com", poste: "Chef de service", service: "Logistique", superieurId: chef, finPeriodeEssai: "2025-05-31", paiementSalaire: null, coordonneesPaiement: null };
+    const etat = { emailProfessionnel: "adama.traore@maria-groupe.com", poste: "Chef de service", service: "Logistique", superieurId: chef, finPeriodeEssai: "2025-05-31", paiementSalaire: null, coordonneesPaiement: null, postesAutres: [] };
 
     await modifierEtatProfessionnelPour(o, user, adjoint, etat);
     const [ligne] = await db.select().from(employees).where(eq(employees.id, adjoint));

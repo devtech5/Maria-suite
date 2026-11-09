@@ -101,7 +101,7 @@ export default async function PageDocuments({ searchParams }: PageProps<"/docume
     <>
       <EnTetePage
         titre="Documents"
-        sousTitre="Pièces rattachées aux clients, employés, actifs et contrats"
+        sousTitre="Pièces rattachées aux clients, collaborateurs, actifs et contrats"
         actions={
           <FormulaireDocument
             cibles={cibles}
@@ -156,7 +156,7 @@ export default async function PageDocuments({ searchParams }: PageProps<"/docume
         arborescence de dossiers. Un contrat qui concerne à la fois un client et
         un véhicule n&apos;a pas à choisir son dossier : il répond à la seule
         question posée devant l&apos;écran — quelles pièces ai-je sur ce client,
-        ce véhicule, cet employé. Les fichiers vivent dans un dépôt privé et ne
+        ce véhicule, ce collaborateur. Les fichiers vivent dans un dépôt privé et ne
         s&apos;ouvrent que par une adresse signée, valable cinq minutes.
       </p>
     </>
