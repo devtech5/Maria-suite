@@ -24,6 +24,7 @@ export const NATURES_PIECE = [
   "cv",
   "lettre_motivation",
   "autre",
+  "contrat_travail",
 ] as const;
 
 export type NaturePiece = (typeof NATURES_PIECE)[number];
@@ -37,8 +38,12 @@ export interface DefinitionPiece {
   /** Précision propre à la nature : catégories du permis, intitulé du diplôme. */
   precision?: string;
   delivrance: boolean;
+  /** Libellé de la date de délivrance, s'il diffère : « Signé le ». */
+  libelleDelivrance?: string;
   /** La pièce a une fin de validité, à surveiller. */
   expiration: boolean;
+  /** Libellé de la fin de validité, s'il diffère : « Terme du contrat ». */
+  libelleExpiration?: string;
   /** Une pièce sans fichier n'a pas de sens : un CV est un document. */
   fichierRequis: boolean;
   /**
@@ -47,10 +52,24 @@ export interface DefinitionPiece {
    */
   remplacable: boolean;
   /** Groupe d'affichage. */
-  groupe: "identite" | "social" | "banque" | "recrutement" | "autre";
+  groupe: "contrat" | "identite" | "social" | "banque" | "recrutement" | "autre";
 }
 
 export const PIECES: Record<NaturePiece, DefinitionPiece> = {
+  // Le contrat signé, numérisé : il s'accumule (contrat, avenants,
+  // renouvellements) au lieu de se remplacer, et son terme se surveille.
+  contrat_travail: {
+    libelle: "Contrat de travail",
+    numero: "N° du contrat",
+    precision: "Contrat, avenant ou renouvellement",
+    delivrance: true,
+    libelleDelivrance: "Signé le",
+    expiration: true,
+    libelleExpiration: "Terme du contrat (vide pour un CDI)",
+    fichierRequis: true,
+    remplacable: false,
+    groupe: "contrat",
+  },
   cni: { libelle: "Carte nationale d'identité", numero: "N° de la carte", organisme: "Délivrée par", delivrance: true, expiration: true, fichierRequis: false, remplacable: true, groupe: "identite" },
   passeport: { libelle: "Passeport", numero: "N° du passeport", organisme: "Délivré par", delivrance: true, expiration: true, fichierRequis: false, remplacable: true, groupe: "identite" },
   permis: { libelle: "Permis de conduire", numero: "N° du permis", precision: "Catégories (B, C, D…)", delivrance: true, expiration: true, fichierRequis: false, remplacable: true, groupe: "identite" },
@@ -67,6 +86,7 @@ export const PIECES: Record<NaturePiece, DefinitionPiece> = {
 };
 
 export const GROUPES_PIECE: { cle: DefinitionPiece["groupe"]; libelle: string }[] = [
+  { cle: "contrat", libelle: "Contrat de travail" },
   { cle: "identite", libelle: "Identité" },
   { cle: "social", libelle: "Santé et assurance" },
   { cle: "banque", libelle: "Banque" },

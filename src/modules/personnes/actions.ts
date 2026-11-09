@@ -190,23 +190,35 @@ export async function embaucherSalarie(
 
   // Les pièces jointes à l'embauche suivent l'embauche, elles ne la
   // conditionnent pas : un CV refusé ne doit pas faire ressaisir le contrat.
-  const avertissement = await joindreAEmbauche(session.organizationId, session.userId, cree.id, donnees);
+  const avertissement = await joindreAEmbauche(session.organizationId, session.userId, cree.id, donnees, {
+    contrat: valeurs.contrat,
+    fin: fin ?? null,
+  });
   revalidatePath("/rh", "layout");
   return { matricule: cree.matricule, avertissement };
 }
+
+const LIBELLE_CONTRAT_PIECE = {
+  cdi: "Contrat à durée indéterminée",
+  cdd: "Contrat à durée déterminée",
+  stage: "Convention de stage",
+  essai: "Contrat avec période d'essai",
+} as const;
 
 async function joindreAEmbauche(
   organizationId: string,
   userId: string,
   employeeId: string,
   donnees: FormData,
+  contratSigne: { contrat: "cdi" | "cdd" | "stage" | "essai"; fin: string | null },
 ): Promise<string | undefined> {
   const photo = texte(donnees, "photo");
   const cv = await fichierDe(donnees, "cv");
   const lettre = await fichierDe(donnees, "lettre");
+  const contrat = await fichierDe(donnees, "contrat");
   const pieceNumero = texte(donnees, "pieceNumero");
   const pieceNature = texte(donnees, "pieceNature") === "passeport" ? "passeport" : "cni";
-  if (!photo && !cv && !lettre && !pieceNumero) return undefined;
+  if (!photo && !cv && !lettre && !contrat && !pieceNumero) return undefined;
   if (!(await peut("personnes.dossier.gerer"))) {
     return "Salarié embauché, mais les pièces jointes n'ont pas été gardées : votre rôle ne permet pas de tenir les dossiers du personnel.";
   }
@@ -226,6 +238,20 @@ async function joindreAEmbauche(
       await ajouterPiecePour(organizationId, userId, employeeId, { nature: pieceNature, numero: pieceNumero }, null);
     } catch (erreur) {
       refus.push(erreur instanceof Error ? erreur.message : "pièce d'identité refusée");
+    }
+  }
+  // Le contrat signé, numérisé : son terme est celui du contrat saisi.
+  if (contrat) {
+    try {
+      await ajouterPiecePour(
+        organizationId,
+        userId,
+        employeeId,
+        { nature: "contrat_travail", precision: LIBELLE_CONTRAT_PIECE[contratSigne.contrat], expireLe: contratSigne.fin },
+        contrat,
+      );
+    } catch (erreur) {
+      refus.push(erreur instanceof Error ? erreur.message : "contrat refusé");
     }
   }
   for (const [nature, fichier] of [["cv", cv], ["lettre_motivation", lettre]] as const) {

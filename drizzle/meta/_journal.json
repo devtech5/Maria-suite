@@ -477,6 +477,13 @@
       "when": 1794244175953,
       "tag": "0067_affectations_postes",
       "breakpoints": true
+    },
+    {
+      "idx": 68,
+      "version": "7",
+      "when": 1794244552759,
+      "tag": "0068_contrat_de_travail",
+      "breakpoints": true
     }
   ]
 }

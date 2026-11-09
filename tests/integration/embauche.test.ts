@@ -70,3 +70,26 @@ describe("embauche complète en base", () => {
     await expect(creerSalariePour(org, { ...base, paiementSalaire: "bitcoin" as never })).rejects.toThrow();
   });
 });
+
+describe("contrat de travail au dossier", () => {
+  it("exige le document, et la base connaît la nature", async () => {
+    const { ajouterPiecePour } = await import("@/modules/personnes/dossier");
+    const { piecesEmploye } = await import("@/modules/personnes/schema");
+    const { newId } = await import("@/lib/ids");
+    const { id } = await creerSalariePour(org, { nom: "Contrat Test", poste: "Comptable", debut: "2026-01-01", salaireBase: 0 }, user);
+    await expect(ajouterPiecePour(org, user, id, { nature: "contrat_travail" }, null)).rejects.toThrow(/Contrat de travail : joignez le document/);
+    await db.insert(piecesEmploye).values({
+      id: newId(),
+      organizationId: org,
+      employeeId: id,
+      nature: "contrat_travail",
+      precision: "Contrat à durée indéterminée",
+      chemin: `${org}/contrat.pdf`,
+      nomFichier: "contrat-signe.pdf",
+      typeMime: "application/pdf",
+      tailleOctets: 1024,
+    });
+    const lignes = await db.select({ nature: piecesEmploye.nature }).from(piecesEmploye).where(eq(piecesEmploye.employeeId, id));
+    expect(lignes.map((l) => l.nature)).toEqual(["contrat_travail"]);
+  });
+});

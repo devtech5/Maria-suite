@@ -272,7 +272,18 @@ export default async function PageFicheSalarie({ params }: { params: Promise<{ i
               </p>
             )}
           </div>
-          {gerer && <FormulairePiece employeeId={id} depotActif={stockageConfigure()} />}
+          {gerer && (
+            <div className="flex flex-wrap items-start gap-2">
+              <FormulairePiece
+                employeeId={id}
+                depotActif={stockageConfigure()}
+                natureInitiale="contrat_travail"
+                libelle="Joindre le contrat"
+                secondaire
+              />
+              <FormulairePiece employeeId={id} depotActif={stockageConfigure()} />
+            </div>
+          )}
         </div>
 
         {!voitLeDossier ? (

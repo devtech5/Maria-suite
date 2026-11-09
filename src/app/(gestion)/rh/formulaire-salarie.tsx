@@ -543,6 +543,9 @@ export function FormulaireSalarie({
                 salarié — CMU, casier, diplômes… */}
             {dossier && (
               <Section titre="Pièces jointes — facultatives">
+                <Champ libelle="Contrat signé" precision="Le contrat numérisé, versé au dossier avec son terme.">
+                  <input name="contrat" type="file" accept="application/pdf,.doc,.docx,image/*" className={CLASSE_FICHIER} />
+                </Champ>
                 <Champ libelle="CV" precision="PDF, Word ou photo.">
                   <input name="cv" type="file" accept="application/pdf,.doc,.docx,image/*" className={CLASSE_FICHIER} />
                 </Champ>
