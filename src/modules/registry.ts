@@ -263,6 +263,19 @@ export const MODULES: ModuleDefinition[] = [
   },
 
   {
+    key: "guide",
+    name: "Guide d'utilisation",
+    layer: "socle",
+    // Contenu dans le code : un chapitre par entrée du menu, plus ceux de
+    // tous, avec captures annotées. Même filtre que le menu. En base : les
+    // chapitres lus et les passages du quiz ; suivi du parcours par les RH.
+    // Aide « ? » de chaque écran vers sa section.
+    status: "en_cours",
+    requires: [],
+    description: "Le guide de l'application, limité aux modules ouverts à chacun : parcours du nouveau venu, quiz, aide sur chaque écran.",
+  },
+
+  {
     key: "prestataires",
     name: "Prestataires externes",
     layer: "socle",

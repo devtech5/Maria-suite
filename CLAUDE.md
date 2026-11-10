@@ -376,6 +376,34 @@ personne.
 les restrictions ; il ne se propose pas à la composition d'un rôle. Suivi des
 lectures et relance (une par heure au plus) sur `/reglement/versions/[id]`.
 
+## Guide d'utilisation
+
+`src/modules/guide/`. Le guide de L'APPLICATION, écrit dans le code : un
+chapitre par entrée du menu (`chapitres-*.ts`, champ `entree` = `href` de
+`GROUPES_MODULES`), plus ceux de tous (premiers pas, règlement). **Même
+filtre que le menu** (`chapitresPour` sur `groupesVisibles`) : on ne lit que
+les modules qu'on peut ouvrir. Une entrée de menu ajoutée appelle son
+chapitre ; `tests/guide.test.ts` vérifie que chaque chapitre pointe une
+entrée réelle et que chaque question a sa bonne réponse.
+
+Parcours du nouveau venu : chaque chapitre se marque lu (`guide_lectures`),
+puis le quiz (`guide_quiz`, 80 % pour réussir) tire au plus 12 questions de
+SES chapitres, une par chapitre d'abord. La graine est le compte et le
+numéro d'essai : l'écran et la correction serveur tirent les mêmes
+questions, les bonnes réponses ne descendent jamais au navigateur. Suivi par
+les RH (`guide.suivre`) sur `/guide/suivi`. `guide.consulter` est dans
+`DROITS_DE_TOUS`.
+
+Aide « ? » de la barre du haut (`AideContextuelle`, coque de gestion) : la
+section dont le `chemin` couvre l'écran, sinon le chapitre de l'entrée.
+
+Captures annotées : `pnpm guide:captures` (`src/scripts/captures-guide.ts`)
+photographie chaque `capture` déclarée sur une base de DÉMONSTRATION, place
+les repères numérotés d'après leurs sélecteurs et écrit
+`public/guide/*.jpg` et `captures.json`. Toute adresse e-mail est masquée
+avant la prise ; revoir chaque image avant de la committer. Jamais contre la
+production.
+
 ## Interrogations de fond et liens publics
 
 Tout ce qui interroge le serveur en tâche de fond — la cloche, la

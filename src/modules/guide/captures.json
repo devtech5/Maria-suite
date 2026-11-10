@@ -1,0 +1,92 @@
+{
+  "accueil": {
+    "largeur": 1366,
+    "hauteur": 860,
+    "reperes": [
+      [
+        24.8,
+        42.1
+      ],
+      [
+        62.3,
+        42.1
+      ],
+      [
+        85.3,
+        1.9
+      ]
+    ]
+  },
+  "messagerie": {
+    "largeur": 1366,
+    "hauteur": 860,
+    "reperes": [
+      [
+        47.7,
+        10.6
+      ]
+    ]
+  },
+  "meeting": {
+    "largeur": 1366,
+    "hauteur": 860,
+    "reperes": [
+      [
+        52.6,
+        9.1
+      ]
+    ]
+  },
+  "factures": {
+    "largeur": 1366,
+    "hauteur": 860,
+    "reperes": [
+      [
+        42.9,
+        15.8
+      ]
+    ]
+  },
+  "personnel": {
+    "largeur": 1366,
+    "hauteur": 860,
+    "reperes": [
+      [
+        48.6,
+        9.1
+      ],
+      [
+        41.5,
+        9.1
+      ]
+    ]
+  },
+  "planning": {
+    "largeur": 1366,
+    "hauteur": 860,
+    "reperes": [
+      [
+        36.4,
+        9.1
+      ],
+      [
+        47.8,
+        9.1
+      ]
+    ]
+  },
+  "taches": {
+    "largeur": 1366,
+    "hauteur": 860,
+    "reperes": [
+      [
+        98,
+        9.8
+      ],
+      [
+        77.4,
+        26.2
+      ]
+    ]
+  }
+}

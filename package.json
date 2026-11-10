@@ -16,6 +16,7 @@
     "db:migrate": "drizzle-kit migrate",
     "db:check": "tsx src/scripts/verifier-base.ts",
     "db:droits": "tsx src/scripts/synchroniser-droits.ts",
+    "guide:captures": "tsx src/scripts/captures-guide.ts",
     "installer": "tsx src/scripts/installer.ts",
     "installer:local": "dotenv -v DATABASE_URL=pglite:./.pglite -- tsx src/scripts/installer.ts",
     "db:push": "drizzle-kit push",

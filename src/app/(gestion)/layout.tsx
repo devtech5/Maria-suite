@@ -5,9 +5,13 @@ import { Cloche } from "@/components/coque/cloche";
 import { FilAriane } from "@/components/coque/fil-ariane";
 import type { OptionSelecteur } from "@/components/coque/selecteur";
 import { VerrouInactivite } from "@/components/coque/verrou-inactivite";
+import { AideContextuelle } from "@/components/guide/aide-contextuelle";
 import { exigerEntreprise } from "@/lib/auth/dal";
 import { droitsActifs } from "@/lib/droits/garde";
 import { modulesOuverts } from "@/lib/modules/garde";
+import { groupesVisibles } from "@/lib/navigation";
+import { CHAPITRES, RACINES } from "@/modules/guide/chapitres";
+import { chapitresPour, cheminsAide } from "@/modules/guide/regles";
 import { annoncerApresReponse } from "@/modules/personnes/anniversaires-annonces";
 import { pointerApresReponse } from "@/modules/presences/pointage";
 
@@ -36,6 +40,11 @@ export default async function LayoutGestion({ children }: LayoutProps<"/">) {
   annoncerApresReponse(session.organizationId);
   const droits = [...(await droitsActifs())];
   const ouverts = modulesOuverts();
+  // Le « ? » de chaque écran : les sections du guide que cette session peut lire.
+  const visibles = groupesVisibles(droits, ouverts);
+  const aides = visibles.some((g) => g.modules.some((m) => m.href === "/guide"))
+    ? cheminsAide(chapitresPour(CHAPITRES, visibles.flatMap((g) => g.modules.map((m) => m.href))), RACINES)
+    : null;
 
   // L'exercice reste figé tant que le module comptable ne gère pas la clôture :
   // proposer d'en changer avant de savoir le faire serait un leurre.
@@ -78,6 +87,7 @@ export default async function LayoutGestion({ children }: LayoutProps<"/">) {
               contexte={<FilAriane entreprise={session.organizationNom} exercice={exerciceCourant} exercices={[exerciceCourant]} />}
               outils={
                 <>
+                  {aides && <AideContextuelle aides={aides} />}
                   <Calculette />
                   <Cloche />
                 </>
