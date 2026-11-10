@@ -3,6 +3,9 @@ import "server-only";
 import { cache } from "react";
 import { redirect } from "next/navigation";
 
+import { moduleOuvert } from "@/lib/modules/garde";
+import { CLE_MODULE_REGLEMENT, versionAAccepter } from "@/modules/reglement/garde";
+
 import { CONNEXION_EXPIREE, lireSession, type SessionActive } from "./session";
 
 /**
@@ -22,12 +25,30 @@ export const session = cache(lireSession);
 
 export interface OptionsSession {
   /**
-   * Sert la requête même si l'écran est verrouillé. Réservé à la caisse : elle
-   * reste ouverte entre deux clients, et un encaissement refusé parce qu'un
-   * onglet de gestion voisin s'est voilé ferait attendre le client au comptoir.
+   * Sert la requête même si l'écran est verrouillé. Réservé à la salle
+   * Meeting : on y écoute sans toucher la souris, et une réunion coupée parce
+   * qu'un onglet de gestion voisin s'est voilé ferait perdre le fil à tous.
    */
   malgreVerrou?: boolean;
+  /**
+   * Sert la requête même si le règlement intérieur en vigueur n'est pas
+   * encore accepté. Réservé à l'écran de lecture lui-même, à la garde des
+   * droits et aux actions de la salle Meeting : une version entrée en vigueur
+   * pendant une réunion ne doit pas la couper.
+   */
+  malgreReglement?: boolean;
 }
+
+/**
+ * Version du règlement à accepter avant tout, dédupliquée pour la durée du
+ * rendu. Null si le module n'est pas ouvert, ou si tout est accepté.
+ */
+const reglementEnAttente = cache(async (organizationId: string, userId: string): Promise<string | null> =>
+  moduleOuvert(CLE_MODULE_REGLEMENT) ? versionAAccepter(organizationId, userId) : null,
+);
+
+/** L'écran où se lit et s'accepte le règlement en vigueur. */
+export const LECTURE_REGLEMENT = "/lecture-reglement";
 
 /**
  * Exige une session. Redirige vers la connexion sinon.
@@ -59,5 +80,10 @@ export async function exigerEntreprise(options: OptionsSession = {}): Promise<
 > {
   const active = await exigerSession(options);
   if (!active.organizationId) redirect("/sans-acces");
+  // Règlement intérieur : à la première connexion et à chaque nouvelle
+  // version, rien ne s'ouvre avant « J'ai lu et j'accepte ». Contrôlé ici,
+  // à chaque page et à chaque action, et non dans un layout : un layout ne
+  // se rejoue pas d'une page à l'autre.
+  if (!options.malgreReglement && (await reglementEnAttente(active.organizationId, active.userId))) redirect(LECTURE_REGLEMENT);
   return active as SessionActive & { organizationId: string };
 }

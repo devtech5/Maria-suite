@@ -5,7 +5,7 @@ import { exigerEntreprise } from "@/lib/auth/dal";
 import { rolesDeLEntreprise } from "@/lib/auth/roles";
 import { modulesCoupes, modulesDesactivesParRole } from "@/lib/auth/acces";
 import { modulesDuRole } from "@/lib/droits/acces";
-import { droitsParModule } from "@/lib/droits/catalogue";
+import { DROITS_DE_TOUS, droitsParModule } from "@/lib/droits/catalogue";
 import { iconeDuModule, modulesParGroupe } from "@/lib/modules/icones";
 import { modulesOuverts } from "@/lib/modules/garde";
 import { droitsActifs } from "@/lib/droits/garde";
@@ -53,12 +53,14 @@ export default async function PageRoles() {
     .map((groupe) => ({
     moduleKey: groupe.moduleKey,
     libelle: getModule(groupe.moduleKey)?.name ?? LIBELLE_TRANSVERSE,
-    droits: groupe.droits.map((droit) => ({
+    // Un droit de tout compte (lire le règlement) n'a pas de case : il ne se retire pas.
+    droits: groupe.droits.filter((droit) => !DROITS_DE_TOUS.includes(droit.cle)).map((droit) => ({
       cle: droit.cle,
       libelle: droit.libelle,
       description: droit.description ?? null,
     })),
-  }));
+  }))
+    .filter((groupe) => groupe.droits.length > 0);
 
   const visibles = new Set(groupes.flatMap((g) => g.droits.map((d) => d.cle)));
   const composes = roles.filter((role) => !role.systeme).length;

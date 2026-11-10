@@ -8,7 +8,7 @@ import { accesModules, accesModulesRoles, memberships, organizationModules, role
 import { exigerEntreprise } from "@/lib/auth/dal";
 import type { SessionActive } from "@/lib/auth/session";
 import { appliquerRestrictions, type NiveauAcces } from "./acces";
-import { type Droit, definitionDroit, presetRole, resoudreDroits } from "./catalogue";
+import { type Droit, avecDroitsDeTous, definitionDroit, presetRole, resoudreDroits } from "./catalogue";
 
 export type SessionEntreprise = SessionActive & { organizationId: string };
 
@@ -38,12 +38,13 @@ export type SessionEntreprise = SessionActive & { organizationId: string };
  * module (`src/lib/droits/acces.ts`). Une restriction ne peut rien ajouter.
  */
 export const droitsActifs = cache(async (): Promise<Set<Droit>> => {
-  // Le verrou n'est pas affaire de droits : il se contrôle là où la session
-  // est exigée, page ou action. Le vérifier ici aussi fermerait la caisse,
-  // qui en est exemptée, dès qu'un onglet de gestion voisin se voile.
-  const session = await exigerEntreprise({ malgreVerrou: true });
+  // Le verrou et le règlement intérieur ne sont pas affaire de droits : ils
+  // se contrôlent là où la session est exigée, page ou action. Les vérifier
+  // ici aussi fermerait la salle Meeting, qui en est exemptée, dès qu'un
+  // onglet de gestion voisin se voile.
+  const session = await exigerEntreprise({ malgreVerrou: true, malgreReglement: true });
   const [duRole, restrictions] = await Promise.all([droitsDuRole(session), restrictionsDe(session)]);
-  return appliquerRestrictions(duRole, restrictions);
+  return appliquerRestrictions(avecDroitsDeTous(duRole), restrictions);
 });
 
 /** Droits que le rôle accorde, avant toute restriction par module. */

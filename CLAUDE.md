@@ -350,6 +350,32 @@ par demi-heure et par processus), et l'index unique de
 Affichage, pour tous : page `/anniversaires` (menu Équipe, droit
 `planning.utiliser`), bandeau de l'accueil, calendrier du mois du planning.
 
+## Règlement intérieur : lecture bloquante
+
+`src/modules/reglement/` (règles pures dans `regles.ts`). Les RH (droit
+`reglement.gerer`) rédigent une version article par article — un seul
+brouillon à la fois, repris du texte de la dernière publiée — puis la
+publient avec une date d'effet, jamais antérieure au jour (fuseau de
+l'entreprise). La publication attribue le numéro (`document_sequences`, clé
+`reglement`) et fige le texte : corriger, c'est publier une nouvelle version.
+Tout le monde est prévenu dans la cloche.
+
+**Le blocage vit dans `exigerEntreprise`**, à chaque page et à chaque action
+(pas dans un layout, qui ne se rejoue pas d'une page à l'autre) : tant que la
+version en vigueur n'est pas acceptée, tout renvoie vers `/lecture-reglement`,
+hors coque, où « J'ai lu et j'accepte » ne se coche qu'une fois le texte
+parcouru. L'acceptation est horodatée, une par version et par compte
+(`reglement_acceptations`, IP et appareil). Une version publiée à l'avance
+se lit et s'accepte dès sa publication, et ne bloque qu'à sa date d'effet.
+`malgreReglement` exempte l'écran de lecture, la garde des droits et les
+actions de la salle Meeting — nulle part ailleurs. Un module coupé ne bloque
+personne.
+
+`reglement.consulter` est dans `DROITS_DE_TOUS` : `droitsActifs` et
+`utilisateursAyantDroit` l'ajoutent à tout rôle, préréglé ou composé, avant
+les restrictions ; il ne se propose pas à la composition d'un rôle. Suivi des
+lectures et relance (une par heure au plus) sur `/reglement/versions/[id]`.
+
 ## Interrogations de fond et liens publics
 
 Tout ce qui interroge le serveur en tâche de fond — la cloche, la

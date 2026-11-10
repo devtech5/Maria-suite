@@ -236,6 +236,16 @@ const DESSINS: Record<CleIcone, ReactNode> = {
       <path d="M14 24h14M14 30h14M14 36h8" stroke={BLANC} strokeWidth="3" strokeLinecap="round" />
     </>
   ),
+  reglement: (
+    <>
+      <rect x="9" y="4" width="30" height="40" rx="4" fill={BLEU} />
+      <rect x="15" y="12" width="18" height="3" rx="1.5" fill={BLANC} opacity=".9" />
+      <rect x="15" y="19" width="18" height="3" rx="1.5" fill={BLANC} opacity=".9" />
+      <rect x="15" y="26" width="11" height="3" rx="1.5" fill={BLANC} opacity=".9" />
+      <circle cx="35" cy="36" r="9" fill={SARCELLE} />
+      <path d="m30.5 36 3 3 6-6.5" stroke={BLANC} strokeWidth="3" fill="none" strokeLinecap="round" strokeLinejoin="round" />
+    </>
+  ),
   archives: (
     <>
       <rect x="9" y="17" width="30" height="25" rx="3" fill={JAUNE} />
