@@ -2,13 +2,14 @@ import type { Metadata } from "next";
 import Link from "next/link";
 
 import { FormulaireReunion } from "@/components/meeting/formulaire-reunion";
+import { MenuReunion } from "@/components/meeting/gestes-reunion";
 import { CarteIndicateur, EnTetePage, EtatVide, Pastille, type TonPastille } from "@/components/ui/primitives";
 import { Recherche } from "@/components/ui/recherche";
 import { exigerEntreprise } from "@/lib/auth/dal";
 import { peut } from "@/lib/droits/garde";
 import { fmtEntier } from "@/lib/format";
 import { lireFiltresListe } from "@/lib/recherche";
-import { LIBELLE_STATUT, rejoignable, type Statut } from "@/modules/meeting/calcul";
+import { LIBELLE_STATUT, gestesLien, pilote, rejoignable, type Acteur, type Statut } from "@/modules/meeting/calcul";
 import { fuseauDe, listerReunions, membresInvitables, type ReunionListee } from "@/modules/meeting/requetes";
 import { jourLocal } from "@/modules/presences/calcul";
 
@@ -16,14 +17,16 @@ export const metadata: Metadata = { title: "Meeting" };
 
 const TON: Record<Statut, TonPastille> = { en_cours: "valide", planifiee: "marque", terminee: "neutre", annulee: "danger" };
 
-function Ligne({ r, jour, heure }: { r: ReunionListee; jour: Intl.DateTimeFormat; heure: Intl.DateTimeFormat }) {
+function Ligne({ r, jour, heure, acteur }: { r: ReunionListee; jour: Intl.DateTimeFormat; heure: Intl.DateTimeFormat; acteur: Acteur }) {
   const fin = new Date(r.debutPrevu.getTime() + r.dureeMinutes * 60_000);
+  const ouverte = rejoignable(r.statut) && (r.lienActif || pilote(r, acteur));
   return (
     <li className="flex flex-wrap items-center justify-between gap-3 px-4 py-3">
       <Link href={`/meeting/${r.id}`} className="min-w-0 flex-1 hover:underline">
         <p className="flex flex-wrap items-center gap-2 text-sm font-semibold">
           <span className="truncate">{r.titre}</span>
           <Pastille ton={TON[r.statut]}>{LIBELLE_STATUT[r.statut]}</Pastille>
+          {rejoignable(r.statut) && !r.lienActif && <Pastille ton="alerte">Lien désactivé</Pastille>}
         </p>
         <p className="mt-0.5 text-xs text-[var(--encre-faible)]">
           <span className="chiffres">{r.numero}</span> · {jour.format(r.debutPrevu)}, {heure.format(r.debutPrevu)}–{heure.format(fin)} · {r.organisateur} ·{" "}
@@ -31,28 +34,37 @@ function Ligne({ r, jour, heure }: { r: ReunionListee; jour: Intl.DateTimeFormat
           {r.statut === "en_cours" ? ` · ${r.presents} dans la salle` : ""}
         </p>
       </Link>
-      {rejoignable(r.statut) && (
-        <Link
-          href={`/meeting/${r.id}/salle`}
-          className={`h-cible inline-flex items-center rounded-lg px-3.5 text-sm font-semibold ${
-            r.statut === "en_cours" ? "bg-valide-500 text-white hover:opacity-90" : "border border-[var(--filet)] hover:bg-[var(--surface-creuse)]"
-          }`}
-        >
-          {r.statut === "en_cours" ? "Rejoindre" : "Entrer dans la salle"}
-        </Link>
-      )}
+      <span className="flex items-center gap-1">
+        {ouverte && (
+          <Link
+            href={`/meeting/${r.id}/salle`}
+            className={`h-cible inline-flex items-center rounded-lg px-3.5 text-sm font-semibold ${
+              r.statut === "en_cours" ? "bg-valide-500 text-white hover:opacity-90" : "border border-[var(--filet)] hover:bg-[var(--surface-creuse)]"
+            }`}
+          >
+            {r.statut === "en_cours" ? "Rejoindre" : "Entrer dans la salle"}
+          </Link>
+        )}
+        <MenuReunion
+          reunionId={r.id}
+          numero={r.numero}
+          enCours={r.statut === "en_cours"}
+          peutTerminer={pilote(r, acteur)}
+          gestesLien={gestesLien(r.statut, r.lienActif, r, acteur)}
+        />
+      </span>
     </li>
   );
 }
 
-function Section({ titre, liste, jour, heure }: { titre: string; liste: ReunionListee[]; jour: Intl.DateTimeFormat; heure: Intl.DateTimeFormat }) {
+function Section({ titre, liste, jour, heure, acteur }: { titre: string; liste: ReunionListee[]; jour: Intl.DateTimeFormat; heure: Intl.DateTimeFormat; acteur: Acteur }) {
   if (liste.length === 0) return null;
   return (
     <section className="mb-5">
       <h2 className="mb-2 text-sm font-semibold text-[var(--encre-douce)]">{titre}</h2>
       <ul className="divide-y divide-[var(--filet)] overflow-hidden rounded-xl border border-[var(--filet)] bg-[var(--surface)]">
         {liste.map((r) => (
-          <Ligne key={r.id} r={r} jour={jour} heure={heure} />
+          <Ligne key={r.id} r={r} jour={jour} heure={heure} acteur={acteur} />
         ))}
       </ul>
     </section>
@@ -76,6 +88,7 @@ export default async function PageMeeting({ searchParams }: PageProps<"/meeting"
     fuseauDe(session.organizationId),
   ]);
   const listees = trouvees ?? reunions;
+  const acteur: Acteur = { userId: session.userId, organise };
   const membres = organise ? await membresInvitables(session.organizationId) : [];
 
   const maintenant = new Date();
@@ -124,9 +137,9 @@ export default async function PageMeeting({ searchParams }: PageProps<"/meeting"
             <EtatVide titre="Aucun résultat" message="Aucune réunion où vous êtes invité ne répond. Élargissez la période ou retirez un mot." />
           ) : (
             <>
-              <Section titre="En cours" liste={section(["en_cours"])} jour={jour} heure={heure} />
-              <Section titre="À venir" liste={section(["planifiee"])} jour={jour} heure={heure} />
-              <Section titre="Passées" liste={section(["terminee", "annulee"])} jour={jour} heure={heure} />
+              <Section titre="En cours" liste={section(["en_cours"])} jour={jour} heure={heure} acteur={acteur} />
+              <Section titre="À venir" liste={section(["planifiee"])} jour={jour} heure={heure} acteur={acteur} />
+              <Section titre="Passées" liste={section(["terminee", "annulee"])} jour={jour} heure={heure} acteur={acteur} />
             </>
           )}
         </>

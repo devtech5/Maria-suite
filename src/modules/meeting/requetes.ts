@@ -6,7 +6,7 @@ import { db } from "@/db";
 import { motsRecherche, type FiltresListe } from "@/lib/recherche";
 import { dansPeriodeSql, motsDans } from "@/lib/recherche-sql";
 
-import { present, type Statut } from "./calcul";
+import { present, reactionVisible, type Statut } from "./calcul";
 
 const enDate = (v: string | Date) => (v instanceof Date ? v : new Date(v));
 const peutEtre = (v: string | Date | null) => (v ? enDate(v) : null);
@@ -22,6 +22,8 @@ export interface ReunionListee {
   organisateur: string;
   invites: number;
   presents: number;
+  /** Le lien de la salle répond. */
+  lienActif: boolean;
 }
 
 const RANG: Record<Statut, number> = { en_cours: 0, planifiee: 1, terminee: 2, annulee: 2 };
@@ -52,11 +54,12 @@ export async function listerReunions(organizationId: string, userId: string, mai
     statut: Statut;
     organisateur_user_id: string;
     organisateur: string | null;
+    lien_actif: boolean;
     invites: number | string;
     derniers_signaux: (string | Date | null)[] | string | null;
   }>(sql`
     select r.id, r.numero, r.titre, r.debut_prevu, r.duree_minutes, r.statut, r.organisateur_user_id,
-           o.full_name as organisateur,
+           o.full_name as organisateur, r.lien_actif,
            (select count(*) from reunion_participants p where p.reunion_id = r.id)::int as invites,
            (select coalesce(json_agg(p.vu_le), '[]'::json) from reunion_participants p where p.reunion_id = r.id and p.vu_le is not null) as derniers_signaux
     from reunions r
@@ -82,6 +85,7 @@ export async function listerReunions(organizationId: string, userId: string, mai
       organisateurUserId: l.organisateur_user_id,
       organisateur: l.organisateur ?? "Ancien membre",
       invites: Number(l.invites),
+      lienActif: Boolean(l.lien_actif),
       presents: l.statut === "en_cours" ? signaux(l.derniers_signaux).filter((s) => present(peutEtre(s), maintenant)).length : 0,
     }))
     .sort((a, b) => {
@@ -107,6 +111,7 @@ export interface ReunionDetaillee {
   compteRendu: string | null;
   annuleeLe: Date | null;
   motifAnnulation: string | null;
+  lienActif: boolean;
 }
 
 export async function reunionDe(organizationId: string, reunionId: string): Promise<ReunionDetaillee | null> {
@@ -126,10 +131,11 @@ export async function reunionDe(organizationId: string, reunionId: string): Prom
     compte_rendu: string | null;
     annulee_le: string | Date | null;
     motif_annulation: string | null;
+    lien_actif: boolean;
   }>(sql`
     select r.id, r.numero, r.titre, r.ordre_du_jour, r.debut_prevu, r.duree_minutes, r.statut,
            r.organisateur_user_id, o.full_name as organisateur, r.ouverte_le, r.terminee_le,
-           t.full_name as terminateur, r.compte_rendu, r.annulee_le, r.motif_annulation
+           t.full_name as terminateur, r.compte_rendu, r.annulee_le, r.motif_annulation, r.lien_actif
     from reunions r
     left join users o on o.id = r.organisateur_user_id
     left join users t on t.id = r.terminee_par_user_id
@@ -152,6 +158,7 @@ export async function reunionDe(organizationId: string, reunionId: string): Prom
     compteRendu: l.compte_rendu,
     annuleeLe: peutEtre(l.annulee_le),
     motifAnnulation: l.motif_annulation,
+    lienActif: Boolean(l.lien_actif),
   };
 }
 
@@ -165,6 +172,10 @@ export interface ParticipantVue {
   micro: boolean;
   camera: boolean;
   ecran: boolean;
+  /** Main levée, dans la salle. */
+  main: boolean;
+  /** Réaction récente (👍, 👏…), nulle passé quelques secondes. */
+  reaction: string | null;
 }
 
 /** Invités d'une réunion et leur présence : la feuille de présence comme la salle la lisent. */
@@ -178,8 +189,12 @@ export async function participantsDe(organizationId: string, reunionId: string, 
     micro: boolean;
     camera: boolean;
     ecran: boolean;
+    main_levee: boolean;
+    reaction: string | null;
+    reaction_le: string | Date | null;
   }>(sql`
-    select p.user_id, u.full_name as nom, p.rejoint_le, p.vu_le, p.secondes_presence, p.micro, p.camera, p.ecran
+    select p.user_id, u.full_name as nom, p.rejoint_le, p.vu_le, p.secondes_presence, p.micro, p.camera, p.ecran,
+           p.main_levee, p.reaction, p.reaction_le
     from reunion_participants p
     left join users u on u.id = p.user_id
     where p.organization_id = ${organizationId} and p.reunion_id = ${reunionId} and p.deleted_at is null
@@ -196,8 +211,37 @@ export async function participantsDe(organizationId: string, reunionId: string, 
       micro: ici && l.micro,
       camera: ici && l.camera,
       ecran: ici && l.ecran,
+      main: ici && Boolean(l.main_levee),
+      reaction: ici && reactionVisible(peutEtre(l.reaction_le), maintenant) ? l.reaction : null,
     };
   });
+}
+
+export interface MessageSalle {
+  id: string;
+  userId: string;
+  nom: string;
+  corps: string;
+  /** ISO : le message traverse la frontière serveur → navigateur. */
+  le: string;
+}
+
+/**
+ * Discussion de la salle, dans l'ordre. `depuis` (ISO) ne rend que la suite :
+ * le signal de présence n'apporte que les nouveaux messages.
+ */
+export async function messagesDeSalle(organizationId: string, reunionId: string, depuis?: string | null): Promise<MessageSalle[]> {
+  const borne = depuis && !Number.isNaN(Date.parse(depuis)) ? new Date(depuis).toISOString() : null;
+  const lignes = await db.execute<{ id: string; user_id: string; nom: string | null; corps: string; created_at: string | Date }>(sql`
+    select m.id, m.user_id, u.full_name as nom, m.corps, m.created_at
+    from reunion_messages m
+    left join users u on u.id = m.user_id
+    where m.organization_id = ${organizationId} and m.reunion_id = ${reunionId} and m.deleted_at is null
+      ${borne ? sql`and m.created_at > ${borne}::timestamptz` : sql``}
+    order by m.created_at, m.id
+    limit 500
+  `);
+  return lignes.map((l) => ({ id: l.id, userId: l.user_id, nom: l.nom ?? "Ancien membre", corps: l.corps, le: enDate(l.created_at).toISOString() }));
 }
 
 /** Membres actifs, pour choisir les invités. */

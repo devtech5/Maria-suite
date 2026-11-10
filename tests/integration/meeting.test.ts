@@ -9,15 +9,18 @@ import { cheminFlux } from "@/modules/meeting/calcul";
 import { deciderReunion } from "@/modules/meeting/autorisation";
 import {
   appliquerGesteDans,
+  appliquerGesteLienDans,
   creerReunionDans,
+  ecrireEnSalleDans,
   enregistrerCompteRenduDans,
   inviterDans,
   quitterDans,
+  reagirDans,
   rejoindreDans,
   signalerDans,
 } from "@/modules/meeting/creation";
 import { signerFlux } from "@/modules/meeting/jetons";
-import { listerReunions, participantsDe, reunionDe } from "@/modules/meeting/requetes";
+import { listerReunions, messagesDeSalle, participantsDe, reunionDe } from "@/modules/meeting/requetes";
 
 import { ouvrirBaseDeTest, semerEntreprise } from "./base";
 
@@ -133,6 +136,46 @@ describe("réunion de bout en bout", () => {
     await expect(
       db.transaction((tx) => creerReunionDans(tx, org, { titre: "Réunion sauvage", debutPrevu: t("10:00:00"), dureeMinutes: 30, participants: [] }, awa)),
     ).rejects.toThrow(/organiser/);
+  });
+
+  it("désactive le lien, puis supprime la réunion de toutes les listes", async () => {
+    const { id } = await db.transaction((tx) =>
+      creerReunionDans(tx, org, { titre: "Chantier de Cocody", debutPrevu: new Date(), dureeMinutes: 30, participants: [awa.userId, kone.userId] }, gerant),
+    );
+    // Un participant ne touche pas au lien.
+    await expect(db.transaction((tx) => appliquerGesteLienDans(tx, org, id, "desactiver", awa))).rejects.toThrow(/organisateur/);
+
+    await db.transaction((tx) => appliquerGesteLienDans(tx, org, id, "desactiver", gerant));
+    expect((await reunionDe(org, id))?.lienActif).toBe(false);
+    await expect(db.transaction((tx) => rejoindreDans(tx, org, id, awa))).rejects.toThrow(/désactivé/);
+    // L'organisateur, lui, entre toujours ; la réunion s'ouvre.
+    await db.transaction((tx) => rejoindreDans(tx, org, id, gerant));
+    expect((await listerReunions(org, awa.userId)).find((r) => r.id === id)).toMatchObject({ statut: "en_cours", lienActif: false });
+
+    await db.transaction((tx) => appliquerGesteLienDans(tx, org, id, "reactiver", gerant));
+    await db.transaction((tx) => rejoindreDans(tx, org, id, awa));
+
+    // Main levée, réaction, discussion.
+    await db.transaction((tx) => signalerDans(tx, org, id, awa.userId, { micro: true, camera: false, ecran: false, main: true }));
+    await db.transaction((tx) => reagirDans(tx, org, id, awa.userId, "👏"));
+    await expect(db.transaction((tx) => reagirDans(tx, org, id, awa.userId, "💣"))).rejects.toThrow(/inconnue/);
+    expect((await participantsDe(org, id)).find((p) => p.userId === awa.userId)).toMatchObject({ main: true, reaction: "👏" });
+    await db.transaction((tx) => ecrireEnSalleDans(tx, org, id, awa.userId, "  Je vous entends mal.  "));
+    await expect(db.transaction((tx) => ecrireEnSalleDans(tx, org, id, yao.userId, "Bonjour"))).rejects.toThrow(/pas invité/);
+    await expect(db.transaction((tx) => ecrireEnSalleDans(tx, org, id, awa.userId, "   "))).rejects.toThrow(/vide/);
+    const discussion = await messagesDeSalle(org, id);
+    expect(discussion.map((m) => [m.nom, m.corps])).toEqual([["Awa", "Je vous entends mal."]]);
+
+    // Supprimer une réunion en cours la termine pour tous, puis la retire de toutes les listes.
+    await db.transaction((tx) => appliquerGesteLienDans(tx, org, id, "supprimer", gerant));
+    expect(await reunionDe(org, id)).toBeNull();
+    expect((await listerReunions(org, awa.userId)).some((r) => r.id === id)).toBe(false);
+    expect((await listerReunions(org, gerant.userId)).some((r) => r.id === id)).toBe(false);
+    expect(await db.transaction((tx) => signalerDans(tx, org, id, awa.userId, { micro: true, camera: false, ecran: false }))).toEqual({ statut: "terminee" });
+    expect((await participantsDe(org, id)).every((p) => !p.present && !p.main)).toBe(true);
+    await expect(db.transaction((tx) => rejoindreDans(tx, org, id, gerant))).rejects.toThrow(/introuvable/);
+    const actions = (await db.select({ action: auditLogs.action }).from(auditLogs).where(eq(auditLogs.entityId, id))).map((a) => a.action);
+    expect(actions).toEqual(expect.arrayContaining(["reunion.lien.desactiver", "reunion.lien.reactiver", "reunion.terminer", "reunion.lien.supprimer"]));
   });
 
   it("ne liste à chacun que ses réunions, en cours d'abord", async () => {

@@ -34,6 +34,12 @@ export const reunions = pgTable(
     debutPrevu: timestamp("debut_prevu", { withTimezone: true }).notNull(),
     dureeMinutes: integer("duree_minutes").notNull().default(60),
     statut: statutReunion("statut").notNull().default("planifiee"),
+    /**
+     * Le lien de la salle répond-il ? L'organisateur le désactive : plus
+     * personne n'y entre — lui excepté — tant qu'il ne le réactive pas.
+     * Ceux déjà dans la salle y restent.
+     */
+    lienActif: boolean("lien_actif").notNull().default(true),
 
     organisateurUserId: uuid("organisateur_user_id").notNull(),
 
@@ -86,6 +92,11 @@ export const reunionParticipants = pgTable(
     micro: boolean("micro").notNull().default(false),
     camera: boolean("camera").notNull().default(false),
     ecran: boolean("ecran").notNull().default(false),
+    /** Main levée dans la salle ; baissée par soi, ou d'office à la sortie. */
+    mainLevee: boolean("main_levee").notNull().default(false),
+    /** Dernière réaction envoyée (👍, 👏…) et son instant : la salle la montre quelques secondes. */
+    reaction: text("reaction"),
+    reactionLe: timestamp("reaction_le", { withTimezone: true }),
 
     ...timestamps,
     ...rowVersion,
@@ -99,3 +110,30 @@ export const reunionParticipants = pgTable(
 
 export type Reunion = typeof reunions.$inferSelect;
 export type ParticipantReunion = typeof reunionParticipants.$inferSelect;
+
+/**
+ * Discussion écrite de la salle : ce qui se tape pendant la réunion — un
+ * lien, un chiffre, « je vous entends mal ». Lue par le signal de présence,
+ * comme le reste de la salle ; gardée avec la réunion.
+ */
+export const reunionMessages = pgTable(
+  "reunion_messages",
+  {
+    id: primaryId(),
+    organizationId: uuid("organization_id")
+      .notNull()
+      .references(() => organizations.id, { onDelete: "cascade" }),
+    reunionId: uuid("reunion_id")
+      .notNull()
+      .references(() => reunions.id, { onDelete: "cascade" }),
+    userId: uuid("user_id").notNull(),
+    corps: text("corps").notNull(),
+
+    ...timestamps,
+    ...rowVersion,
+  },
+  (t) => [
+    check("reunion_messages_corps", sql`char_length(${t.corps}) BETWEEN 1 AND 2000`),
+    index("reunion_messages_reunion_idx").on(t.reunionId, t.createdAt),
+  ],
+);

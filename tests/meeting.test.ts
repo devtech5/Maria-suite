@@ -8,9 +8,16 @@ import {
   colonnesMosaique,
   dureeLisible,
   dureeValide,
+  gestesLien,
   gestesPossibles,
+  lienDeSalle,
+  lienOuvertA,
   lireChemin,
+  messageSalle,
   present,
+  reactionConnue,
+  reactionVisible,
+  REACTION_MS,
   rejoignable,
   secondesDePresence,
   statutApres,
@@ -101,5 +108,46 @@ describe("présence dans la salle", () => {
 
   it("dispose la mosaïque selon le nombre de présents", () => {
     expect([1, 2, 4, 5, 9, 10].map(colonnesMosaique)).toEqual([1, 2, 2, 3, 3, 4]);
+  });
+});
+
+describe("lien de la salle", () => {
+  const reunion = { organisateurUserId: AWA };
+  const awa = { userId: AWA, organise: false };
+  const kone = { userId: KONE, organise: false };
+
+  it("ne se désactive, se réactive ou se supprime que par qui pilote", () => {
+    expect(gestesLien("planifiee", true, reunion, awa)).toEqual(["desactiver", "supprimer"]);
+    expect(gestesLien("en_cours", false, reunion, awa)).toEqual(["reactiver", "supprimer"]);
+    expect(gestesLien("terminee", true, reunion, awa)).toEqual(["supprimer"]);
+    expect(gestesLien("en_cours", true, reunion, kone)).toEqual([]);
+    expect(gestesLien("en_cours", true, reunion, { userId: KONE, organise: true })).toEqual(["desactiver", "supprimer"]);
+  });
+
+  it("désactivé, il ne laisse entrer que l'organisateur", () => {
+    expect(lienOuvertA(false, reunion, awa)).toBe(true);
+    expect(lienOuvertA(false, reunion, kone)).toBe(false);
+    expect(lienOuvertA(true, reunion, kone)).toBe(true);
+  });
+
+  it("pointe vers la salle, sans double barre", () => {
+    expect(lienDeSalle("https://maria-suite.cloud/", REUNION)).toBe(`https://maria-suite.cloud/meeting/${REUNION}/salle`);
+  });
+});
+
+describe("réactions et discussion de la salle", () => {
+  it("n'accepte que les réactions proposées, visibles quelques secondes", () => {
+    expect(reactionConnue("👏")).toBe(true);
+    expect(reactionConnue("💣")).toBe(false);
+    const le = new Date("2026-11-10T09:00:00Z");
+    expect(reactionVisible(le, new Date(le.getTime() + 1_000))).toBe(true);
+    expect(reactionVisible(le, new Date(le.getTime() + REACTION_MS))).toBe(false);
+    expect(reactionVisible(null, le)).toBe(false);
+  });
+
+  it("nettoie un message, refuse le vide et le trop long", () => {
+    expect(messageSalle("  Bonjour\r\nà tous  ")).toBe("Bonjour\nà tous");
+    expect(messageSalle("   ")).toBeNull();
+    expect(messageSalle("x".repeat(2_001))).toBeNull();
   });
 });

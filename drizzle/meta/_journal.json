@@ -505,6 +505,13 @@
       "when": 1794304597337,
       "tag": "0071_couper_caisse",
       "breakpoints": true
+    },
+    {
+      "idx": 72,
+      "version": "7",
+      "when": 1794304962233,
+      "tag": "0072_meeting_salle",
+      "breakpoints": true
     }
   ]
 }

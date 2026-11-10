@@ -12,18 +12,21 @@ import { peut, refusDroit } from "@/lib/droits/garde";
 import { notifier } from "@/modules/communication/notifications";
 import { instantLocal } from "@/modules/presences/calcul";
 
-import { DUREE_MAX, DUREE_MIN, type Acteur, type Geste, type Statut } from "./calcul";
+import { DUREE_MAX, DUREE_MIN, type Acteur, type Geste, type GesteLien, type Statut } from "./calcul";
 import {
   appliquerGesteDans,
+  appliquerGesteLienDans,
   creerReunionDans,
+  ecrireEnSalleDans,
   enregistrerCompteRenduDans,
   inviterDans,
   quitterDans,
+  reagirDans,
   rejoindreDans,
   signalerDans,
 } from "./creation";
 import { signerFlux } from "./jetons";
-import { participantsDe, type ParticipantVue } from "./requetes";
+import { messagesDeSalle, participantsDe, type MessageSalle, type ParticipantVue } from "./requetes";
 
 const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
@@ -156,6 +159,27 @@ export async function agirSurReunion(reunionId: string, geste: Geste, motif?: st
   }
 }
 
+const MESSAGES_LIEN: Record<GesteLien, (numero: string) => string> = {
+  desactiver: (n) => `Lien de ${n} désactivé : plus personne n'entre dans la salle.`,
+  reactiver: (n) => `Lien de ${n} réactivé.`,
+  supprimer: (n) => `${n} supprimée de toutes les listes.`,
+};
+
+/** Désactiver, réactiver le lien de la salle, ou supprimer la réunion : l'organisateur seul. */
+export async function agirSurLien(reunionId: string, geste: GesteLien): Promise<Resultat> {
+  const refus = await refusDroit("meeting.participer");
+  if (refus) return { ok: false, message: refus.erreur };
+  if (!UUID.test(reunionId) || !(geste in MESSAGES_LIEN)) return { ok: false, message: "Geste inconnu." };
+  const { organizationId, acteur: qui } = await acteur();
+  try {
+    const { numero } = await db.transaction((tx) => appliquerGesteLienDans(tx, organizationId, reunionId, geste, qui));
+    rafraichir(reunionId);
+    return { ok: true, message: MESSAGES_LIEN[geste](numero) };
+  } catch (erreur) {
+    return { ok: false, message: lisible(erreur) };
+  }
+}
+
 export async function enregistrerCompteRendu(reunionId: string, donnees: FormData): Promise<Resultat> {
   const refus = await refusDroit("meeting.participer");
   if (refus) return { ok: false, message: refus.erreur };
@@ -207,7 +231,7 @@ export async function entrerDansLaSalle(reunionId: string): Promise<EntreeSalle>
 }
 
 export type Signal =
-  | { etat: "salle"; statut: Statut; participants: ParticipantVue[]; jetons: Jetons }
+  | { etat: "salle"; statut: Statut; participants: ParticipantVue[]; jetons: Jetons; messages: MessageSalle[] }
   | { etat: "close"; statut: Statut }
   /** Écran verrouillé, session échue : rien à dire, la salle attend sans rediriger. */
   | { etat: "muet" };
@@ -218,7 +242,12 @@ export type Signal =
  * ferait perdre la salle. La salle étant exemptée du verrou d'inactivité, une
  * session verrouillée continue d'y signaler sa présence.
  */
-export async function signalerPresence(reunionId: string, medias: { micro: boolean; camera: boolean; ecran: boolean }): Promise<Signal> {
+export async function signalerPresence(
+  reunionId: string,
+  medias: { micro: boolean; camera: boolean; ecran: boolean; main?: boolean },
+  /** Dernier message déjà reçu (ISO) : seuls les suivants reviennent. Nul : toute la discussion. */
+  messagesDepuis?: string | null,
+): Promise<Signal> {
   const s = await session();
   if (!s?.organizationId || s.doitChangerMotDePasse) return { etat: "muet" };
   if (!UUID.test(reunionId) || !(await peut("meeting.participer"))) return { etat: "muet" };
@@ -226,15 +255,16 @@ export async function signalerPresence(reunionId: string, medias: { micro: boole
 
   try {
     const { statut } = await db.transaction((tx) =>
-      signalerDans(tx, organizationId, reunionId, s.userId, { micro: medias.micro === true, camera: medias.camera === true, ecran: medias.ecran === true }),
+      signalerDans(tx, organizationId, reunionId, s.userId, {
+        micro: medias.micro === true,
+        camera: medias.camera === true,
+        ecran: medias.ecran === true,
+        ...(typeof medias.main === "boolean" ? { main: medias.main } : {}),
+      }),
     );
     if (statut !== "en_cours") return { etat: "close", statut };
-    return {
-      etat: "salle",
-      statut,
-      participants: await participantsDe(organizationId, reunionId),
-      jetons: jetons(organizationId, reunionId, s.userId),
-    };
+    const [participants, messages] = await Promise.all([participantsDe(organizationId, reunionId), messagesDeSalle(organizationId, reunionId, messagesDepuis)]);
+    return { etat: "salle", statut, participants, messages, jetons: jetons(organizationId, reunionId, s.userId) };
   } catch (erreur) {
     console.error("Meeting : signal de présence", erreur);
     return { etat: "muet" };
@@ -251,6 +281,34 @@ export async function terminerDepuisLaSalle(reunionId: string): Promise<Resultat
     const { numero } = await db.transaction((tx) => appliquerGesteDans(tx, organizationId, reunionId, "terminer", qui));
     rafraichir(reunionId);
     return { ok: true, message: MESSAGES.terminer(numero) };
+  } catch (erreur) {
+    return { ok: false, message: lisible(erreur) };
+  }
+}
+
+/** Une réaction depuis la salle, exemptée du verrou d'inactivité. */
+export async function reagirEnSalle(reunionId: string, reaction: string): Promise<Resultat> {
+  const refus = await refusDroit("meeting.participer");
+  if (refus) return { ok: false, message: refus.erreur };
+  if (!UUID.test(reunionId)) return { ok: false, message: "Réunion introuvable." };
+  const { organizationId, acteur: qui } = await acteur(true);
+  try {
+    await db.transaction((tx) => reagirDans(tx, organizationId, reunionId, qui.userId, reaction));
+    return { ok: true, message: "" };
+  } catch (erreur) {
+    return { ok: false, message: lisible(erreur) };
+  }
+}
+
+/** Un message dans la discussion de la salle, exemptée du verrou d'inactivité. */
+export async function ecrireEnSalle(reunionId: string, corps: string): Promise<Resultat> {
+  const refus = await refusDroit("meeting.participer");
+  if (refus) return { ok: false, message: refus.erreur };
+  if (!UUID.test(reunionId) || typeof corps !== "string") return { ok: false, message: "Réunion introuvable." };
+  const { organizationId, acteur: qui } = await acteur(true);
+  try {
+    const { id } = await db.transaction((tx) => ecrireEnSalleDans(tx, organizationId, reunionId, qui.userId, corps));
+    return { ok: true, message: "", id };
   } catch (erreur) {
     return { ok: false, message: lisible(erreur) };
   }
