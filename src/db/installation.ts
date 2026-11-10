@@ -5,7 +5,7 @@ import { hash } from "@node-rs/argon2";
 // Chemin relatif et non alias : ce module sert aussi au script
 // `pnpm installer`, que `tsx` lance sans résoudre les alias du tsconfig.
 import { ADRESSE_PROPRIETAIRE, MOTIF_ADRESSE_REFUSEE, adresseAutorisee } from "../lib/auth/identifiants";
-import { PRESETS_ROLES } from "../lib/droits/catalogue";
+import { PRESETS_ROLES, presetEnService } from "../lib/droits/catalogue";
 import { POSTES_DE_DEPART } from "../modules/personnes/postes";
 import { SERVICES_DE_DEPART } from "../modules/personnes/services";
 
@@ -39,12 +39,14 @@ export const ENTREPRISE = {
 /**
  * Modules coupés à la naissance de l'entreprise : MARIA GROUP SARL ne tient
  * ni commerce de détail, ni restaurant, ni maquis, ni hôtel, ni billetterie,
- * ni point de vente mobile money, ni stock. Le propriétaire en rallume un depuis
+ * ni point de vente mobile money, ni stock, ni caisse : elle ne vend aucun
+ * produit au comptoir. Le propriétaire en rallume un depuis
  * « Utilisateurs › Modules » ; l'installation, relancée, ne le recoupe pas.
- * Mêmes modules que les migrations 0049 et 0051, qui les coupent sur une
- * base existante.
+ * Mêmes modules que les migrations 0049, 0051 et 0071, qui les coupent sur
+ * une base existante.
  */
 export const MODULES_COUPES_A_LA_NAISSANCE = [
+  "pos",
   "boutique",
   "restaurant",
   "maquis",
@@ -150,9 +152,11 @@ export async function installerEntreprise(
     [entreprise.id, rattachements.map((r) => r.poste), rattachements.map((r) => r.code)],
   );
 
-  // Les rôles préréglés, comme dans toute entreprise : un caissier ne doit
-  // pas voir la comptabilité.
+  // Les rôles préréglés, comme dans toute entreprise : un comptable ne voit
+  // pas la paie qu'il ne prépare pas. Ceux d'un métier coupé à la naissance
+  // — caissier, serveur, réceptionniste… — ne sont pas créés.
   for (const preset of PRESETS_ROLES) {
+    if (!presetEnService(preset, MODULES_COUPES_A_LA_NAISSANCE)) continue;
     await requete(
       `insert into roles (organization_id, key, name, description, is_system)
       values ($1, $2, $3, $4, true)

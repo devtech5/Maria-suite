@@ -50,7 +50,20 @@ export default async function PageModules() {
           Seul le propriétaire active ou coupe un module : le geste vaut pour toute l&apos;entreprise.
         </p>
       )}
-      <BasculesModules modules={modules} modifiable={modifiable} />
+      <BasculesModules modules={modules.filter((m) => m.actif)} modifiable={modifiable} />
+      {/* Les modules coupés quittent le menu, l'accueil, la recherche et la
+          composition des rôles ; ils ne restent qu'ici, repliés, pour qui
+          voudrait un jour en rallumer un. */}
+      {modules.some((m) => !m.actif) && (
+        <details className="mt-6 rounded-xl border border-dashed border-[var(--filet)] p-3">
+          <summary className="cursor-pointer text-sm font-semibold text-[var(--encre-douce)]">
+            Modules coupés ({modules.filter((m) => !m.actif).length}) — hors périmètre de l&apos;entreprise
+          </summary>
+          <div className="mt-3">
+            <BasculesModules modules={modules.filter((m) => !m.actif)} modifiable={modifiable} />
+          </div>
+        </details>
+      )}
       <p className="mt-4 max-w-[70ch] text-xs text-[var(--encre-faible)]">
         Couper un module ne supprime rien : ses données restent en base et
         réapparaissent dès qu&apos;on le rallume.

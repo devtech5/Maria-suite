@@ -5,7 +5,7 @@ import { exigerEntreprise } from "@/lib/auth/dal";
 import { rolesDeLEntreprise } from "@/lib/auth/roles";
 import { modulesCoupes, modulesDesactivesParRole } from "@/lib/auth/acces";
 import { modulesDuRole } from "@/lib/droits/acces";
-import { droitsParModule, TOUS_LES_DROITS } from "@/lib/droits/catalogue";
+import { droitsParModule } from "@/lib/droits/catalogue";
 import { iconeDuModule, modulesParGroupe } from "@/lib/modules/icones";
 import { modulesOuverts } from "@/lib/modules/garde";
 import { droitsActifs } from "@/lib/droits/garde";
@@ -45,7 +45,12 @@ export default async function PageRoles() {
     modules: g.cles.map((cle) => ({ cle, nom: getModule(cle)!.name, icone: iconeDuModule(cle) })),
   }));
 
-  const groupes: GroupeDroits[] = droitsParModule().map((groupe) => ({
+  // Les droits d'un module coupé ne se proposent plus : le module n'existe pas
+  // pour l'entreprise. Ils restent aux rôles qui les portaient (l'action
+  // serveur conserve ce que l'écran ne montre pas) et reviennent avec lui.
+  const groupes: GroupeDroits[] = droitsParModule()
+    .filter((groupe) => !coupes.has(groupe.moduleKey))
+    .map((groupe) => ({
     moduleKey: groupe.moduleKey,
     libelle: getModule(groupe.moduleKey)?.name ?? LIBELLE_TRANSVERSE,
     droits: groupe.droits.map((droit) => ({
@@ -55,6 +60,7 @@ export default async function PageRoles() {
     })),
   }));
 
+  const visibles = new Set(groupes.flatMap((g) => g.droits.map((d) => d.cle)));
   const composes = roles.filter((role) => !role.systeme).length;
 
   return (
@@ -68,7 +74,12 @@ export default async function PageRoles() {
         }
       />
 
-      <ListeRoles roles={roles} groupes={groupes} detenus={[...detenus]} totalDroits={TOUS_LES_DROITS.length} />
+      <ListeRoles
+        roles={roles.map((r) => ({ ...r, droits: r.droits.filter((d) => visibles.has(d)) }))}
+        groupes={groupes}
+        detenus={[...detenus]}
+        totalDroits={visibles.size}
+      />
 
       {session.estProprietaire && (
         <GrilleModulesRoles

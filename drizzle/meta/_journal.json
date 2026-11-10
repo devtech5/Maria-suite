@@ -498,6 +498,13 @@
       "when": 1794304112632,
       "tag": "0070_services",
       "breakpoints": true
+    },
+    {
+      "idx": 71,
+      "version": "7",
+      "when": 1794304597337,
+      "tag": "0071_couper_caisse",
+      "breakpoints": true
     }
   ]
 }
