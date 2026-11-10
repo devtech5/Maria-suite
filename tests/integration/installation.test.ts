@@ -8,6 +8,7 @@ import { afterEach, beforeEach, describe, expect, it } from "vitest";
 
 import { installerEntreprise, MODULES_COUPES_A_LA_NAISSANCE, PROPRIETAIRE, type Requete } from "@/db/installation";
 import { POSTES_DE_DEPART } from "@/modules/personnes/postes";
+import { SERVICES_DE_DEPART } from "@/modules/personnes/services";
 
 let client: PGlite;
 let requete: Requete;
@@ -87,6 +88,21 @@ describe("installation de MARIA GROUP SARL", () => {
     expect(await postes()).toContain("Comptable principal");
     expect(await postes()).not.toContain("Comptable");
     expect(await postes()).toHaveLength(POSTES_DE_DEPART.length);
+  });
+
+  it("pose les services et y range chaque poste de départ", async () => {
+    await installerEntreprise(requete, options);
+    await installerEntreprise(requete, options);
+    const services = await requete(`select code from services order by ordre`);
+    expect(services.map((l) => l.code)).toEqual(SERVICES_DE_DEPART.map((s) => s.code));
+
+    const rattaches = await requete(
+      `select p.libelle, s.code from postes p left join services s on s.id = p.service_id order by p.ordre`,
+    );
+    expect(rattaches).toHaveLength(POSTES_DE_DEPART.length);
+    for (const ligne of rattaches) {
+      expect(ligne.code, ligne.libelle).toBe(SERVICES_DE_DEPART.find((s) => s.postes.some((p) => p === ligne.libelle))?.code);
+    }
   });
 
   it("refuse une base qui porte une autre entreprise", async () => {

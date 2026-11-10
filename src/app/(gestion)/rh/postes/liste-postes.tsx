@@ -5,11 +5,14 @@ import { useState } from "react";
 import { Retour, useOperation } from "@/components/ui/operations";
 import { CLASSE_CHAMP_COMPACT, Pastille, Tableau, Td, Th } from "@/components/ui/primitives";
 import { basculerPoste, renommerPoste } from "@/modules/personnes/actions-postes";
+import { rangerPoste } from "@/modules/personnes/actions-services";
 import type { LignePoste } from "@/modules/personnes/referentiel-postes";
 import { LONGUEUR_MAX_POSTE } from "@/modules/personnes/postes";
 
-/** Une ligne du référentiel : renommer sur place, retirer ou remettre. */
-function LignePosteEditable({ poste, gerer }: { poste: LignePoste; gerer: boolean }) {
+type ServiceChoix = { id: string; code: string; libelle: string };
+
+/** Une ligne du référentiel : renommer sur place, ranger dans un service, retirer ou remettre. */
+function LignePosteEditable({ poste, gerer, services }: { poste: LignePoste; gerer: boolean; services: ServiceChoix[] }) {
   const op = useOperation();
   const [enEdition, setEnEdition] = useState(false);
   const [libelle, setLibelle] = useState(poste.libelle);
@@ -53,6 +56,26 @@ function LignePosteEditable({ poste, gerer }: { poste: LignePoste; gerer: boolea
         )}
         <Retour resultat={op.resultat} />
       </Td>
+      <Td>
+        {gerer ? (
+          <select
+            value={poste.serviceId ?? ""}
+            disabled={op.enCours}
+            onChange={(e) => op.lancer(() => rangerPoste(poste.id, e.target.value || null))}
+            aria-label={`Service du poste ${poste.libelle}`}
+            className={`${CLASSE_CHAMP_COMPACT} max-w-64`}
+          >
+            <option value="">— À ranger —</option>
+            {services.map((s) => (
+              <option key={s.id} value={s.id}>
+                {s.code} · {s.libelle}
+              </option>
+            ))}
+          </select>
+        ) : (
+          (services.find((s) => s.id === poste.serviceId)?.libelle ?? <span className="text-[var(--encre-faible)]">—</span>)
+        )}
+      </Td>
       <Td aligne="droite" chiffres>
         {poste.occupants}
       </Td>
@@ -80,12 +103,13 @@ function LignePosteEditable({ poste, gerer }: { poste: LignePoste; gerer: boolea
   );
 }
 
-export function ListePostes({ postes, gerer }: { postes: LignePoste[]; gerer: boolean }) {
+export function ListePostes({ postes, gerer, services }: { postes: LignePoste[]; gerer: boolean; services: ServiceChoix[] }) {
   return (
     <Tableau>
       <thead>
         <tr>
           <Th>Poste</Th>
+          <Th>Service</Th>
           <Th aligne="droite">Salariés</Th>
           <Th>État</Th>
           {gerer && <Th aligne="droite">Actions</Th>}
@@ -93,7 +117,7 @@ export function ListePostes({ postes, gerer }: { postes: LignePoste[]; gerer: bo
       </thead>
       <tbody>
         {postes.map((p) => (
-          <LignePosteEditable key={p.id} poste={p} gerer={gerer} />
+          <LignePosteEditable key={p.id} poste={p} gerer={gerer} services={services} />
         ))}
       </tbody>
     </Tableau>

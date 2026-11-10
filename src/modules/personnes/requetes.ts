@@ -4,6 +4,9 @@ import { and, asc, eq, isNotNull, isNull, sql } from "drizzle-orm";
 
 import { db } from "@/db";
 
+import { servicesActifs } from "./referentiel-services";
+import { cleService, normaliserLibelleService } from "./services";
+
 import {
   employees,
   workers,
@@ -213,17 +216,24 @@ export async function salariesEnPoste(organizationId: string): Promise<{ id: str
 }
 
 /**
- * Services déjà portés par les fiches, pour la liste de choix de l'embauche.
- * Pas de référentiel à tenir : un service naît sur la première fiche qui le
- * porte, depuis le bouton « + » du formulaire.
+ * Services à proposer à l'embauche : ceux du référentiel (RH › Services),
+ * dans leur ordre, puis ceux que des fiches portent déjà sans qu'ils y
+ * figurent — saisis avant le référentiel, ou ajoutés par le « + » du
+ * formulaire.
  */
 export async function servicesConnus(organizationId: string): Promise<string[]> {
-  const lignes = await db
-    .selectDistinct({ service: employees.service })
-    .from(employees)
-    .where(and(eq(employees.organizationId, organizationId), isNull(employees.deletedAt), isNotNull(employees.service)));
-  return lignes
-    .map((l) => l.service?.trim() ?? "")
-    .filter(Boolean)
+  const [referentiel, lignes] = await Promise.all([
+    servicesActifs(organizationId),
+    db
+      .selectDistinct({ service: employees.service })
+      .from(employees)
+      .where(and(eq(employees.organizationId, organizationId), isNull(employees.deletedAt), isNotNull(employees.service))),
+  ]);
+  const connus = new Set(referentiel.map(cleService));
+  const autres = lignes
+    .map((l) => normaliserLibelleService(l.service ?? ""))
+    .filter((s) => s && !connus.has(cleService(s)))
+    .filter((s, i, liste) => liste.findIndex((x) => cleService(x) === cleService(s)) === i)
     .sort((a, b) => a.localeCompare(b, "fr"));
+  return [...referentiel, ...autres];
 }

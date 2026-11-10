@@ -19,6 +19,8 @@ export interface LignePoste {
   id: string;
   libelle: string;
   actif: boolean;
+  /** Service où le poste est rangé ; nul s'il reste à ranger. */
+  serviceId: string | null;
   /** Salariés en poste qui l'occupent. */
   occupants: number;
 }
@@ -62,6 +64,7 @@ export async function listerPostes(organizationId: string): Promise<LignePoste[]
       id: postes.id,
       libelle: postes.libelle,
       actif: postes.actif,
+      serviceId: postes.serviceId,
       occupants: sql<number>`coalesce(${occupants.nombre}, 0)::int`,
     })
     .from(postes)

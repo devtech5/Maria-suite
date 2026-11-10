@@ -158,7 +158,7 @@ function ChampService({ services }: { services: string[] }) {
           onAnnuler={() => setAjout(false)}
           onAjouter={(service) => {
             const existant = options.find((o) => o.toLocaleLowerCase("fr") === service.toLocaleLowerCase("fr"));
-            if (!existant) setOptions((avant) => [...avant, service].sort((a, b) => a.localeCompare(b, "fr")));
+            if (!existant) setOptions((avant) => [...avant, service]);
             setChoisi(existant ?? service);
             setAjout(false);
           }}

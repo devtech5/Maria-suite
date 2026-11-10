@@ -27,6 +27,45 @@ import { NATURES_PIECE } from "./pieces";
 import { moyenReglement } from "@/modules/ventes/schema";
 
 /**
+ * Service de l'entreprise : Direction générale, Ressources humaines, Travaux
+ * et chantiers.
+ *
+ * Le référentiel de l'organigramme : chaque poste s'y rattache, et le
+ * service d'un salarié se choisit dans cette liste. La fiche garde le
+ * libellé en toutes lettres (`employees.service`) ; un renommage ici s'y
+ * propage. Un service ne se supprime pas : il se retire (`actif`).
+ *
+ * `pole` range le service dans l'organigramme : direction, fonctions
+ * support, métiers (`POLES`, services.ts).
+ */
+export const services = pgTable(
+  "services",
+  {
+    id: primaryId(),
+    organizationId: uuid("organization_id")
+      .notNull()
+      .references(() => organizations.id, { onDelete: "cascade" }),
+
+    /** Sigle : DG, DAF, BET. */
+    code: text("code").notNull(),
+    libelle: text("libelle").notNull(),
+    pole: text("pole").notNull().default("support"),
+    mission: text("mission"),
+    ordre: integer("ordre").notNull().default(0),
+    actif: boolean("actif").notNull().default(true),
+
+    ...timestamps,
+    ...rowVersion,
+  },
+  (t) => [
+    unique("services_libelle_unique").on(t.organizationId, t.libelle),
+    unique("services_code_unique").on(t.organizationId, t.code),
+    index("services_org_idx").on(t.organizationId, t.ordre),
+    check("services_pole_check", sql`${t.pole} in ('direction', 'support', 'metiers')`),
+  ],
+);
+
+/**
  * Poste de travail : Comptable, Chef de projet, Gardien.
  *
  * Le référentiel dans lequel se choisit le poste d'un salarié. La fiche garde
@@ -45,6 +84,8 @@ export const postes = pgTable(
     libelle: text("libelle").notNull(),
     ordre: integer("ordre").notNull().default(0),
     actif: boolean("actif").notNull().default(true),
+    /** Service auquel le poste appartient. Nul tant qu'on ne l'a pas rangé. */
+    serviceId: uuid("service_id").references(() => services.id, { onDelete: "set null" }),
 
     ...timestamps,
     ...rowVersion,
