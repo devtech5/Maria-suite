@@ -16,7 +16,10 @@ RUN pnpm install --frozen-lockfile
 FROM base AS construction
 COPY --from=dependances /app/node_modules ./node_modules
 COPY . .
-RUN pnpm build && pnpm build:scripts
+# Identifiant de version (deploymentId, next.config.ts) : fourni par
+# l'hébergeur s'il le passe, sinon l'heure du build — chaque image a le sien.
+ARG DEPLOYMENT_VERSION
+RUN export DEPLOYMENT_VERSION="${DEPLOYMENT_VERSION:-$(date -u +%Y%m%d%H%M%S)}" && pnpm build && pnpm build:scripts
 
 FROM node:22-bookworm-slim AS execution
 WORKDIR /app

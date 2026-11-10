@@ -3,6 +3,7 @@
 import Link from "next/link";
 
 import { DetailErreur } from "@/components/coque/detail-erreur";
+import { useRechargementApresVersion } from "@/components/coque/rechargement-version";
 import { BoutonPrincipal } from "@/components/ui/primitives";
 
 /**
@@ -28,6 +29,19 @@ export default function ErreurGestion({
   error: Error & { digest?: string };
   retry: () => void;
 }) {
+  // Une version périmée restée dans l'onglet : la page se recharge d'elle-même.
+  const version = useRechargementApresVersion(error);
+  if (version) {
+    return (
+      <div className="mx-auto max-w-[60ch] rounded-xl border border-[var(--filet)] bg-[var(--surface)] p-6 text-center">
+        <h1 className="text-lg font-semibold">Une nouvelle version de Maria Suite est en ligne</h1>
+        <p className="mt-3 text-sm text-[var(--encre-douce)]">La page se recharge pour la prendre. Si rien ne se passe, rechargez-la.</p>
+        <div className="mt-5 flex justify-center">
+          <BoutonPrincipal onClick={() => window.location.reload()}>Recharger</BoutonPrincipal>
+        </div>
+      </div>
+    );
+  }
   return (
     <div className="mx-auto max-w-[60ch] rounded-xl border border-danger-200 bg-[var(--surface)] p-6 text-center">
       <h1 className="text-lg font-semibold">Cet écran n&apos;a pas pu s&apos;afficher</h1>
