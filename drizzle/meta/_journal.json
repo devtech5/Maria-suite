@@ -526,6 +526,13 @@
       "when": 1794344307095,
       "tag": "0074_suppression_modules",
       "breakpoints": true
+    },
+    {
+      "idx": 75,
+      "version": "7",
+      "when": 1794345625814,
+      "tag": "0075_reglement_interieur",
+      "breakpoints": true
     }
   ]
 }

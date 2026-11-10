@@ -71,6 +71,29 @@ ici avant de toucher le code.
 - Bureau d'études (DQE, BPU, métrés), journal de chantier, PV, non-conformités,
   essais, réceptions avec réserves, cautions bancaires.
 
+### Preuves de livraison et de paiement (proposition, à confirmer)
+
+Chaque franc et chaque sac de ciment se rattachent à un chantier, avec sa
+preuve, sur le modèle des projets (dépense + pièce) et des achats (commande,
+réception) déjà en place :
+
+- **Livraison sur chantier** : bon de commande (Achats) rattaché au chantier ;
+  à l'arrivée, le chef de chantier saisit la réception depuis son téléphone —
+  quantités reçues, écart avec la commande, **photo du bon de livraison signé
+  et du matériel déchargé**, position GPS et heure prises par l'appareil,
+  nom du livreur. Le stock du chantier (dépôt) monte, le reste à livrer se lit.
+- **Consommation** : sortie du dépôt chantier vers un lot de travaux, pour
+  comparer le consommé au métré du DQE.
+- **Paiement fournisseur** : rapproché de la commande et de la réception —
+  jamais payé plus que reçu sans dérogation ; preuve jointe (reçu, capture
+  mobile money, avis de virement), passage en trésorerie et en comptabilité.
+- **Main-d'œuvre** : pointage des intervenants sur le chantier, bon de
+  paiement signé ou payé par mobile money avec sa référence.
+- **Côté client** : situation de travaux validée (avancement, retenue 5 %,
+  avance), facture, encaissement avec sa preuve.
+- **Tableau du chantier** : budget, engagé, livré, payé, encaissé ; alertes
+  sur une livraison sans preuve ou un paiement sans réception.
+
 ## Nettoyage de la plateforme
 
 - **Supprimés définitivement** : Commerce, Restaurant, Maquis, Hôtel,

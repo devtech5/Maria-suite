@@ -6,7 +6,7 @@ import { db } from "@/db";
 import { accesModules, memberships, organizationModules, rolePermissions, roles } from "@/db/schema";
 
 import { appliquerRestrictions, type NiveauAcces } from "./acces";
-import { resoudreDroits, type Droit } from "./catalogue";
+import { avecDroitsDeTous, resoudreDroits, type Droit } from "./catalogue";
 
 /**
  * Comptes de l'entreprise qui détiennent un droit — pour savoir qui prévenir
@@ -54,7 +54,7 @@ export async function utilisateursAyantDroit(organizationId: string, droit: Droi
         estProprietaire: m.estProprietaire,
         accords: accords.filter((a) => a.roleId === m.roleId).map((a) => a.cle),
       });
-      const effectifs = appliquerRestrictions(duRole, {
+      const effectifs = appliquerRestrictions(avecDroitsDeTous(duRole), {
         modulesCoupes,
         niveaux: new Map(niveaux.filter((n) => n.membershipId === m.membershipId).map((n) => [n.cle, n.niveau as NiveauAcces])),
         estProprietaire: m.estProprietaire,

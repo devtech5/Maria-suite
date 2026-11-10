@@ -32,6 +32,7 @@ export * from "@/modules/archives/schema";
 export * from "@/modules/taches/schema";
 export * from "@/modules/planning/schema";
 export * from "@/modules/meeting/schema";
+export * from "@/modules/reglement/schema";
 export * from "@/modules/tresorerie/schema";
 export * from "@/modules/achats/schema";
 export * from "@/modules/paie/schema";

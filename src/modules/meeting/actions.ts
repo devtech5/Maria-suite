@@ -34,11 +34,12 @@ export type Resultat = { ok: true; message: string; id?: string } | { ok: false;
 
 /**
  * `salle` : l'appel vient de la salle de réunion, exemptée du verrou
- * d'inactivité comme la caisse — on y écoute sans toucher la souris. Toute
+ * d'inactivité — on y écoute sans toucher la souris — et du règlement
+ * intérieur entré en vigueur en pleine réunion. Toute
  * nouvelle action appelée depuis la salle passe par là ; nulle part ailleurs.
  */
 async function acteur(salle = false): Promise<{ organizationId: string; acteur: Acteur }> {
-  const s = await exigerEntreprise({ malgreVerrou: salle });
+  const s = await exigerEntreprise({ malgreVerrou: salle, malgreReglement: salle });
   return { organizationId: s.organizationId, acteur: { userId: s.userId, organise: await peut("meeting.organiser") } };
 }
 

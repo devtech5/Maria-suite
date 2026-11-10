@@ -249,6 +249,20 @@ export const MODULES: ModuleDefinition[] = [
   },
 
   {
+    key: "reglement",
+    name: "Règlement intérieur",
+    layer: "socle",
+    // En base : versions numérotées publiées par les ressources humaines
+    // (préambule, articles en sommaire, date d'effet, ce qui change), texte
+    // figé à la publication. Lecture bloquante : rien ne s'ouvre avant
+    // « J'ai lu et j'accepte », horodaté par version. Suivi de qui a lu,
+    // relance dans la cloche. Reste le règlement signé et visé, en pièce jointe.
+    status: "en_cours",
+    requires: [],
+    description: "Règlement publié par les RH, lu et accepté par chacun avant d'utiliser le logiciel, à chaque nouvelle version.",
+  },
+
+  {
     key: "prestataires",
     name: "Prestataires externes",
     layer: "socle",

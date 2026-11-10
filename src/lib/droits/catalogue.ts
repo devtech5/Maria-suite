@@ -596,6 +596,24 @@ export const DROITS = [
       "l'annuler et rédiger son compte rendu — y compris celles d'un autre organisateur.",
   },
 
+  // --------------------------------------------------- règlement intérieur
+  {
+    cle: "reglement.consulter",
+    moduleKey: "reglement",
+    libelle: "Lire le règlement intérieur",
+    description:
+      "Lire le règlement en vigueur et ses versions précédentes. Accordé à tous les " +
+      "comptes, quel que soit le rôle : le règlement s'impose à chacun.",
+  },
+  {
+    cle: "reglement.gerer",
+    moduleKey: "reglement",
+    libelle: "Publier le règlement intérieur",
+    description:
+      "Rédiger une nouvelle version, la publier avec sa date d'effet, voir qui l'a lue " +
+      "et acceptée, relancer les retardataires.",
+  },
+
   // ------------------------------------------------------ projets et dépenses
   {
     cle: "projet.consulter",
@@ -824,6 +842,22 @@ export type Droit = (typeof DROITS)[number]["cle"];
 export const TOUS_LES_DROITS: readonly Droit[] = DROITS.map((d) => d.cle);
 
 const CLES = new Set<string>(TOUS_LES_DROITS);
+
+/**
+ * Droits de tout compte rattaché, quel que soit son rôle — préréglé ou
+ * composé par l'entreprise. Lire le règlement intérieur ne se retire à
+ * personne : il s'impose à chacun, et chacun doit pouvoir le relire.
+ *
+ * Ajoutés par la garde des droits (`droitsActifs`) avant les restrictions :
+ * un module coupé pour l'entreprise les retire comme les autres. Ils ne se
+ * proposent pas à la composition d'un rôle, où une case sans effet tromperait.
+ */
+export const DROITS_DE_TOUS: readonly Droit[] = ["reglement.consulter"];
+
+/** Les droits d'un rôle, augmentés de ceux de tout compte. */
+export function avecDroitsDeTous(droits: ReadonlySet<Droit>): Set<Droit> {
+  return new Set([...droits, ...DROITS_DE_TOUS]);
+}
 
 export function droitConnu(cle: string): cle is Droit {
   return CLES.has(cle);

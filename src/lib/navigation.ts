@@ -14,7 +14,7 @@ export const CLES_ICONE = [
   "commercial", "stock", "achats", "prestataires", "marches",
   "projets", "missions", "actifs", "parc-auto", "parc-informatique",
   "comptabilite", "tresorerie",
-  "personnel", "presences", "planning", "anniversaires", "taches", "meeting", "messagerie", "boite-mail", "documents", "archives",
+  "personnel", "presences", "planning", "anniversaires", "reglement", "taches", "meeting", "messagerie", "boite-mail", "documents", "archives",
   "utilisateurs", "entreprise", "demarrage", "communication", "rapports", "journal",
 ] as const;
 export type CleIcone = (typeof CLES_ICONE)[number];
@@ -79,6 +79,8 @@ export const GROUPES_MODULES: GroupeModules[] = [
       { href: "/meeting", racine: "/meeting", icone: "meeting", libelle: "Meeting", description: "Réunions d'équipe à distance, en vidéo.", droit: "meeting.participer" },
       // Ouvert à tous : chacun a le planning personnel, et l'anniversaire d'un collègue concerne toute l'équipe.
       { href: "/anniversaires", racine: "/anniversaires", icone: "anniversaires", libelle: "Anniversaires", description: "Les anniversaires des collègues, du jour et à venir.", droit: "planning.utiliser" },
+      // Ouvert à tous (`DROITS_DE_TOUS`) : le règlement s'impose à chacun.
+      { href: "/reglement", racine: "/reglement", icone: "reglement", libelle: "Règlement intérieur", description: "Le règlement de l'entreprise, à relire à tout moment.", droit: "reglement.consulter" },
     ],
   },
   {
