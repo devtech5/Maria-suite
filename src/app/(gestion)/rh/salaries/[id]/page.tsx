@@ -21,6 +21,7 @@ import { stockageConfigure } from "@/lib/stockage";
 import { collegues, piecesDuSalarie, salarieDe } from "@/modules/personnes/dossier";
 import { etatsPieces, piecesManquantes } from "@/modules/personnes/pieces";
 import { postesActifs, postesDuSalarie } from "@/modules/personnes/referentiel-postes";
+import { servicesActifs } from "@/modules/personnes/referentiel-services";
 import {
   CIVILITES,
   LIENS_URGENCE,
@@ -63,11 +64,12 @@ export default async function PageFicheSalarie({ params }: { params: Promise<{ i
   const voitLeDossier = consulter || gerer;
 
   const aujourdhui = new Date().toISOString().slice(0, 10);
-  const [pieces, autres, postes, sesPostes] = await Promise.all([
+  const [pieces, autres, postes, sesPostes, services] = await Promise.all([
     voitLeDossier ? piecesDuSalarie(session.organizationId, id) : Promise.resolve([]),
     collegues(session.organizationId, id),
     gerer ? postesActifs(session.organizationId) : Promise.resolve([]),
     postesDuSalarie(session.organizationId, id),
+    gerer ? servicesActifs(session.organizationId) : Promise.resolve([]),
   ]);
   // Le principal d'abord, tel que la fiche l'écrit ; les autres ensuite.
   const postesAutres = sesPostes.filter((p) => p.toLocaleLowerCase("fr") !== salarie.poste.toLocaleLowerCase("fr"));
@@ -224,6 +226,7 @@ export default async function PageFicheSalarie({ params }: { params: Promise<{ i
               employeeId={id}
               collegues={autres}
               postes={postes}
+              services={services}
               initial={{
                 emailProfessionnel: salarie.emailProfessionnel,
                 poste: salarie.poste,

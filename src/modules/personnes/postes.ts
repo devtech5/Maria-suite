@@ -13,8 +13,10 @@
 
 /**
  * Les postes de MARIA GROUP SARL, dans l'ordre où la direction les a listés :
- * les douze premiers (migration 0064), puis les postes complémentaires
- * (migration 0066).
+ * les douze premiers (migration 0064), les postes complémentaires
+ * (migration 0066), puis ceux des services métiers — communication, BTP,
+ * immobilier, mines, recherche de financement — et des fonctions support
+ * qui manquaient (migration 0070, `services.ts`).
  */
 export const POSTES_DE_DEPART = [
   "Assistant(e)",
@@ -42,6 +44,25 @@ export const POSTES_DE_DEPART = [
   "Responsable des achats",
   "Secrétaire",
   "Technicien(ne) biomédical(e)",
+  "Responsable des ressources humaines",
+  "Chargé(e) des ressources humaines",
+  "Juriste",
+  "Responsable QHSE",
+  "Chargé(e) de communication",
+  "Graphiste",
+  "Community manager",
+  "Ingénieur(e) génie civil",
+  "Dessinateur(trice) projeteur(se)",
+  "Métreur(se)",
+  "Conducteur(trice) de travaux",
+  "Chef de chantier",
+  "Contrôleur(se) de travaux",
+  "Gestionnaire immobilier",
+  "Géomètre-topographe",
+  "Géologue",
+  "Ingénieur(e) des mines",
+  "Chargé(e) de recherche de financement",
+  "Analyste financier(ère)",
 ] as const;
 
 export const LONGUEUR_MAX_POSTE = 80;

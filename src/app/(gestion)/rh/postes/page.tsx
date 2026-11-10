@@ -7,6 +7,7 @@ import { peut } from "@/lib/droits/garde";
 import { ajouterPoste } from "@/modules/personnes/actions-postes";
 import { LONGUEUR_MAX_POSTE } from "@/modules/personnes/postes";
 import { listerPostes } from "@/modules/personnes/referentiel-postes";
+import { listerServices } from "@/modules/personnes/referentiel-services";
 
 import { ListePostes } from "./liste-postes";
 
@@ -22,7 +23,7 @@ export const metadata: Metadata = { title: "Postes" };
  */
 export default async function PagePostes() {
   const session = await exigerEntreprise();
-  const [postes, gerer] = await Promise.all([listerPostes(session.organizationId), peut("personnes.salarie.gerer")]);
+  const [postes, gerer, services] = await Promise.all([listerPostes(session.organizationId), peut("personnes.salarie.gerer"), listerServices(session.organizationId)]);
   const actifs = postes.filter((p) => p.actif).length;
 
   return (
@@ -50,7 +51,7 @@ export default async function PagePostes() {
       {postes.length === 0 ? (
         <EtatVide titre="Aucun poste" message="Ajoutez les postes de l'entreprise : le poste d'un salarié se choisit dans cette liste." />
       ) : (
-        <ListePostes postes={postes} gerer={gerer} />
+        <ListePostes postes={postes} gerer={gerer} services={services.filter((s) => s.actif).map(({ id, code, libelle }) => ({ id, code, libelle }))} />
       )}
     </>
   );

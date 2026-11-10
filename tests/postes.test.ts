@@ -13,10 +13,11 @@ import {
 
 describe("postes de travail", () => {
   it("la liste de départ est celle de la direction, sans doublon", () => {
-    expect(POSTES_DE_DEPART).toHaveLength(25);
+    expect(POSTES_DE_DEPART).toHaveLength(44);
     expect(POSTES_DE_DEPART[0]).toBe("Assistant(e)");
     expect(POSTES_DE_DEPART[11]).toBe("Gardien");
-    expect(POSTES_DE_DEPART.at(-1)).toBe("Technicien(ne) biomédical(e)");
+    expect(POSTES_DE_DEPART[24]).toBe("Technicien(ne) biomédical(e)");
+    expect(POSTES_DE_DEPART.at(-1)).toBe("Analyste financier(ère)");
     expect(new Set(POSTES_DE_DEPART.map(clePoste)).size).toBe(POSTES_DE_DEPART.length);
   });
 

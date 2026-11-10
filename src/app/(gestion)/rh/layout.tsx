@@ -16,6 +16,7 @@ const SECTIONS = [
   { href: "/rh", libelle: "Salariés" },
   { href: "/rh/intervenants", libelle: "Intervenants" },
   { href: "/rh/paie", libelle: "Paie" },
+  { href: "/rh/services", libelle: "Services" },
   { href: "/rh/postes", libelle: "Postes" },
 ];
 

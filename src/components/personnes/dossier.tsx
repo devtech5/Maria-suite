@@ -10,6 +10,7 @@ import { Retour, useOperation, type Resultat } from "@/components/ui/operations"
 import { CLASSE_CHAMP, Champ, Pastille, type TonPastille } from "@/components/ui/primitives";
 import { CIVILITES, LIENS_URGENCE, PAIEMENTS_SALAIRE } from "@/modules/personnes/calcul";
 import { optionsPoste } from "@/modules/personnes/postes";
+import { cleService, optionsService } from "@/modules/personnes/services";
 import {
   ajouterPiece,
   changerPhoto,
@@ -414,15 +415,19 @@ export function FormulaireEtatProfessionnel({
   initial,
   collegues,
   postes,
+  services,
 }: {
   employeeId: string;
   initial: EtatProfessionnelAffiche;
   collegues: { id: string; nom: string; poste: string; actif: boolean }[];
   /** Postes actifs du référentiel. Le poste actuel s'y ajoute s'il n'y figure plus. */
   postes: string[];
+  /** Services actifs du référentiel. Le service actuel s'y ajoute s'il n'y figure plus. */
+  services: string[];
 }) {
   const op = useOperation();
   const v = (cle: keyof EtatProfessionnelAffiche) => (initial[cle] ?? "").toString();
+  const choixServices = optionsService(services, initial.service);
   return (
     <form
       onSubmit={(e) => {
@@ -438,7 +443,14 @@ export function FormulaireEtatProfessionnel({
         </Champ>
         <ChoixPostes postes={optionsPoste(postes, [initial.poste, ...initial.postesAutres])} principal={initial.poste} autres={initial.postesAutres} />
         <Champ libelle="Service">
-          <input name="service" defaultValue={v("service")} placeholder="Comptabilité, Logistique…" className={CLASSE_CHAMP} />
+          <select name="service" defaultValue={choixServices.find((o) => cleService(o) === cleService(initial.service ?? "")) ?? ""} className={CLASSE_CHAMP}>
+            <option value="">— Aucun —</option>
+            {choixServices.map((s) => (
+              <option key={s} value={s}>
+                {s}
+              </option>
+            ))}
+          </select>
         </Champ>
         <Champ libelle="Supérieur hiérarchique">
           <select name="superieurId" defaultValue={v("superieurId")} className={CLASSE_CHAMP}>

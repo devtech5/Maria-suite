@@ -7,6 +7,7 @@ import { hash } from "@node-rs/argon2";
 import { ADRESSE_PROPRIETAIRE, MOTIF_ADRESSE_REFUSEE, adresseAutorisee } from "../lib/auth/identifiants";
 import { PRESETS_ROLES } from "../lib/droits/catalogue";
 import { POSTES_DE_DEPART } from "../modules/personnes/postes";
+import { SERVICES_DE_DEPART } from "../modules/personnes/services";
 
 /**
  * Installation de MARIA GROUP SARL et de son propriétaire.
@@ -123,6 +124,30 @@ export async function installerEntreprise(
     from unnest($2::text[]) with ordinality as p(libelle, ordre)
     where not exists (select 1 from postes where organization_id = $1)`,
     [entreprise.id, [...POSTES_DE_DEPART]],
+  );
+
+  // Les services, une seule fois, comme les postes ; puis chaque poste de
+  // départ rejoint le sien, sans déplacer un poste déjà rangé.
+  await requete(
+    `insert into services (organization_id, code, libelle, pole, mission, ordre)
+    select $1, s.code, s.libelle, s.pole, s.mission, s.ordre
+    from unnest($2::text[], $3::text[], $4::text[], $5::text[]) with ordinality as s(code, libelle, pole, mission, ordre)
+    where not exists (select 1 from services where organization_id = $1)`,
+    [
+      entreprise.id,
+      SERVICES_DE_DEPART.map((x) => x.code),
+      SERVICES_DE_DEPART.map((x) => x.libelle),
+      SERVICES_DE_DEPART.map((x) => x.pole),
+      SERVICES_DE_DEPART.map((x) => x.mission),
+    ],
+  );
+  const rattachements = SERVICES_DE_DEPART.flatMap((x) => x.postes.map((poste) => ({ poste, code: x.code })));
+  await requete(
+    `update postes p set service_id = s.id
+    from unnest($2::text[], $3::text[]) as r(poste, code)
+    join services s on s.code = r.code and s.organization_id = $1
+    where p.organization_id = $1 and p.service_id is null and lower(p.libelle) = lower(r.poste)`,
+    [entreprise.id, rattachements.map((r) => r.poste), rattachements.map((r) => r.code)],
   );
 
   // Les rôles préréglés, comme dans toute entreprise : un caissier ne doit
