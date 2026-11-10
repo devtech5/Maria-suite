@@ -112,7 +112,6 @@ export async function creerArticle(
     );
 
     revalidatePath("/stock/articles");
-    revalidatePath("/caisse");
 
     return { cree: reference };
   } catch (erreur) {
@@ -158,5 +157,4 @@ export async function archiverArticle(donnees: FormData): Promise<void> {
   });
 
   revalidatePath("/stock/articles");
-  revalidatePath("/caisse");
 }

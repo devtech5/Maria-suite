@@ -105,13 +105,12 @@ describe("installation de MARIA GROUP SARL", () => {
     }
   });
 
-  it("ne crée pas les rôles des métiers coupés, et coupe la caisse", async () => {
+  it("ne crée pas le rôle d'un métier coupé, et pose les rôles transverses", async () => {
     await installerEntreprise(requete, options);
     const cles = (await requete(`select key from roles order by key`)).map((l) => l.key);
-    expect(cles).toEqual(expect.arrayContaining(["proprietaire", "gerant", "secretaire", "comptable"]));
-    for (const cle of ["caissier", "serveur", "cuisinier", "receptionniste", "agent_menage", "magasinier"]) expect(cles).not.toContain(cle);
-    const [pos] = await requete(`select enabled from organization_modules where module_key = 'pos'`);
-    expect(pos.enabled).toBe(false);
+    expect(cles).toEqual(["comptable", "gerant", "proprietaire", "secretaire"]);
+    const [stock] = await requete(`select enabled from organization_modules where module_key = 'stock'`);
+    expect(stock.enabled).toBe(false);
   });
 
   it("refuse une base qui porte une autre entreprise", async () => {

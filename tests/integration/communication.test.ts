@@ -18,7 +18,7 @@ let db: typeof Db;
 let fermer: () => Promise<void>;
 let org: string;
 let proprietaire: string;
-let caissier: string;
+let secretaire: string;
 let comptable: string;
 
 async function membre(cleRole: string, estProprietaire = false): Promise<string> {
@@ -38,7 +38,7 @@ beforeAll(async () => {
   ({ db, fermer } = await ouvrirBaseDeTest());
   ({ organizationId: org } = await semerEntreprise(db));
   proprietaire = await membre("proprietaire", true);
-  caissier = await membre("caissier");
+  secretaire = await membre("secretaire");
   comptable = await membre("comptable");
 });
 afterAll(async () => fermer());
@@ -47,20 +47,20 @@ describe("destinataires d'une notification", () => {
   it("seuls ceux qui détiennent le droit sont prévenus", async () => {
     const approbateurs = await utilisateursAyantDroit(org, "tresorerie.bon.approuver");
     expect(approbateurs).toContain(proprietaire);
-    expect(approbateurs).not.toContain(caissier);
+    expect(approbateurs).not.toContain(secretaire);
     // Le comptable tient la trésorerie, il n'en approuve pas les dépenses.
     expect(approbateurs).not.toContain(comptable);
-    expect(await utilisateursAyantDroit(org, "messagerie.utiliser")).toEqual(expect.arrayContaining([proprietaire, caissier, comptable]));
+    expect(await utilisateursAyantDroit(org, "messagerie.utiliser")).toEqual(expect.arrayContaining([proprietaire, secretaire, comptable]));
   });
 
   it("l'auteur ne se notifie pas sa propre demande ; lire efface le compteur", async () => {
     await notifierDetenteurs(org, "tresorerie.bon.approuver", { categorie: "bon", titre: "Bon à approuver" }, proprietaire);
     expect(await nombreNonLues(org, proprietaire)).toBe(0);
 
-    await notifier(org, [caissier, caissier], { categorie: "tache", titre: "Nouvelle tâche" });
-    expect(await nombreNonLues(org, caissier)).toBe(1);
-    await marquerLues(org, caissier);
-    expect(await nombreNonLues(org, caissier)).toBe(0);
+    await notifier(org, [secretaire, secretaire], { categorie: "tache", titre: "Nouvelle tâche" });
+    expect(await nombreNonLues(org, secretaire)).toBe(1);
+    await marquerLues(org, secretaire);
+    expect(await nombreNonLues(org, secretaire)).toBe(0);
   });
 });
 
@@ -83,12 +83,12 @@ describe("envois vers l'extérieur", () => {
 
 describe("messages groupés", () => {
   it("personnel dans l'application, clients par e-mail ; un envoi ne part qu'une fois", async () => {
-    const avant = await nombreNonLues(org, caissier);
+    const avant = await nombreNonLues(org, secretaire);
     const interne = await creerCampagnePour(org, proprietaire, { titre: "Fermeture", public: "personnel", canaux: ["application"], filtre: {}, corps: "Fermé le 15 août" });
     const c1 = await envoyerCampagnePour(org, proprietaire, interne, "Essai");
     expect(c1.numero).toMatch(/^MSG-/);
     expect(c1.envoyes).toBe(3);
-    expect(await nombreNonLues(org, caissier)).toBe(avant + 1);
+    expect(await nombreNonLues(org, secretaire)).toBe(avant + 1);
     await expect(envoyerCampagnePour(org, proprietaire, interne, "Essai")).rejects.toThrow(/déjà envoyé/);
 
     await db.transaction((tx) => creerTiersDans(tx, org, { nom: "Client avec e-mail", email: "a@exemple.ci", ville: "Bouaké" }));

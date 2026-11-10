@@ -1,4 +1,4 @@
-import { DROITS, PRESETS_ROLES, type DefinitionDroit } from "@/lib/droits/catalogue";
+import { DROITS, PRESETS_ROLES, type DefinitionDroit, type PresetRole } from "@/lib/droits/catalogue";
 
 /**
  * Recopie le catalogue des droits dans `permissions` et pose les rôles
@@ -29,12 +29,23 @@ export async function synchroniserDroits(executer: Executeur): Promise<void> {
     );
   }
 
+  // Un rôle de métier ne se crée que là où l'un de ses modules est ouvert :
+  // pas de magasinier dans une entreprise sans stock (`presetEnService`).
   for (const preset of PRESETS_ROLES) {
+    const modules: readonly string[] = (preset as PresetRole).modules ?? [];
     await executer(
       `insert into roles (organization_id, key, name, description, is_system)
-       select id, $1, $2, $3, true from organizations
+       select o.id, $1, $2, $3, true from organizations o
+       where cardinality($4::text[]) = 0
+          or exists (
+            select 1 from unnest($4::text[]) as m(cle)
+            where not exists (
+              select 1 from organization_modules om
+              where om.organization_id = o.id and om.module_key = m.cle and not om.enabled
+            )
+          )
        on conflict (organization_id, key) do nothing`,
-      [preset.cle, preset.nom, preset.description],
+      [preset.cle, preset.nom, preset.description, [...modules]],
     );
   }
 }

@@ -7,9 +7,8 @@ d'abonnement. L'entreprise et son propriétaire, super administrateur du
 logiciel (`michael.kadio05@gmail.com`), se créent une fois avec
 `pnpm installer` ; les autres comptes sont invités depuis « Membres ».
 
-La caisse encaisse sans connexion et se synchronise au retour du réseau. Les
-référentiels fiscaux et sociaux sont ceux du pays de l'entreprise, pas d'un
-pays voisin.
+Les référentiels fiscaux et sociaux sont ceux du pays de l'entreprise, pas
+d'un pays voisin.
 
 ## Démarrer
 
@@ -56,13 +55,12 @@ La production tourne sur un VPS avec Dokploy : voir [DEPLOIEMENT.md](./DEPLOIEME
 Trois couches, décrites dans `src/modules/registry.ts` :
 
 - **Socle** — commun à tout métier : tiers et commercial, catalogue et stock,
-  ventes et encaissement, comptabilité, personnes et rémunération, documents.
+  comptabilité, personnes et rémunération, documents, trésorerie, équipe.
 - **Moteurs** — construits une fois, servis à plusieurs métiers : actifs et
-  maintenance, réservation de ressource, missions et terrain, billetterie,
-  valeur électronique.
-- **Métiers** — préréglages posés sur le socle et les moteurs : boutique,
-  maquis, kiosque mobile money, garage, BTP, hôtellerie, location, transport,
-  livraison, flotte, fitness, projet, collecte terrain.
+  maintenance, missions et terrain.
+- **Métiers** — préréglages posés sur le socle et les moteurs : parcs auto et
+  informatique, moyens généraux, projets, enquêtes ; à venir, BTP, immobilier,
+  courrier, visiteurs (`FEUILLE-DE-ROUTE.md`).
 
 Le schéma sous `src/db/schema` ne contient que le socle transverse :
 entreprises, comptes, droits, numérotation des pièces, journal d'audit et
@@ -104,7 +102,6 @@ Trois frontières, parce que la question posée n'est pas la même selon l'écra
 | Fichier | Ce qui a échoué | Ce qu'il répond |
 |---|---|---|
 | `src/app/(gestion)/error.tsx` | un module | le reste du logiciel fonctionne |
-| `src/app/caisse/error.tsx` | la caisse | aucune vente n'est perdue |
 | `src/app/global-error.tsx` | la coque racine | le service, pas vos données |
 
 Pour vérifier la chaîne de bout en bout, il faut un build de production —

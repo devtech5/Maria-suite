@@ -37,26 +37,14 @@ export const ENTREPRISE = {
 };
 
 /**
- * Modules coupés à la naissance de l'entreprise : MARIA GROUP SARL ne tient
- * ni commerce de détail, ni restaurant, ni maquis, ni hôtel, ni billetterie,
- * ni point de vente mobile money, ni stock, ni caisse : elle ne vend aucun
- * produit au comptoir. Le propriétaire en rallume un depuis
- * « Utilisateurs › Modules » ; l'installation, relancée, ne le recoupe pas.
- * Mêmes modules que les migrations 0049, 0051 et 0071, qui les coupent sur
- * une base existante.
+ * Modules coupés à la naissance de l'entreprise : MARIA GROUP SARL ne tient ni
+ * stock de marchandises ni enquêtes à son installation. Le propriétaire en
+ * rallume un depuis « Utilisateurs › Modules » ; l'installation, relancée, ne
+ * le recoupe pas. Commerce, restauration, hôtellerie, réservations,
+ * billetterie, point de vente mobile money et caisse ont été retirés de la
+ * plateforme (migration 0074) : il n'y a plus rien à couper.
  */
-export const MODULES_COUPES_A_LA_NAISSANCE = [
-  "pos",
-  "boutique",
-  "restaurant",
-  "maquis",
-  "hotellerie",
-  "reservation",
-  "enquetes",
-  "billetterie",
-  "valeur_electronique",
-  "stock",
-] as const;
+export const MODULES_COUPES_A_LA_NAISSANCE = ["enquetes", "stock"] as const;
 
 /** Propriétaire et super administrateur du logiciel. */
 export const PROPRIETAIRE = ADRESSE_PROPRIETAIRE;

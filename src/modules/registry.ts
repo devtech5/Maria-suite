@@ -71,21 +71,6 @@ export const MODULES: ModuleDefinition[] = [
       "Articles, dépôts, mouvements typés, inventaires, valorisation, lots.",
   },
   {
-    key: "pos",
-    name: "Ventes & Encaissement",
-    layer: "socle",
-    // En base : postes de caisse, tickets, lignes avec prestation rattachée,
-    // règlements multiples. Un encaissement sort son stock et pose son écriture
-    // dans la même transaction, et la file locale encaisse sans réseau.
-    // Session de caisse : ouverture avec fond, comptage par moyen de paiement,
-    // écart passé en écriture. Un ticket s'annule par un avoir qui remet le
-    // stock et contrepasse l'écriture. Reste le retour partiel d'un ticket.
-    status: "en_cours",
-    requires: ["stock"],
-    description:
-      "Caisse : sessions, caissiers, paiements, tickets. Fonctionne hors connexion.",
-  },
-  {
     key: "comptabilite",
     name: "Comptabilité",
     layer: "socle",
@@ -334,20 +319,6 @@ export const MODULES: ModuleDefinition[] = [
       "Porte parc informatique, parc automobile, flotte, garage et patrimoine.",
   },
   {
-    key: "reservation",
-    name: "Réservation de ressource",
-    layer: "moteur",
-    // En base : ressources et grille de tarifs, contrats avec contrôle de
-    // disponibilité verrouillé, remise (location + caution en 165) et
-    // restitution (retenue en 758), abonnements et passages. Restent la
-    // facturation des locations longues et le paiement fractionné.
-    status: "en_cours",
-    requires: ["tiers"],
-    description:
-      "Ressource, calendrier anti-surréservation, tarif par durée, caution, contrat, retour. " +
-      "Porte location, hôtellerie, fitness et salons.",
-  },
-  {
     key: "missions",
     name: "Missions & Terrain",
     layer: "moteur",
@@ -361,91 +332,10 @@ export const MODULES: ModuleDefinition[] = [
       "Mission assignée, étapes, preuves horodatées et géolocalisées, formulaires. " +
       "Porte projet, collecte terrain, livraison, BTP et agriculture.",
   },
-  {
-    key: "billetterie",
-    name: "Billetterie",
-    layer: "moteur",
-    // En base : lignes, départs à tarif figé, plan de places protégé par un
-    // index unique, billets nominatifs avec écriture, contrôle à la montée,
-    // non-présentés au départ, annulation contrepassée. Restent la vente en
-    // ligne (le canal est prévu en base, aucune page ne vend encore) et le
-    // billet imprimé avec son code.
-    status: "en_cours",
-    requires: [],
-    description:
-      "Départ programmé, plan de places, billet, contrôle, vente en ligne. " +
-      "À ne pas confondre avec la livraison : une place sur un départ, pas un objet suivi.",
-  },
-  {
-    key: "valeur_electronique",
-    name: "Valeur électronique",
-    layer: "moteur",
-    // Écrans « Point de vente ». En base : sessions, floats par réseau,
-    // opérations contrôlées contre les deux réserves, commission saisie à
-    // l'opération, clôture avec rapprochement et écriture. Restent les
-    // barèmes de commission par opérateur et le reçu imprimé.
-    status: "en_cours",
-    requires: [],
-    description:
-      "Float par réseau, opérations, barèmes de commission, rapprochement float/espèces. " +
-      "Porte le transfert d'argent mobile money et la cabine téléphonique. " +
-      "Ne dépend d'aucun autre module.",
-  },
 
   // -------------------------------------------------------------- métiers
-  {
-    key: "boutique",
-    name: "Commerce",
-    layer: "metier",
-    // Pas de table propre : un tableau de bord posé sur la caisse et le stock
-    // — chiffre du jour, affluence, meilleures ventes, marge, ruptures — et un
-    // catalogue de départ. Restent les étiquettes de rayon et la fidélité.
-    status: "en_cours",
-    requires: ["pos", "stock"],
-    description: "Commerce de détail : le jour en chiffres, l'affluence, les meilleures ventes et les ruptures.",
-  },
-  {
-    key: "restaurant",
-    name: "Restaurant",
-    layer: "metier",
-    // En base, sur le moteur de restauration partagé avec le maquis : tables,
-    // commandes numérotées, lignes envoyées en cuisine ou au bar, bons de
-    // production, encaissement de la table en une transaction par un poste
-    // numéroté par le serveur. Restent les fiches techniques (un plat qui
-    // consomme ses ingrédients), le transfert de table et l'addition partagée.
-    status: "en_cours",
-    requires: ["pos", "stock"],
-    description: "Plan de salle, commandes par table, envoi en cuisine et au bar, encaissement de la table.",
-  },
-  {
-    key: "maquis",
-    name: "Maquis",
-    layer: "metier",
-    // Même moteur que le restaurant, sans couverts ; le grill tient lieu de
-    // cuisine. Restent la consigne des bouteilles et des casiers.
-    status: "en_cours",
-    requires: ["pos", "stock"],
-    description: "Tables et tournées, grill et bar, encaissement à la table.",
-  },
-  { key: "kiosque", name: "Kiosque mobile money", layer: "metier", status: "planifie", requires: ["valeur_electronique"], description: "Agent de transfert et vente de crédit." },
   { key: "garage", name: "Garage", layer: "metier", status: "planifie", requires: ["actifs", "tiers"], description: "Interventions sur des actifs appartenant au client, donc facturables." },
   { key: "btp", name: "BTP", layer: "metier", status: "planifie", requires: ["missions", "stock", "personnes"], description: "Chantiers, matériaux, main-d'œuvre à la tâche." },
-  {
-    key: "hotellerie",
-    name: "Hôtellerie / Résidence",
-    layer: "metier",
-    // En base, sur le moteur de réservation : la chambre est une ressource, le
-    // séjour un contrat piloté par l'hôtel (nuits, arrivée sans paiement, note
-    // de chambre, acomptes en 4191, solde au départ en une écriture, caution
-    // des résidences), ménage, fiche de police et registre. Restent le report
-    // des additions du restaurant sur la chambre, le changement de chambre en
-    // cours de séjour et la taxe de séjour.
-    status: "en_cours",
-    requires: ["reservation"],
-    description: "Chambres du jour, séjours, note de chambre, ménage et registre des voyageurs.",
-  },
-  { key: "location", name: "Location", layer: "metier", status: "planifie", requires: ["reservation"], description: "Matériel, engins, biens immobiliers, matériel événementiel." },
-  { key: "transport", name: "Transport", layer: "metier", status: "planifie", requires: ["billetterie"], description: "Gares routières, lignes, billets." },
   { key: "livraison", name: "Livraison", layer: "metier", status: "planifie", requires: ["missions"], description: "Colis, déménagement, transfert." },
   {
     key: "parc_auto",
@@ -482,7 +372,6 @@ export const MODULES: ModuleDefinition[] = [
     requires: ["actifs", "personnes"],
     description: "Fournitures de bureau et entretien des locaux : stock, remises, nettoyage, réparations, contrôles.",
   },
-  { key: "fitness", name: "Fitness", layer: "metier", status: "planifie", requires: ["reservation", "pos"], description: "Adhérents, formules, contrôle d'accès." },
   {
     key: "projet",
     name: "Projets et dépenses",

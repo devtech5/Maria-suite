@@ -43,7 +43,7 @@ beforeAll(async () => {
   ({ db, fermer } = await ouvrirBaseDeTest());
   ({ organizationId: org } = await semerEntreprise(db));
   patron = await membre("Patron", "proprietaire", true);
-  awa = await membre("Awa", "caissier");
+  awa = await membre("Awa", "secretaire");
   yao = await membre("Yao", "magasinier");
 });
 afterAll(async () => fermer());

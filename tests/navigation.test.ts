@@ -14,7 +14,7 @@ describe("groupesVisibles", () => {
   });
 
   it("cache un module fermé sur l'instance, même si le rôle a le droit", () => {
-    expect(groupesVisibles(["reservation.consulter"], [])).toEqual([]);
+    expect(groupesVisibles(["securite.consulter"], [])).toEqual([]);
   });
 
   it("garde le transverse ouvert sans qu'il soit déclaré", () => {

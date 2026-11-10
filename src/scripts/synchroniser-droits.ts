@@ -18,7 +18,7 @@
 import { config as loadEnv } from "dotenv";
 import postgres from "postgres";
 
-import { DROITS, PRESETS_ROLES, type DefinitionDroit } from "../lib/droits/catalogue";
+import { DROITS, PRESETS_ROLES, type DefinitionDroit, type PresetRole } from "../lib/droits/catalogue";
 
 loadEnv({ path: ".env.local", quiet: true });
 
@@ -88,11 +88,22 @@ async function main() {
 async function installerRolesPresets() {
   let poses = 0;
 
+  // Un rôle de métier ne se crée que là où l'un de ses modules est ouvert,
+  // comme au démarrage (`src/db/droits.ts`).
   for (const preset of PRESETS_ROLES) {
+    const modules: string[] = [...((preset as PresetRole).modules ?? [])];
     const inseres = await sql`
       insert into roles (organization_id, key, name, description, is_system)
-      select id, ${preset.cle}, ${preset.nom}, ${preset.description}, true
-      from organizations
+      select o.id, ${preset.cle}, ${preset.nom}, ${preset.description}, true
+      from organizations o
+      where cardinality(${sql.array(modules)}::text[]) = 0
+         or exists (
+           select 1 from unnest(${sql.array(modules)}::text[]) as m(cle)
+           where not exists (
+             select 1 from organization_modules om
+             where om.organization_id = o.id and om.module_key = m.cle and not om.enabled
+           )
+         )
       on conflict (organization_id, key) do nothing
       returning id
     `;

@@ -73,12 +73,6 @@ export interface EtatMissions {
   echouees: number;
 }
 
-/** Biens loués non rendus et adhérents bloqués à l'accueil. */
-export interface EtatReservations {
-  locationsEnRetard: number;
-  abonnementsEpuises: number;
-}
-
 /** Ce que la paie a d'urgent : salaires validés non versés, déclarations en attente. */
 export interface EtatPaieAlertes {
   salairesNonPayes: number;
@@ -156,7 +150,7 @@ export interface EtatStock {
  * Classé par gravité, pas par module : quelqu'un qui ouvre son application le
  * matin veut savoir ce qui brûle, pas parcourir un sommaire.
  *
- * Facturation, stock, parc, missions, réservations et guichet viennent de la base — les autres
+ * Facturation, stock, parc et missions viennent de la base — les autres
  * sources sont encore des fixtures, en attendant leurs modules.
  */
 export function alertes(
@@ -164,9 +158,6 @@ export function alertes(
   stock: EtatStock,
   parc: EtatParc,
   missions: EtatMissions,
-  reservations: EtatReservations,
-  /** Réseaux dont le float est bas au guichet ouvert, déjà nommés. */
-  floatsBas: string[] = [],
   depenses: { aApprouver: number; montantAApprouver: number; sansPreuve: number } = { aApprouver: 0, montantAApprouver: 0, sansPreuve: 0 },
   taches: EtatTaches = { miennesEnRetard: 0, equipeEnRetard: 0 },
   tresorerie: EtatTresorerieAlertes = TRESORERIE_VIDE,
@@ -364,19 +355,6 @@ export function alertes(
     });
   }
 
-  // ----------------------------------------------------------- guichet
-  if (floatsBas.length > 0) {
-    liste.push({
-      id: "float-bas",
-      gravite: "critique",
-      source: "base",
-      module: "Point de vente",
-      titre: "Float insuffisant",
-      detail: floatsBas.join(", "),
-      href: "/monnaie",
-      nombre: floatsBas.length,
-    });
-  }
 
   // ---------------------------------------------------------- trésorerie
   if (tresorerie.premierDecouvert) {
@@ -480,32 +458,6 @@ export function alertes(
     });
   }
 
-  // ----------------------------------------------------------- locations
-  if (reservations.locationsEnRetard > 0) {
-    liste.push({
-      id: "locations-retard",
-      gravite: "critique",
-      source: "base",
-      module: "Réservations",
-      titre: "Matériel non restitué",
-      detail: "Immobilisé chez un client, non louable",
-      href: "/reservations",
-      nombre: reservations.locationsEnRetard,
-    });
-  }
-
-  if (reservations.abonnementsEpuises > 0) {
-    liste.push({
-      id: "abonnements",
-      gravite: "information",
-      source: "base",
-      module: "Réservations",
-      titre: "Abonnements épuisés",
-      detail: "Accès refusé à l'accueil, à renouveler",
-      href: "/reservations/abonnements",
-      nombre: reservations.abonnementsEpuises,
-    });
-  }
 
   // ------------------------------------------------------------ missions
   if (missions.echouees > 0) {
@@ -594,41 +546,4 @@ export function tresorerie(soldes: SoldeCompte[]): Tresorerie[] {
   ];
 }
 
-/**
- * Chiffres du jour, pour juger l'activité sans ouvrir un module.
- *
- * La valeur du stock arrive du dehors : elle se lit en base, au coût moyen
- * pondéré. Elle était auparavant estimée au prix de VENTE — ce qui affichait la
- * marge future comme si elle était déjà acquise, et gonflait le patrimoine de
- * l'entreprise d'un tiers.
- */
-export interface ActiviteDuJour {
-  /** Encaissé en caisse depuis l'ouverture de la journée. */
-  encaisse: number;
-  /** Nombre de tickets, pour situer le montant. */
-  tickets: number;
-  /** Créances clients ouvertes : lignes 41 non lettrées. */
-  creances: number;
-  /** Valeur du stock au coût moyen pondéré. */
-  valeurStock: number;
-}
 
-/**
- * De quoi juger la journée.
- *
- * Les quatre chiffres viennent de la base — caisse, grand livre, stock. Aucun
- * n'est une projection ni une moyenne : ce sont des sommes d'écritures, à
- * l'unité près, comme l'exige la règle de l'argent entier.
- */
-export function activiteDuJour(
-  caisse: { chiffreAffaires: number; tickets: number },
-  creances: number,
-  valeurStock: number,
-): ActiviteDuJour {
-  return {
-    encaisse: caisse.chiffreAffaires,
-    tickets: caisse.tickets,
-    creances,
-    valeurStock,
-  };
-}

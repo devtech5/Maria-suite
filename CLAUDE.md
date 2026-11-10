@@ -5,8 +5,8 @@
 ERP de **MARIA GROUP SARL**, en Côte d'Ivoire. Une seule entreprise : pas
 d'inscription publique, pas d'abonnement, pas de choix d'entreprise. Elle
 naît avec `pnpm installer`, les comptes s'ajoutent par invitation.
-Next.js (App Router) · TypeScript · PostgreSQL · Drizzle. La caisse fonctionne
-hors connexion.
+Next.js (App Router) · TypeScript · PostgreSQL · Drizzle. Nouveaux modules :
+décisions et ordre dans `FEUILLE-DE-ROUTE.md`.
 
 ## Règles non négociables
 
@@ -271,14 +271,17 @@ entreprise. Logique commune dans `src/db/installation.ts` : avec
 aussi au démarrage, sans jamais toucher un compte existant.
 Un compte sans rattachement actif aboutit sur `/sans-acces`.
 
-Commerce, restaurant, maquis, hôtel, réservation, enquêtes, billetterie,
-point de vente, stock et caisse sont coupés pour l'entreprise (`organization_modules`,
-migrations 0049, 0051 et 0071, `MODULES_COUPES_A_LA_NAISSANCE`) : code et données restent,
-le propriétaire les rallume dans « Utilisateurs › Modules », où ils sont repliés.
-Un module coupé disparaît du menu, de l'accueil et de la composition des rôles ;
-les rôles préréglés de ces métiers (caissier, serveur, réceptionniste…, champ
-`modules` de `PRESETS_ROLES`) ne sont plus créés, et la migration 0071 retire
-ceux que personne ne porte.
+Commerce, restaurant, maquis, hôtel, réservations, billetterie, point de vente
+mobile money et caisse ont été **retirés de la plateforme** (migration 0074) :
+code, écrans, droits et rôles supprimés ; leurs tables supprimées seulement si
+elles étaient vides (sinon gardées, signalées au journal). Stock, catalogue et
+tables de ventes restent : Achats et Devis/factures en dépendent. Stock et
+enquêtes sont coupés à la naissance (`MODULES_COUPES_A_LA_NAISSANCE`) ; un
+module coupé se rallume dans « Utilisateurs › Modules », où il est replié, et
+disparaît sinon du menu, de l'accueil et de la composition des rôles. Un rôle
+préréglé de métier (champ `modules` de `PRESETS_ROLES`, le magasinier) n'est
+créé que là où l'un de ses modules est ouvert, à l'installation comme au
+démarrage (`synchroniserDroits`).
 
 **Adresses admises — règle stricte.** Seules deux sortes d'adresses ouvrent
 la plateforme : `michael.kadio05@gmail.com`, seule adresse Gmail permise, et
@@ -303,25 +306,24 @@ recharger ne contourne pas le voile. Règles pures : `src/lib/auth/verrou.ts`.
 **Déconnexion après 30 minutes sans activité** (`DECONNEXION_INACTIVITE_MINUTES`,
 `sessionEchue`) : `lireSession` révoque la session et l'écran voilé part vers
 `/connexion?expiree=1`. La durée de 30 jours n'est plus qu'un plafond. La
-caisse et la salle affichées (onglet visible, non voilées) envoient
+salle Meeting affichée (onglet visible, non voilée) envoie
 `maintenirSession` chaque minute : `sessions.maintenue_le` les tient ouvertes
 sans toucher `last_seen_at`, donc sans lever ni retarder le verrou de la
 gestion.
 
-**La caisse et la salle Meeting sont exemptées** : elles passent
-`exigerEntreprise({ malgreVerrou: true })` — pour la caisse : page,
-encaissement, ouverture et clôture de tiroir ; pour la salle : page, entrée,
-signal de présence, « Terminer pour tous ». Toute nouvelle action appelée
-depuis l'un de ces écrans doit en faire autant, sinon un onglet de gestion
-voisin qui se voile bloque l'encaissement ou cache la réunion. Les deux
-vivent hors de la coque de gestion, avec `VerrouInactivite mode="presence"` :
-seul un verrou demandé à la main les voile. Nulle part ailleurs.
+**La salle Meeting est exemptée** : elle passe
+`exigerEntreprise({ malgreVerrou: true })` — page, entrée, signal de
+présence, « Terminer pour tous ». Toute nouvelle action appelée depuis la
+salle doit en faire autant, sinon un onglet de gestion voisin qui se voile
+cache la réunion. Elle vit hors de la coque de gestion, avec
+`VerrouInactivite mode="presence"` : seul un verrou demandé à la main la
+voile. Nulle part ailleurs.
 
 ## Présences : pointage automatique
 
 Tout compte qui ouvre un écran est pointé présent : `pointerApresReponse`
 (`src/modules/presences/pointage.ts`) dans les coques gestion et accueil, la
-caisse et le signal de présence du verrou. La première activité du jour pose
+salle Meeting et le signal de présence du verrou. La première activité du jour pose
 l'arrivée, les suivantes la dernière activité ; au plus une écriture toutes
 les cinq minutes par compte, APRÈS la réponse (`after`), jamais bloquante.
 Pas seulement à la connexion : une session dure trente jours.
@@ -379,7 +381,7 @@ messages de la discussion (`reunion_messages`). L'organisateur désactive le
 lien (`reunions.lien_actif` : plus personne n'entre, lui excepté), le réactive,
 ou supprime la réunion (terminée d'abord si elle est en cours, puis retirée de
 toutes les listes). La salle (`src/app/(salle)/`, plein cadre) est exemptée
-du verrou d'inactivité, comme la caisse ; `reagirEnSalle` et `ecrireEnSalle`
+du verrou d'inactivité ; `reagirEnSalle` et `ecrireEnSalle`
 passent `malgreVerrou` comme les autres actions de la salle.
 
 ## Reprise de l'existant

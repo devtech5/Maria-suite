@@ -52,17 +52,6 @@ const DESSINS: Record<CleIcone, ReactNode> = {
       <rect x="32" y="6" width="9" height="35" rx="2.5" fill={JAUNE} />
     </>
   ),
-  caisse: (
-    <>
-      <rect x="9" y="22" width="30" height="20" rx="3" fill={SARCELLE} />
-      <rect x="20" y="29" width="8" height="13" rx="1.5" fill={CANARD} />
-      <rect x="5" y="6" width="38" height="6" rx="3" fill={PRUNE} />
-      <path d="M5 12h9.5v8a4.75 4.75 0 0 1-9.5 0Z" fill={CORAIL} />
-      <path d="M14.5 12H24v8a4.75 4.75 0 0 1-9.5 0Z" fill={JAUNE} />
-      <path d="M24 12h9.5v8a4.75 4.75 0 0 1-9.5 0Z" fill={CORAIL} />
-      <path d="M33.5 12H43v8a4.75 4.75 0 0 1-9.5 0Z" fill={JAUNE} />
-    </>
-  ),
   commercial: (
     <>
       <circle cx="35" cy="35" r="9" fill={CORAIL} />
@@ -103,15 +92,6 @@ const DESSINS: Record<CleIcone, ReactNode> = {
       <circle cx="34" cy="33" r="4" fill={BLANC} opacity=".7" />
     </>
   ),
-  reservations: (
-    <>
-      <rect x="5" y="9" width="38" height="34" rx="5" fill={CORAIL} />
-      <path d="M5 14a5 5 0 0 1 5-5h28a5 5 0 0 1 5 5v5H5Z" fill={PRUNE} />
-      <rect x="13" y="4" width="5" height="10" rx="2.5" fill={JAUNE} />
-      <rect x="30" y="4" width="5" height="10" rx="2.5" fill={JAUNE} />
-      <path d="m16 30 6 6 11-11" stroke={BLANC} strokeWidth="4" strokeLinecap="round" strokeLinejoin="round" fill="none" />
-    </>
-  ),
   projets: (
     <>
       <rect x="5" y="7" width="24" height="9" rx="4.5" fill={SARCELLE} />
@@ -149,14 +129,6 @@ const DESSINS: Record<CleIcone, ReactNode> = {
       <path d="M3 34h42l-3.4 5.1a2 2 0 0 1-1.7.9H8.1a2 2 0 0 1-1.7-.9Z" fill={CORAIL} />
     </>
   ),
-  billetterie: (
-    <g transform="rotate(-12 24 24)">
-      <path d="M4 15a3 3 0 0 1 3-3h34a3 3 0 0 1 3 3v5a4 4 0 0 0 0 8v5a3 3 0 0 1-3 3H7a3 3 0 0 1-3-3v-5a4 4 0 0 0 0-8Z" fill={JAUNE} />
-      <path d="M32 12h9a3 3 0 0 1 3 3v5a4 4 0 0 0 0 8v5a3 3 0 0 1-3 3h-9Z" fill={ORANGE} />
-      <path d="M32 15v18" stroke={BLANC} strokeWidth="2" strokeDasharray="3 3" />
-      <path d="M11 20h14M11 27h9" stroke={PRUNE} strokeWidth="3" strokeLinecap="round" />
-    </g>
-  ),
   comptabilite: (
     <>
       <rect x="9" y="3" width="30" height="42" rx="5" fill={PRUNE} />
@@ -174,15 +146,6 @@ const DESSINS: Record<CleIcone, ReactNode> = {
       <rect x="4" y="14" width="38" height="28" rx="5" fill={SARCELLE} />
       <rect x="29" y="23" width="15" height="10" rx="4" fill={ORANGE} />
       <circle cx="35" cy="28" r="2.3" fill={BLANC} />
-    </>
-  ),
-  guichet: (
-    <>
-      <rect x="10" y="3" width="22" height="42" rx="5" fill={BLEU} />
-      <rect x="13.5" y="8" width="15" height="27" rx="2" fill={BLANC} opacity=".55" />
-      <rect x="17.5" y="38.5" width="7" height="3" rx="1.5" fill={BLANC} opacity=".8" />
-      <circle cx="35" cy="31" r="10" fill={JAUNE} />
-      <circle cx="35" cy="31" r="5" fill={ORANGE} />
     </>
   ),
   personnel: (
@@ -322,40 +285,6 @@ const DESSINS: Record<CleIcone, ReactNode> = {
       <rect x="12" y="24" width="6" height="12" rx="2" fill={BLANC} />
       <rect x="21" y="15" width="6" height="21" rx="2" fill={JAUNE} />
       <rect x="30" y="20" width="6" height="16" rx="2" fill={BLANC} />
-    </>
-  ),
-  boutique: (
-    <>
-      <path d="M8 17h32l-2.5 23a3 3 0 0 1-3 2.7h-21a3 3 0 0 1-3-2.7Z" fill={ORANGE} />
-      <path d="M17 20v-6a7 7 0 0 1 14 0v6" stroke={PRUNE} strokeWidth="3.5" strokeLinecap="round" fill="none" />
-      <rect x="15" y="27" width="18" height="4" rx="2" fill={BLANC} opacity=".8" />
-    </>
-  ),
-  restaurant: (
-    <>
-      <rect x="4" y="36" width="40" height="5" rx="2.5" fill={PRUNE} />
-      <path d="M7 34a17 17 0 0 1 34 0Z" fill={SARCELLE} />
-      <circle cx="24" cy="13" r="3.5" fill={JAUNE} />
-      <path d="M15 27a10 10 0 0 1 7-8" stroke={BLANC} strokeWidth="2.5" strokeLinecap="round" fill="none" opacity=".75" />
-    </>
-  ),
-  maquis: (
-    <>
-      <rect x="4" y="26" width="26" height="6" rx="3" fill={PRUNE} />
-      <path d="M8 32h18l-3 10H11Z" fill={CORAIL} />
-      <path d="M10 22c0-4 4-4 4-8M17 22c0-4 4-4 4-8M24 22c0-4 4-4 4-8" stroke={ORANGE} strokeWidth="2.5" strokeLinecap="round" fill="none" />
-      <path d="M36 4h4v7l3 5v26a2 2 0 0 1-2 2h-6a2 2 0 0 1-2-2V16l3-5Z" fill={JAUNE} />
-      <rect x="33" y="24" width="10" height="8" fill={BLANC} opacity=".75" />
-    </>
-  ),
-  hotel: (
-    <>
-      <rect x="4" y="10" width="5" height="32" rx="2.5" fill={PRUNE} />
-      <rect x="39" y="22" width="5" height="20" rx="2.5" fill={PRUNE} />
-      <rect x="6" y="28" width="36" height="8" rx="2" fill={SARCELLE} />
-      <rect x="10" y="20" width="10" height="7" rx="3.5" fill={BLANC} opacity=".85" />
-      <path d="M21 27v-4a4 4 0 0 1 4-4h11a4 4 0 0 1 4 4v4Z" fill={ORANGE} />
-      <circle cx="35" cy="9" r="3" fill={JAUNE} />
     </>
   ),
   securite: (

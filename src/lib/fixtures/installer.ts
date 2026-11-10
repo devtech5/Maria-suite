@@ -28,14 +28,8 @@ import { postesCaisse } from "@/modules/ventes/schema";
 import { amorcerParc } from "./actifs";
 import { amorcerDocuments } from "./documents";
 import { amorcerMissions, type RepereMissions } from "./missions";
-import { amorcerReservations } from "./reservations";
-import { aUneRessource } from "@/modules/reservations/requetes";
-import { amorcerBilletterie } from "./billetterie";
-import { amorcerGuichet } from "./monnaie";
 import { amorcerProjets } from "./projets";
 import { aUnProjet } from "@/modules/projets/requetes";
-import { aUneLigne } from "@/modules/billetterie/requetes";
-import { aUneSession } from "@/modules/monnaie/requetes";
 import { amorcerPersonnel } from "./rh";
 import { amorcerStock, type ArticleAAmorcer } from "./stock";
 
@@ -100,11 +94,6 @@ export interface ResultatInstallation {
   signatures: number;
   missions: number;
   formulaires: number;
-  ressources: number;
-  locations: number;
-  departs: number;
-  billets: number;
-  operationsGuichet: number;
   projets: number;
   depenses: number;
 }
@@ -141,9 +130,6 @@ export async function installerJeuDemonstration(
     const parc = await completerParc(organizationId, userId);
     const pieces = await completerDocuments(organizationId, userId);
     const terrain = await completerMissions(organizationId, userId);
-    const louables = await completerReservations(organizationId, userId);
-    const transport = await completerBilletterie(organizationId, userId);
-    const guichet = await completerGuichet(organizationId, userId);
     const chantiers = await completerProjets(organizationId, userId);
 
     return {
@@ -157,9 +143,6 @@ export async function installerJeuDemonstration(
       ...parc,
       ...pieces,
       ...terrain,
-      ...louables,
-      ...transport,
-      ...guichet,
       ...chantiers,
     };
   }
@@ -346,21 +329,6 @@ export async function installerJeuDemonstration(
       userId,
     );
 
-    // La location vient en dernier : elle réserve pour des clients et passe
-    // ses écritures au nom de celui qui installe.
-    const location = userId
-      ? await amorcerReservations(
-          tx,
-          organizationId,
-          (await reperesMissions(tx, organizationId)).clients,
-          userId,
-        )
-      : { ressources: 0, contrats: 0, adherents: 0 };
-
-    // Billetterie et guichet ne dépendent de rien : ils passent leurs
-    // écritures au nom de celui qui installe.
-    const transport = userId ? await amorcerBilletterie(tx, organizationId, userId) : { departs: 0, billets: 0 };
-    const guichet = userId ? await amorcerGuichet(tx, organizationId, userId) : { operations: 0 };
     const chantiers = userId ? await amorcerProjets(tx, organizationId, userId) : { projets: 0, depenses: 0 };
 
     return {
@@ -382,11 +350,6 @@ export async function installerJeuDemonstration(
       signatures: pieces.signatures,
       missions: terrain.missions,
       formulaires: terrain.formulaires,
-      ressources: location.ressources,
-      locations: location.contrats,
-      departs: transport.departs,
-      billets: transport.billets,
-      operationsGuichet: guichet.operations,
       projets: chantiers.projets,
       depenses: chantiers.depenses,
     };
@@ -685,30 +648,6 @@ async function completerMissions(
   return db.transaction((tx) => amorcerMissions(tx, organizationId, reperes, userId));
 }
 
-/** Verse le parc louable dans une entreprise amorcée avant le module Réservations. */
-async function completerReservations(
-  organizationId: string,
-  userId?: string,
-): Promise<{ ressources: number; locations: number }> {
-  if (!userId || (await aUneRessource(organizationId))) return { ressources: 0, locations: 0 };
-
-  const { clients } = await reperesMissions(db, organizationId);
-  const { ressources, contrats } = await db.transaction((tx) =>
-    amorcerReservations(tx, organizationId, clients, userId),
-  );
-  return { ressources, locations: contrats };
-}
-
-/** Verse lignes, départs et billets dans une entreprise amorcée avant la billetterie. */
-async function completerBilletterie(
-  organizationId: string,
-  userId?: string,
-): Promise<{ departs: number; billets: number }> {
-  if (!userId || (await aUneLigne(organizationId))) return { departs: 0, billets: 0 };
-  const { departs, billets } = await db.transaction((tx) => amorcerBilletterie(tx, organizationId, userId));
-  return { departs, billets };
-}
-
 /** Verse deux projets et leurs dépenses dans une entreprise amorcée avant le module. */
 async function completerProjets(
   organizationId: string,
@@ -716,16 +655,6 @@ async function completerProjets(
 ): Promise<{ projets: number; depenses: number }> {
   if (!userId || (await aUnProjet(organizationId))) return { projets: 0, depenses: 0 };
   return db.transaction((tx) => amorcerProjets(tx, organizationId, userId));
-}
-
-/** Ouvre un guichet de démonstration dans une entreprise amorcée avant le module. */
-async function completerGuichet(
-  organizationId: string,
-  userId?: string,
-): Promise<{ operationsGuichet: number }> {
-  if (!userId || (await aUneSession(organizationId))) return { operationsGuichet: 0 };
-  const { operations } = await db.transaction((tx) => amorcerGuichet(tx, organizationId, userId));
-  return { operationsGuichet: operations };
 }
 
 /**

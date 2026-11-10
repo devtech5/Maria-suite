@@ -14,9 +14,6 @@ import {
   resumeParc,
 } from "@/modules/actifs/requetes";
 import { etatMissions } from "@/modules/missions/requetes";
-import { etatReservations } from "@/modules/reservations/requetes";
-import { NOM_RESEAU } from "@/modules/monnaie/calcul";
-import { floatsBas } from "@/modules/monnaie/requetes";
 import { etatDepenses } from "@/modules/projets/requetes";
 import { LIBELLE_PRIORITE, joursAvantEcheance } from "@/modules/taches/calcul";
 import { tachesEnRetard } from "@/modules/taches/requetes";
@@ -31,14 +28,12 @@ import { etatFiscalite } from "@/modules/fiscalite/requetes";
 import { etatFacturation } from "@/modules/facturation/requetes";
 import { soldesParCompte } from "@/modules/comptabilite/requetes";
 import { soldesParAuxiliaire } from "@/modules/tiers/requetes";
-import { journeeCaisse } from "@/modules/ventes/requetes";
 import {
   alertesReapprovisionnement,
   joursRestants,
   resumeStock,
 } from "@/modules/stock/requetes";
 import {
-  activiteDuJour,
   alertes,
   ORDRE_GRAVITE,
   tresorerie,
@@ -97,9 +92,7 @@ const DROIT_PAR_RACINE: [string, Droit][] = [
   ["/commercial/factures", "commercial.piece.consulter"],
   ["/commercial", "tiers.fiche.consulter"],
   ["/stock", "stock.article.consulter"],
-  ["/reservations", "reservation.consulter"],
   ["/comptabilite", "comptabilite.ecriture.consulter"],
-  ["/monnaie", "valeur_electronique.consulter"],
   ["/actifs", "actifs.consulter"],
   ["/parc-auto", "parc_auto.consulter"],
   ["/marches", "marches.consulter"],
@@ -121,11 +114,6 @@ function droitRequis(href: string): Droit | null {
 export default async function PageTableauDeBord() {
   const session = await exigerEntreprise();
 
-  // Même borne que l'écran de ventes : la journée du commerce commence à
-  // minuit, et les deux écrans doivent annoncer le même encaissé.
-  const debutJournee = new Date();
-  debutJournee.setHours(0, 0, 0, 0);
-
   const droits = await droitsActifs();
   // Les tâches de l'équipe ne se lisent qu'avec le droit d'attribuer ; sans
   // celui de consulter, aucune tâche du tout.
@@ -139,13 +127,10 @@ export default async function PageTableauDeBord() {
     resume,
     aCommander,
     soldesComptes,
-    journee,
     auxiliaires,
     parc,
     echeances,
     missions,
-    reservations,
-    floats,
     depenses,
     retards,
     caisses,
@@ -162,13 +147,10 @@ export default async function PageTableauDeBord() {
     resumeStock(session.organizationId),
     alertesReapprovisionnement(session.organizationId),
     soldesParCompte(session.organizationId),
-    journeeCaisse(session.organizationId, debutJournee),
     soldesParAuxiliaire(session.organizationId),
     listerActifs(session.organizationId),
     listerEcheances(session.organizationId),
     etatMissions(session.organizationId),
-    etatReservations(session.organizationId),
-    floatsBas(session.organizationId),
     etatDepenses(session.organizationId),
     voitSesTaches
       ? tachesEnRetard(session.organizationId, session.userId, voitLEquipe, aujourdhui)
@@ -193,7 +175,7 @@ export default async function PageTableauDeBord() {
   }, {
     echeancesDepassees: echeances.filter((e) => e.gravite === "depassee").length,
     indisponibles: resumeParc(parc).indisponibles,
-  }, missions, reservations, floats.map((r) => NOM_RESEAU[r]), depenses, {
+  }, missions, depenses, {
     miennesEnRetard: retards.miennes,
     equipeEnRetard: retards.autres,
   }, caisses
@@ -309,7 +291,7 @@ export default async function PageTableauDeBord() {
     0,
   );
 
-  const activite = activiteDuJour(journee, creances, resume.valeur);
+  const activite = { creances, valeurStock: resume.valeur };
   const soldes = tresorerie(soldesComptes);
 
   const critiques = liste.filter((a) => a.gravite === "critique");
@@ -366,13 +348,6 @@ export default async function PageTableauDeBord() {
         <section className="mb-6">
           <h2 className="mb-2.5 text-base font-semibold">Activité</h2>
           <div className={GRILLE}>
-            <CarteIndicateur
-              libelle="Encaissé aujourd'hui"
-              valeur={fmtCompact(activite.encaisse)}
-              unite="FCFA"
-              ton="valide"
-              precision={`${fmtEntier(activite.tickets)} ticket${activite.tickets > 1 ? "s" : ""} depuis minuit`}
-            />
             <CarteIndicateur
               libelle="Créances clients"
               valeur={fmtCompact(activite.creances)}
