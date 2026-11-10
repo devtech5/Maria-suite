@@ -66,3 +66,72 @@ export function semaineAffichee(lundi: string, aujourdhui: string, creneaux: rea
 export function bornesSemaine(lundi: string, fuseau: string): { du: Date; au: Date } {
   return { du: instantLocal(lundi, "00:00", fuseau), au: instantLocal(ajouterJours(lundi, 7), "00:00", fuseau) };
 }
+
+// ---------------------------------------------------------------- mois
+
+const NOMS_MOIS = ["janvier", "février", "mars", "avril", "mai", "juin", "juillet", "août", "septembre", "octobre", "novembre", "décembre"] as const;
+
+const MOIS_ISO = /^\d{4}-(0[1-9]|1[0-2])$/;
+
+/** « 2026-11 » si la saisie est un mois lisible, sinon nul. */
+export function moisValide(mois: unknown): string | null {
+  return typeof mois === "string" && MOIS_ISO.test(mois) ? mois : null;
+}
+
+/** Le mois d'un jour : « 2026-11-10 » → « 2026-11 ». */
+export function moisDe(jour: string): string {
+  return jour.slice(0, 7);
+}
+
+/** Le mois décalé de `n` : (« 2026-12 », 1) → « 2027-01 ». */
+export function moisVoisin(mois: string, n: number): string {
+  const rang = Number(mois.slice(0, 4)) * 12 + Number(mois.slice(5, 7)) - 1 + n;
+  return `${Math.floor(rang / 12)}-${String((rang % 12) + 1).padStart(2, "0")}`;
+}
+
+/** Nombre de jours du mois, années bissextiles comprises. */
+export function joursDansMois(mois: string): number {
+  // Jour 0 du mois suivant = dernier jour de celui-ci ; calcul en UTC, sans fuseau.
+  return new Date(Date.UTC(Number(mois.slice(0, 4)), Number(mois.slice(5, 7)), 0)).getUTCDate();
+}
+
+/** « novembre 2026 ». */
+export function titreMois(mois: string): string {
+  return `${NOMS_MOIS[Number(mois.slice(5, 7)) - 1]} ${mois.slice(0, 4)}`;
+}
+
+/** Bornes du mois, comme instants : du 1er à 00:00 au 1er du mois suivant à 00:00. */
+export function bornesMois(mois: string, fuseau: string): { du: Date; au: Date } {
+  return { du: instantLocal(`${mois}-01`, "00:00", fuseau), au: instantLocal(`${moisVoisin(mois, 1)}-01`, "00:00", fuseau) };
+}
+
+export interface JourDuMois {
+  jour: string;
+  /** Numéro du jour dans le mois : 1 à 31. */
+  numero: number;
+  aujourdhui: boolean;
+  /** Samedi ou dimanche. */
+  finDeSemaine: boolean;
+  horaires: string | null;
+  blocs: Bloc[];
+}
+
+/**
+ * Le mois d'une personne, en semaines du lundi au dimanche : du 1er au
+ * dernier jour du mois, rien de plus. Les cases avant le 1er et après le
+ * dernier jour restent vides (`null`) pour que chaque colonne garde son jour
+ * de la semaine.
+ */
+export function moisAffiche(mois: string, aujourdhui: string, creneaux: readonly Creneau[], plages: readonly Plage[], fuseau: string): (JourDuMois | null)[][] {
+  const premier = `${mois}-01`;
+  const total = joursDansMois(mois);
+  const avant = jourSemaine(premier) - 1;
+  const cases: (JourDuMois | null)[] = Array.from({ length: avant }, () => null);
+  for (let i = 0; i < total; i++) {
+    const jour = ajouterJours(premier, i);
+    const rang = jourSemaine(jour);
+    cases.push({ jour, numero: i + 1, aujourdhui: jour === aujourdhui, finDeSemaine: rang >= 6, horaires: resumeHoraires(plages, jour), blocs: blocsDuJour(jour, creneaux, fuseau) });
+  }
+  while (cases.length % 7 !== 0) cases.push(null);
+  return Array.from({ length: cases.length / 7 }, (_, s) => cases.slice(s * 7, s * 7 + 7));
+}

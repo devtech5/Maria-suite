@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
 
 import { PRESETS_ROLES } from "@/lib/droits/catalogue";
-import { formaterEcheance, resumeHoraires, titreJour } from "@/modules/planning/affichage";
+import { bornesMois, formaterEcheance, joursDansMois, moisAffiche, moisValide, moisVoisin, resumeHoraires, titreJour } from "@/modules/planning/affichage";
 import {
   blocsDuJour,
   chevauche,
@@ -162,5 +162,48 @@ describe("droits", () => {
 
   it("chaque rôle préréglé tient son propre planning", () => {
     for (const p of PRESETS_ROLES) expect(p.droits as readonly string[]).toContain("planning.utiliser");
+  });
+});
+
+describe("mois", () => {
+  it("compte les jours du mois, février bissextile compris", () => {
+    expect(joursDansMois("2026-11")).toBe(30);
+    expect(joursDansMois("2026-12")).toBe(31);
+    expect(joursDansMois("2026-02")).toBe(28);
+    expect(joursDansMois("2028-02")).toBe(29);
+  });
+
+  it("passe d'une année à l'autre", () => {
+    expect(moisVoisin("2026-12", 1)).toBe("2027-01");
+    expect(moisVoisin("2027-01", -1)).toBe("2026-12");
+    expect(moisVoisin("2026-11", 0)).toBe("2026-11");
+  });
+
+  it("refuse un mois illisible", () => {
+    expect(moisValide("2026-11")).toBe("2026-11");
+    expect(moisValide("2026-13")).toBeNull();
+    expect(moisValide("2026-1")).toBeNull();
+    expect(moisValide(undefined)).toBeNull();
+  });
+
+  it("montre le mois du 1er au dernier jour, en semaines du lundi au dimanche", () => {
+    // Novembre 2026 commence un dimanche et finit un lundi.
+    const semaines = moisAffiche("2026-11", "2026-11-10", [], [], "Africa/Abidjan");
+    const jours = semaines.flat().filter((j) => j !== null);
+    expect(semaines.every((s) => s.length === 7)).toBe(true);
+    expect(jours).toHaveLength(30);
+    expect(jours[0]!.jour).toBe("2026-11-01");
+    expect(jours.at(-1)!.jour).toBe("2026-11-30");
+    expect(semaines[0].slice(0, 6).every((j) => j === null)).toBe(true);
+    expect(semaines[0][6]!.numero).toBe(1);
+    expect(semaines.at(-1)![0]!.numero).toBe(30);
+    expect(jours.find((j) => j!.aujourdhui)!.jour).toBe("2026-11-10");
+    expect(jours.find((j) => j!.jour === "2026-11-14")!.finDeSemaine).toBe(true);
+  });
+
+  it("borne le mois à minuit, du 1er au 1er suivant", () => {
+    const { du, au } = bornesMois("2026-12", "Africa/Abidjan");
+    expect(du.toISOString()).toBe("2026-12-01T00:00:00.000Z");
+    expect(au.toISOString()).toBe("2027-01-01T00:00:00.000Z");
   });
 });

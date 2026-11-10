@@ -255,6 +255,144 @@ export function Semaine({ jours, creneaux, pourUserId }: { jours: JourAffiche[];
   );
 }
 
+// ----------------------------------------------------------------- mois
+
+export interface JourMoisAffiche {
+  jour: string;
+  numero: number;
+  aujourdhui: boolean;
+  finDeSemaine: boolean;
+  horaires: string | null;
+  blocs: Bloc[];
+}
+
+const ENTETES_SEMAINE = ["Lun.", "Mar.", "Mer.", "Jeu.", "Ven.", "Sam.", "Dim."] as const;
+
+/** Créneaux montrés dans une case du mois ; au-delà, un lien vers la semaine. */
+const BLOCS_PAR_CASE = 3;
+
+/**
+ * Le mois en calendrier, du 1er au dernier jour. Un clic sur une case pose un
+ * créneau ce jour-là ; un clic sur un créneau saisi le reprend ; une période
+ * déduite renvoie à sa pièce, comme dans la semaine.
+ */
+export function Mois({ semaines, creneaux, pourUserId, lienSemaine }: { semaines: (JourMoisAffiche | null)[][]; creneaux: CreneauAffiche[]; pourUserId: string | null; lienSemaine: Record<string, string> }) {
+  const [edition, setEdition] = useState<Edition | null>(null);
+  const jours = semaines.flat().filter((j): j is JourMoisAffiche => j !== null);
+  const aujourdhui = jours.find((j) => j.aujourdhui)?.jour ?? jours[0].jour;
+
+  return (
+    <section>
+      <div className="mb-2 flex items-center justify-between gap-2">
+        <div className="min-w-0">
+          <h2 className="text-base font-semibold">Créneaux du mois</h2>
+          <p className="text-xs text-[var(--encre-faible)]">Cliquez sur un jour pour y poser un créneau. Congés, missions et réunions s&apos;ajoutent d&apos;eux-mêmes, en pointillé.</p>
+        </div>
+        <button
+          type="button"
+          onClick={() => setEdition({ mode: "nouveau", jour: aujourdhui })}
+          className="h-cible shrink-0 rounded-lg bg-marque-600 px-3.5 text-sm font-semibold text-white hover:bg-marque-700"
+        >
+          Nouveau créneau
+        </button>
+      </div>
+
+      {edition && (
+        <FormulaireCreneau
+          key={edition.mode === "modifier" ? edition.creneau.id : `n-${edition.jour}`}
+          edition={edition}
+          pourUserId={pourUserId}
+          fermer={() => setEdition(null)}
+        />
+      )}
+
+      <div className="overflow-x-auto rounded-xl border border-[var(--filet)] bg-[var(--surface)]">
+        <div className="grid min-w-[46rem] grid-cols-7">
+          {ENTETES_SEMAINE.map((e, i) => (
+            <div key={e} className={`border-b border-[var(--filet)] px-2 py-2 text-xs font-semibold uppercase tracking-wide ${i >= 5 ? "text-[var(--encre-faible)]" : "text-[var(--encre-douce)]"}`}>
+              {e}
+            </div>
+          ))}
+          {semaines.flat().map((j, i) => {
+            const bordure = `${i % 7 !== 6 ? "border-r" : ""} ${i < semaines.length * 7 - 7 ? "border-b" : ""} border-[var(--filet)]`;
+            if (!j) return <div key={`vide-${i}`} aria-hidden className={`${bordure} min-h-28 bg-[var(--surface-creuse)]/40`} />;
+            const visibles = j.blocs.slice(0, BLOCS_PAR_CASE);
+            const reste = j.blocs.length - visibles.length;
+            return (
+              <div key={j.jour} className={`${bordure} group relative flex min-h-28 flex-col p-1.5 ${j.finDeSemaine ? "bg-[var(--surface-creuse)]/40" : ""}`}>
+                <div className="mb-1 flex items-center justify-between gap-1">
+                  <span
+                    className={`chiffres flex size-7 items-center justify-center rounded-full text-sm ${j.aujourdhui ? "bg-marque-600 font-semibold text-white" : "font-medium"}`}
+                    title={j.horaires ?? "Pas d'horaires"}
+                  >
+                    {j.numero}
+                  </span>
+                  <button
+                    type="button"
+                    onClick={() => setEdition({ mode: "nouveau", jour: j.jour })}
+                    aria-label={`Ajouter un créneau le ${j.numero}`}
+                    title="Ajouter un créneau"
+                    className="flex size-6 items-center justify-center rounded-md text-base leading-none text-[var(--encre-douce)] opacity-60 hover:bg-[var(--surface-creuse)] hover:opacity-100 group-hover:opacity-100"
+                  >
+                    +
+                  </button>
+                </div>
+                <ul className="space-y-0.5">
+                  {visibles.map((b) => (
+                    <li key={`${b.id}-${j.jour}`}>
+                      <BlocCompact bloc={b} modifier={() => {
+                        const creneau = creneaux.find((c) => c.id === b.id);
+                        if (creneau) setEdition({ mode: "modifier", creneau });
+                      }} />
+                    </li>
+                  ))}
+                </ul>
+                {reste > 0 && (
+                  <Link href={lienSemaine[j.jour] ?? "#"} className="mt-auto pt-0.5 text-[11px] font-medium text-marque-600 hover:underline">
+                    + {reste} autre{reste > 1 ? "s" : ""}
+                  </Link>
+                )}
+              </div>
+            );
+          })}
+        </div>
+      </div>
+    </section>
+  );
+}
+
+/** Un créneau sur une ligne : pastille, heure, statut. Le détail passe en infobulle. */
+function BlocCompact({ bloc: b, modifier }: { bloc: Bloc; modifier: () => void }) {
+  const heure = b.depuisAvant ? "…" : minutesEnHeure(b.debutMinutes);
+  const detail = [`${b.depuisAvant ? "…" : ""}${minutesEnHeure(b.debutMinutes)} – ${minutesEnHeure(b.finMinutes)}${b.continueApres ? "…" : ""}`, STATUTS[b.statut].libelle, b.lieu, b.origine ? libelleOrigine(b.origine) : null]
+    .filter(Boolean)
+    .join(" · ");
+  const contenu = (
+    <>
+      <span aria-hidden className="size-1.5 shrink-0 rounded-full" style={{ background: STATUTS[b.statut].couleur }} />
+      <span className="chiffres shrink-0 text-[var(--encre-faible)]">{heure}</span>
+      <span className="truncate font-medium">{STATUTS[b.statut].libelle}</span>
+    </>
+  );
+  const classe = `flex w-full items-center gap-1 rounded px-1 py-0.5 text-left text-[11px] hover:bg-[var(--surface-creuse)] ${b.origine ? "border border-dashed border-[var(--filet)]" : ""}`;
+  if (b.origine) {
+    return b.origine.lien ? (
+      <Link href={b.origine.lien} title={detail} className={classe}>
+        {contenu}
+      </Link>
+    ) : (
+      <div title={detail} className={classe}>
+        {contenu}
+      </div>
+    );
+  }
+  return (
+    <button type="button" onClick={modifier} title={detail} className={classe}>
+      {contenu}
+    </button>
+  );
+}
+
 function FormulaireCreneau({ edition, pourUserId, fermer }: { edition: Edition; pourUserId: string | null; fermer: () => void }) {
   const { resultat, enCours, lancer } = useOperation();
   const c = edition.mode === "modifier" ? edition.creneau : null;
