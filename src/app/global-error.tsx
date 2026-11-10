@@ -1,6 +1,7 @@
 "use client";
 
 import { DetailErreur } from "@/components/coque/detail-erreur";
+import { useRechargementApresVersion } from "@/components/coque/rechargement-version";
 
 /**
  * Dernier filet : la coque racine elle-même a échoué.
@@ -22,6 +23,9 @@ export default function ErreurGlobale({
   error: Error & { digest?: string };
   retry: () => void;
 }) {
+  // Sans code, l'erreur vient du navigateur : presque toujours un onglet resté
+  // ouvert pendant une mise en production. La page se recharge d'elle-même.
+  const version = useRechargementApresVersion(error, true);
   return (
     <html lang="fr">
       <body
@@ -41,13 +45,13 @@ export default function ErreurGlobale({
         }}
       >
         <h1 style={{ fontSize: "1.25rem", fontWeight: 600, margin: 0 }}>
-          Maria Suite n&apos;a pas pu démarrer
+          {version ? "Une nouvelle version de Maria Suite est en ligne" : "Maria Suite n\u2019a pas pu démarrer"}
         </h1>
 
         <p style={{ maxWidth: "52ch", fontSize: "0.875rem", opacity: 0.9 }}>
-          Le service est momentanément indisponible. Vos données sont intactes :
-          rien n&apos;est perdu, et les ventes encaissées sur un appareil y
-          restent jusqu&apos;au retour du service.
+          {version
+            ? "Cet onglet était resté sur l\u2019ancienne version. La page se recharge ; si elle ne le fait pas, cliquez sur Réessayer. Vos données sont intactes."
+            : "Le service est momentanément indisponible. Vos données sont intactes : rien n\u2019est perdu, et les ventes encaissées sur un appareil y restent jusqu\u2019au retour du service."}
         </p>
 
         {error.digest && (
