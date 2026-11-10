@@ -10,11 +10,10 @@ import { REPRISE_OUVERTE } from "@/modules/reprise/calcul";
  */
 
 export const CLES_ICONE = [
-  "accueil", "maison", "tableau-de-bord", "caisse",
-  "boutique", "restaurant", "maquis", "hotel", "enquetes", "securite",
-  "commercial", "stock", "achats", "prestataires", "marches", "reservations",
-  "projets", "missions", "actifs", "parc-auto", "parc-informatique", "billetterie",
-  "comptabilite", "tresorerie", "guichet",
+  "accueil", "maison", "tableau-de-bord", "enquetes", "securite",
+  "commercial", "stock", "achats", "prestataires", "marches",
+  "projets", "missions", "actifs", "parc-auto", "parc-informatique",
+  "comptabilite", "tresorerie",
   "personnel", "presences", "planning", "anniversaires", "taches", "meeting", "messagerie", "boite-mail", "documents", "archives",
   "utilisateurs", "entreprise", "demarrage", "communication", "rapports", "journal",
 ] as const;
@@ -93,11 +92,6 @@ export const GROUPES_MODULES: GroupeModules[] = [
       { href: "/commercial/fournisseurs", racine: "/commercial/fournisseurs", icone: "achats", libelle: "Fournisseurs", description: "Fiches fournisseurs, leurs factures et ce qui leur est dû.", droit: "tiers.fiche.consulter" },
       { href: "/commercial/factures", racine: "/commercial/factures", icone: "commercial", libelle: "Devis et factures", description: "Devis, factures et avoirs clients.", droit: "tiers.fiche.consulter" },
       { href: "/achats", racine: "/achats", icone: "achats", libelle: "Achats", description: "Commandes et factures fournisseurs.", droit: "achats.consulter" },
-      { href: "/boutique", racine: "/boutique", icone: "boutique", libelle: "Commerce", description: "Le jour en chiffres : ventes, affluence, marge et ruptures.", droit: "boutique.consulter" },
-      { href: "/restaurant", racine: "/restaurant", icone: "restaurant", libelle: "Restaurant", description: "Plan de salle, commandes, cuisine et encaissement des tables.", droit: "restaurant.consulter" },
-      { href: "/maquis", racine: "/maquis", icone: "maquis", libelle: "Maquis", description: "Tables et tournées, grill et bar, encaissement à la table.", droit: "maquis.consulter" },
-      { href: "/hotel", racine: "/hotel", icone: "hotel", libelle: "Hôtel et résidences", description: "Chambres du jour, séjours, note de chambre et ménage.", droit: "hotellerie.consulter" },
-      { href: "/reservations", racine: "/reservations", icone: "reservations", libelle: "Réservations", description: "Locations, chambres et salles : calendrier, caution, retour.", droit: "reservation.consulter" },
       { href: "/stock", racine: "/stock", icone: "stock", libelle: "Stock", description: "Articles, mouvements, inventaires et réapprovisionnement.", droit: "stock.article.consulter" },
     ],
   },
@@ -112,7 +106,6 @@ export const GROUPES_MODULES: GroupeModules[] = [
       { href: "/prestataires", racine: "/prestataires", icone: "prestataires", libelle: "Prestataires", description: "Plombiers, photographes, monteurs : annuaire et prestations.", droit: "prestataires.consulter" },
       { href: "/rh/intervenants", racine: "/rh/intervenants", icone: "personnel", libelle: "Intervenants / manœuvres", description: "Maçons, manœuvres, tâcherons : pointage et bons de paiement.", droit: "personnes.consulter" },
       { href: "/enquetes", racine: "/enquetes", icone: "enquetes", libelle: "Enquêtes", description: "Satisfaction des clients et enquêtes de terrain.", droit: "enquetes.consulter" },
-      { href: "/billetterie", racine: "/billetterie", icone: "billetterie", libelle: "Billetterie", description: "Départs programmés, places, billets et contrôle.", droit: "billetterie.consulter" },
     ],
   },
   {
@@ -148,7 +141,6 @@ export const GROUPES_MODULES: GroupeModules[] = [
       { href: "/comptabilite", racine: "/comptabilite", icone: "comptabilite", libelle: "Comptabilité", description: "Écritures SYSCOHADA, balance et déclarations.", droit: "comptabilite.ecriture.consulter" },
       { href: "/tresorerie", racine: "/tresorerie", icone: "tresorerie", libelle: "Trésorerie", description: "Caisses, banques, bons et plan de trésorerie.", droit: "tresorerie.bon.demander" },
       { href: "/tresorerie/caisse", racine: "/tresorerie/caisse", icone: "tresorerie", libelle: "Bons", description: "Bons de caisse : demande, validation et décaissement.", droit: "tresorerie.bon.demander" },
-      { href: "/monnaie", racine: "/monnaie", icone: "guichet", libelle: "Point de vente", description: "Mobile money : floats, opérations et commissions.", droit: "valeur_electronique.consulter" },
     ],
   },
   {

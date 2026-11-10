@@ -19,7 +19,7 @@ import { getModule } from "@/modules/registry";
  *
  * Testé au même titre que l'argent : une erreur ici ne se voit pas non plus.
  * Un droit accordé par accident n'affiche aucun message — il laisse simplement
- * passer, et on l'apprend le jour où un caissier a annulé la recette du samedi.
+ * passer, et on l'apprend le jour où un magasinier a validé sa propre réception.
  */
 
 describe("catalogue", () => {
@@ -69,17 +69,16 @@ describe("rôles préréglés", () => {
     }
   });
 
-  it("laisse le caissier encaisser sans le laisser annuler", () => {
-    const caissier = resoudreDroits({ cleRole: "caissier", estProprietaire: false });
-    expect(caissier.has("pos.vente.encaisser")).toBe(true);
-    expect(caissier.has("pos.vente.annuler")).toBe(false);
+  it("laisse la secrétaire voir le planning de l'équipe sans le modifier", () => {
+    const secretaire = resoudreDroits({ cleRole: "secretaire", estProprietaire: false });
+    expect(secretaire.has("planning.equipe.consulter")).toBe(true);
+    expect(secretaire.has("planning.gerer")).toBe(false);
   });
 
   it("tient le comptable hors du stock et du tiroir", () => {
     const comptable = resoudreDroits({ cleRole: "comptable", estProprietaire: false });
     expect(comptable.has("comptabilite.ecriture.enregistrer")).toBe(true);
     expect(comptable.has("stock.mouvement.saisir")).toBe(false);
-    expect(comptable.has("pos.vente.encaisser")).toBe(false);
   });
 
   it("tient le magasinier hors de la comptabilité", () => {
@@ -89,12 +88,11 @@ describe("rôles préréglés", () => {
   });
 
   it("met hors service un rôle de métier quand tous ses modules sont coupés", () => {
-    const serveur = presetRole("serveur")!;
-    expect(presetEnService(serveur, ["restaurant"])).toBe(true);
-    expect(presetEnService(serveur, new Set(["restaurant", "maquis"]))).toBe(false);
-    expect(presetEnService(presetRole("caissier")!, ["pos"])).toBe(false);
+    const magasinier = presetRole("magasinier")!;
+    expect(presetEnService(magasinier, [])).toBe(true);
+    expect(presetEnService(magasinier, new Set(["stock"]))).toBe(false);
     // Un rôle transverse reste, quoi qu'on coupe.
-    expect(presetEnService(presetRole("secretaire")!, ["pos", "stock", "restaurant", "maquis", "hotellerie"])).toBe(true);
+    expect(presetEnService(presetRole("secretaire")!, ["stock", "achats", "tiers"])).toBe(true);
     // Chaque module cité existe au registre : une faute de frappe garderait le rôle en service à tort.
     for (const preset of PRESETS_ROLES) for (const cle of (preset as PresetRole).modules ?? []) expect(getModule(cle), `${preset.cle} → ${cle}`).toBeDefined();
   });
@@ -104,7 +102,7 @@ describe("resoudreDroits", () => {
   it("donne tout au propriétaire, quel que soit son rôle", () => {
     // Le cas qui compte : un rôle mal configuré ne doit pas enfermer dehors
     // celui à qui l'entreprise appartient.
-    const droits = resoudreDroits({ cleRole: "caissier", estProprietaire: true });
+    const droits = resoudreDroits({ cleRole: "magasinier", estProprietaire: true });
     expect(droits.size).toBe(TOUS_LES_DROITS.length);
   });
 
@@ -117,9 +115,9 @@ describe("resoudreDroits", () => {
     const droits = resoudreDroits({
       cleRole: "vendeur_rayon",
       estProprietaire: false,
-      accords: ["stock.article.consulter", "pos.vente.encaisser"],
+      accords: ["stock.article.consulter", "tiers.fiche.consulter"],
     });
-    expect([...droits].sort()).toEqual(["pos.vente.encaisser", "stock.article.consulter"]);
+    expect([...droits].sort()).toEqual(["stock.article.consulter", "tiers.fiche.consulter"]);
   });
 
   it("ignore un accord dont la clé n'existe plus au catalogue", () => {
@@ -137,7 +135,7 @@ describe("resoudreDroits", () => {
     // Le préréglage vient du code : une ligne ajoutée à la main en base ne doit
     // pas élargir un rôle que Maria Suite définit.
     const droits = resoudreDroits({
-      cleRole: "caissier",
+      cleRole: "magasinier",
       estProprietaire: false,
       accords: ["organisation.parametres.gerer"],
     });
@@ -165,11 +163,11 @@ describe("composition d'un rôle", () => {
     const gerant = resoudreDroits({ cleRole: "gerant", estProprietaire: false });
 
     const accordes = droitsAccordables(gerant, [
-      "pos.vente.encaisser",
+      "stock.mouvement.saisir",
       "organisation.parametres.gerer",
     ]);
 
-    expect(accordes).toEqual(["pos.vente.encaisser"]);
+    expect(accordes).toEqual(["stock.mouvement.saisir"]);
   });
 
   it("écarte une clé inventée", () => {

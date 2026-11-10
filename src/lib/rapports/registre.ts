@@ -5,12 +5,10 @@ import { droitsActifs } from "@/lib/droits/garde";
 import { moduleOuvert } from "@/lib/modules/garde";
 import { RAPPORTS_ACHATS } from "@/modules/achats/rapports";
 import { RAPPORTS_ACTIFS } from "@/modules/actifs/rapports";
-import { RAPPORTS_BILLETTERIE } from "@/modules/billetterie/rapports";
 import { RAPPORTS_COMPTABILITE } from "@/modules/comptabilite/rapports";
 import { RAPPORTS_COMMERCIAL } from "@/modules/facturation/rapports";
 import { RAPPORTS_MARCHES } from "@/modules/marches/rapports";
 import { RAPPORTS_MISSIONS } from "@/modules/missions/rapports";
-import { RAPPORTS_MONNAIE } from "@/modules/monnaie/rapports";
 import { RAPPORTS_PAIE } from "@/modules/paie/rapports";
 import { RAPPORTS_PARC_AUTO } from "@/modules/parc-auto/rapports";
 import { RAPPORTS_PARC_INFORMATIQUE } from "@/modules/parc-informatique/rapports";
@@ -18,10 +16,8 @@ import { RAPPORTS_PLANNING } from "@/modules/planning/rapports";
 import { RAPPORTS_PRESENCES } from "@/modules/presences/rapports";
 import { RAPPORTS_PRESTATAIRES } from "@/modules/prestataires/rapports";
 import { RAPPORTS_PROJETS } from "@/modules/projets/rapports";
-import { RAPPORTS_RESERVATIONS } from "@/modules/reservations/rapports";
 import { RAPPORTS_STOCK } from "@/modules/stock/rapports";
 import { RAPPORTS_TRESORERIE } from "@/modules/tresorerie/rapports";
-import { RAPPORTS_VENTES } from "@/modules/ventes/rapports";
 
 import type { DefinitionRapport } from "./types";
 
@@ -31,7 +27,6 @@ import type { DefinitionRapport } from "./types";
  * rubriques doivent apparaître.
  */
 export const RAPPORTS: readonly DefinitionRapport[] = [
-  ...RAPPORTS_VENTES,
   ...RAPPORTS_COMMERCIAL,
   ...RAPPORTS_ACHATS,
   ...RAPPORTS_PRESTATAIRES,
@@ -47,9 +42,6 @@ export const RAPPORTS: readonly DefinitionRapport[] = [
   ...RAPPORTS_ACTIFS,
   ...RAPPORTS_PARC_AUTO,
   ...RAPPORTS_PARC_INFORMATIQUE,
-  ...RAPPORTS_RESERVATIONS,
-  ...RAPPORTS_BILLETTERIE,
-  ...RAPPORTS_MONNAIE,
 ];
 
 export function rapport(cle: string): DefinitionRapport | undefined {

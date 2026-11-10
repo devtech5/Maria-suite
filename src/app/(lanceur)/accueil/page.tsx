@@ -24,7 +24,7 @@ export const metadata: Metadata = { title: "Accueil" };
  * d'un écran de téléphone : une icône, un nom, rien d'autre — on reconnaît une icône plus vite qu'on ne lit une phrase. La
  * description reste en infobulle et pour les lecteurs d'écran.
  *
- * Un caissier y voit la caisse et ses tâches ; un gérant, l'entreprise
+ * Un collaborateur y voit ses modules et ses tâches ; un gérant, l'entreprise
  * entière. Rien n'y figure qui refuserait ensuite l'entrée : même filtre que
  * la barre (droit du rôle ET module ouvert), même liste (`lib/navigation`).
  */
@@ -41,18 +41,9 @@ export default async function PageAccueil() {
 
   type EntreeTuile = { href: string; libelle: string; description: string; icone: CleIcone };
   const tableauDeBord: EntreeTuile = { href: "/", libelle: "Tableau de bord", description: "Où est l'argent, ce que la journée a produit, ce qui attend une décision.", icone: "tableau-de-bord" };
-  const caisse: EntreeTuile = { href: "/caisse", libelle: "Caisse", description: "Encaisser au comptoir, même sans réseau.", icone: "caisse" };
 
-  // Le tableau de bord ouvre la grille ; la caisse suit la trésorerie, dont
-  // elle alimente les tiroirs. Sans trésorerie visible, elle ferme la
-  // famille Finance, ou à défaut suit le tableau de bord.
+  // Le tableau de bord ouvre la grille, les modules suivent dans l'ordre de la barre.
   const tuiles: EntreeTuile[] = [tableauDeBord, ...groupes.flatMap((g) => g.modules)];
-  if (droits.has("pos.vente.encaisser")) {
-    const finance = groupes.find((g) => g.titre === "Finance")?.modules ?? [];
-    const apres = tuiles.findIndex((t) => t.href === "/tresorerie");
-    const repli = finance.length ? tuiles.indexOf(finance[finance.length - 1]) : 0;
-    tuiles.splice((apres >= 0 ? apres : repli) + 1, 0, caisse);
-  }
 
   return (
     <main className="flex flex-1 flex-col px-4 pt-3 lg:px-10">

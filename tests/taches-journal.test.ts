@@ -82,10 +82,10 @@ describe("échéances et tri", () => {
 
 describe("droits des tâches et du journal", () => {
   it("donne à chacun sa liste, l'attribution et le journal à l'encadrement", () => {
-    const caissier = resoudreDroits({ cleRole: "caissier", estProprietaire: false });
-    expect(caissier.has("taches.executer")).toBe(true);
-    expect(caissier.has("taches.attribuer")).toBe(false);
-    expect(caissier.has("organisation.journal.consulter")).toBe(false);
+    const magasinier = resoudreDroits({ cleRole: "magasinier", estProprietaire: false });
+    expect(magasinier.has("taches.executer")).toBe(true);
+    expect(magasinier.has("taches.attribuer")).toBe(false);
+    expect(magasinier.has("organisation.journal.consulter")).toBe(false);
     expect(presetRole("gerant")?.droits).toContain("taches.attribuer");
     expect(presetRole("gerant")?.droits).toContain("organisation.journal.consulter");
   });

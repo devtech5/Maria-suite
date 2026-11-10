@@ -8,9 +8,6 @@ import { peut } from "@/lib/droits/garde";
  * factures — sont des onglets du domaine Commerce, dans la rangée sous la
  * barre du haut (`src/lib/navigation.ts`). Les répéter ici en pastilles
  * afficherait deux fois la même rangée ; seul reste le lien vers les rapports.
- *
- * Pas d'entrée « Caisse » chez MARIA GROUP SARL : les ventes au comptoir
- * (`/commercial/ventes`) ne sont plus proposées depuis le menu.
  */
 export default async function LayoutCommercial({
   children,
@@ -19,7 +16,7 @@ export default async function LayoutCommercial({
 
   return (
     <>
-      <SousNavigation entrees={[]} rapports={await lienRapports("tiers", "pos")} />
+      <SousNavigation entrees={[]} rapports={await lienRapports("tiers")} />
       {children}
     </>
   );

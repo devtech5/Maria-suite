@@ -23,7 +23,6 @@ async function operer(travail: (organizationId: string, userId: string) => Promi
     const r = await travail(session.organizationId, session.userId);
     if (r.ok) {
       revalidatePath("/stock", "layout");
-      revalidatePath("/caisse");
     }
     return r;
   } catch (erreur) {

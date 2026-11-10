@@ -89,9 +89,9 @@ describe("présentation", () => {
 
 describe("droits d'archivage", () => {
   it("laisse chacun archiver, et réserve la supervision au propriétaire et au gérant", () => {
-    const caissier = resoudreDroits({ cleRole: "caissier", estProprietaire: false });
-    expect(caissier.has("archives.deposer")).toBe(true);
-    expect(caissier.has("archives.superviser")).toBe(false);
+    const magasinier = resoudreDroits({ cleRole: "magasinier", estProprietaire: false });
+    expect(magasinier.has("archives.deposer")).toBe(true);
+    expect(magasinier.has("archives.superviser")).toBe(false);
 
     expect(presetRole("gerant")?.droits).toContain("archives.superviser");
     expect(resoudreDroits({ cleRole: "comptable", estProprietaire: false }).has("archives.superviser")).toBe(false);
@@ -127,9 +127,9 @@ describe("dossiers partagés", () => {
     expect(depotDossierPermis(choisis, kone, true)).toBe(true);
   });
 
-  it("confie la gestion des dossiers au gérant comme au propriétaire, pas au caissier", () => {
+  it("confie la gestion des dossiers au gérant comme au propriétaire, pas au magasinier", () => {
     expect(presetRole("gerant")?.droits).toContain("archives.dossier.gerer");
     expect(resoudreDroits({ cleRole: null, estProprietaire: true }).has("archives.dossier.gerer")).toBe(true);
-    expect(resoudreDroits({ cleRole: "caissier", estProprietaire: false }).has("archives.dossier.gerer")).toBe(false);
+    expect(resoudreDroits({ cleRole: "magasinier", estProprietaire: false }).has("archives.dossier.gerer")).toBe(false);
   });
 });

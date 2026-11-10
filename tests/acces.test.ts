@@ -7,12 +7,12 @@ import { PRESETS_ROLES, TOUS_LES_DROITS, type Droit } from "@/lib/droits/catalog
  * Accès par module.
  *
  * Testé parce qu'une erreur ici est silencieuse dans les deux sens : un module
- * resté ouvert à qui ne devait pas le voir, ou un caissier qui ne peut plus
- * encaisser le samedi matin.
+ * resté ouvert à qui ne devait pas le voir, ou un magasinier qui ne peut plus
+ * saisir la réception du samedi matin.
  */
 
 const tous = new Set<Droit>(TOUS_LES_DROITS);
-const caissier = new Set<Droit>(PRESETS_ROLES.find((p) => p.cle === "caissier")!.droits);
+const magasinier = new Set<Droit>(PRESETS_ROLES.find((p) => p.cle === "magasinier")!.droits);
 const vide = { modulesCoupes: new Set<string>(), niveaux: new Map(), estProprietaire: false };
 
 describe("appliquerRestrictions", () => {
@@ -57,11 +57,11 @@ describe("appliquerRestrictions", () => {
   });
 
   it("n'ajoute jamais un droit que le rôle n'a pas", () => {
-    const effectifs = appliquerRestrictions(caissier, {
+    const effectifs = appliquerRestrictions(magasinier, {
       ...vide,
       niveaux: new Map([["comptabilite", "complet"]]),
     });
-    expect([...effectifs].every((d) => caissier.has(d))).toBe(true);
+    expect([...effectifs].every((d) => magasinier.has(d))).toBe(true);
     expect(effectifs.has("comptabilite.ecriture.enregistrer")).toBe(false);
   });
 
@@ -85,9 +85,9 @@ describe("appliquerRestrictions", () => {
 
 describe("niveauEffectif", () => {
   it("plafonne au rôle", () => {
-    expect(niveauEffectif(caissier, "pos", "complet")).toBe("complet");
-    expect(niveauEffectif(caissier, "comptabilite", "complet")).toBe("aucun");
-    expect(niveauEffectif(caissier, "stock", "complet")).toBe("consultation");
+    expect(niveauEffectif(magasinier, "stock", "complet")).toBe("complet");
+    expect(niveauEffectif(magasinier, "comptabilite", "complet")).toBe("aucun");
+    expect(niveauEffectif(magasinier, "tiers", "complet")).toBe("consultation");
   });
 
   it("respecte la restriction demandée", () => {
@@ -98,7 +98,7 @@ describe("niveauEffectif", () => {
 
 describe("modulesDuRole", () => {
   it("liste les modules où le rôle a un droit, sans le transverse", () => {
-    const modules = modulesDuRole(caissier);
+    const modules = modulesDuRole(magasinier);
     expect(modules.has("organisation")).toBe(false);
     expect(modules.size).toBeGreaterThan(0);
     expect(modulesDuRole(tous).size).toBeGreaterThan(modules.size);

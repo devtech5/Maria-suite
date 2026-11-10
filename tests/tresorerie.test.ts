@@ -284,8 +284,6 @@ describe("branchements avec le reste de l'application", () => {
       { ruptures: 0, aCommanderVite: 0, valeur: 0 },
       { echeancesDepassees: 0, indisponibles: 0 },
       { enRetard: 0, echouees: 0 },
-      { locationsEnRetard: 0, abonnementsEpuises: 0 },
-      [],
       undefined,
       undefined,
       {
@@ -319,8 +317,8 @@ describe("branchements avec le reste de l'application", () => {
     expect(comptable.has("tresorerie.caisse.tenir")).toBe(true);
     expect(comptable.has("tresorerie.rapprocher")).toBe(true);
     expect(comptable.has("tresorerie.bon.approuver")).toBe(false);
-    expect(resoudreDroits({ cleRole: "caissier", estProprietaire: false }).has("tresorerie.bon.demander")).toBe(true);
-    expect(resoudreDroits({ cleRole: "caissier", estProprietaire: false }).has("tresorerie.consulter")).toBe(false);
+    expect(resoudreDroits({ cleRole: "magasinier", estProprietaire: false }).has("tresorerie.bon.demander")).toBe(true);
+    expect(resoudreDroits({ cleRole: "magasinier", estProprietaire: false }).has("tresorerie.consulter")).toBe(false);
     expect(presetRole("gerant")?.droits).toContain("tresorerie.bon.approuver");
   });
 });

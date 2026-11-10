@@ -134,8 +134,6 @@ describe("branchements de la paie", () => {
       { ruptures: 0, aCommanderVite: 0, valeur: 0 },
       { echeancesDepassees: 0, indisponibles: 0 },
       { enRetard: 0, echouees: 0 },
-      { locationsEnRetard: 0, abonnementsEpuises: 0 },
-      [],
       undefined,
       undefined,
       undefined,

@@ -519,6 +519,13 @@
       "when": 1794312063394,
       "tag": "0073_anniversaires",
       "breakpoints": true
+    },
+    {
+      "idx": 74,
+      "version": "7",
+      "when": 1794344307095,
+      "tag": "0074_suppression_modules",
+      "breakpoints": true
     }
   ]
 }

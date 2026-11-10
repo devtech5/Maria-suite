@@ -74,10 +74,10 @@ export function FormulaireMembre({ roles }: { roles: RoleAttribuable[] }) {
     );
   }
 
-  // Le caissier d'abord : c'est l'accès le plus souvent ouvert, et le plus
+  // La secrétaire d'abord : c'est l'accès le plus souvent ouvert, et le plus
   // étroit. Élargir se fait alors en connaissance de cause, alors qu'un rôle
   // trop large proposé par défaut ne se remarque qu'au moment du dégât.
-  const parDefaut = roles.find((role) => role.cle === "caissier") ?? roles[0];
+  const parDefaut = roles.find((role) => role.cle === "secretaire") ?? roles[0];
   const retenu = roles.find((role) => role.id === choisi) ?? parDefaut;
 
   return (
