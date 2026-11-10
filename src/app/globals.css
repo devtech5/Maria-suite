@@ -355,3 +355,51 @@
 .reaction-flottante {
   animation: reaction-flottante 3s ease-out forwards;
 }
+
+/**
+ * Messagerie : le fil se lit comme sur WhatsApp — fond tramé, bulles vertes
+ * pour soi, blanches pour les autres. Variables propres au fil, redéfinies
+ * en thème sombre comme le reste.
+ */
+:root {
+  --discussion-fond: #efeae2;
+  --discussion-trame: rgb(0 0 0 / 0.045);
+  --bulle-moi: #d9fdd3;
+  --bulle-autre: #ffffff;
+  --bulle-encre: #111b21;
+  --bulle-faible: #667781;
+  --discussion-accent: #00a884;
+  --discussion-barre: #f0f2f5;
+}
+@media (prefers-color-scheme: dark) {
+  :root[data-theme="auto"] {
+    --discussion-fond: #0b141a;
+    --discussion-trame: rgb(255 255 255 / 0.035);
+    --bulle-moi: #005c4b;
+    --bulle-autre: #202c33;
+    --bulle-encre: #e9edef;
+    --bulle-faible: #8696a0;
+    --discussion-barre: #202c33;
+  }
+}
+:root[data-theme="dark"] {
+  --discussion-fond: #0b141a;
+  --discussion-trame: rgb(255 255 255 / 0.035);
+  --bulle-moi: #005c4b;
+  --bulle-autre: #202c33;
+  --bulle-encre: #e9edef;
+  --bulle-faible: #8696a0;
+  --discussion-barre: #202c33;
+}
+.fond-discussion {
+  background-color: var(--discussion-fond);
+  background-image: radial-gradient(var(--discussion-trame) 1.2px, transparent 1.2px);
+  background-size: 16px 16px;
+}
+@keyframes envoi-en-cours {
+  0% { transform: translateX(-100%); }
+  100% { transform: translateX(250%); }
+}
+.barre-envoi {
+  animation: envoi-en-cours 1.1s ease-in-out infinite;
+}

@@ -245,6 +245,10 @@ export interface ResumeConversation {
   nonLus: number;
   membres: number;
   retire: boolean;
+  /** Le dernier message est de soi : la liste l'annonce d'une coche, comme WhatsApp. */
+  dernierDeMoi: boolean;
+  /** Prénom de l'auteur du dernier message, pour l'aperçu d'un groupe. */
+  dernierAuteur: string | null;
 }
 
 /** Les conversations de la personne, la plus récente en tête, avec leurs non-lus. */
@@ -261,6 +265,8 @@ export async function conversationsDe(organizationId: string, userId: string): P
     non_lus: string;
     membres: string;
     retire_le: string | null;
+    dernier_auteur_id: string | null;
+    dernier_auteur: string | null;
   }>(sql`
     select
       c.id,
@@ -278,11 +284,13 @@ export async function conversationsDe(organizationId: string, userId: string): P
           and (p.lu_jusqu_au is null or m.created_at > p.lu_jusqu_au)
           and (p.retire_le is null or m.created_at <= p.retire_le)) as non_lus,
       (select count(*) from participants p3 where p3.conversation_id = c.id and p3.retire_le is null) as membres,
-      p.retire_le
+      p.retire_le,
+      dm.auteur_id as dernier_auteur_id,
+      (select u.full_name from users u where u.id = dm.auteur_id) as dernier_auteur
     from participants p
       join conversations c on c.id = p.conversation_id
       left join lateral (
-        select corps, nom_fichier, deleted_at from messages
+        select corps, nom_fichier, deleted_at, auteur_id from messages
         where conversation_id = c.id
           and (p.retire_le is null or created_at <= p.retire_le)
         order by created_at desc limit 1
@@ -301,6 +309,8 @@ export async function conversationsDe(organizationId: string, userId: string): P
     nonLus: Number(l.non_lus),
     membres: Number(l.membres),
     retire: l.retire_le !== null,
+    dernierDeMoi: l.dernier_auteur_id === userId,
+    dernierAuteur: l.dernier_auteur ? l.dernier_auteur.split(/\s+/)[0] : null,
   }));
 }
 
