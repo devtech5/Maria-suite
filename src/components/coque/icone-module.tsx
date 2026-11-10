@@ -213,6 +213,20 @@ const DESSINS: Record<CleIcone, ReactNode> = {
       <circle cx="36" cy="36" r="3.5" fill={BLANC} />
     </>
   ),
+  /** Un gâteau à deux étages et ses bougies. */
+  anniversaires: (
+    <>
+      <rect x="6" y="30" width="36" height="12" rx="4" fill={CORAIL} />
+      <rect x="11" y="19" width="26" height="12" rx="4" fill={VIOLET} />
+      <path d="M6 34c3 2.5 6 2.5 9 0s6-2.5 9 0 6 2.5 9 0 6-2.5 9 0" stroke={BLANC} strokeWidth="2.5" fill="none" strokeLinecap="round" opacity=".85" />
+      {[17, 24, 31].map((x) => (
+        <g key={x}>
+          <rect x={x - 1.5} y="10" width="3" height="9" rx="1.5" fill={SARCELLE} />
+          <path d={`M${x} 3.5c2 2.5 2 4.5 0 5.5-2-1-2-3 0-5.5Z`} fill={JAUNE} />
+        </g>
+      ))}
+    </>
+  ),
   taches: (
     <>
       <rect x="8" y="6" width="32" height="38" rx="5" fill={SARCELLE} />

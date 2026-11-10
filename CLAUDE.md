@@ -336,15 +336,17 @@ personne ne l'a attestée, comme le barème de paie.
 `src/modules/personnes/anniversaires.ts` (règles pures) et
 `anniversaires-annonces.ts` (base, cloche). Source : `employees.date_naissance`
 des salariés en poste. Jour civil dans le fuseau de l'entreprise ; né un
-29 février, fêté le 28 les années non bissextiles. La direction (propriétaire
-et droit `personnes.salarie.gerer`) est prévenue une fois dans les 7 jours qui
-précèdent, puis le jour même avec l'âge ; l'équipe le jour même, sans l'âge,
-si `employees.anniversaire_annonce` (case de l'état civil) ; la personne
-reçoit les vœux. Aucune tâche planifiée : `annoncerApresReponse` dans les
-coques gestion et accueil (au plus une fois par demi-heure et par processus),
-et l'index unique de `anniversaires_annonces` fait partir chaque annonce une
-seule fois. Affichage : bandeau de l'accueil, RH › Anniversaires, calendrier
-du mois du planning.
+29 février, fêté le 28 les années non bissextiles. Tout compte actif est
+prévenu une fois dans les 7 jours qui précèdent, puis le jour même. La
+direction (propriétaire et droit `personnes.salarie.gerer`) l'est avec l'âge,
+et pour tous ; l'équipe sans l'âge, seulement si
+`employees.anniversaire_annonce` (case de l'état civil). La personne ne reçoit
+pas le rappel, mais les vœux le jour venu. Aucune tâche planifiée :
+`annoncerApresReponse` dans les coques gestion et accueil (au plus une fois
+par demi-heure et par processus), et l'index unique de
+`anniversaires_annonces` fait partir chaque annonce une seule fois.
+Affichage, pour tous : page `/anniversaires` (menu Équipe, droit
+`planning.utiliser`), bandeau de l'accueil, calendrier du mois du planning.
 
 ## Interrogations de fond et liens publics
 

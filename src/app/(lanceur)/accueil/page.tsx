@@ -85,7 +85,7 @@ export default async function PageAccueil() {
           {role && <> · {role}</>} · {total} module{total > 1 ? "s" : ""}
         </p>
 
-        <BandeauAnniversaires prochains={anniversaires} lien={droits.has("personnes.consulter") ? "/rh/anniversaires" : null} />
+        <BandeauAnniversaires prochains={anniversaires} lien={droits.has("planning.utiliser") ? "/anniversaires" : null} />
 
         {groupes.length === 0 && (
           <p className="mt-6 max-w-md rounded-xl border border-dashed border-[var(--filet)] bg-[var(--surface)] p-5 text-center text-sm text-[var(--encre-douce)]">

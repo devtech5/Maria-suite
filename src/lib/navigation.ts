@@ -15,7 +15,7 @@ export const CLES_ICONE = [
   "commercial", "stock", "achats", "prestataires", "marches", "reservations",
   "projets", "missions", "actifs", "parc-auto", "parc-informatique", "billetterie",
   "comptabilite", "tresorerie", "guichet",
-  "personnel", "presences", "planning", "taches", "meeting", "messagerie", "boite-mail", "documents", "archives",
+  "personnel", "presences", "planning", "anniversaires", "taches", "meeting", "messagerie", "boite-mail", "documents", "archives",
   "utilisateurs", "entreprise", "demarrage", "communication", "rapports", "journal",
 ] as const;
 export type CleIcone = (typeof CLES_ICONE)[number];
@@ -78,6 +78,8 @@ export const GROUPES_MODULES: GroupeModules[] = [
       { href: "/communication", racine: "/communication", icone: "communication", libelle: "Messages groupés", description: "Envois aux clients et messages groupés.", droit: "communication.consulter" },
       { href: "/archives", racine: "/archives", icone: "archives", libelle: "Archives", description: "Votre espace d'archivage personnel, intègre et tracé.", droit: "archives.consulter" },
       { href: "/meeting", racine: "/meeting", icone: "meeting", libelle: "Meeting", description: "Réunions d'équipe à distance, en vidéo.", droit: "meeting.participer" },
+      // Ouvert à tous : chacun a le planning personnel, et l'anniversaire d'un collègue concerne toute l'équipe.
+      { href: "/anniversaires", racine: "/anniversaires", icone: "anniversaires", libelle: "Anniversaires", description: "Les anniversaires des collègues, du jour et à venir.", droit: "planning.utiliser" },
     ],
   },
   {
