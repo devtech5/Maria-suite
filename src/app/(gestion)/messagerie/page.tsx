@@ -29,7 +29,7 @@ export default async function PageMessagerie({ searchParams }: { searchParams: P
 
   return (
     <>
-      <h1 className="mb-3 text-xl font-bold tracking-tight">Messagerie</h1>
+      <h1 className="sr-only">Messagerie</h1>
       <Messagerie moi={session.userId} initiales={liste} ouverteInitiale={ouverte} membres={membres} gereLesGroupes={gereLesGroupes} />
     </>
   );
