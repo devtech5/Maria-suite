@@ -14,6 +14,8 @@ ici avant de toucher le code.
 
 ## Règlement intérieur
 
+**Livré** (`src/modules/reglement/`).
+
 - Publié par les RH, versionné (date d'effet, articles en sommaire).
 - **Lecture bloquante** : « J'ai lu et j'accepte » à la première connexion et à
   chaque nouvelle version, avant d'accéder au logiciel. Horodaté par version.
@@ -21,6 +23,10 @@ ici avant de toucher le code.
 - Lisible à tout moment dans l'application.
 
 ## Guide d'utilisation
+
+**Livré** (`src/modules/guide/`). Captures annotées pour les écrans
+principaux ; les autres chapitres en recevront à mesure que la base de
+démonstration se remplit (`pnpm guide:captures`).
 
 - Guide **de l'application** uniquement : un chapitre par module, avec captures
   annotées. Pas de pages libres rédigées par l'entreprise.

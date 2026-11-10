@@ -614,6 +614,22 @@ export const DROITS = [
       "et acceptée, relancer les retardataires.",
   },
 
+  // --------------------------------------------------- guide d'utilisation
+  {
+    cle: "guide.consulter",
+    moduleKey: "guide",
+    libelle: "Lire le guide d'utilisation",
+    description:
+      "Lire le guide des modules qui vous sont ouverts, suivre son parcours et passer " +
+      "le quiz. Accordé à tous les comptes, quel que soit le rôle.",
+  },
+  {
+    cle: "guide.suivre",
+    moduleKey: "guide",
+    libelle: "Suivre la formation des nouveaux venus",
+    description: "Voir où en est chacun dans le parcours du guide et ses résultats au quiz.",
+  },
+
   // ------------------------------------------------------ projets et dépenses
   {
     cle: "projet.consulter",
@@ -846,13 +862,14 @@ const CLES = new Set<string>(TOUS_LES_DROITS);
 /**
  * Droits de tout compte rattaché, quel que soit son rôle — préréglé ou
  * composé par l'entreprise. Lire le règlement intérieur ne se retire à
- * personne : il s'impose à chacun, et chacun doit pouvoir le relire.
+ * personne : il s'impose à chacun, et chacun doit pouvoir le relire. Le
+ * guide d'utilisation non plus : il n'explique que ce qu'on peut ouvrir.
  *
  * Ajoutés par la garde des droits (`droitsActifs`) avant les restrictions :
  * un module coupé pour l'entreprise les retire comme les autres. Ils ne se
  * proposent pas à la composition d'un rôle, où une case sans effet tromperait.
  */
-export const DROITS_DE_TOUS: readonly Droit[] = ["reglement.consulter"];
+export const DROITS_DE_TOUS: readonly Droit[] = ["reglement.consulter", "guide.consulter"];
 
 /** Les droits d'un rôle, augmentés de ceux de tout compte. */
 export function avecDroitsDeTous(droits: ReadonlySet<Droit>): Set<Droit> {

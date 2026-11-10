@@ -14,7 +14,7 @@ export const CLES_ICONE = [
   "commercial", "stock", "achats", "prestataires", "marches",
   "projets", "missions", "actifs", "parc-auto", "parc-informatique",
   "comptabilite", "tresorerie",
-  "personnel", "presences", "planning", "anniversaires", "reglement", "taches", "meeting", "messagerie", "boite-mail", "documents", "archives",
+  "personnel", "presences", "planning", "anniversaires", "reglement", "guide", "taches", "meeting", "messagerie", "boite-mail", "documents", "archives",
   "utilisateurs", "entreprise", "demarrage", "communication", "rapports", "journal",
 ] as const;
 export type CleIcone = (typeof CLES_ICONE)[number];
@@ -81,6 +81,8 @@ export const GROUPES_MODULES: GroupeModules[] = [
       { href: "/anniversaires", racine: "/anniversaires", icone: "anniversaires", libelle: "Anniversaires", description: "Les anniversaires des collègues, du jour et à venir.", droit: "planning.utiliser" },
       // Ouvert à tous (`DROITS_DE_TOUS`) : le règlement s'impose à chacun.
       { href: "/reglement", racine: "/reglement", icone: "reglement", libelle: "Règlement intérieur", description: "Le règlement de l'entreprise, à relire à tout moment.", droit: "reglement.consulter" },
+      // Ouvert à tous : il n'explique que les modules de chacun.
+      { href: "/guide", racine: "/guide", icone: "guide", libelle: "Guide d'utilisation", description: "Apprendre Maria Suite module par module, avec un parcours et un quiz.", droit: "guide.consulter" },
     ],
   },
   {

@@ -246,6 +246,14 @@ const DESSINS: Record<CleIcone, ReactNode> = {
       <path d="m30.5 36 3 3 6-6.5" stroke={BLANC} strokeWidth="3" fill="none" strokeLinecap="round" strokeLinejoin="round" />
     </>
   ),
+  guide: (
+    <>
+      <path d="M5 9c6-2 12-1.5 19 2.5V43C17 39 11 38.5 5 40.5Z" fill={VIOLET} />
+      <path d="M43 9c-6-2-12-1.5-19 2.5V43c7-4 13-4.5 19-2.5Z" fill={PRUNE} />
+      <circle cx="35" cy="14" r="7" fill={JAUNE} />
+      <path d="M33 11.5a2.5 2.5 0 1 1 3 2.4c-.8.3-1 .8-1 1.6M35 18.2v.1" stroke={PRUNE} strokeWidth="2" fill="none" strokeLinecap="round" />
+    </>
+  ),
   archives: (
     <>
       <rect x="9" y="17" width="30" height="25" rx="3" fill={JAUNE} />
