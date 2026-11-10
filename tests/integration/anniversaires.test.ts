@@ -63,16 +63,22 @@ beforeAll(async () => {
 afterAll(async () => fermer());
 
 describe("anniversaires sur une vraie base", () => {
-  it("rappelle à la direction dans la semaine, une seule fois", async () => {
+  it("rappelle à tout le monde dans la semaine, une seule fois, sauf à la personne", async () => {
     await salarie("Awa Koné", "1992-11-15", awa);
     expect(await annoncerAnniversaires(org, le("2026-11-10"))).toBe(1);
     expect(await annoncerAnniversaires(org, le("2026-11-11"))).toBe(0);
 
-    expect((await recues(patronne)).filter((t) => t.includes("Awa Koné"))).toEqual(["🎂 Anniversaire de Awa Koné dimanche (dans 5 jours)"]);
-    expect((await recues(gerant)).some((t) => t.includes("Awa Koné"))).toBe(true);
-    // L'équipe, et Awa elle-même, n'en savent rien avant le jour.
-    expect(await recues(kone)).toEqual([]);
+    const rappel = "🎂 Anniversaire de Awa Koné dimanche (dans 5 jours)";
+    expect((await recues(patronne)).filter((t) => t.includes("Awa Koné"))).toEqual([rappel]);
+    expect(await recues(gerant)).toEqual([rappel]);
+    expect(await recues(kone)).toEqual([rappel]);
+    // Ce n'est pas une nouvelle pour Awa.
     expect(await recues(awa)).toEqual([]);
+    // L'âge ne va qu'à la direction.
+    const corps = async (userId: string) =>
+      (await db.select({ corps: notifications.corps }).from(notifications).where(and(eq(notifications.organizationId, org), eq(notifications.userId, userId)))).map((n) => n.corps ?? "");
+    expect((await corps(patronne)).some((c) => c.includes("34 ans"))).toBe(true);
+    expect((await corps(kone)).some((c) => c.includes("ans"))).toBe(false);
   });
 
   it("le jour même : vœux à la personne, âge à la direction, nouvelle à l'équipe — une fois", async () => {
@@ -81,13 +87,15 @@ describe("anniversaires sur une vraie base", () => {
 
     expect(await recues(awa)).toEqual(["🎂 Joyeux anniversaire, Awa !"]);
     expect(await recues(patronne)).toContain("🎂 Awa Koné fête ses 34 ans aujourd'hui");
-    expect(await recues(kone)).toEqual(["🎂 C'est l'anniversaire de Awa Koné aujourd'hui"]);
+    expect(await recues(kone)).toContain("🎂 C'est l'anniversaire de Awa Koné aujourd'hui");
     // L'âge ne va qu'à la direction.
     expect((await recues(kone)).some((t) => t.includes("34"))).toBe(false);
   });
 
   it("n'annonce pas à l'équipe qui ne le souhaite pas ; la direction est prévenue quand même", async () => {
     await salarie("Discrète Bamba", "1990-12-01", null, false);
+    await annoncerAnniversaires(org, le("2026-11-28"));
+    expect((await recues(patronne)).some((t) => t.startsWith("🎂 Anniversaire de Discrète Bamba"))).toBe(true);
     await annoncerAnniversaires(org, le("2026-12-01"));
     expect(await recues(patronne)).toContain("🎂 Discrète Bamba fête ses 36 ans aujourd'hui");
     expect((await recues(kone)).some((t) => t.includes("Discrète"))).toBe(false);

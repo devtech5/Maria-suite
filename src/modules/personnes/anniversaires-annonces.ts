@@ -18,12 +18,14 @@ import { anniversairesAnnonces, employees } from "./schema";
  * Anniversaires des collaborateurs, côté base : qui est né quand, et les
  * annonces dans la cloche.
  *
+ *   · TOUT LE MONDE — tout compte actif — est prévenu dans la semaine qui
+ *     précède, puis le jour même.
  *   · La DIRECTION — le propriétaire et qui gère les salariés (droit
- *     `personnes.salarie.gerer`) — est prévenue dans la semaine qui précède,
- *     puis le jour même, avec l'âge.
- *   · L'ÉQUIPE — tout compte actif — est prévenue le jour même, sans l'âge,
- *     si la personne a choisi d'annoncer son anniversaire.
- *   · La personne elle-même reçoit les vœux de l'entreprise.
+ *     `personnes.salarie.gerer`) — l'est avec l'âge, et l'est aussi pour qui
+ *     a choisi de ne pas annoncer son anniversaire ; l'équipe, sans l'âge,
+ *     seulement pour ceux qui l'annoncent.
+ *   · La personne elle-même ne reçoit pas le rappel (ce n'est pas une
+ *     nouvelle pour elle) ; le jour venu, elle reçoit les vœux de l'entreprise.
  *
  * Aucune tâche planifiée : l'annonce part après la réponse de la première
  * page ouverte dans la journée (`annoncerApresReponse`), et le journal
@@ -115,13 +117,23 @@ export async function annoncerAnniversaires(organizationId: string, maintenant =
       posees++;
       const detail = [p.poste, p.service].filter(Boolean).join(" · ");
 
+      const equipeSansDirection = [...equipe].filter((u) => u !== p.userId && !direction.has(u));
       if (nature === "rappel") {
+        const titre = `🎂 Anniversaire de ${p.nom} ${quandAnniversaire(prochain)}`;
         await notifier(organizationId, [...direction].filter((u) => u !== p.userId), {
           categorie: "anniversaire",
-          titre: `🎂 Anniversaire de ${p.nom} ${quandAnniversaire(prochain)}`,
+          titre,
           corps: `${dateLisible(prochain.jour)} : ${prochain.age} ans. ${detail}`.trim(),
-          lien: "/rh/anniversaires",
+          lien: "/anniversaires",
         });
+        if (p.annonce) {
+          await notifier(organizationId, equipeSansDirection, {
+            categorie: "anniversaire",
+            titre,
+            corps: `${dateLisible(prochain.jour)}. ${detail}`.trim(),
+            lien: "/anniversaires",
+          });
+        }
         continue;
       }
 
@@ -144,7 +156,7 @@ export async function annoncerAnniversaires(organizationId: string, maintenant =
       if (p.annonce) {
         await notifier(
           organizationId,
-          [...equipe].filter((u) => u !== p.userId && !direction.has(u)),
+          equipeSansDirection,
           {
             categorie: "anniversaire",
             titre: `🎂 C'est l'anniversaire de ${p.nom} aujourd'hui`,
