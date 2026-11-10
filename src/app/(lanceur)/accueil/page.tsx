@@ -6,11 +6,13 @@ import { Calculette } from "@/components/coque/calculette";
 import { Cloche } from "@/components/coque/cloche";
 import { IconeModule } from "@/components/coque/icone-module";
 import { EmblemeMaria, SignatureMaria } from "@/components/coque/signature";
+import { BandeauAnniversaires } from "@/components/personnes/anniversaires";
 import { exigerEntreprise } from "@/lib/auth/dal";
 import { nomDuRole } from "@/lib/auth/roles";
 import { droitsActifs } from "@/lib/droits/garde";
 import { modulesOuverts } from "@/lib/modules/garde";
 import { groupesVisibles, raccourcisCompte, type CleIcone } from "@/lib/navigation";
+import { anniversairesPour } from "@/modules/personnes/anniversaires-annonces";
 
 export const metadata: Metadata = { title: "Accueil" };
 
@@ -30,6 +32,10 @@ export default async function PageAccueil() {
   const session = await exigerEntreprise();
   const [droits, role] = await Promise.all([droitsActifs(), nomDuRole(session.roleId)]);
   const ouverts = modulesOuverts();
+  // Les anniversaires de la semaine, pour tous : la direction voit l'âge et tout le monde.
+  const anniversaires = ouverts.includes("personnes")
+    ? (await anniversairesPour(session.organizationId, { direction: droits.has("personnes.salarie.gerer"), horizon: 7 })).prochains
+    : [];
   const groupes = groupesVisibles(droits, ouverts);
   const total = groupes.reduce((s, g) => s + g.modules.length, 0);
 
@@ -78,6 +84,8 @@ export default async function PageAccueil() {
           {session.nom}
           {role && <> · {role}</>} · {total} module{total > 1 ? "s" : ""}
         </p>
+
+        <BandeauAnniversaires prochains={anniversaires} lien={droits.has("personnes.consulter") ? "/rh/anniversaires" : null} />
 
         {groupes.length === 0 && (
           <p className="mt-6 max-w-md rounded-xl border border-dashed border-[var(--filet)] bg-[var(--surface)] p-5 text-center text-sm text-[var(--encre-douce)]">

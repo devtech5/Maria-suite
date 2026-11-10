@@ -156,6 +156,7 @@ const TABLES_ATTENDUES = [
   "reunions",
   "reunion_participants",
   "reunion_messages",
+  "anniversaires_annonces",
   "services",
   "postes",
   "tiers",

@@ -176,6 +176,12 @@ export const employees = pgTable(
     /** Civilité imprimée devant le nom : M., Mme, Mlle. Clé de `CIVILITES` (personnes/calcul.ts). */
     civilite: text("civilite"),
     dateNaissance: date("date_naissance"),
+    /**
+     * L'équipe est prévenue de son anniversaire (jour et mois, jamais l'âge).
+     * Décoché, seule la direction le voit : la date de naissance est une
+     * donnée personnelle, et chacun choisit de la partager ou non.
+     */
+    anniversaireAnnonce: boolean("anniversaire_annonce").notNull().default(true),
     lieuNaissance: text("lieu_naissance"),
     nationalite: text("nationalite"),
     sexe: text("sexe"),
@@ -568,3 +574,33 @@ export type BonPaiement = typeof bonsPaiement.$inferSelect;
 export type TypeContrat = Employe["contrat"];
 export type ModeRemuneration = Intervenant["mode"];
 export type PieceEmploye = typeof piecesEmploye.$inferSelect;
+
+/**
+ * Journal des annonces d'anniversaire : une ligne par personne, par fête et
+ * par nature (rappel à la direction, annonce du jour). L'index unique fait
+ * qu'une annonce ne part qu'une fois, même si dix pages s'ouvrent en même
+ * temps ce matin-là.
+ */
+export const anniversairesAnnonces = pgTable(
+  "anniversaires_annonces",
+  {
+    id: primaryId(),
+    organizationId: uuid("organization_id")
+      .notNull()
+      .references(() => organizations.id, { onDelete: "cascade" }),
+    employeeId: uuid("employee_id")
+      .notNull()
+      .references(() => employees.id, { onDelete: "cascade" }),
+    /** Jour de la fête annoncée. */
+    jour: date("jour").notNull(),
+    nature: text("nature").notNull(),
+
+    ...timestamps,
+    ...rowVersion,
+  },
+  (t) => [
+    unique("anniversaires_annonces_unique").on(t.employeeId, t.jour, t.nature),
+    index("anniversaires_annonces_org_idx").on(t.organizationId, t.jour),
+    check("anniversaires_annonces_nature", sql`${t.nature} in ('rappel', 'jour')`),
+  ],
+);

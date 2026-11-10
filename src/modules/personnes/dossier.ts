@@ -242,6 +242,8 @@ export interface EtatCivil {
   email: string | null;
   adresse: string | null;
   numeroCnps: string | null;
+  /** L'équipe est prévenue de son anniversaire. */
+  anniversaireAnnonce: boolean;
 }
 
 export async function modifierEtatCivilPour(

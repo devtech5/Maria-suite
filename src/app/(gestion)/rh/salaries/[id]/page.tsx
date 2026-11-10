@@ -113,6 +113,7 @@ export default async function PageFicheSalarie({ params }: { params: Promise<{ i
     email: salarie.email,
     adresse: salarie.adresse,
     numeroCnps: salarie.numeroCnps,
+    anniversaireAnnonce: salarie.anniversaireAnnonce,
   };
 
   return (

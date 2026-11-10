@@ -8,6 +8,7 @@ import { VerrouInactivite } from "@/components/coque/verrou-inactivite";
 import { exigerEntreprise } from "@/lib/auth/dal";
 import { droitsActifs } from "@/lib/droits/garde";
 import { modulesOuverts } from "@/lib/modules/garde";
+import { annoncerApresReponse } from "@/modules/personnes/anniversaires-annonces";
 import { pointerApresReponse } from "@/modules/presences/pointage";
 
 /**
@@ -31,6 +32,8 @@ export default async function LayoutGestion({ children }: LayoutProps<"/">) {
   const session = await exigerEntreprise();
   // Ouvrir un écran, c'est être là : le pointage du jour se pose ou s'étend.
   pointerApresReponse(session.organizationId, session.userId);
+  // Les anniversaires du jour s'annoncent au premier passage, après la réponse.
+  annoncerApresReponse(session.organizationId);
   const droits = [...(await droitsActifs())];
   const ouverts = modulesOuverts();
 

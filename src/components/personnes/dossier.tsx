@@ -292,6 +292,7 @@ export interface EtatCivilAffiche {
   email: string | null;
   adresse: string | null;
   numeroCnps: string | null;
+  anniversaireAnnonce: boolean;
 }
 
 export const SITUATIONS: Record<string, string> = {
@@ -316,9 +317,16 @@ export function FormulaireEtatCivil({ employeeId, initial }: { employeeId: strin
       className="space-y-4"
     >
       <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-        <Champ libelle="Date de naissance">
-          <input name="dateNaissance" type="date" defaultValue={v("dateNaissance")} className={`${CLASSE_CHAMP} chiffres`} />
-        </Champ>
+        <div>
+          <Champ libelle="Date de naissance">
+            <input name="dateNaissance" type="date" defaultValue={v("dateNaissance")} className={`${CLASSE_CHAMP} chiffres`} />
+          </Champ>
+          {/* Hors du libellé du champ : une case dans un <label> qui en contient déjà un serait ambiguë. */}
+          <label className="mt-1.5 flex items-start gap-2 text-xs text-[var(--encre-douce)]">
+            <input type="checkbox" name="anniversaireAnnonce" value="oui" defaultChecked={initial.anniversaireAnnonce} className="mt-0.5 size-4 accent-marque-600" />
+            <span>Annoncer son anniversaire à l&apos;équipe (le jour et le mois, jamais l&apos;âge). Décoché, seule la direction est prévenue.</span>
+          </label>
+        </div>
         <Champ libelle="Lieu de naissance">
           <input name="lieuNaissance" defaultValue={v("lieuNaissance")} className={CLASSE_CHAMP} />
         </Champ>

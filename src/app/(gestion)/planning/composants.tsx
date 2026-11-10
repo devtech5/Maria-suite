@@ -276,7 +276,20 @@ const BLOCS_PAR_CASE = 3;
  * créneau ce jour-là ; un clic sur un créneau saisi le reprend ; une période
  * déduite renvoie à sa pièce, comme dans la semaine.
  */
-export function Mois({ semaines, creneaux, pourUserId, lienSemaine }: { semaines: (JourMoisAffiche | null)[][]; creneaux: CreneauAffiche[]; pourUserId: string | null; lienSemaine: Record<string, string> }) {
+export function Mois({
+  semaines,
+  creneaux,
+  pourUserId,
+  lienSemaine,
+  anniversaires = {},
+}: {
+  semaines: (JourMoisAffiche | null)[][];
+  creneaux: CreneauAffiche[];
+  pourUserId: string | null;
+  lienSemaine: Record<string, string>;
+  /** Noms des collaborateurs qui fêtent leur anniversaire, par jour. */
+  anniversaires?: Record<string, string[]>;
+}) {
   const [edition, setEdition] = useState<Edition | null>(null);
   const jours = semaines.flat().filter((j): j is JourMoisAffiche => j !== null);
   const aujourdhui = jours.find((j) => j.aujourdhui)?.jour ?? jours[0].jour;
@@ -337,6 +350,11 @@ export function Mois({ semaines, creneaux, pourUserId, lienSemaine }: { semaines
                     +
                   </button>
                 </div>
+                {(anniversaires[j.jour] ?? []).map((nom) => (
+                  <p key={nom} title={`Anniversaire de ${nom}`} className="mb-0.5 truncate rounded bg-[#fdf2d8] px-1 py-0.5 text-[11px] font-medium text-[#8a5a00]">
+                    🎂 {nom}
+                  </p>
+                ))}
                 <ul className="space-y-0.5">
                   {visibles.map((b) => (
                     <li key={`${b.id}-${j.jour}`}>

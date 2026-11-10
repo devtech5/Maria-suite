@@ -3,6 +3,7 @@ import type { ReactNode } from "react";
 import { BandeauDemo } from "@/components/coque/bandeau-demo";
 import { VerrouInactivite } from "@/components/coque/verrou-inactivite";
 import { exigerSession } from "@/lib/auth/dal";
+import { annoncerApresReponse } from "@/modules/personnes/anniversaires-annonces";
 import { pointerApresReponse } from "@/modules/presences/pointage";
 
 /**
@@ -18,6 +19,8 @@ export default async function LayoutLanceur({ children }: { children: ReactNode 
   // L'accueil est le premier écran après la connexion : c'est là que le
   // pointage du jour se pose, le plus souvent.
   pointerApresReponse(session.organizationId, session.userId);
+  // Les anniversaires du jour s'annoncent au premier passage, après la réponse.
+  annoncerApresReponse(session.organizationId);
   return (
     <>
       <div

@@ -512,6 +512,13 @@
       "when": 1794304962233,
       "tag": "0072_meeting_salle",
       "breakpoints": true
+    },
+    {
+      "idx": 73,
+      "version": "7",
+      "when": 1794312063394,
+      "tag": "0073_anniversaires",
+      "breakpoints": true
     }
   ]
 }
