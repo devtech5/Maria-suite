@@ -829,7 +829,7 @@ function SalleOuverte({
             {panneau === "personnes" && (
               <PanneauPersonnes moi={moi} nomMoi={nomMoi} micro={aMicro && micro} main={main} autres={autres} absents={absents} />
             )}
-            {panneau === "discussion" && <PanneauDiscussion reunionId={reunionId} moi={moi} messages={messages} />}
+            {panneau === "discussion" && <PanneauDiscussion reunionId={reunionId} moi={moi} messages={messages} apresEnvoi={() => void signaler()} />}
             {panneau === "infos" && (
               <div className="space-y-4 overflow-y-auto px-5 pb-5 text-sm">
                 <div>
@@ -994,7 +994,7 @@ function PanneauPersonnes({
   );
 }
 
-function PanneauDiscussion({ reunionId, moi, messages }: { reunionId: string; moi: string; messages: MessageSalle[] }) {
+function PanneauDiscussion({ reunionId, moi, messages, apresEnvoi }: { reunionId: string; moi: string; messages: MessageSalle[]; apresEnvoi: () => void }) {
   const [texte, setTexte] = useState("");
   const [envoi, setEnvoi] = useState(false);
   const [erreur, setErreur] = useState<string | null>(null);
@@ -1010,8 +1010,11 @@ function PanneauDiscussion({ reunionId, moi, messages }: { reunionId: string; mo
     setErreur(null);
     const r = await ecrireEnSalle(reunionId, corps);
     setEnvoi(false);
-    if (r.ok) setTexte("");
-    else setErreur(r.message);
+    if (r.ok) {
+      setTexte("");
+      // Le message revient tout de suite, sans attendre le signal suivant.
+      apresEnvoi();
+    } else setErreur(r.message);
   };
 
   return (
