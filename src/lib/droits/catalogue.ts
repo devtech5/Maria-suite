@@ -1143,6 +1143,13 @@ export interface PresetRole {
   nom: string;
   description: string;
   droits: readonly Droit[];
+  /**
+   * Modules sans lesquels le rôle n'a pas d'objet : un serveur sans
+   * restaurant ni maquis, un caissier sans caisse. Quand ils sont tous coupés
+   * pour l'entreprise, le rôle n'est ni créé à l'installation ni proposé.
+   * Absent pour un rôle transverse.
+   */
+  modules?: readonly string[];
 }
 
 /** Chacun archive ce qui le concerne ; l'administration — propriétaire et gérant — voit tout. */
@@ -1189,6 +1196,7 @@ export const PRESETS_ROLES = [
   },
   {
     cle: "caissier",
+    modules: ["pos"],
     nom: "Caissier",
     description:
       "Encaisse et tient son tiroir. N'annule pas : une annulation défait une " +
@@ -1210,6 +1218,7 @@ export const PRESETS_ROLES = [
   },
   {
     cle: "serveur",
+    modules: ["restaurant", "maquis"],
     nom: "Serveur",
     description:
       "Tient ses tables au restaurant et au maquis : ouvre, envoie en cuisine et " +
@@ -1232,6 +1241,7 @@ export const PRESETS_ROLES = [
   },
   {
     cle: "cuisinier",
+    modules: ["restaurant", "maquis"],
     nom: "Cuisinier",
     description: "Tient la cuisine, le grill ou le bar : voit les bons et marque ce qui est prêt.",
     droits: [
@@ -1249,6 +1259,7 @@ export const PRESETS_ROLES = [
   },
   {
     cle: "receptionniste",
+    modules: ["hotellerie"],
     nom: "Réceptionniste",
     description:
       "Tient la réception de l'hôtel : réservations, fiches de police, arrivées, " +
@@ -1267,6 +1278,7 @@ export const PRESETS_ROLES = [
   },
   {
     cle: "agent_menage",
+    modules: ["hotellerie"],
     nom: "Agent de ménage",
     description: "Voit l'état des chambres et marque celles qui sont faites.",
     droits: [
@@ -1280,6 +1292,7 @@ export const PRESETS_ROLES = [
   },
   {
     cle: "magasinier",
+    modules: ["stock"],
     nom: "Magasinier",
     description: "Tient le stock : réceptions, sorties, transferts, inventaire.",
     droits: [
@@ -1354,6 +1367,16 @@ export const PRESETS_ROLES = [
 const PRESET_PAR_CLE = new Map<string, PresetRole>(
   PRESETS_ROLES.map((preset) => [preset.cle, preset]),
 );
+
+/**
+ * Vrai si le rôle préréglé a un objet quand ces modules sont coupés : un
+ * rôle transverse toujours, un rôle de métier tant qu'un de ses modules
+ * reste ouvert.
+ */
+export function presetEnService(preset: PresetRole, coupes: ReadonlySet<string> | readonly string[]): boolean {
+  const ensemble = coupes instanceof Set ? coupes : new Set(coupes as readonly string[]);
+  return !preset.modules || preset.modules.some((m) => !ensemble.has(m));
+}
 
 export function presetRole(cle: string | null | undefined): PresetRole | undefined {
   return cle ? PRESET_PAR_CLE.get(cle) : undefined;

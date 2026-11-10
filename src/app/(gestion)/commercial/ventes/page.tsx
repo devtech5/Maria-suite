@@ -3,6 +3,7 @@ import Link from "next/link";
 
 import { EnTetePage } from "@/components/ui/primitives";
 import { exigerEntreprise } from "@/lib/auth/dal";
+import { AccesRefuse } from "@/components/coque/acces-refuse";
 import { peut } from "@/lib/droits/garde";
 import { listerDepots } from "@/modules/stock/requetes";
 import {
@@ -26,6 +27,8 @@ export const metadata: Metadata = { title: "Caisse" };
  */
 export default async function PageVentes() {
   const session = await exigerEntreprise();
+  // Caisse coupée pour l'entreprise : ses droits tombent, la page aussi.
+  if (!(await peut("pos.vente.consulter"))) return <AccesRefuse droit="pos.vente.consulter" />;
 
   // Le début de journée sert de borne à la clôture : c'est la période que le
   // caissier compte le soir, tiroir ouvert.

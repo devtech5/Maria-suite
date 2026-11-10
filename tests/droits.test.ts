@@ -7,9 +7,12 @@ import {
   droitConnu,
   droitsAccordables,
   droitsParModule,
+  presetEnService,
   presetRole,
   resoudreDroits,
+  type PresetRole,
 } from "@/lib/droits/catalogue";
+import { getModule } from "@/modules/registry";
 
 /**
  * Résolution des droits.
@@ -83,6 +86,17 @@ describe("rôles préréglés", () => {
     const magasinier = resoudreDroits({ cleRole: "magasinier", estProprietaire: false });
     expect(magasinier.has("stock.mouvement.saisir")).toBe(true);
     expect(magasinier.has("comptabilite.ecriture.enregistrer")).toBe(false);
+  });
+
+  it("met hors service un rôle de métier quand tous ses modules sont coupés", () => {
+    const serveur = presetRole("serveur")!;
+    expect(presetEnService(serveur, ["restaurant"])).toBe(true);
+    expect(presetEnService(serveur, new Set(["restaurant", "maquis"]))).toBe(false);
+    expect(presetEnService(presetRole("caissier")!, ["pos"])).toBe(false);
+    // Un rôle transverse reste, quoi qu'on coupe.
+    expect(presetEnService(presetRole("secretaire")!, ["pos", "stock", "restaurant", "maquis", "hotellerie"])).toBe(true);
+    // Chaque module cité existe au registre : une faute de frappe garderait le rôle en service à tort.
+    for (const preset of PRESETS_ROLES) for (const cle of (preset as PresetRole).modules ?? []) expect(getModule(cle), `${preset.cle} → ${cle}`).toBeDefined();
   });
 });
 
