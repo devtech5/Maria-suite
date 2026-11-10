@@ -4,6 +4,9 @@ import Link from "next/link";
 import { EnTetePage } from "@/components/ui/primitives";
 import { exigerEntreprise } from "@/lib/auth/dal";
 import { droitsActifs } from "@/lib/droits/garde";
+import { moduleOuvert } from "@/lib/modules/garde";
+import { anniversairesDuMois } from "@/modules/personnes/anniversaires";
+import { personnesAnniversaire } from "@/modules/personnes/anniversaires-annonces";
 import { ajouterJours, jourLocal } from "@/modules/presences/calcul";
 import { bornesMois, bornesSemaine, creneauAffiche, etatAffiche, moisAffiche, moisDe, moisValide, moisVoisin, semaineAffichee, titreJour, titreMois } from "@/modules/planning/affichage";
 import { etatActuel, lundiDe } from "@/modules/planning/calcul";
@@ -55,6 +58,13 @@ export default async function PagePlanning({ searchParams }: PageProps<"/plannin
   const lien = (s: string) => `/planning?${new URLSearchParams({ ...base, vue: "semaine", semaine: s })}`;
   const lienMois = (m: string) => `/planning?${new URLSearchParams({ ...base, vue: "mois", mois: m })}`;
   const semaines = vue === "mois" ? moisAffiche(mois, aujourdhui, creneaux, plages, fuseau) : [];
+  // Les anniversaires du mois s'inscrivent au calendrier : tous pour la direction, ceux qui l'ont choisi pour les autres.
+  const anniversaires =
+    vue === "mois" && moduleOuvert("personnes")
+      ? Object.fromEntries(
+          [...anniversairesDuMois(await personnesAnniversaire(session.organizationId, { direction: droits.has("personnes.salarie.gerer") }), mois)].map(([jour, liste]) => [jour, liste.map((p) => p.nom)]),
+        )
+      : {};
   const lienSemaine = Object.fromEntries(semaines.flat().flatMap((j) => (j ? [[j.jour, lien(lundiDe(j.jour))]] : [])));
   const bouton = "rounded-lg border border-[var(--filet)] px-3 py-1.5 hover:bg-[var(--surface-creuse)]";
 
@@ -113,7 +123,13 @@ export default async function PagePlanning({ searchParams }: PageProps<"/plannin
       </nav>
 
       {vue === "mois" ? (
-        <Mois semaines={semaines} creneaux={creneaux.filter((c) => !c.origine).map((c) => creneauAffiche(c, fuseau))} pourUserId={autre?.userId ?? null} lienSemaine={lienSemaine} />
+        <Mois
+          semaines={semaines}
+          creneaux={creneaux.filter((c) => !c.origine).map((c) => creneauAffiche(c, fuseau))}
+          pourUserId={autre?.userId ?? null}
+          lienSemaine={lienSemaine}
+          anniversaires={anniversaires}
+        />
       ) : (
         <Semaine
           jours={semaineAffichee(lundi, aujourdhui, creneaux, plages, fuseau)}

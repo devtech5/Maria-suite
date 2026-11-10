@@ -122,6 +122,7 @@ const schemaEtatCivil = z.object({
     .nullable(),
   adresse: facultatif(200),
   numeroCnps: facultatif(30),
+  anniversaireAnnonce: z.boolean(),
 });
 
 export async function modifierEtatCivil(employeeId: string, donnees: FormData): Promise<Resultat> {
@@ -145,6 +146,8 @@ export async function modifierEtatCivil(employeeId: string, donnees: FormData): 
     email: texte(donnees, "email"),
     adresse: texte(donnees, "adresse"),
     numeroCnps: texte(donnees, "numeroCnps"),
+    // Case à cocher : présente et cochée, ou absente.
+    anniversaireAnnonce: donnees.get("anniversaireAnnonce") === "oui",
   });
   if (!analyse.success) return { ok: false, message: analyse.error.issues[0].message };
 

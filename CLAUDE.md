@@ -331,6 +331,21 @@ se calcule dans le fuseau de l'entreprise (`organizations.timezone`). La règle
 d'acquisition vient du pays (`regleConges`) et reste « à vérifier » tant que
 personne ne l'a attestée, comme le barème de paie.
 
+## Anniversaires des collaborateurs
+
+`src/modules/personnes/anniversaires.ts` (règles pures) et
+`anniversaires-annonces.ts` (base, cloche). Source : `employees.date_naissance`
+des salariés en poste. Jour civil dans le fuseau de l'entreprise ; né un
+29 février, fêté le 28 les années non bissextiles. La direction (propriétaire
+et droit `personnes.salarie.gerer`) est prévenue une fois dans les 7 jours qui
+précèdent, puis le jour même avec l'âge ; l'équipe le jour même, sans l'âge,
+si `employees.anniversaire_annonce` (case de l'état civil) ; la personne
+reçoit les vœux. Aucune tâche planifiée : `annoncerApresReponse` dans les
+coques gestion et accueil (au plus une fois par demi-heure et par processus),
+et l'index unique de `anniversaires_annonces` fait partir chaque annonce une
+seule fois. Affichage : bandeau de l'accueil, RH › Anniversaires, calendrier
+du mois du planning.
+
 ## Interrogations de fond et liens publics
 
 Tout ce qui interroge le serveur en tâche de fond — la cloche, la
