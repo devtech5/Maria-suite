@@ -1,11 +1,12 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
+import { useRouter } from "next/navigation";
 
 import { Retour, useOperation } from "@/components/ui/operations";
 import { CLASSE_CHAMP } from "@/components/ui/primitives";
-import { agirSurReunion, enregistrerCompteRendu, inviter } from "@/modules/meeting/actions";
-import type { Geste } from "@/modules/meeting/calcul";
+import { agirSurLien, agirSurReunion, enregistrerCompteRendu, inviter } from "@/modules/meeting/actions";
+import { lienDeSalle, type Geste, type GesteLien } from "@/modules/meeting/calcul";
 
 /** Terminer pour tous, ou annuler avec un motif. */
 export function GestesReunion({ reunionId, gestes }: { reunionId: string; gestes: Geste[] }) {
@@ -121,5 +122,181 @@ export function CompteRendu({ reunionId, initial }: { reunionId: string; initial
         </button>
       </div>
     </form>
+  );
+}
+
+/** Copie le lien de la salle dans le presse-papiers ; dit qu'il est copié. */
+export function CopierLien({ reunionId, className, libelle = "Copier le lien" }: { reunionId: string; className?: string; libelle?: string }) {
+  const [copie, setCopie] = useState(false);
+  return (
+    <button
+      type="button"
+      onClick={() => {
+        void navigator.clipboard
+          ?.writeText(lienDeSalle(window.location.origin, reunionId))
+          .then(() => {
+            setCopie(true);
+            setTimeout(() => setCopie(false), 2_000);
+          })
+          .catch(() => undefined);
+      }}
+      className={className ?? "h-cible rounded-lg border border-[var(--filet)] bg-[var(--surface)] px-3.5 text-sm font-medium hover:bg-[var(--surface-creuse)]"}
+    >
+      {copie ? "Lien copié ✓" : libelle}
+    </button>
+  );
+}
+
+/**
+ * Le lien de la salle, pour qui pilote : le désactiver (plus personne
+ * n'entre), le réactiver, ou supprimer la réunion de toutes les listes.
+ */
+export function GestesLien({ reunionId, gestes, enLigne = false }: { reunionId: string; gestes: GesteLien[]; enLigne?: boolean }) {
+  const op = useOperation();
+  const routeur = useRouter();
+  if (gestes.length === 0) return null;
+  const bouton = "h-cible rounded-lg border border-[var(--filet)] bg-[var(--surface)] px-3.5 text-sm font-medium hover:bg-[var(--surface-creuse)] disabled:opacity-50";
+  return (
+    <div className={`flex flex-col gap-2 ${enLigne ? "" : "items-end"}`}>
+      <div className="flex flex-wrap gap-2">
+        {gestes.includes("desactiver") && (
+          <button type="button" disabled={op.enCours} onClick={() => op.lancer(() => agirSurLien(reunionId, "desactiver"))} className={bouton}>
+            Désactiver le lien
+          </button>
+        )}
+        {gestes.includes("reactiver") && (
+          <button type="button" disabled={op.enCours} onClick={() => op.lancer(() => agirSurLien(reunionId, "reactiver"))} className={bouton}>
+            Réactiver le lien
+          </button>
+        )}
+        {gestes.includes("supprimer") && (
+          <button
+            type="button"
+            disabled={op.enCours}
+            onClick={() => {
+              if (confirm("Supprimer cette réunion de toutes les listes ? Une réunion en cours est d'abord terminée pour tous.")) {
+                op.lancer(() => agirSurLien(reunionId, "supprimer"), () => routeur.push("/meeting"));
+              }
+            }}
+            className={`${bouton} text-danger-600`}
+          >
+            Supprimer
+          </button>
+        )}
+      </div>
+      <Retour resultat={op.resultat} />
+    </div>
+  );
+}
+
+/**
+ * Menu « ⋯ » d'une réunion dans la liste : copier le lien pour tous ;
+ * terminer, désactiver ou réactiver le lien, supprimer pour qui pilote.
+ */
+export function MenuReunion({
+  reunionId,
+  numero,
+  enCours,
+  gestesLien,
+  peutTerminer,
+}: {
+  reunionId: string;
+  numero: string;
+  enCours: boolean;
+  gestesLien: GesteLien[];
+  peutTerminer: boolean;
+}) {
+  const [ouvert, setOuvert] = useState(false);
+  const [copie, setCopie] = useState(false);
+  const op = useOperation();
+  const cadre = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    if (!ouvert) return;
+    const dehors = (e: MouseEvent) => {
+      if (!cadre.current?.contains(e.target as Node)) setOuvert(false);
+    };
+    const echap = (e: KeyboardEvent) => e.key === "Escape" && setOuvert(false);
+    document.addEventListener("mousedown", dehors);
+    document.addEventListener("keydown", echap);
+    return () => {
+      document.removeEventListener("mousedown", dehors);
+      document.removeEventListener("keydown", echap);
+    };
+  }, [ouvert]);
+
+  const entree = "flex w-full items-center gap-2 px-3 py-2 text-left text-sm hover:bg-[var(--surface-creuse)] disabled:opacity-50";
+  const agir = (fn: () => Promise<{ ok: boolean; message: string }>) => {
+    setOuvert(false);
+    op.lancer(fn as () => Promise<{ ok: true; message: string } | { ok: false; message: string }>);
+  };
+
+  return (
+    <div ref={cadre} className="relative">
+      <button
+        type="button"
+        onClick={() => setOuvert((v) => !v)}
+        aria-haspopup="menu"
+        aria-expanded={ouvert}
+        aria-label={`Actions sur ${numero}`}
+        title="Actions"
+        className="flex size-10 items-center justify-center rounded-lg text-lg leading-none text-[var(--encre-douce)] hover:bg-[var(--surface-creuse)]"
+      >
+        ⋯
+      </button>
+      {ouvert && (
+        <div role="menu" className="absolute right-0 top-11 z-30 w-60 overflow-hidden rounded-xl border border-[var(--filet)] bg-[var(--surface)] py-1 shadow-lg">
+          <button
+            type="button"
+            role="menuitem"
+            className={entree}
+            onClick={() => {
+              void navigator.clipboard
+                ?.writeText(lienDeSalle(window.location.origin, reunionId))
+                .then(() => {
+                  setCopie(true);
+                  setTimeout(() => setCopie(false), 2_000);
+                })
+                .catch(() => undefined);
+              setOuvert(false);
+            }}
+          >
+            🔗 Copier le lien de la salle
+          </button>
+          {enCours && peutTerminer && (
+            <button type="button" role="menuitem" className={entree} disabled={op.enCours} onClick={() => confirm("Terminer la réunion pour tous les participants ?") && agir(() => agirSurReunion(reunionId, "terminer"))}>
+              ⏹ Terminer pour tous
+            </button>
+          )}
+          {gestesLien.includes("desactiver") && (
+            <button type="button" role="menuitem" className={entree} disabled={op.enCours} onClick={() => agir(() => agirSurLien(reunionId, "desactiver"))}>
+              🚫 Désactiver le lien
+            </button>
+          )}
+          {gestesLien.includes("reactiver") && (
+            <button type="button" role="menuitem" className={entree} disabled={op.enCours} onClick={() => agir(() => agirSurLien(reunionId, "reactiver"))}>
+              ✅ Réactiver le lien
+            </button>
+          )}
+          {gestesLien.includes("supprimer") && (
+            <button
+              type="button"
+              role="menuitem"
+              className={`${entree} text-danger-600`}
+              disabled={op.enCours}
+              onClick={() => confirm("Supprimer cette réunion de toutes les listes ? Une réunion en cours est d'abord terminée pour tous.") && agir(() => agirSurLien(reunionId, "supprimer"))}
+            >
+              🗑 Supprimer la réunion
+            </button>
+          )}
+        </div>
+      )}
+      {/* Un succès se voit dans la liste rafraîchie ; seuls la copie et un refus se disent ici. */}
+      {!ouvert && (copie || (op.resultat && !op.resultat.ok)) && (
+        <p className={`absolute right-0 top-11 z-20 w-max max-w-64 rounded-lg px-2.5 py-1.5 text-xs shadow ${copie ? "bg-valide-50 text-valide-600" : "bg-danger-50 text-danger-600"}`}>
+          {copie ? "Lien copié" : op.resultat?.message}
+        </p>
+      )}
+    </div>
   );
 }

@@ -357,8 +357,13 @@ le préfixe du chemin (`s/` Sécurité, `m/` Meeting) ; un jeton de flux est
 signé, propre à la réunion, valable deux minutes, renouvelé à chaque signal.
 La salle se signale toutes les quatre secondes (`signalerPresence`, lu par
 `session()` comme toute interrogation de fond) : présence, micro, écran
-partagé, temps cumulé. La salle (`src/app/(salle)/`, plein cadre) est exemptée
-du verrou d'inactivité, comme la caisse.
+partagé, main levée, temps cumulé ; le même signal rapporte réactions et
+messages de la discussion (`reunion_messages`). L'organisateur désactive le
+lien (`reunions.lien_actif` : plus personne n'entre, lui excepté), le réactive,
+ou supprime la réunion (terminée d'abord si elle est en cours, puis retirée de
+toutes les listes). La salle (`src/app/(salle)/`, plein cadre) est exemptée
+du verrou d'inactivité, comme la caisse ; `reagirEnSalle` et `ecrireEnSalle`
+passent `malgreVerrou` comme les autres actions de la salle.
 
 ## Reprise de l'existant
 

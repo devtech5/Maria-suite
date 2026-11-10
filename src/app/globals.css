@@ -344,3 +344,14 @@
     white-space: pre;
   }
 }
+
+/* Meeting : une réaction monte et s'efface au-dessus de la tuile de son auteur. */
+@keyframes reaction-flottante {
+  0% { opacity: 0; transform: translate(-50%, 1rem) scale(0.6); }
+  15% { opacity: 1; transform: translate(-50%, 0) scale(1.1); }
+  70% { opacity: 1; transform: translate(-50%, -2.5rem) scale(1); }
+  100% { opacity: 0; transform: translate(-50%, -4rem) scale(0.9); }
+}
+.reaction-flottante {
+  animation: reaction-flottante 3s ease-out forwards;
+}

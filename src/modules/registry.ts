@@ -255,8 +255,9 @@ export const MODULES: ModuleDefinition[] = [
     // invités, feuille de présence au signal près, compte rendu. Images et
     // son en WebRTC par le serveur vidéo du module Sécurité (chacun publie un
     // flux en WHIP, lit les autres en WHEP), chaque flux autorisé par Maria
-    // Suite. Restent l'enregistrement, la discussion écrite dans la salle et
-    // la réunion récurrente.
+    // Suite. Dans la salle : main levée, réactions, discussion écrite, qui
+    // parle. L'organisateur désactive ou réactive le lien, ou supprime la
+    // réunion. Restent l'enregistrement et la réunion récurrente.
     status: "en_cours",
     requires: [],
     description: "Réunions d'équipe à distance : caméra, micro, partage d'écran, présence et compte rendu.",

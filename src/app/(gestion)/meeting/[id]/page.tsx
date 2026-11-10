@@ -2,11 +2,11 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 
-import { CompteRendu, GestesReunion, InviterMembres } from "@/components/meeting/gestes-reunion";
+import { CompteRendu, CopierLien, GestesLien, GestesReunion, InviterMembres } from "@/components/meeting/gestes-reunion";
 import { CarteIndicateur, EnTetePage, EtatVide, Pastille, Tableau, Td, Th, type TonPastille } from "@/components/ui/primitives";
 import { exigerEntreprise } from "@/lib/auth/dal";
 import { peut } from "@/lib/droits/garde";
-import { LIBELLE_STATUT, dureeLisible, gestesPossibles, pilote, rejoignable, type Statut } from "@/modules/meeting/calcul";
+import { LIBELLE_STATUT, dureeLisible, gestesLien, gestesPossibles, pilote, rejoignable, type Statut } from "@/modules/meeting/calcul";
 import { fuseauDe, membresInvitables, participantsDe, reunionDe } from "@/modules/meeting/requetes";
 
 export const metadata: Metadata = { title: "Réunion" };
@@ -56,14 +56,23 @@ export default async function PageReunion({ params }: PageProps<"/meeting/[id]">
         actions={
           <div className="flex flex-col items-end gap-2">
             {rejoignable(reunion.statut) && (
-              <Link
-                href={`/meeting/${reunion.id}/salle`}
-                className="h-cible inline-flex items-center rounded-lg bg-valide-500 px-4 text-sm font-semibold text-white hover:opacity-90"
-              >
-                {reunion.statut === "en_cours" ? "Rejoindre la salle" : "Entrer dans la salle"}
-              </Link>
+              <div className="flex flex-wrap justify-end gap-2">
+                <CopierLien reunionId={reunion.id} />
+                {(reunion.lienActif || pilotee) && (
+                  <Link
+                    href={`/meeting/${reunion.id}/salle`}
+                    className="h-cible inline-flex items-center rounded-lg bg-valide-500 px-4 text-sm font-semibold text-white hover:opacity-90"
+                  >
+                    {reunion.statut === "en_cours" ? "Rejoindre la salle" : "Entrer dans la salle"}
+                  </Link>
+                )}
+              </div>
+            )}
+            {rejoignable(reunion.statut) && !reunion.lienActif && (
+              <p className="text-xs text-alerte-600">Lien désactivé : seul l&apos;organisateur peut entrer dans la salle.</p>
             )}
             <GestesReunion reunionId={reunion.id} gestes={gestesPossibles(reunion.statut, reunion, acteur)} />
+            <GestesLien reunionId={reunion.id} gestes={gestesLien(reunion.statut, reunion.lienActif, reunion, acteur)} />
           </div>
         }
       />

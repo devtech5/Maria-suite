@@ -63,6 +63,14 @@ export default async function PageSalle({ params }: PageProps<"/meeting/[id]/sal
     const pilotee = pilote(reunion, { userId: session.userId, organise });
     if (!participants.some((p) => p.userId === session.userId) && !pilotee) {
       contenu = <Avis titre="Réunion privée" message="Vous n'êtes pas invité à cette réunion. Demandez à son organisateur de vous y ajouter." retour="/meeting" />;
+    } else if (rejoignable(reunion.statut) && !reunion.lienActif && !pilotee) {
+      contenu = (
+        <Avis
+          titre="Lien désactivé"
+          message="L'organisateur a fermé l'entrée de cette salle. Demandez-lui de réactiver le lien."
+          retour={`/meeting/${reunion.id}`}
+        />
+      );
     } else if (!rejoignable(reunion.statut)) {
       contenu = (
         <Avis
@@ -73,7 +81,7 @@ export default async function PageSalle({ params }: PageProps<"/meeting/[id]/sal
       );
     } else {
       contenu = (
-        <main className="min-h-dvh bg-[var(--fond)] p-3 lg:p-4">
+        <main className="min-h-dvh bg-[#202124]">
           <SalleReunion
             reunionId={reunion.id}
             numero={reunion.numero}
@@ -82,6 +90,8 @@ export default async function PageSalle({ params }: PageProps<"/meeting/[id]/sal
             nomMoi={session.nom}
             pilote={pilotee}
             videoConfiguree={Boolean(env.VIDEO_URL_PUBLIQUE)}
+            dejaLa={participants.filter((p) => p.present && p.userId !== session.userId).map((p) => p.nom)}
+            lienActif={reunion.lienActif}
           />
         </main>
       );

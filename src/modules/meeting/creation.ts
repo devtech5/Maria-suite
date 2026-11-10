@@ -1,13 +1,28 @@
 import "server-only";
 
-import { and, eq, inArray, sql } from "drizzle-orm";
+import { and, eq, inArray, isNull, sql } from "drizzle-orm";
 
 import { auditLogs, memberships } from "@/db/schema";
 import { newId } from "@/lib/ids";
 import { prochainNumero, type Transaction } from "@/lib/sequences";
 
-import { FRAICHEUR_MS, dureeValide, pilote, rejoignable, secondesDePresence, statutApres, type Acteur, type Geste, type Statut } from "./calcul";
-import { reunionParticipants, reunions } from "./schema";
+import {
+  FRAICHEUR_MS,
+  dureeValide,
+  gestesLien,
+  lienOuvertA,
+  messageSalle,
+  pilote,
+  reactionConnue,
+  rejoignable,
+  secondesDePresence,
+  statutApres,
+  type Acteur,
+  type Geste,
+  type GesteLien,
+  type Statut,
+} from "./calcul";
+import { reunionMessages, reunionParticipants, reunions } from "./schema";
 
 async function journaliser(
   tx: Transaction,
@@ -50,7 +65,7 @@ async function reunionVerrouillee(tx: Transaction, organizationId: string, reuni
   const [reunion] = await tx
     .select()
     .from(reunions)
-    .where(and(eq(reunions.id, reunionId), eq(reunions.organizationId, organizationId)))
+    .where(and(eq(reunions.id, reunionId), eq(reunions.organizationId, organizationId), isNull(reunions.deletedAt)))
     .for("update");
   if (!reunion) throw new Error("Réunion introuvable.");
   return reunion;
@@ -157,6 +172,10 @@ export async function rejoindreDans(
     throw new Error(`${reunion.numero} est ${reunion.statut === "terminee" ? "terminée" : "annulée"}.`);
   }
 
+  if (!lienOuvertA(reunion.lienActif, reunion, acteur)) {
+    throw new Error(`Le lien de ${reunion.numero} est désactivé : l'organisateur a fermé l'entrée de la salle.`);
+  }
+
   let place = await participantDe(tx, reunionId, acteur.userId);
   if (!place) {
     if (!pilote(reunion, acteur)) throw new Error("Vous n'êtes pas invité à cette réunion.");
@@ -192,6 +211,8 @@ export interface EtatMedias {
   micro: boolean;
   camera: boolean;
   ecran: boolean;
+  /** Main levée. Absente : inchangée. */
+  main?: boolean;
 }
 
 /**
@@ -208,10 +229,12 @@ export async function signalerDans(
   maintenant = new Date(),
 ): Promise<{ statut: Statut }> {
   const [reunion] = await tx
-    .select({ statut: reunions.statut })
+    .select({ statut: reunions.statut, supprimee: reunions.deletedAt })
     .from(reunions)
     .where(and(eq(reunions.id, reunionId), eq(reunions.organizationId, organizationId)));
   if (!reunion) throw new Error("Réunion introuvable.");
+  // Supprimée pendant qu'on y était : la salle se ferme comme une réunion terminée.
+  if (reunion.supprimee) return { statut: "terminee" };
   if (reunion.statut !== "en_cours") return { statut: reunion.statut };
 
   const place = await participantDe(tx, reunionId, userId);
@@ -224,10 +247,57 @@ export async function signalerDans(
       micro: medias.micro,
       camera: medias.camera,
       ecran: medias.ecran,
+      ...(medias.main === undefined ? {} : { mainLevee: medias.main }),
       updatedAt: maintenant,
     })
     .where(eq(reunionParticipants.id, place.id));
   return { statut: reunion.statut };
+}
+
+/** Une place dans une salle ouverte, ou une erreur lisible. */
+async function placeEnSalle(tx: Transaction, organizationId: string, reunionId: string, userId: string) {
+  const [reunion] = await tx
+    .select({ statut: reunions.statut, numero: reunions.numero })
+    .from(reunions)
+    .where(and(eq(reunions.id, reunionId), eq(reunions.organizationId, organizationId), isNull(reunions.deletedAt)));
+  if (!reunion) throw new Error("Réunion introuvable.");
+  if (reunion.statut !== "en_cours") throw new Error(`${reunion.numero} n'est pas en cours.`);
+  const place = await participantDe(tx, reunionId, userId);
+  if (!place) throw new Error("Vous n'êtes pas invité à cette réunion.");
+  return place;
+}
+
+/** Une réaction (👍, 👏…) : elle flotte quelques secondes sur la tuile de son auteur. */
+export async function reagirDans(
+  tx: Transaction,
+  organizationId: string,
+  reunionId: string,
+  userId: string,
+  reaction: string,
+  maintenant = new Date(),
+): Promise<void> {
+  if (!reactionConnue(reaction)) throw new Error("Réaction inconnue.");
+  const place = await placeEnSalle(tx, organizationId, reunionId, userId);
+  await tx
+    .update(reunionParticipants)
+    .set({ reaction, reactionLe: maintenant, updatedAt: maintenant })
+    .where(eq(reunionParticipants.id, place.id));
+}
+
+/** Un message dans la discussion de la salle. */
+export async function ecrireEnSalleDans(
+  tx: Transaction,
+  organizationId: string,
+  reunionId: string,
+  userId: string,
+  saisie: string,
+): Promise<{ id: string }> {
+  const corps = messageSalle(saisie);
+  if (!corps) throw new Error("Message vide ou trop long : 2 000 caractères au plus.");
+  await placeEnSalle(tx, organizationId, reunionId, userId);
+  const id = newId();
+  await tx.insert(reunionMessages).values({ id, organizationId, reunionId, userId, corps });
+  return { id };
 }
 
 /** Quitte la salle : le temps passé est compté, les autres cessent de lire ses flux. */
@@ -248,6 +318,7 @@ export async function quitterDans(
       micro: false,
       camera: false,
       ecran: false,
+      mainLevee: false,
       updatedAt: maintenant,
     })
     .where(eq(reunionParticipants.id, place.id));
@@ -296,6 +367,7 @@ export async function appliquerGesteDans(
         micro: false,
         camera: false,
         ecran: false,
+        mainLevee: false,
         updatedAt: maintenant,
       })
       .where(eq(reunionParticipants.reunionId, reunionId));
@@ -310,6 +382,42 @@ export async function appliquerGesteDans(
     { numero: reunion.numero, statut: vers, ...(geste === "annuler" ? { motif: motif!.trim() } : {}) },
     { statut: reunion.statut },
   );
+  return { numero: reunion.numero };
+}
+
+/**
+ * Désactive ou réactive le lien de la salle, ou supprime la réunion. Une
+ * réunion en cours qu'on supprime est d'abord terminée pour tous — le temps
+ * de chacun arrêté au geste — puis retirée de toutes les listes ; elle reste
+ * en base, avec son journal.
+ */
+export async function appliquerGesteLienDans(
+  tx: Transaction,
+  organizationId: string,
+  reunionId: string,
+  geste: GesteLien,
+  acteur: Acteur,
+  maintenant = new Date(),
+): Promise<{ numero: string }> {
+  const reunion = await reunionVerrouillee(tx, organizationId, reunionId);
+  if (!gestesLien(reunion.statut, reunion.lienActif, reunion, acteur).includes(geste)) {
+    throw new Error(pilote(reunion, acteur) ? `${reunion.numero} : impossible depuis l'état actuel.` : "Seul l'organisateur pilote cette réunion.");
+  }
+
+  if (geste === "supprimer") {
+    if (reunion.statut === "en_cours") await appliquerGesteDans(tx, organizationId, reunionId, "terminer", acteur, null, maintenant);
+    await tx
+      .update(reunions)
+      .set({ deletedAt: maintenant, lienActif: false, updatedAt: maintenant, version: sql`${reunions.version} + 1` })
+      .where(eq(reunions.id, reunionId));
+  } else {
+    await tx
+      .update(reunions)
+      .set({ lienActif: geste === "reactiver", updatedAt: maintenant, version: sql`${reunions.version} + 1` })
+      .where(eq(reunions.id, reunionId));
+  }
+
+  await journaliser(tx, organizationId, acteur.userId, `reunion.lien.${geste}`, reunionId, { numero: reunion.numero, lienActif: geste === "reactiver" }, { lienActif: reunion.lienActif, statut: reunion.statut });
   return { numero: reunion.numero };
 }
 

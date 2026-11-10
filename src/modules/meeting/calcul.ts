@@ -74,6 +74,64 @@ export function gestesPossibles(statut: Statut, reunion: { organisateurUserId: s
   return (["terminer", "annuler"] as const).filter((g) => statutApres(g, statut) !== null);
 }
 
+// ------------------------------------------------------------------- lien
+
+/**
+ * Gestes sur le lien de la salle, réservés à qui pilote : le désactiver
+ * (plus personne n'entre, sauf lui), le réactiver, ou supprimer la réunion
+ * de toutes les listes. Une réunion en cours qu'on supprime est d'abord
+ * terminée pour tous.
+ */
+export type GesteLien = "desactiver" | "reactiver" | "supprimer";
+
+export function gestesLien(statut: Statut, lienActif: boolean, reunion: { organisateurUserId: string }, acteur: Acteur): GesteLien[] {
+  if (!pilote(reunion, acteur)) return [];
+  const gestes: GesteLien[] = [];
+  if (rejoignable(statut)) gestes.push(lienActif ? "desactiver" : "reactiver");
+  gestes.push("supprimer");
+  return gestes;
+}
+
+/** Entrer dans la salle : lien actif, ou qui pilote la réunion. */
+export function lienOuvertA(lienActif: boolean, reunion: { organisateurUserId: string }, acteur: Acteur): boolean {
+  return lienActif || pilote(reunion, acteur);
+}
+
+/** Adresse à partager : la salle elle-même, derrière la connexion. */
+export function lienDeSalle(origine: string, reunionId: string): string {
+  return `${origine.replace(/\/$/, "")}/meeting/${reunionId}/salle`;
+}
+
+// -------------------------------------------------------------- réactions
+
+/** Les réactions proposées dans la salle, comme dans toute visioconférence. */
+export const REACTIONS = ["👍", "👏", "😂", "❤️", "🎉", "😮", "🙏", "🤔"] as const;
+export type Reaction = (typeof REACTIONS)[number];
+
+export function reactionConnue(r: string): r is Reaction {
+  return (REACTIONS as readonly string[]).includes(r);
+}
+
+/** Durée pendant laquelle une réaction flotte sur la tuile : deux signaux au moins pour que chacun la voie. */
+export const REACTION_MS = 8_000;
+
+export function reactionVisible(reactionLe: Date | null, maintenant: Date): boolean {
+  if (!reactionLe) return false;
+  const ecart = maintenant.getTime() - reactionLe.getTime();
+  return ecart >= 0 && ecart < REACTION_MS;
+}
+
+// -------------------------------------------------------------- discussion
+
+export const LONGUEUR_MAX_MESSAGE_SALLE = 2_000;
+
+/** Message de la salle, nettoyé ; nul s'il n'y a rien à envoyer ou s'il est trop long. */
+export function messageSalle(saisie: string): string | null {
+  const propre = saisie.replace(/\r\n/g, "\n").trim();
+  if (!propre || propre.length > LONGUEUR_MAX_MESSAGE_SALLE) return null;
+  return propre;
+}
+
 // ---------------------------------------------------------------- présence
 
 /** Le navigateur se signale toutes les quatre secondes depuis la salle. */
