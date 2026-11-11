@@ -45,6 +45,12 @@ function Case({ e }: { e: EtatJour }) {
           C
         </span>
       );
+    case "permission":
+      return (
+        <span title="Absence autorisée (permission accordée)" className={`${base} bg-or-50 text-or-700`}>
+          AU
+        </span>
+      );
     case "ferie":
       return (
         <span title={e.libelle} className={`${base} bg-[var(--surface-creuse)] text-[var(--encre-faible)]`}>
@@ -126,6 +132,7 @@ export default async function PageRegistre({ searchParams }: PageProps<"/presenc
                     <th className="px-2 py-2 text-right font-semibold">Retards</th>
                     <th className="px-2 py-2 text-right font-semibold">Absent</th>
                     <th className="px-2 py-2 text-right font-semibold">Congé</th>
+                    <th className="px-2 py-2 text-right font-semibold">Autorisé</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -144,6 +151,7 @@ export default async function PageRegistre({ searchParams }: PageProps<"/presenc
                       <td className="chiffres px-2 text-right">{l.retards}</td>
                       <td className="chiffres px-2 text-right">{l.absences}</td>
                       <td className="chiffres px-2 text-right">{l.conges}</td>
+                      <td className="chiffres px-2 text-right">{l.permissions}</td>
                     </tr>
                   ))}
                 </tbody>

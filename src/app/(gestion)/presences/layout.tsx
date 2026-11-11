@@ -19,6 +19,7 @@ export default async function LayoutPresences({ children }: LayoutProps<"/presen
     { href: "/presences", libelle: "Aujourd'hui" },
     ...(equipe ? [{ href: "/presences/registre", libelle: "Registre" }] : []),
     { href: "/presences/conges", libelle: "Congés" },
+    { href: "/presences/permissions", libelle: "Permissions" },
     ...(equipe || droits.has("conges.valider") ? [{ href: "/presences/soldes", libelle: "Soldes" }] : []),
     ...(droits.has("presences.gerer") ? [{ href: "/presences/reglages", libelle: "Réglages" }] : []),
   ];

@@ -110,7 +110,7 @@ export const CHAPITRES_EQUIPE: Chapitre[] = [
     cle: "presences",
     titre: "Présences et congés",
     entree: "/presences",
-    resume: "Le pointage du jour, le registre, les demandes de congé et les soldes.",
+    resume: "Le pointage du jour, le registre, les demandes de congé et de permission, et les soldes.",
     sections: [
       {
         ancre: "aujourdhui",
@@ -127,6 +127,16 @@ export const CHAPITRES_EQUIPE: Chapitre[] = [
           "Le décompte tient compte des jours fériés du pays. Un congé sans solde accordé est retenu sur la paie du mois.",
         ],
         etapes: ["Onglet Congés, nouvelle demande.", "Choisissez les dates et le motif.", "Attendez la décision dans la cloche."],
+      },
+      {
+        ancre: "permissions",
+        titre: "Demander une permission ou une absence",
+        chemin: "/presences/permissions",
+        texte: [
+          "Une PERMISSION couvre quelques heures d'une journée : rendez-vous médical, démarche administrative. Vous indiquez le jour, l'heure de départ et l'heure de retour. Une ABSENCE couvre une ou plusieurs journées entières.",
+          "Votre responsable accorde ou refuse, et dit comment ce temps est traité : payé, à récupérer, déduit de vos congés ou non payé. Déduite des congés, la permission est retirée de votre solde. Une permission oubliée se régularise dans les trente jours.",
+        ],
+        etapes: ["Onglet Permissions, « Demander une permission ».", "Choisissez permission ou absence, puis les heures ou les dates.", "Indiquez le motif, joignez un justificatif si vous l'avez.", "Attendez la décision dans la cloche."],
       },
       {
         ancre: "soldes",
@@ -149,6 +159,13 @@ export const CHAPITRES_EQUIPE: Chapitre[] = [
         choix: ["Comme un jour de congé", "Il n'est pas décompté", "Il est compté double"],
         bonne: 1,
         explication: "Le décompte écarte les jours fériés du pays.",
+      },
+      {
+        cle: "presences-permission",
+        question: "Vous devez vous absenter de 10 h à 12 h pour un rendez-vous médical. Que demandez-vous ?",
+        choix: ["Un congé payé d'une journée", "Une permission, avec l'heure de départ et l'heure de retour", "Rien, le pointage suffit"],
+        bonne: 1,
+        explication: "Quelques heures dans la journée, c'est une permission : elle porte l'heure de départ et l'heure de retour.",
       },
     ],
   },

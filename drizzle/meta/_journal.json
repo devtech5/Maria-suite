@@ -568,6 +568,13 @@
       "when": 1794373530524,
       "tag": "0080_transmissions",
       "breakpoints": true
+    },
+    {
+      "idx": 81,
+      "version": "7",
+      "when": 1794375023538,
+      "tag": "0081_demandes_permission",
+      "breakpoints": true
     }
   ]
 }

@@ -19,8 +19,18 @@ import {
   regleConges,
   type NatureConge,
 } from "./calcul";
+import {
+  centiemesDeMinutes,
+  formatNumeroPermission,
+  minutesEntre,
+  permissionsSeChevauchent,
+  refusPermission,
+  type GenrePermission,
+  type MotifPermission,
+  type TraitementPermission,
+} from "./permissions";
 import { oublierContextePresence } from "./pointage";
-import { ajustementsConge, conges, joursFeries, presences, reglagesPresence } from "./schema";
+import { ajustementsConge, conges, demandesPermission, joursFeries, presences, reglagesPresence } from "./schema";
 
 async function journaliser(tx: Transaction | typeof db, organizationId: string, userId: string, action: string, entityType: string, entityId: string, apres: unknown) {
   await tx.insert(auditLogs).values({ id: newId(), organizationId, userId, action, entityType, entityId, after: apres });
@@ -364,4 +374,191 @@ export async function salarieDuCompte(organizationId: string, userId: string): P
     .where(and(eq(employees.organizationId, organizationId), eq(employees.userId, userId), eq(employees.actif, true), isNull(employees.deletedAt)))
     .limit(1);
   return s ?? null;
+}
+
+// ----------------------------------------------------- permissions et absences
+
+export interface SaisiePermission {
+  employeeId: string;
+  genre: GenrePermission;
+  debut: string;
+  fin: string;
+  heureDebut: string | null;
+  heureFin: string | null;
+  motif: MotifPermission;
+  precision: string | null;
+  justificatif?: string | null;
+}
+
+/** Durée d'une journée de travail, d'après les horaires de l'entreprise. */
+function minutesJournee(r: Reglages): number {
+  return Math.max(0, minutesEntre(r.heureArrivee, r.heureDepart));
+}
+
+/** Ce que la décision retire du solde : rien, sauf « déduite des congés ». */
+function centiemesADeduire(
+  traitement: TraitementPermission,
+  p: { genre: string; minutes: number; joursCentiemes: number },
+  r: Reglages,
+): number {
+  if (traitement !== "deduite_conges") return 0;
+  return p.genre === "heures" ? centiemesDeMinutes(p.minutes, minutesJournee(r)) : p.joursCentiemes;
+}
+
+/**
+ * Demande de permission ou d'absence ; saisie par un responsable
+ * (`accorder` avec son traitement), elle est accordée dans le même geste.
+ *
+ * Refusé : un jour non travaillé, une plage qui croise un congé ou une autre
+ * permission en cours ou accordée.
+ */
+export async function demanderPermissionPour(
+  organizationId: string,
+  userId: string,
+  s: SaisiePermission,
+  options: { aujourdhui: string; accorder: TraitementPermission | null },
+): Promise<{ id: string; numero: string; salarie: string; minutes: number; jours: number }> {
+  const heureDebut = s.genre === "heures" ? s.heureDebut : null;
+  const heureFin = s.genre === "heures" ? s.heureFin : null;
+  const fin = s.genre === "heures" ? s.debut : s.fin;
+  const refus = refusPermission({ genre: s.genre, debut: s.debut, fin, heureDebut, heureFin }, options.aujourdhui, options.accorder !== null);
+  if (refus) throw new Error(refus);
+
+  const salarie = await salarieDe(db, organizationId, s.employeeId);
+  if (!salarie.actif) throw new Error(`${salarie.nom} n'est plus en poste.`);
+  if (s.debut < salarie.debut) throw new Error("La date précède l'embauche.");
+  if (salarie.fin && fin > salarie.fin) throw new Error("La date déborde la fin du contrat.");
+
+  const r = await reglagesDe(organizationId);
+  const jours = await decompterDans(organizationId, { debut: s.debut, fin, debutDemi: false, finDemi: false });
+  if (jours === 0) throw new Error(s.genre === "heures" ? "Ce jour n'est pas travaillé : aucune permission à demander." : "Aucun jour travaillé sur cette période : jours fériés ou de repos seulement.");
+  const minutes = s.genre === "heures" ? minutesEntre(heureDebut!, heureFin!) : 0;
+  const joursCentiemes = s.genre === "journees" ? jours : 0;
+  const plage = { debut: s.debut, fin, heureDebut, heureFin };
+
+  return db.transaction(async (tx) => {
+    const congesCroises = await tx
+      .select({ numero: conges.numero })
+      .from(conges)
+      .where(and(eq(conges.organizationId, organizationId), eq(conges.employeeId, salarie.id), inArray(conges.statut, ["demande", "approuve"]), lte(conges.debut, fin), gte(conges.fin, s.debut)));
+    if (congesCroises[0]) throw new Error(`Cette période est déjà couverte par le congé ${congesCroises[0].numero}.`);
+
+    const autres = await tx
+      .select({ numero: demandesPermission.numero, debut: demandesPermission.debut, fin: demandesPermission.fin, heureDebut: demandesPermission.heureDebut, heureFin: demandesPermission.heureFin })
+      .from(demandesPermission)
+      .where(
+        and(
+          eq(demandesPermission.organizationId, organizationId),
+          eq(demandesPermission.employeeId, salarie.id),
+          inArray(demandesPermission.statut, ["demande", "approuve"]),
+          lte(demandesPermission.debut, fin),
+          gte(demandesPermission.fin, s.debut),
+        ),
+      );
+    const conflit = autres.find((a) => permissionsSeChevauchent(a, plage));
+    if (conflit) throw new Error(`Cette plage croise la demande ${conflit.numero}.`);
+
+    const numero = await prochainNumero(tx, organizationId, formatNumeroPermission(s.debut.slice(0, 4)));
+    const id = newId();
+    const accorde = options.accorder;
+    await tx.insert(demandesPermission).values({
+      id,
+      organizationId,
+      employeeId: salarie.id,
+      numero,
+      genre: s.genre,
+      debut: s.debut,
+      fin,
+      heureDebut,
+      heureFin,
+      minutes,
+      joursCentiemes,
+      motif: s.motif,
+      precision: s.precision,
+      justificatif: s.justificatif ?? null,
+      statut: accorde ? "approuve" : "demande",
+      traitement: accorde,
+      centiemesDeduits: accorde ? centiemesADeduire(accorde, { genre: s.genre, minutes, joursCentiemes }, r) : 0,
+      demandeParUserId: userId,
+      decideParUserId: accorde ? userId : null,
+      decideLe: accorde ? new Date() : null,
+    });
+    await journaliser(tx, organizationId, userId, accorde ? "permission.saisir" : "permission.demander", "demande_permission", id, {
+      numero,
+      salarie: salarie.nom,
+      genre: s.genre,
+      debut: s.debut,
+      fin,
+      heureDebut,
+      heureFin,
+      motif: s.motif,
+      traitement: accorde,
+    });
+    return { id, numero, salarie: salarie.nom, minutes, jours: joursCentiemes };
+  });
+}
+
+/** Accorde (avec son traitement) ou refuse (avec son motif) une demande. */
+export async function deciderPermissionPour(
+  organizationId: string,
+  userId: string,
+  id: string,
+  decision: "approuve" | "refuse",
+  traitement: TraitementPermission | null,
+  commentaire: string | null,
+): Promise<{ numero: string; demandeur: string; salarieUserId: string | null; nom: string }> {
+  if (decision === "refuse" && !commentaire?.trim()) throw new Error("Dites pourquoi la demande est refusée : le salarié le lira.");
+  if (decision === "approuve" && !traitement) throw new Error("Choisissez comment ce temps est traité : payé, à récupérer, déduit des congés ou non payé.");
+  const r = await reglagesDe(organizationId);
+
+  return db.transaction(async (tx) => {
+    const [p] = await tx
+      .select()
+      .from(demandesPermission)
+      .where(and(eq(demandesPermission.id, id), eq(demandesPermission.organizationId, organizationId)))
+      .for("update");
+    if (!p) throw new Error("Demande introuvable.");
+    if (p.statut !== "demande") throw new Error("Cette demande a déjà été traitée.");
+    const retenu = decision === "approuve" ? traitement : null;
+    await tx
+      .update(demandesPermission)
+      .set({
+        statut: decision,
+        traitement: retenu,
+        centiemesDeduits: retenu ? centiemesADeduire(retenu, p, r) : 0,
+        decideParUserId: userId,
+        decideLe: new Date(),
+        commentaire: commentaire?.trim() || null,
+        updatedAt: new Date(),
+        version: sql`${demandesPermission.version} + 1`,
+      })
+      .where(eq(demandesPermission.id, p.id));
+    const salarie = await salarieDe(tx, organizationId, p.employeeId);
+    await journaliser(tx, organizationId, userId, `permission.${decision}`, "demande_permission", p.id, { numero: p.numero, salarie: salarie.nom, traitement: retenu, commentaire });
+    return { numero: p.numero, demandeur: p.demandeParUserId, salarieUserId: salarie.userId, nom: salarie.nom };
+  });
+}
+
+/**
+ * Annule une demande. Le salarié retire la sienne tant qu'elle attend, ou
+ * tant que le jour n'est pas venu ; un responsable annule n'importe laquelle.
+ */
+export async function annulerPermissionPour(organizationId: string, userId: string, id: string, responsable: boolean, aujourdhui: string): Promise<{ numero: string }> {
+  const [p] = await db
+    .select({ id: demandesPermission.id, numero: demandesPermission.numero, statut: demandesPermission.statut, debut: demandesPermission.debut, employeeId: demandesPermission.employeeId })
+    .from(demandesPermission)
+    .where(and(eq(demandesPermission.id, id), eq(demandesPermission.organizationId, organizationId)));
+  if (!p) throw new Error("Demande introuvable.");
+  if (p.statut === "annule" || p.statut === "refuse") throw new Error("Cette demande n'est plus en cours.");
+  if (!responsable) {
+    const salarie = await salarieDe(db, organizationId, p.employeeId);
+    if (salarie.userId !== userId) throw new Error("Vous ne pouvez annuler que vos propres demandes.");
+    if (p.statut === "approuve" && p.debut <= aujourdhui) throw new Error("Cette permission est entamée : demandez à votre responsable de l'annuler.");
+  }
+  await db
+    .update(demandesPermission)
+    .set({ statut: "annule", centiemesDeduits: 0, updatedAt: new Date(), version: sql`${demandesPermission.version} + 1` })
+    .where(and(eq(demandesPermission.id, p.id), ne(demandesPermission.statut, "annule")));
+  await journaliser(db, organizationId, userId, "permission.annule", "demande_permission", p.id, { numero: p.numero });
+  return { numero: p.numero };
 }

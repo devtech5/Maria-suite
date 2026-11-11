@@ -10,7 +10,8 @@ import { employees } from "@/modules/personnes/schema";
 
 import { NATURES_CONGE, ajouterJours, calculerSolde, etatDuJour, heureLocale, joursEntre, type EtatJour, type NatureConge, type Solde } from "./calcul";
 import { feriesEntre, type Reglages } from "./creation";
-import { ajustementsConge, conges, joursFeries, presences } from "./schema";
+import { MOTIFS_PERMISSION, TRAITEMENTS_PERMISSION, type GenrePermission, type MotifPermission, type TraitementPermission } from "./permissions";
+import { ajustementsConge, conges, demandesPermission, joursFeries, presences } from "./schema";
 
 export interface PresenceDuJour {
   id: string;
@@ -102,6 +103,29 @@ async function congesAccordesSur(organizationId: string, debut: string, fin: str
   return parSalarie;
 }
 
+/** Absences accordées (journées entières) couvrant la période : employé → jours. */
+async function absencesAccordeesSur(organizationId: string, debut: string, fin: string): Promise<Map<string, Set<string>>> {
+  const lignes = await db
+    .select({ employeeId: demandesPermission.employeeId, debut: demandesPermission.debut, fin: demandesPermission.fin })
+    .from(demandesPermission)
+    .where(
+      and(
+        eq(demandesPermission.organizationId, organizationId),
+        eq(demandesPermission.statut, "approuve"),
+        eq(demandesPermission.genre, "journees"),
+        lte(demandesPermission.debut, fin),
+        gte(demandesPermission.fin, debut),
+      ),
+    );
+  const parSalarie = new Map<string, Set<string>>();
+  for (const a of lignes) {
+    const jours = parSalarie.get(a.employeeId) ?? new Set<string>();
+    for (const j of joursEntre(a.debut < debut ? debut : a.debut, a.fin > fin ? fin : a.fin)) jours.add(j);
+    parSalarie.set(a.employeeId, jours);
+  }
+  return parSalarie;
+}
+
 export interface LigneRegistre {
   salarie: SalarieActif;
   jours: EtatJour[];
@@ -109,6 +133,7 @@ export interface LigneRegistre {
   retards: number;
   absences: number;
   conges: number;
+  permissions: number;
 }
 
 /** Registre d'une période (un mois en pratique) : une ligne par salarié, une case par jour. */
@@ -121,10 +146,11 @@ export async function registre(
   maintenant: string,
 ): Promise<{ jours: string[]; feries: Map<string, string>; lignes: LigneRegistre[] }> {
   const jours = joursEntre(debut, fin);
-  const [salaries, feries, congesParSalarie, pointages] = await Promise.all([
+  const [salaries, feries, congesParSalarie, absencesParSalarie, pointages] = await Promise.all([
     salariesSur(organizationId, debut, fin),
     feriesEntre(organizationId, debut, fin),
     congesAccordesSur(organizationId, debut, fin),
+    absencesAccordeesSur(organizationId, debut, fin),
     db
       .select({ employeeId: presences.employeeId, jour: presences.jour, arrivee: presences.arrivee, derniere: presences.derniereActivite })
       .from(presences)
@@ -146,6 +172,7 @@ export async function registre(
         contrat: { debut: s.debut, fin: s.fin },
         presence: presenceDe.get(`${s.id}|${jour}`),
         conge: congesParSalarie.get(s.id)?.get(jour),
+        permission: absencesParSalarie.get(s.id)?.has(jour) ?? false,
       }),
     );
     return {
@@ -155,6 +182,7 @@ export async function registre(
       retards: etats.filter((e) => e.etat === "present" && e.retard > 0).length,
       absences: etats.filter((e) => e.etat === "absent").length,
       conges: etats.filter((e) => e.etat === "conge").length,
+      permissions: etats.filter((e) => e.etat === "permission").length,
     };
   });
   return { jours, feries, lignes };
@@ -173,12 +201,24 @@ export async function soldesConges(organizationId: string, r: Reglages, aujourdh
   if (employeeIds) salaries = salaries.filter((s) => employeeIds.includes(s.id));
   if (salaries.length === 0) return [];
   const ids = salaries.map((s) => s.id);
-  const [ajustements, payes] = await Promise.all([
+  const [ajustements, payes, deduites] = await Promise.all([
     db.select().from(ajustementsConge).where(and(eq(ajustementsConge.organizationId, organizationId), inArray(ajustementsConge.employeeId, ids))),
     db
       .select({ employeeId: conges.employeeId, debut: conges.debut, statut: conges.statut, jours: conges.joursCentiemes })
       .from(conges)
       .where(and(eq(conges.organizationId, organizationId), inArray(conges.employeeId, ids), eq(conges.nature, "paye"), inArray(conges.statut, ["demande", "approuve"]))),
+    // Permissions accordées « déduites des congés » : prises comme un congé payé.
+    db
+      .select({ employeeId: demandesPermission.employeeId, debut: demandesPermission.debut, centiemes: demandesPermission.centiemesDeduits })
+      .from(demandesPermission)
+      .where(
+        and(
+          eq(demandesPermission.organizationId, organizationId),
+          inArray(demandesPermission.employeeId, ids),
+          eq(demandesPermission.statut, "approuve"),
+          eq(demandesPermission.traitement, "deduite_conges"),
+        ),
+      ),
   ]);
 
   return salaries.map((s) => {
@@ -193,7 +233,9 @@ export async function soldesConges(organizationId: string, r: Reglages, aujourdh
       centiemesParMois: r.congesCentiemesParMois,
       reprise: reprise?.centiemes ?? 0,
       ajustements: apres.reduce((t, a) => t + a.centiemes, 0),
-      pris: conge.filter((c) => c.statut === "approuve").reduce((t, c) => t + c.jours, 0),
+      pris:
+        conge.filter((c) => c.statut === "approuve").reduce((t, c) => t + c.jours, 0) +
+        deduites.filter((d) => d.employeeId === s.id && d.debut >= depuis).reduce((t, d) => t + d.centiemes, 0),
       enAttente: conge.filter((c) => c.statut === "demande").reduce((t, c) => t + c.jours, 0),
     });
     return { salarie: s, depuis, ...solde };
@@ -290,16 +332,111 @@ export async function listerFeries(organizationId: string, annee: number) {
 
 export interface EtatPresences {
   demandesEnAttente: number;
+  permissionsEnAttente: number;
   presentsAujourdhui: number;
   salaries: number;
 }
 
 /** Pour le tableau de bord. */
 export async function etatPresences(organizationId: string, aujourdhui: string): Promise<EtatPresences> {
-  const [demandes, presents, salaries] = await Promise.all([
+  const [demandes, permissions, presents, salaries] = await Promise.all([
     db.select({ id: conges.id }).from(conges).where(and(eq(conges.organizationId, organizationId), eq(conges.statut, "demande"))),
+    db
+      .select({ id: demandesPermission.id })
+      .from(demandesPermission)
+      .where(and(eq(demandesPermission.organizationId, organizationId), eq(demandesPermission.statut, "demande"))),
     db.select({ id: presences.id }).from(presences).where(and(eq(presences.organizationId, organizationId), eq(presences.jour, aujourdhui))),
     salariesSur(organizationId, aujourdhui, aujourdhui),
   ]);
-  return { demandesEnAttente: demandes.length, presentsAujourdhui: presents.length, salaries: salaries.length };
+  return { demandesEnAttente: demandes.length, permissionsEnAttente: permissions.length, presentsAujourdhui: presents.length, salaries: salaries.length };
+}
+
+// ------------------------------------------------------ permissions et absences
+
+export interface LignePermission {
+  id: string;
+  numero: string;
+  employeeId: string;
+  nom: string;
+  genre: GenrePermission;
+  debut: string;
+  fin: string;
+  heureDebut: string | null;
+  heureFin: string | null;
+  minutes: number;
+  jours: number;
+  motif: MotifPermission;
+  libelleMotif: string;
+  precision: string | null;
+  statut: "demande" | "approuve" | "refuse" | "annule";
+  traitement: TraitementPermission | null;
+  centiemesDeduits: number;
+  commentaire: string | null;
+  salarieUserId: string | null;
+  aJustificatif: boolean;
+}
+
+const libelleMotifSql = sql`(case ${demandesPermission.motif} ${sql.join(
+  Object.entries(MOTIFS_PERMISSION).map(([cle, l]) => sql`when ${cle} then ${l}`),
+  sql` `,
+)} end)`;
+const libelleTraitementSql = sql`(case ${demandesPermission.traitement} ${sql.join(
+  Object.entries(TRAITEMENTS_PERMISSION).map(([cle, l]) => sql`when ${cle} then ${l}`),
+  sql` `,
+)} end)`;
+
+export async function listerPermissions(
+  organizationId: string,
+  filtre: { employeeId?: string; statuts?: LignePermission["statut"][]; limite?: number; filtres?: FiltresListe } = {},
+): Promise<LignePermission[]> {
+  const conditions = [eq(demandesPermission.organizationId, organizationId)];
+  if (filtre.employeeId) conditions.push(eq(demandesPermission.employeeId, filtre.employeeId));
+  if (filtre.statuts?.length) conditions.push(inArray(demandesPermission.statut, filtre.statuts));
+  if (filtre.filtres) {
+    const { q, periode } = filtre.filtres;
+    const recherche = and(
+      motsDans(
+        [demandesPermission.numero, employees.nom, employees.matricule, libelleMotifSql, libelleTraitementSql, demandesPermission.precision, demandesPermission.commentaire],
+        motsRecherche(q),
+      ),
+      dansPeriodeSql(demandesPermission.fin, { du: periode.du, au: null }),
+      dansPeriodeSql(demandesPermission.debut, { du: null, au: periode.au }),
+    );
+    if (recherche) conditions.push(recherche);
+  }
+  const lignes = await db
+    .select({
+      id: demandesPermission.id,
+      numero: demandesPermission.numero,
+      employeeId: demandesPermission.employeeId,
+      nom: employees.nom,
+      genre: demandesPermission.genre,
+      debut: demandesPermission.debut,
+      fin: demandesPermission.fin,
+      heureDebut: demandesPermission.heureDebut,
+      heureFin: demandesPermission.heureFin,
+      minutes: demandesPermission.minutes,
+      jours: demandesPermission.joursCentiemes,
+      motif: demandesPermission.motif,
+      precision: demandesPermission.precision,
+      statut: demandesPermission.statut,
+      traitement: demandesPermission.traitement,
+      centiemesDeduits: demandesPermission.centiemesDeduits,
+      commentaire: demandesPermission.commentaire,
+      salarieUserId: employees.userId,
+      justificatif: demandesPermission.justificatif,
+    })
+    .from(demandesPermission)
+    .innerJoin(employees, eq(employees.id, demandesPermission.employeeId))
+    .where(and(...conditions))
+    .orderBy(desc(demandesPermission.debut), desc(demandesPermission.heureDebut))
+    .limit(filtre.limite ?? 200);
+  return lignes.map(({ justificatif, ...l }) => ({
+    ...l,
+    genre: l.genre as GenrePermission,
+    motif: l.motif as MotifPermission,
+    traitement: l.traitement as TraitementPermission | null,
+    libelleMotif: MOTIFS_PERMISSION[l.motif as MotifPermission] ?? l.motif,
+    aJustificatif: Boolean(justificatif),
+  }));
 }

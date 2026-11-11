@@ -10,7 +10,8 @@ ici avant de toucher le code.
 2. **Visiteurs**
 3. **Courrier et colis**
 4. **Transmissions** (ajouté le 11 novembre 2026)
-5. **Immobilier et lotissement**
+5. **Immobilier et lotissement** — *reporté à plus tard* (décision du 11 novembre
+   2026) : rien n'est développé ; les décisions ci-dessous restent valables.
 6. **BTP et suivi-contrôle** — le plus gros.
 
 ## Règlement intérieur
@@ -83,6 +84,9 @@ module, trois usages.
   de l'envoi ou de la réception.
 
 ## Immobilier et lotissement
+
+> Reporté à plus tard (11 novembre 2026). Ne pas commencer sans nouvelle
+> instruction de la direction.
 
 - Biens **propres et confiés par des tiers** (mandat de gestion) : honoraires,
   reversement au propriétaire, relevé de gérance.

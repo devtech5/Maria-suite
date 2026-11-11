@@ -271,6 +271,7 @@ export function chevauche(a: { debut: string; fin: string }, b: { debut: string;
 export type EtatJour =
   | { etat: "present"; arrivee: string; derniere: string; retard: number }
   | { etat: "conge"; nature: NatureConge }
+  | { etat: "permission" }
   | { etat: "ferie"; libelle: string }
   | { etat: "repos" }
   | { etat: "absent" }
@@ -289,6 +290,8 @@ export interface ContexteJour {
   contrat: { debut: string; fin: string | null };
   presence?: { arrivee: string; derniere: string };
   conge?: NatureConge;
+  /** Absence accordée (journée entière), hors congé. */
+  permission?: boolean;
 }
 
 /**
@@ -299,6 +302,7 @@ export function etatDuJour(c: ContexteJour): EtatJour {
   if (c.presence) return { etat: "present", arrivee: c.presence.arrivee, derniere: c.presence.derniere, retard: retardMinutes(c.presence.arrivee, c.heureArrivee, c.tolerance) };
   if (c.jour < c.contrat.debut || (c.contrat.fin && c.jour > c.contrat.fin)) return { etat: "hors_contrat" };
   if (c.conge) return { etat: "conge", nature: c.conge };
+  if (c.permission) return { etat: "permission" };
   const ferie = c.feries.get(c.jour);
   if (ferie) return { etat: "ferie", libelle: ferie };
   if (!c.joursTravailles.includes(jourSemaine(c.jour))) return { etat: "repos" };
