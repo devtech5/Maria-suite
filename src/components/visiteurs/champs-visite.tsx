@@ -3,7 +3,7 @@
 import { CLASSE_CHAMP, Champ } from "@/components/ui/primitives";
 import { LONGUEURS, PIECES_IDENTITE } from "@/modules/visiteurs/regles";
 
-import { PrisePhoto } from "./prise-photo";
+import { PrisePhoto } from "@/components/ui/prise-photo";
 
 export interface ValeursVisite {
   nom?: string;

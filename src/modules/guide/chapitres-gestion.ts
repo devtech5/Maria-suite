@@ -419,6 +419,77 @@ export const CHAPITRES_GESTION: Chapitre[] = [
     quiz: [],
   },
   {
+    cle: "courrier",
+    titre: "Courrier et colis",
+    entree: "/courrier",
+    resume: "Le registre unique des plis arrivés et partis, l'imputation, les décharges.",
+    sections: [
+      {
+        ancre: "registre",
+        titre: "Enregistrer un pli",
+        chemin: "/courrier",
+        texte: [
+          "Chaque pli arrivé reçoit son numéro CA-AAAA-NNNNN, chaque pli parti CD-AAAA-NNNNN : un seul registre pour toute l'entreprise. Enregistrez l'expéditeur (ou le destinataire), l'objet, la nature et le canal, puis scannez le pli par la caméra ou joignez le PDF.",
+          "Un pli confidentiel ne montre son objet et son scan qu'à la direction et à son destinataire. L'étiquette QR se colle sur le colis : son scan ouvre la fiche.",
+        ],
+      },
+      {
+        ancre: "imputer",
+        titre: "Imputer",
+        chemin: "/courrier/a-imputer",
+        texte: ["La direction est prévenue de chaque arrivée. Elle impute le courrier à une personne, avec un service, des instructions et une date de réponse attendue ; la personne en est prévenue dans la cloche. Un courrier non traité à sa date est relancé chaque jour, à elle et à la direction."],
+      },
+      {
+        ancre: "depart",
+        titre: "Les départs",
+        texte: ["Un pli au départ s'expédie (transporteur, numéro de suivi), puis se remet contre décharge : le nom de qui l'a reçu, et la photo de la décharge signée."],
+      },
+    ],
+    quiz: [
+      {
+        cle: "courrier-numero",
+        question: "Quel numéro reçoit un courrier ARRIVÉ ?",
+        choix: ["CD-AAAA-NNNNN", "CA-AAAA-NNNNN", "Le numéro de l'expéditeur"],
+        bonne: 1,
+        explication: "CA pour l'arrivée, CD pour le départ : un registre unique, numéroté sans trou.",
+      },
+      {
+        cle: "courrier-imputation",
+        question: "Qui impute un courrier arrivé ?",
+        choix: ["Le secrétariat qui l'enregistre", "La direction", "Le premier qui l'ouvre"],
+        bonne: 1,
+        explication: "Le secrétariat enregistre, la direction impute, avec instructions et délai de réponse.",
+      },
+    ],
+  },
+  {
+    cle: "mon-courrier",
+    titre: "Mon courrier",
+    entree: "/courrier/mon-courrier",
+    resume: "Le courrier qui vous est imputé : accuser réception, répondre, classer.",
+    sections: [
+      {
+        ancre: "recevoir",
+        titre: "Recevoir et traiter",
+        chemin: "/courrier/mon-courrier",
+        texte: [
+          "Quand la direction vous impute un courrier, la cloche vous prévient. Ouvrez-le, lisez ses instructions et son scan, puis « Accuser réception ».",
+          "Une fois la réponse partie, « Marquer traité » en choisissant le pli de réponse, ou classez-le avec une note. Passé la date de réponse attendue, vous êtes relancé chaque jour.",
+        ],
+        etapes: ["Ouvrir le courrier depuis la cloche ou « Mon courrier ».", "Accuser réception.", "Répondre, puis marquer traité."],
+      },
+    ],
+    quiz: [
+      {
+        cle: "mon-courrier-retard",
+        question: "Un courrier imputé dépasse sa date de réponse. Que se passe-t-il ?",
+        choix: ["Rien", "Une relance chaque jour, à vous et à la direction", "Il est réimputé automatiquement"],
+        bonne: 1,
+        explication: "La relance part une fois par jour tant que le courrier n'est pas traité.",
+      },
+    ],
+  },
+  {
     cle: "dossiers-archives",
     titre: "Dossiers d'archives",
     entree: "/archives/dossiers",

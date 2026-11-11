@@ -15,6 +15,7 @@ import { chapitresPour, cheminsAide } from "@/modules/guide/regles";
 import { annoncerApresReponse } from "@/modules/personnes/anniversaires-annonces";
 import { pointerApresReponse } from "@/modules/presences/pointage";
 import { purgerApresReponse } from "@/modules/visiteurs/requetes";
+import { relancerApresReponse } from "@/modules/courrier/requetes";
 
 /**
  * Coque des écrans de gestion.
@@ -41,6 +42,8 @@ export default async function LayoutGestion({ children }: LayoutProps<"/">) {
   annoncerApresReponse(session.organizationId);
   // Photos des visiteurs de plus de trois mois : effacées après la réponse, au plus une fois l'heure.
   purgerApresReponse(session.organizationId);
+  // Courrier imputé resté sans réponse à son délai : relancé, au plus une fois par jour et par pli.
+  relancerApresReponse(session.organizationId);
   const droits = [...(await droitsActifs())];
   const ouverts = modulesOuverts();
   // Le « ? » de chaque écran : les sections du guide que cette session peut lire.

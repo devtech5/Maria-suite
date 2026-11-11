@@ -7,7 +7,7 @@ import { Retour, type Resultat } from "@/components/ui/operations";
 import { ouvrirPhotoVisite, photoVisite } from "@/modules/visiteurs/actions";
 import type { CotePhoto } from "@/modules/visiteurs/regles";
 
-import { PrisePhoto } from "./prise-photo";
+import { PrisePhoto } from "@/components/ui/prise-photo";
 
 const LIBELLES: Record<CotePhoto, string> = { recto: "Pièce — recto", verso: "Pièce — verso", visiteur: "Visiteur" };
 

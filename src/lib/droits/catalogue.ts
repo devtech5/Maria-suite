@@ -654,6 +654,34 @@ export const DROITS = [
       "et désigner leurs agents.",
   },
 
+  // ------------------------------------------------------ courrier et colis
+  {
+    cle: "courrier.consulter",
+    moduleKey: "courrier",
+    libelle: "Consulter le registre du courrier",
+    description: "Voir tous les plis arrivés et partis, sauf l'objet et le scan des plis confidentiels qui ne vous sont pas imputés.",
+  },
+  {
+    cle: "courrier.enregistrer",
+    moduleKey: "courrier",
+    libelle: "Enregistrer le courrier",
+    description:
+      "Enregistrer les plis arrivés et partis, joindre leur scan, imprimer l'étiquette, " +
+      "noter l'expédition (transporteur, suivi) et la remise contre décharge.",
+  },
+  {
+    cle: "courrier.imputer",
+    moduleKey: "courrier",
+    libelle: "Imputer le courrier",
+    description: "Attribuer un courrier arrivé à une personne et à un service, avec des instructions et un délai de réponse.",
+  },
+  {
+    cle: "courrier.recevoir",
+    moduleKey: "courrier",
+    libelle: "Recevoir son courrier",
+    description: "Voir le courrier qui vous est imputé, en accuser réception et le traiter. Accordé à tous les comptes.",
+  },
+
   // ------------------------------------------------------ projets et dépenses
   {
     cle: "projet.consulter",
@@ -888,12 +916,14 @@ const CLES = new Set<string>(TOUS_LES_DROITS);
  * composé par l'entreprise. Lire le règlement intérieur ne se retire à
  * personne : il s'impose à chacun, et chacun doit pouvoir le relire. Le
  * guide d'utilisation non plus : il n'explique que ce qu'on peut ouvrir.
+ * Recevoir le courrier qu'on vous impute non plus : la direction impute à
+ * qui elle veut.
  *
  * Ajoutés par la garde des droits (`droitsActifs`) avant les restrictions :
  * un module coupé pour l'entreprise les retire comme les autres. Ils ne se
  * proposent pas à la composition d'un rôle, où une case sans effet tromperait.
  */
-export const DROITS_DE_TOUS: readonly Droit[] = ["reglement.consulter", "guide.consulter"];
+export const DROITS_DE_TOUS: readonly Droit[] = ["reglement.consulter", "guide.consulter", "courrier.recevoir"];
 
 /** Les droits d'un rôle, augmentés de ceux de tout compte. */
 export function avecDroitsDeTous(droits: ReadonlySet<Droit>): Set<Droit> {
@@ -1073,6 +1103,8 @@ export const PRESETS_ROLES = [
       "boite_mail.utiliser",
       "visiteurs.accueillir",
       "visiteurs.annoncer",
+      "courrier.consulter",
+      "courrier.enregistrer",
       ...ARCHIVAGE_PERSONNEL,
       ...TACHES_PERSONNELLES,
       ...PLANNING_PERSONNEL,

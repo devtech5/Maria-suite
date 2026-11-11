@@ -292,6 +292,21 @@ export const MODULES: ModuleDefinition[] = [
   },
 
   {
+    key: "courrier",
+    name: "Courrier et colis",
+    layer: "socle",
+    // En base : registre unique des plis (arrivée CA-AAAA-NNNNN, départ
+    // CD-AAAA-NNNNN), scan joint, imputation par la direction (personne,
+    // service, instructions, délai), accusé de réception, traitement avec
+    // la réponse partie, relance quotidienne des imputés en retard ; au
+    // départ, transporteur, numéro de suivi, remise contre décharge.
+    // Étiquette avec QR (`entity_codes`). Plis confidentiels masqués.
+    status: "en_cours",
+    requires: [],
+    description: "Registre unique du courrier et des colis : imputation par la direction, accusé de réception, suivi des départs, relances.",
+  },
+
+  {
     key: "prestataires",
     name: "Prestataires externes",
     layer: "socle",
