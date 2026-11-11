@@ -54,6 +54,8 @@ modèle approuvé par Meta.
 
 ## Courrier et colis
 
+**Livré** (`src/modules/courrier/`).
+
 - **Registre unique** pour l'entreprise : arrivée `CA-AAAA-NNNNN`, départ
   `CD-AAAA-NNNNN` (`document_sequences`).
 - **Imputation par la direction** : le secrétariat enregistre, la DG attribue à

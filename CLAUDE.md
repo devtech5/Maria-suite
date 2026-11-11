@@ -433,6 +433,26 @@ pour l'arrivée ou la sortie. `/visiteurs/presents` : la liste d'évacuation.
 Les QR viennent de `src/lib/qr.ts`, encodeur maison sans dépendance (mode
 octet, versions 1 à 40), vérifié contre OpenCV à son écriture.
 
+## Courrier et colis
+
+`src/modules/courrier/` (règles pures dans `regles.ts`), table `plis` —
+distincte de `courriers`, les lettres RÉDIGÉES du module Documents. Registre
+unique : `CA-AAAA-NNNNN` à l'arrivée, `CD-AAAA-NNNNN` au départ
+(`document_sequences`, clés `courrier:CA` et `courrier:CD`). Arrivée :
+enregistré (secrétariat, `courrier.enregistrer`, scan par la caméra ou PDF)
+→ imputé (direction, `courrier.imputer` : personne, service, instructions,
+délai ; réimputable) → reçu (accusé par l'imputé) → traité (note, pli de
+réponse). Départ : à expédier → expédié (transporteur, suivi) → remis
+(nom et photo de la décharge). Chaque pli porte une étiquette QR
+(`entity_codes`, type `pli`) qui mène à `/courrier/code/<jeton>`.
+
+`courrier.recevoir` est dans `DROITS_DE_TOUS` : chacun voit le courrier qui
+lui est imputé. Un pli confidentiel masque objet et scan (`masquer`,
+`accesCourrier.voitContenu`) à qui ne l'impute, ne le reçoit ni ne l'a
+enregistré. Relance des imputés en retard : `relancerApresReponse` dans la
+coque de gestion, au plus une vérification par heure et une relance par jour
+et par pli (`derniere_relance_le`).
+
 ## Interrogations de fond et liens publics
 
 Tout ce qui interroge le serveur en tâche de fond — la cloche, la

@@ -263,6 +263,13 @@ const DESSINS: Record<CleIcone, ReactNode> = {
       <rect x="15" y="37" width="18" height="3" rx="1.5" fill={JAUNE} />
     </>
   ),
+  courrier: (
+    <>
+      <rect x="4" y="11" width="40" height="28" rx="4" fill={ORANGE} />
+      <path d="M6 14 24 28 42 14" stroke={BLANC} strokeWidth="3" fill="none" strokeLinejoin="round" strokeLinecap="round" />
+      <rect x="31" y="27" width="11" height="9" rx="1.5" fill={JAUNE} />
+    </>
+  ),
   archives: (
     <>
       <rect x="9" y="17" width="30" height="25" rx="3" fill={JAUNE} />
