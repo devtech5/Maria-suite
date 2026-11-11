@@ -30,6 +30,8 @@ export const STATUTS: Record<StatutPlanning, { libelle: string; couleur: string;
   teletravail: { libelle: "En télétravail", couleur: "#0891b2", joignable: true },
   en_conge: { libelle: "En congé", couleur: "#6b7f87", joignable: false },
   absent: { libelle: "Absent", couleur: "#3c4d54", joignable: false },
+  arret_maladie: { libelle: "Arrêt maladie", couleur: "#be123c", joignable: false },
+  conge_maternite: { libelle: "Congé de maternité", couleur: "#db2777", joignable: false },
 };
 
 export const LISTE_STATUTS = Object.keys(STATUTS) as StatutPlanning[];
@@ -97,11 +99,26 @@ function minuit(jour: string, fuseau: string): Date {
 
 export const DUREE_MAX_MS = 31 * 86_400_000;
 
+/**
+ * Statuts qui durent plus d'un mois : l'arrêt maladie, le congé de maternité
+ * (14 semaines en Côte d'Ivoire, prolongeables sur certificat). Six mois au plus.
+ */
+export const STATUTS_LONGS: readonly StatutPlanning[] = ["arret_maladie", "conge_maternite"];
+export const DUREE_MAX_LONGUE_MS = 183 * 86_400_000;
+
+export function dureeMax(statut?: StatutPlanning): number {
+  return statut && STATUTS_LONGS.includes(statut) ? DUREE_MAX_LONGUE_MS : DUREE_MAX_MS;
+}
+
 /** Refus lisible, ou nul si le créneau se tient. */
-export function verifierCreneau(debut: Date, fin: Date): string | null {
+export function verifierCreneau(debut: Date, fin: Date, statut?: StatutPlanning): string | null {
   if (Number.isNaN(debut.getTime()) || Number.isNaN(fin.getTime())) return "Date ou heure illisible.";
   if (fin <= debut) return "La fin doit venir après le début.";
-  if (fin.getTime() - debut.getTime() > DUREE_MAX_MS) return "Un créneau dure un mois au plus. Pour une absence plus longue, posez un congé.";
+  if (fin.getTime() - debut.getTime() > dureeMax(statut)) {
+    return statut && STATUTS_LONGS.includes(statut)
+      ? `Un ${STATUTS[statut].libelle.toLowerCase()} se pose pour six mois au plus : prolongez-le ensuite par un nouveau statut.`
+      : "Un statut dure un mois au plus. Pour une absence plus longue, posez un congé, un arrêt maladie ou un congé de maternité.";
+  }
   return null;
 }
 

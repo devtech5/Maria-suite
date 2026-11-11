@@ -56,11 +56,24 @@ export interface EtatAffiche {
   origine: Origine | null;
 }
 
-export function CarteStatut({ etat, pourUserId, nom }: { etat: EtatAffiche; pourUserId: string | null; nom: string | null }) {
-  const [duree, setDuree] = useState<CleDuree>("1h");
+export function CarteStatut({ etat, pourUserId, nom, aujourdhui }: { etat: EtatAffiche; pourUserId: string | null; nom: string | null; aujourdhui: string }) {
+  const [duree, setDuree] = useState<CleDuree | "periode">("1h");
   const [lieu, setLieu] = useState("");
+  // « Du … au … » : un statut avec son début et sa fin, sur plusieurs jours s'il le faut
+  // (arrêt maladie, congé de maternité, mission d'une semaine).
+  const [periode, setPeriode] = useState({ jourDebut: aujourdhui, heureDebut: "08:00", jourFin: aujourdhui, heureFin: "18:00" });
   const { resultat, enCours, lancer } = useOperation();
   const pour = pourUserId ?? undefined;
+
+  const poser = (s: StatutPlanning) => {
+    if (duree !== "periode") return lancer(() => poserStatut(s, duree, pour, lieu.trim() || undefined), () => setLieu(""));
+    const d = new FormData();
+    d.set("statut", s);
+    for (const [cle, valeur] of Object.entries(periode)) d.set(cle, valeur);
+    if (lieu.trim()) d.set("lieu", lieu.trim());
+    if (pour) d.set("userId", pour);
+    lancer(() => enregistrerCreneau(d), () => setLieu(""));
+  };
 
   return (
     <section className="mb-5 rounded-xl border border-[var(--filet)] bg-[var(--surface)] p-4 shadow-sm">
@@ -96,7 +109,7 @@ export function CarteStatut({ etat, pourUserId, nom }: { etat: EtatAffiche; pour
         <fieldset>
           <legend className="mb-1.5 text-sm font-medium">Nouveau statut, pour</legend>
           <div className="flex flex-wrap gap-1">
-            {DUREES_RAPIDES.map((d) => (
+            {[...DUREES_RAPIDES, { cle: "periode" as const, libelle: "Du … au …" }].map((d) => (
               <button
                 key={d.cle}
                 type="button"
@@ -109,6 +122,40 @@ export function CarteStatut({ etat, pourUserId, nom }: { etat: EtatAffiche; pour
             ))}
           </div>
         </fieldset>
+        {duree === "periode" && (
+          <div className="flex w-full flex-wrap gap-3">
+            {(
+              [
+                ["Début", "jourDebut", "heureDebut"],
+                ["Fin", "jourFin", "heureFin"],
+              ] as const
+            ).map(([libelle, jour, heure]) => (
+              <fieldset key={libelle} className="min-w-0">
+                <legend className="mb-1.5 text-sm font-medium">{libelle}</legend>
+                <div className="flex gap-2">
+                  <input
+                    type="date"
+                    required
+                    value={periode[jour]}
+                    min={jour === "jourFin" ? periode.jourDebut : undefined}
+                    onChange={(e) => setPeriode((p) => ({ ...p, [jour]: e.target.value, ...(jour === "jourDebut" && p.jourFin < e.target.value ? { jourFin: e.target.value } : {}) }))}
+                    aria-label={`${libelle} : jour`}
+                    className={`${CLASSE_CHAMP} h-9 min-w-0`}
+                  />
+                  <input
+                    type="time"
+                    required
+                    value={periode[heure]}
+                    onChange={(e) => setPeriode((p) => ({ ...p, [heure]: e.target.value }))}
+                    aria-label={`${libelle} : heure`}
+                    className={`${CLASSE_CHAMP_COMPACT} h-9 w-36 shrink-0`}
+                  />
+                </div>
+              </fieldset>
+            ))}
+            <p className="w-full text-xs text-[var(--encre-faible)]">Choisissez le début et la fin, puis le statut. Un arrêt maladie ou un congé de maternité se pose pour six mois au plus ; les autres statuts, pour un mois.</p>
+          </div>
+        )}
         <label className="min-w-48 flex-1">
           <span className="mb-1.5 block text-sm font-medium">Où (facultatif)</span>
           <input value={lieu} onChange={(e) => setLieu(e.target.value)} maxLength={160} placeholder="Chantier Cocody, banque, client…" className={`${CLASSE_CHAMP} h-9`} />
@@ -121,11 +168,11 @@ export function CarteStatut({ etat, pourUserId, nom }: { etat: EtatAffiche; pour
             key={s}
             type="button"
             disabled={enCours}
-            onClick={() => lancer(() => poserStatut(s, duree, pour, lieu.trim() || undefined), () => setLieu(""))}
+            onClick={() => poser(s)}
             className="flex h-cible items-center gap-2 rounded-lg border border-[var(--filet)] px-3 text-left text-sm hover:bg-[var(--surface-creuse)] disabled:opacity-50"
           >
             <span aria-hidden className="size-2.5 shrink-0 rounded-full" style={{ background: STATUTS[s].couleur }} />
-            <span className="truncate">{STATUTS[s].libelle}</span>
+            <span className="leading-tight">{STATUTS[s].libelle}</span>
           </button>
         ))}
       </div>

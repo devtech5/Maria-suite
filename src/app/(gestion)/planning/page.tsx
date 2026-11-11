@@ -76,7 +76,7 @@ export default async function PagePlanning({ searchParams }: PageProps<"/plannin
         actions={gere ? <ChoixMembre membres={membres} actuel={cible} moi={session.userId} base="/planning" /> : undefined}
       />
 
-      <CarteStatut etat={etat} pourUserId={autre?.userId ?? null} nom={autre?.nom ?? null} />
+      <CarteStatut etat={etat} pourUserId={autre?.userId ?? null} nom={autre?.nom ?? null} aujourdhui={aujourdhui} />
 
       <nav aria-label={vue === "mois" ? "Mois" : "Semaine"} className="mb-3 flex flex-wrap items-center gap-2 text-sm">
         <div role="group" aria-label="Affichage" className="flex rounded-lg border border-[var(--filet)] p-0.5">

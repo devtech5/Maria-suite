@@ -85,7 +85,9 @@ export function periodeConge(c: CongeSource, lecteur: Lecteur, fuseau: string): 
   return {
     id: `conge:${c.id}`,
     userId: c.userId,
-    statut: SOURCES.conge.statut,
+    // Qui peut ouvrir le congé y voit l'arrêt maladie ou le congé de maternité ;
+    // les autres, un congé — comme pour sa nature.
+    statut: ouvre && c.nature === "maladie" ? "arret_maladie" : ouvre && c.nature === "maternite" ? "conge_maternite" : SOURCES.conge.statut,
     debut,
     fin,
     lieu: null,

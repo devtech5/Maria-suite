@@ -62,8 +62,14 @@ const saisi = (id: string, debut: string, fin: string, statut: Creneau["statut"]
 
 describe("congé accordé", () => {
   it("couvre les jours entiers, du premier minuit au lendemain du dernier jour", () => {
-    const p = periodeConge(conge(), lecteur(AWA, "conges.demander"), ABIDJAN);
+    const p = periodeConge(conge({ nature: "paye" }), lecteur(AWA, "conges.demander"), ABIDJAN);
     expect(p).toMatchObject({ id: "conge:c1", statut: "en_conge", debut: t("2026-10-06T00:00"), fin: t("2026-10-09T00:00") });
+  });
+
+  it("montre l'arrêt maladie et la maternité à qui peut ouvrir le congé, un congé aux autres", () => {
+    expect(periodeConge(conge({ nature: "maladie" }), lecteur(AWA, "conges.demander"), ABIDJAN).statut).toBe("arret_maladie");
+    expect(periodeConge(conge({ nature: "maternite" }), lecteur(ACCUEIL, "conges.valider"), ABIDJAN).statut).toBe("conge_maternite");
+    expect(periodeConge(conge({ nature: "maladie" }), lecteur(ACCUEIL, "planning.equipe.consulter"), ABIDJAN).statut).toBe("en_conge");
   });
 
   it("une demi-journée se coupe à midi, au départ comme au retour", () => {
@@ -190,7 +196,7 @@ describe("fusion avec les créneaux saisis", () => {
   });
 
   it("un congé de la semaine annonce le retour, pas la fin des horaires", () => {
-    const tout = fusionner([], [periodeConge(conge(), lect, ABIDJAN)]);
+    const tout = fusionner([], [periodeConge(conge({ nature: "paye" }), lect, ABIDJAN)]);
     const e = etatActuel(t("2026-10-07T09:00"), tout, BUREAU);
     expect(e).toMatchObject({ statut: "en_conge", joignable: false, source: "deduite", jusqua: t("2026-10-09T00:00") });
     expect(e.creneau?.origine?.reference).toBe("CONG-2026-00012");
