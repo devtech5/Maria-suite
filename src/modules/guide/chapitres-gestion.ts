@@ -490,6 +490,48 @@ export const CHAPITRES_GESTION: Chapitre[] = [
     ],
   },
   {
+    cle: "transmissions",
+    titre: "Transmissions",
+    entree: "/transmissions",
+    resume: "Bordereaux de transmission : entre services, vers une entreprise, ou attendus d'elle.",
+    sections: [
+      {
+        ancre: "bordereau",
+        titre: "Établir un bordereau",
+        chemin: "/transmissions",
+        texte: [
+          "Un bordereau (BT-AAAA-NNNNN) liste les pièces transmises — désignation, référence, indice de révision pour un plan, nombre d'exemplaires, original ou copie — avec sa mention : pour attribution, avis, signature, visa, information…",
+          "Interne : le destinataire est prévenu, accuse réception, puis rend son retour. Vers une entreprise : posez la date limite, enregistrez l'envoi et la décharge signée, puis son retour (bon pour exécution, visé avec observations, refusé). D'une entreprise : notez ce qu'elle doit nous remettre et avant quand ; vous êtes relancé si rien n'arrive.",
+        ],
+        etapes: ["Choisir l'onglet : interne, à une entreprise, d'une entreprise.", "Lister les pièces et la mention.", "Imprimer le bordereau, le faire signer, joindre la décharge."],
+      },
+    ],
+    quiz: [
+      {
+        cle: "transmissions-retard",
+        question: "Une entreprise devait nous remettre une attestation avant hier et rien n'est arrivé. Que fait Maria Suite ?",
+        choix: ["Rien", "Elle relance chaque jour la personne qui suit le bordereau", "Elle écrit à l'entreprise"],
+        bonne: 1,
+        explication: "Une transmission attendue en retard est relancée au responsable, une fois par jour.",
+      },
+    ],
+  },
+  {
+    cle: "mes-transmissions",
+    titre: "Mes transmissions",
+    entree: "/transmissions/recues",
+    resume: "Les pièces que vos collègues vous transmettent.",
+    sections: [
+      {
+        ancre: "recevoir",
+        titre: "Recevoir et rendre",
+        chemin: "/transmissions/recues",
+        texte: ["Un collègue vous transmet un dossier : la cloche vous prévient. Ouvrez le bordereau, accusez réception — l'émetteur le voit —, puis rendez votre retour : avis, signature, observations."],
+      },
+    ],
+    quiz: [],
+  },
+  {
     cle: "dossiers-archives",
     titre: "Dossiers d'archives",
     entree: "/archives/dossiers",

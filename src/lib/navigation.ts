@@ -14,7 +14,7 @@ export const CLES_ICONE = [
   "commercial", "stock", "achats", "prestataires", "marches",
   "projets", "missions", "actifs", "parc-auto", "parc-informatique",
   "comptabilite", "tresorerie",
-  "personnel", "presences", "planning", "anniversaires", "reglement", "guide", "visiteurs", "courrier", "taches", "meeting", "messagerie", "boite-mail", "documents", "archives",
+  "personnel", "presences", "planning", "anniversaires", "reglement", "guide", "visiteurs", "courrier", "transmissions", "taches", "meeting", "messagerie", "boite-mail", "documents", "archives",
   "utilisateurs", "entreprise", "demarrage", "communication", "rapports", "journal",
 ] as const;
 export type CleIcone = (typeof CLES_ICONE)[number];
@@ -82,6 +82,7 @@ export const GROUPES_MODULES: GroupeModules[] = [
       // Ouvert à tous (`DROITS_DE_TOUS`) : le règlement s'impose à chacun.
       { href: "/reglement", racine: "/reglement", icone: "reglement", libelle: "Règlement intérieur", description: "Le règlement de l'entreprise, à relire à tout moment.", droit: "reglement.consulter" },
       // Ouvert à tous : il n'explique que les modules de chacun.
+      { href: "/transmissions/recues", racine: "/transmissions/recues", icone: "transmissions", libelle: "Mes transmissions", description: "Les bordereaux qui vous sont adressés : accuser réception, rendre votre retour.", droit: "transmissions.recevoir" },
       { href: "/courrier/mon-courrier", racine: "/courrier/mon-courrier", icone: "courrier", libelle: "Mon courrier", description: "Le courrier qui vous est imputé : accuser réception, répondre.", droit: "courrier.recevoir" },
       { href: "/visiteurs/rendez-vous", racine: "/visiteurs/rendez-vous", icone: "visiteurs", libelle: "Mes visiteurs", description: "Annoncer un visiteur à l'accueil et lui envoyer son QR d'entrée.", droit: "visiteurs.annoncer" },
       { href: "/guide", racine: "/guide", icone: "guide", libelle: "Guide d'utilisation", description: "Apprendre Maria Suite module par module, avec un parcours et un quiz.", droit: "guide.consulter" },
@@ -157,6 +158,7 @@ export const GROUPES_MODULES: GroupeModules[] = [
     modules: [
       { href: "/archives/dossiers", racine: "/archives/dossiers", icone: "archives", libelle: "Dossiers", description: "Dossiers partagés de l'entreprise.", droit: "archives.consulter" },
       { href: "/documents", racine: "/documents", icone: "documents", libelle: "Fichiers", description: "Pièces rattachées aux fiches et leurs échéances.", droit: "documents.consulter" },
+      { href: "/transmissions", racine: "/transmissions", icone: "transmissions", libelle: "Transmissions", description: "Bordereaux de transmission : entre services, vers une entreprise, ou attendus d'elle.", droit: "transmissions.emettre" },
       { href: "/courrier", racine: "/courrier", icone: "courrier", libelle: "Courrier et colis", description: "Registre des plis arrivés et partis, imputation, décharges.", droit: "courrier.consulter" },
     ],
   },

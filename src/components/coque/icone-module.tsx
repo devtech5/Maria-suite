@@ -270,6 +270,15 @@ const DESSINS: Record<CleIcone, ReactNode> = {
       <rect x="31" y="27" width="11" height="9" rx="1.5" fill={JAUNE} />
     </>
   ),
+  transmissions: (
+    <>
+      <rect x="4" y="8" width="24" height="30" rx="3" fill={BLEU} />
+      <rect x="9" y="15" width="14" height="3" rx="1.5" fill={BLANC} opacity=".9" />
+      <rect x="9" y="22" width="10" height="3" rx="1.5" fill={BLANC} opacity=".9" />
+      <path d="M26 30h12l-4-5m4 5-4 5" stroke={ORANGE} strokeWidth="4" fill="none" strokeLinecap="round" strokeLinejoin="round" />
+      <circle cx="38" cy="14" r="6" fill={JAUNE} />
+    </>
+  ),
   archives: (
     <>
       <rect x="9" y="17" width="30" height="25" rx="3" fill={JAUNE} />

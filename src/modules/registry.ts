@@ -307,6 +307,22 @@ export const MODULES: ModuleDefinition[] = [
   },
 
   {
+    key: "transmissions",
+    name: "Transmissions",
+    layer: "socle",
+    // En base : bordereaux numérotés BT-AAAA-NNNNN, internes (mention,
+    // accusé du destinataire, retour), sortants vers une entreprise (à
+    // transmettre avant une date, transmis, accusés avec décharge, retour
+    // avec avis : bon pour exécution, visé avec observations, refusé) et
+    // entrants (attendus d'une entreprise avant une date, reçus, traités).
+    // Pièces avec indice de révision, preuve jointe, relance quotidienne des
+    // obligations en retard, bordereau imprimable avec QR.
+    status: "en_cours",
+    requires: [],
+    description: "Bordereaux de transmission entre services et avec les entreprises : ce qu'on remet, ce qu'on attend, ce qui revient.",
+  },
+
+  {
     key: "prestataires",
     name: "Prestataires externes",
     layer: "socle",

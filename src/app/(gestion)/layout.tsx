@@ -16,6 +16,7 @@ import { annoncerApresReponse } from "@/modules/personnes/anniversaires-annonces
 import { pointerApresReponse } from "@/modules/presences/pointage";
 import { purgerApresReponse } from "@/modules/visiteurs/requetes";
 import { relancerApresReponse } from "@/modules/courrier/requetes";
+import { relancerApresReponse as relancerTransmissions } from "@/modules/transmissions/requetes";
 
 /**
  * Coque des écrans de gestion.
@@ -44,6 +45,8 @@ export default async function LayoutGestion({ children }: LayoutProps<"/">) {
   purgerApresReponse(session.organizationId);
   // Courrier imputé resté sans réponse à son délai : relancé, au plus une fois par jour et par pli.
   relancerApresReponse(session.organizationId);
+  // Transmissions attendues ou dues, date limite passée : le responsable est relancé.
+  relancerTransmissions(session.organizationId);
   const droits = [...(await droitsActifs())];
   const ouverts = modulesOuverts();
   // Le « ? » de chaque écran : les sections du guide que cette session peut lire.
