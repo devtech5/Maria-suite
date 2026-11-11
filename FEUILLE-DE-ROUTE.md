@@ -9,8 +9,9 @@ ici avant de toucher le code.
 1. **Règlement intérieur** et **Guide d'utilisation** — rapides, utiles à tous.
 2. **Visiteurs**
 3. **Courrier et colis**
-4. **Immobilier et lotissement**
-5. **BTP et suivi-contrôle** — le plus gros.
+4. **Transmissions** (ajouté le 11 novembre 2026)
+5. **Immobilier et lotissement**
+6. **BTP et suivi-contrôle** — le plus gros.
 
 ## Règlement intérieur
 
@@ -63,6 +64,23 @@ modèle approuvé par Meta.
 - Pièce scannée jointe, accusé de réception du destinataire, transporteur et
   numéro de suivi au départ, décharge, relance des courriers sans réponse.
 - Étiquette colis avec QR (`entity_codes`).
+
+## Transmissions
+
+**Livré** (`src/modules/transmissions/`). Décidé le 11 novembre 2026 : un
+module, trois usages.
+
+- **Interne** : un service transmet un dossier ou des pièces à un autre
+  (contrat à la DAF, facture au comptable, rapport au DG), par bordereau
+  numéroté avec sa mention — pour attribution, avis, signature, visa,
+  information, classement — et accusé de réception du destinataire. On sait
+  qui détient le dossier, depuis quand.
+- **Technique** : plans, notes de calcul, rapports transmis au maître
+  d'ouvrage ou au bureau de contrôle avec leur indice de révision, puis leur
+  retour : bon pour exécution, visé avec observations, refusé.
+- **Avec les entreprises** : ce qu'une entreprise DOIT NOUS transmettre et ce
+  que NOUS DEVONS lui transmettre, avec une date limite, une relance, la preuve
+  de l'envoi ou de la réception.
 
 ## Immobilier et lotissement
 

@@ -561,6 +561,13 @@
       "when": 1794372248414,
       "tag": "0079_planning_maladie_maternite",
       "breakpoints": true
+    },
+    {
+      "idx": 80,
+      "version": "7",
+      "when": 1794373530524,
+      "tag": "0080_transmissions",
+      "breakpoints": true
     }
   ]
 }

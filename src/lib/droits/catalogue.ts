@@ -682,6 +682,28 @@ export const DROITS = [
     description: "Voir le courrier qui vous est imputé, en accuser réception et le traiter. Accordé à tous les comptes.",
   },
 
+  // ---------------------------------------------------------- transmissions
+  {
+    cle: "transmissions.emettre",
+    moduleKey: "transmissions",
+    libelle: "Transmettre des pièces",
+    description:
+      "Établir un bordereau de transmission — à un autre service, à une entreprise, ou pour " +
+      "attendre ce qu'une entreprise doit nous remettre — et suivre ceux qu'on a établis.",
+  },
+  {
+    cle: "transmissions.superviser",
+    moduleKey: "transmissions",
+    libelle: "Superviser les transmissions",
+    description: "Voir tous les bordereaux de l'entreprise, leurs retards et leurs retours.",
+  },
+  {
+    cle: "transmissions.recevoir",
+    moduleKey: "transmissions",
+    libelle: "Recevoir des transmissions",
+    description: "Voir les bordereaux qui vous sont adressés, en accuser réception et rendre votre retour. Accordé à tous les comptes.",
+  },
+
   // ------------------------------------------------------ projets et dépenses
   {
     cle: "projet.consulter",
@@ -923,7 +945,7 @@ const CLES = new Set<string>(TOUS_LES_DROITS);
  * un module coupé pour l'entreprise les retire comme les autres. Ils ne se
  * proposent pas à la composition d'un rôle, où une case sans effet tromperait.
  */
-export const DROITS_DE_TOUS: readonly Droit[] = ["reglement.consulter", "guide.consulter", "courrier.recevoir"];
+export const DROITS_DE_TOUS: readonly Droit[] = ["reglement.consulter", "guide.consulter", "courrier.recevoir", "transmissions.recevoir"];
 
 /** Les droits d'un rôle, augmentés de ceux de tout compte. */
 export function avecDroitsDeTous(droits: ReadonlySet<Droit>): Set<Droit> {
@@ -1081,6 +1103,7 @@ export const PRESETS_ROLES = [
       "achats.reception.saisir",
       "tresorerie.bon.demander",
       "visiteurs.annoncer",
+      "transmissions.emettre",
       ...ARCHIVAGE_PERSONNEL,
       ...TACHES_PERSONNELLES,
       ...PLANNING_PERSONNEL,
@@ -1105,6 +1128,7 @@ export const PRESETS_ROLES = [
       "visiteurs.annoncer",
       "courrier.consulter",
       "courrier.enregistrer",
+      "transmissions.emettre",
       ...ARCHIVAGE_PERSONNEL,
       ...TACHES_PERSONNELLES,
       ...PLANNING_PERSONNEL,
@@ -1136,6 +1160,7 @@ export const PRESETS_ROLES = [
       "communication.client.notifier",
       "boite_mail.utiliser",
       "visiteurs.annoncer",
+      "transmissions.emettre",
       ...TRESORERIE_COMPTABLE,
       ...ARCHIVAGE_PERSONNEL,
       ...TACHES_PERSONNELLES,

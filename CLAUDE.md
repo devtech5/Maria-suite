@@ -453,6 +453,21 @@ enregistré. Relance des imputés en retard : `relancerApresReponse` dans la
 coque de gestion, au plus une vérification par heure et une relance par jour
 et par pli (`derniere_relance_le`).
 
+## Transmissions
+
+`src/modules/transmissions/` (règles pures dans `regles.ts`). Bordereau
+`BT-AAAA-NNNNN` (`document_sequences`, clé `transmission`), pièces en JSON
+(désignation, référence, indice de révision, exemplaires, original, avis,
+observation), mention (attribution, avis, signature, visa…). Trois sens :
+interne (transmise → accusée par le seul destinataire → traitée, son retour),
+sortante (à transmettre avant `date_limite` → transmise → accusée, décharge et
+signataire → traitée, avis du bureau de contrôle) et entrante (attendue d'une
+entreprise avant `date_limite` → reçue → traitée). L'avis d'ensemble est le
+plus sévère des avis des pièces. Relance quotidienne au responsable des
+obligations en retard (`relancerApresReponse`, coque de gestion).
+`transmissions.recevoir` est dans `DROITS_DE_TOUS`. Bordereau A4 imprimable
+(`/imprimer/bordereau/[id]`) avec cases « remis par » / « reçu par » et QR.
+
 ## Interrogations de fond et liens publics
 
 Tout ce qui interroge le serveur en tâche de fond — la cloche, la
