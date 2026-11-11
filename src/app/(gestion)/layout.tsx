@@ -14,6 +14,7 @@ import { CHAPITRES, RACINES } from "@/modules/guide/chapitres";
 import { chapitresPour, cheminsAide } from "@/modules/guide/regles";
 import { annoncerApresReponse } from "@/modules/personnes/anniversaires-annonces";
 import { pointerApresReponse } from "@/modules/presences/pointage";
+import { purgerApresReponse } from "@/modules/visiteurs/requetes";
 
 /**
  * Coque des écrans de gestion.
@@ -38,6 +39,8 @@ export default async function LayoutGestion({ children }: LayoutProps<"/">) {
   pointerApresReponse(session.organizationId, session.userId);
   // Les anniversaires du jour s'annoncent au premier passage, après la réponse.
   annoncerApresReponse(session.organizationId);
+  // Photos des visiteurs de plus de trois mois : effacées après la réponse, au plus une fois l'heure.
+  purgerApresReponse(session.organizationId);
   const droits = [...(await droitsActifs())];
   const ouverts = modulesOuverts();
   // Le « ? » de chaque écran : les sections du guide que cette session peut lire.

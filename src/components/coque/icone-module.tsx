@@ -254,6 +254,15 @@ const DESSINS: Record<CleIcone, ReactNode> = {
       <path d="M33 11.5a2.5 2.5 0 1 1 3 2.4c-.8.3-1 .8-1 1.6M35 18.2v.1" stroke={PRUNE} strokeWidth="2" fill="none" strokeLinecap="round" />
     </>
   ),
+  visiteurs: (
+    <>
+      <rect x="10" y="4" width="28" height="40" rx="5" fill={SARCELLE} />
+      <rect x="19" y="2" width="10" height="6" rx="2" fill={CANARD} />
+      <circle cx="24" cy="19" r="6" fill={BLANC} />
+      <path d="M14.5 34a9.5 9.5 0 0 1 19 0Z" fill={BLANC} />
+      <rect x="15" y="37" width="18" height="3" rx="1.5" fill={JAUNE} />
+    </>
+  ),
   archives: (
     <>
       <rect x="9" y="17" width="30" height="25" rx="3" fill={JAUNE} />

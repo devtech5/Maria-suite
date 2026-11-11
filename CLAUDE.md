@@ -404,6 +404,35 @@ les repères numérotés d'après leurs sélecteurs et écrit
 avant la prise ; revoir chaque image avant de la committer. Jamais contre la
 production.
 
+## Visiteurs
+
+`src/modules/visiteurs/` (règles pures dans `regles.ts`). Plusieurs points
+d'accueil (`accueils` : siège, chantiers, sites miniers), chacun son
+registre et ses agents (`accueils_agents`) : `visiteurs.accueillir` ne voit
+que les accueils qu'il tient, `visiteurs.superviser` tous (`accesVisiteurs`,
+même règle pour pages et actions). `visiteurs.annoncer` annonce un
+rendez-vous ; le visiteur reçoit par WhatsApp un lien public signé
+(`/consulter/<jeton>`, objet `visite`) vers son QR d'entrée.
+
+Visite numérotée `V-AAAA-NNNNN` (`document_sequences`, clé `visite`),
+statuts attendue → présente → sortie, ou annulée ; jamais de retour. La pièce
+est exigée à l'arrivée selon l'accueil (`piece_exigee`). La personne visitée
+est prévenue dans la cloche. Photos recto, verso et visiteur prises par la
+caméra (`PrisePhoto` : `getUserMedia`, sinon choix de fichier), réduites à
+1 600 px dans le navigateur, déposées par `src/lib/stockage` et ouvertes par
+URL signée de deux minutes, chaque ouverture tracée.
+
+**Photos effacées trois mois après la visite** (loi 2013-450, ARTCI) :
+`purgerApresReponse` dans la coque de gestion (au plus une fois l'heure et
+par processus), fichiers d'abord, puis chemins à nul et
+`photos_effacees_le` ; le registre reste. Badge au format carte
+(`/imprimer/badge-visiteur/[id]`) dont le QR porte seulement
+`/visiteurs/badge/<jeton>` : scanné par l'accueil, il ouvre la fiche, prête
+pour l'arrivée ou la sortie. `/visiteurs/presents` : la liste d'évacuation.
+
+Les QR viennent de `src/lib/qr.ts`, encodeur maison sans dépendance (mode
+octet, versions 1 à 40), vérifié contre OpenCV à son écriture.
+
 ## Interrogations de fond et liens publics
 
 Tout ce qui interroge le serveur en tâche de fond — la cloche, la

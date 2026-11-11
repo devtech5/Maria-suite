@@ -276,6 +276,22 @@ export const MODULES: ModuleDefinition[] = [
   },
 
   {
+    key: "visiteurs",
+    name: "Visiteurs",
+    layer: "socle",
+    // En base : points d'accueil (siège, chantiers, sites miniers) et leurs
+    // agents, registre numéroté par accueil, rendez-vous annoncés avec QR
+    // envoyé par WhatsApp, arrivée avec photos de la pièce (recto, verso) et
+    // du visiteur prises par la caméra, badge imprimé avec QR, sortie au
+    // scan, personne visitée prévenue dans la cloche, présents à l'instant
+    // pour l'évacuation. Photos effacées d'elles-mêmes trois mois après la
+    // visite (loi 2013-450) ; le registre reste.
+    status: "en_cours",
+    requires: [],
+    description: "Registre des visiteurs par point d'accueil : pièce d'identité photographiée, badge QR, présents à l'instant.",
+  },
+
+  {
     key: "prestataires",
     name: "Prestataires externes",
     layer: "socle",
