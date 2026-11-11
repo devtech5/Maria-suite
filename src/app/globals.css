@@ -357,39 +357,45 @@
 }
 
 /**
- * Messagerie : le fil se lit comme sur WhatsApp — fond tramé, bulles vertes
- * pour soi, blanches pour les autres. Variables propres au fil, redéfinies
- * en thème sombre comme le reste.
+ * Messagerie : la mise en page d'une messagerie de téléphone — fond tramé,
+ * bulles — aux couleurs de MARIA GROUP : bleu nuit pour l'en-tête et les
+ * boutons, or pour ce qui signale (lu, non lu), bulle crème dorée pour soi,
+ * blanche pour les autres. Redéfinies en thème sombre.
  */
 :root {
-  --discussion-fond: #efeae2;
-  --discussion-trame: rgb(0 0 0 / 0.045);
-  --bulle-moi: #d9fdd3;
+  --discussion-fond: #eef2f7;
+  --discussion-trame: rgb(22 46 73 / 0.06);
+  --bulle-moi: #f4ead3;
   --bulle-autre: #ffffff;
-  --bulle-encre: #111b21;
-  --bulle-faible: #667781;
-  --discussion-accent: #00a884;
-  --discussion-barre: #f0f2f5;
+  --bulle-encre: #0f2236;
+  --bulle-faible: #5d6f84;
+  --discussion-accent: #162e49;
+  --discussion-or: #9c7f45;
+  --discussion-barre: #e6ecf3;
 }
 @media (prefers-color-scheme: dark) {
   :root[data-theme="auto"] {
-    --discussion-fond: #0b141a;
-    --discussion-trame: rgb(255 255 255 / 0.035);
-    --bulle-moi: #005c4b;
-    --bulle-autre: #202c33;
-    --bulle-encre: #e9edef;
-    --bulle-faible: #8696a0;
-    --discussion-barre: #202c33;
+    --discussion-fond: #07121d;
+    --discussion-trame: rgb(191 161 105 / 0.05);
+    --bulle-moi: #3a3122;
+    --bulle-autre: #13253a;
+    --bulle-encre: #eef2f7;
+    --bulle-faible: #9fb0c3;
+    --discussion-accent: #2c4d74;
+    --discussion-or: #d6bd8c;
+    --discussion-barre: #0f2236;
   }
 }
 :root[data-theme="dark"] {
-  --discussion-fond: #0b141a;
-  --discussion-trame: rgb(255 255 255 / 0.035);
-  --bulle-moi: #005c4b;
-  --bulle-autre: #202c33;
-  --bulle-encre: #e9edef;
-  --bulle-faible: #8696a0;
-  --discussion-barre: #202c33;
+  --discussion-fond: #07121d;
+  --discussion-trame: rgb(191 161 105 / 0.05);
+  --bulle-moi: #3a3122;
+  --bulle-autre: #13253a;
+  --bulle-encre: #eef2f7;
+  --bulle-faible: #9fb0c3;
+  --discussion-accent: #2c4d74;
+  --discussion-or: #d6bd8c;
+  --discussion-barre: #0f2236;
 }
 .fond-discussion {
   background-color: var(--discussion-fond);

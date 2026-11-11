@@ -24,7 +24,11 @@ export interface PieceAOuvrir {
   /** Nom d'origine : choisit le rendu et nomme le téléchargement. */
   nomFichier?: string | null;
   typeMime?: string | null;
-  /** Demande une URL signée au serveur ; `null` si refusé ou dépôt muet. */
+  /**
+   * Demande une URL signée au serveur ; `null` si refusé ou dépôt muet. Peut
+   * aussi rendre une adresse `blob:` pour un fichier déjà reçu en mémoire
+   * (pièce jointe d'un e-mail, lue en direct chez le fournisseur).
+   */
   signer: () => Promise<string | null>;
 }
 
@@ -120,7 +124,8 @@ function FenetreApercu({ piece, onFermer }: { piece: PieceAOuvrir; onFermer: () 
     void urlFraiche().then((url) => {
       if (!url) return;
       const lien = document.createElement("a");
-      lien.href = `${url}&telecharger=1`;
+      // Adresse signée du dépôt : le serveur force le téléchargement. Fichier déjà en mémoire (blob:) : tel quel.
+      lien.href = url.startsWith("blob:") ? url : `${url}&telecharger=1`;
       // Même origine : le navigateur retient ce nom plutôt que la clé du dépôt.
       lien.download = piece.nomFichier ?? piece.titre;
       document.body.append(lien);
