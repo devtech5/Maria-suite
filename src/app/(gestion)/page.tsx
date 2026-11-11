@@ -216,6 +216,19 @@ export default async function PageTableauDeBord() {
       nombre: n,
     });
   }
+  if (presencesEtat && presencesEtat.permissionsEnAttente > 0) {
+    const n = presencesEtat.permissionsEnAttente;
+    toutesLesAlertes.push({
+      id: "permissions-a-decider",
+      gravite: "attention",
+      source: "base",
+      module: "Présences",
+      titre: n > 1 ? `${n} demandes de permission à décider` : "Une demande de permission à décider",
+      detail: "Permissions de quelques heures et absences d'une ou plusieurs journées",
+      href: "/presences/permissions",
+      nombre: n,
+    });
+  }
 
   // Licences : un poste installé au-delà des droits se facture à l'audit de
   // l'éditeur ; une licence expirée coupe le logiciel un lundi matin.

@@ -333,6 +333,18 @@ se calcule dans le fuseau de l'entreprise (`organizations.timezone`). La règle
 d'acquisition vient du pays (`regleConges`) et reste « à vérifier » tant que
 personne ne l'a attestée, comme le barème de paie.
 
+**Permissions et absences** (`/presences/permissions`, table
+`demandes_permission`, règles pures dans `src/modules/presences/permissions.ts`) :
+une permission couvre quelques heures d'un jour travaillé (départ, retour),
+une absence une à 31 journées entières. Numéro `PERM-AAAA-NNNNN`, mêmes droits
+que les congés (`conges.demander`, `conges.valider`). Le responsable accorde
+en fixant le TRAITEMENT — payée, à récupérer, déduite des congés, non payée —
+ou refuse avec motif. « Déduite des congés » fige `centiemes_deduits`
+(minutes rapportées à la journée arrivée → départ des réglages) et
+`soldesConges` les compte dans le pris. Aucun chevauchement avec un congé ni
+avec une autre permission en cours ; régularisation par le salarié dans les
+30 jours. Une absence accordée s'affiche « AU » au registre, pas « absent ».
+
 ## Anniversaires des collaborateurs
 
 `src/modules/personnes/anniversaires.ts` (règles pures) et

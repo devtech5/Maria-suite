@@ -5,8 +5,16 @@ import { sql } from "drizzle-orm";
 import { db } from "@/db";
 import { jourIso, type DefinitionRapport } from "@/lib/rapports/types";
 
-import { heureLocale, joursEntre, jourLocal, NATURES_CONGE } from "./calcul";
+import { formatJours, heureLocale, joursEntre, jourLocal, NATURES_CONGE } from "./calcul";
 import { reglagesDe } from "./creation";
+import {
+  formatDuree,
+  MOTIFS_PERMISSION,
+  TRAITEMENTS_PERMISSION,
+  type GenrePermission,
+  type MotifPermission,
+  type TraitementPermission,
+} from "./permissions";
 import { registre } from "./requetes";
 
 
@@ -36,6 +44,7 @@ export const RAPPORTS_PRESENCES: DefinitionRapport[] = [
           { cle: "retards", libelle: "Retards", type: "entier", total: true },
           { cle: "absences", libelle: "Absences", type: "entier", total: true },
           { cle: "conges", libelle: "Jours de congé", type: "entier", total: true },
+          { cle: "permissions", libelle: "Absences autorisées", type: "entier", total: true },
         ],
         lignes: lignes.map((l) => ({
           matricule: l.salarie.matricule,
@@ -45,6 +54,7 @@ export const RAPPORTS_PRESENCES: DefinitionRapport[] = [
           retards: l.retards,
           absences: l.absences,
           conges: l.conges,
+          permissions: l.permissions,
         })),
         note: "Jours travaillés selon les réglages de l'entreprise, jours fériés exclus. Un jour à venir n'est compté ni présent ni absent.",
       };
@@ -87,6 +97,63 @@ export const RAPPORTS_PRESENCES: DefinitionRapport[] = [
           jours: Number(l.jours) * 10,
         })),
         note: "Un congé à cheval sur la période est listé en entier, avec tous ses jours.",
+      };
+    },
+  },
+  {
+    cle: "permissions-accordees",
+    module: "presences",
+    rubrique: "Présences et congés",
+    titre: "Permissions et absences accordées",
+    description: "Chaque permission ou absence accordée sur la période, avec son traitement : payée, à récupérer, déduite des congés, non payée.",
+    droit: "presences.consulter",
+    periode: "intervalle",
+    async executer(organizationId, { du, au }) {
+      const lignes = await db.execute<{
+        numero: string;
+        matricule: string;
+        nom: string;
+        genre: GenrePermission;
+        debut: string | Date;
+        fin: string | Date;
+        heure_debut: string | null;
+        heure_fin: string | null;
+        minutes: number;
+        jours: number;
+        motif: MotifPermission;
+        traitement: TraitementPermission | null;
+      }>(sql`
+        select p.numero, e.matricule, e.nom, p.genre, p.debut, p.fin, p.heure_debut, p.heure_fin, p.minutes, p.jours_centiemes as jours, p.motif, p.traitement
+        from demandes_permission p join employees e on e.id = p.employee_id
+        where p.organization_id = ${organizationId} and p.statut = 'approuve' and p.deleted_at is null
+          and p.debut <= ${au}::date and p.fin >= ${du}::date
+        order by p.debut, p.heure_debut, e.nom
+      `);
+      return {
+        colonnes: [
+          { cle: "numero", libelle: "N°", type: "texte" },
+          { cle: "matricule", libelle: "Matricule", type: "texte" },
+          { cle: "nom", libelle: "Salarié", type: "texte" },
+          { cle: "motif", libelle: "Motif", type: "texte" },
+          { cle: "debut", libelle: "Du", type: "date" },
+          { cle: "fin", libelle: "Au", type: "date" },
+          { cle: "duree", libelle: "Durée", type: "texte" },
+          { cle: "traitement", libelle: "Traitement", type: "texte" },
+        ],
+        lignes: lignes.map((l) => ({
+          numero: l.numero,
+          matricule: l.matricule,
+          nom: l.nom,
+          motif: MOTIFS_PERMISSION[l.motif] ?? l.motif,
+          debut: jourIso(l.debut),
+          fin: jourIso(l.fin),
+          duree:
+            l.genre === "heures"
+              ? `${l.heure_debut ?? ""}–${l.heure_fin ?? ""} (${formatDuree(Number(l.minutes))})`
+              : formatJours(Number(l.jours)),
+          traitement: l.traitement ? TRAITEMENTS_PERMISSION[l.traitement] : "",
+        })),
+        note: "Une absence déduite des congés est retirée du solde comme un congé payé pris.",
       };
     },
   },

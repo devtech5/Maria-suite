@@ -16,8 +16,11 @@ import {
   ajouterFeriePour,
   ajusterSoldePour,
   annulerCongePour,
+  annulerPermissionPour,
   deciderCongePour,
+  deciderPermissionPour,
   demanderCongePour,
+  demanderPermissionPour,
   enregistrerReglagesPour,
   pointerDepartPour,
   pointerManuellementPour,
@@ -26,8 +29,9 @@ import {
   retirerFeriePour,
   salarieDuCompte,
 } from "./creation";
+import { formatDuree, GENRES_PERMISSION, MOTIFS_PERMISSION, TRAITEMENTS_PERMISSION, valide as dansListe } from "./permissions";
 import { soldesConges } from "./requetes";
-import { conges } from "./schema";
+import { conges, demandesPermission } from "./schema";
 import { employees } from "@/modules/personnes/schema";
 
 export type Resultat = { ok: true; message: string } | { ok: false; message: string };
@@ -308,4 +312,123 @@ export async function ajusterSolde(d: FormData): Promise<Resultat> {
   } catch (e) {
     return { ok: false, message: lisible(e) };
   }
+}
+
+// ------------------------------------------------------ permissions et absences
+
+/** Dépose un justificatif joint au formulaire ; `null` sans fichier. */
+async function deposerJustificatif(organizationId: string, d: FormData): Promise<{ ok: true; chemin: string | null } | { ok: false; message: string }> {
+  const fichier = d.get("justificatif");
+  if (!(fichier instanceof File) || fichier.size === 0) return { ok: true, chemin: null };
+  if (fichier.size > TAILLE_MAX_JUSTIFICATIF) return { ok: false, message: "Justificatif trop lourd : 5 Mo au plus." };
+  const extension = fichier.name.split(".").pop() ?? "";
+  const depot = await deposer({ chemin: cheminDe(organizationId, newId(), extension), contenu: await fichier.arrayBuffer(), typeMime: fichier.type || "application/octet-stream" });
+  return depot.ok ? { ok: true, chemin: depot.chemin } : { ok: false, message: depot.raison };
+}
+
+/**
+ * Demande pour soi (droit « conges.demander »), ou saisie pour un salarié par
+ * un responsable (droit « conges.valider »), accordée d'office avec son traitement.
+ */
+export async function demanderPermission(d: FormData): Promise<Resultat> {
+  const s = await exigerEntreprise();
+  const genre = d.get("genre");
+  const motif = d.get("motif");
+  const debut = texte(d, "debut") ?? "";
+  const fin = genre === "heures" ? debut : (texte(d, "fin") ?? debut);
+  if (!dansListe(GENRES_PERMISSION, genre)) return { ok: false, message: "Choisissez : permission de quelques heures, ou absence." };
+  if (!dansListe(MOTIFS_PERMISSION, motif)) return { ok: false, message: "Choisissez le motif." };
+  if (!DATE_ISO.test(debut) || !DATE_ISO.test(fin)) return { ok: false, message: "Dates invalides." };
+  const precision = texte(d, "precision")?.slice(0, 300) ?? null;
+  if (motif === "autre" && !precision) return { ok: false, message: "Précisez le motif." };
+
+  const cible = texte(d, "employeeId");
+  const moi = await salarieDuCompte(s.organizationId, s.userId);
+  const pourAutrui = Boolean(cible && cible !== moi?.id);
+  const refus = await refusDroit(pourAutrui ? "conges.valider" : "conges.demander");
+  if (refus) return { ok: false, message: refus.erreur };
+  const employeeId = pourAutrui ? cible! : moi?.id;
+  if (!employeeId || !UUID.test(employeeId)) return { ok: false, message: "Votre compte n'est rattaché à aucune fiche salarié : demandez à votre responsable de le faire." };
+
+  const traitement = d.get("traitement");
+  if (pourAutrui && !dansListe(TRAITEMENTS_PERMISSION, traitement)) return { ok: false, message: "Choisissez comment ce temps est traité." };
+
+  const justificatif = await deposerJustificatif(s.organizationId, d);
+  if (!justificatif.ok) return { ok: false, message: justificatif.message };
+
+  try {
+    const cree = await demanderPermissionPour(
+      s.organizationId,
+      s.userId,
+      { employeeId, genre, debut, fin, heureDebut: texte(d, "heureDebut"), heureFin: texte(d, "heureFin"), motif, precision, justificatif: justificatif.chemin },
+      { aujourdhui: await aujourdhuiDe(s.organizationId), accorder: pourAutrui ? (traitement as keyof typeof TRAITEMENTS_PERMISSION) : null },
+    );
+    const duree = genre === "heures" ? `le ${debut}, ${formatDuree(cree.minutes)}` : `du ${debut} au ${fin} (${formatJours(cree.jours)})`;
+    if (!pourAutrui) {
+      await notifierDetenteurs(
+        s.organizationId,
+        "conges.valider",
+        { categorie: "conge", titre: `Demande de permission : ${cree.salarie}`, corps: `${MOTIFS_PERMISSION[motif]}, ${duree}. ${cree.numero}.`, lien: "/presences/permissions" },
+        s.userId,
+      );
+    }
+    revalider();
+    return { ok: true, message: pourAutrui ? `${cree.numero} saisie et accordée.` : `${cree.numero} envoyée (${duree}). Vous serez prévenu de la décision.` };
+  } catch (e) {
+    return { ok: false, message: lisible(e) };
+  }
+}
+
+export async function deciderPermission(id: string, decision: "approuve" | "refuse", traitement: string | null, commentaire: string | null): Promise<Resultat> {
+  const s = await exigerEntreprise();
+  const refus = await refusDroit("conges.valider");
+  if (refus) return { ok: false, message: refus.erreur };
+  if (!UUID.test(id) || (decision !== "approuve" && decision !== "refuse")) return { ok: false, message: "Demande introuvable." };
+  const retenu = decision === "approuve" && dansListe(TRAITEMENTS_PERMISSION, traitement) ? traitement : null;
+  try {
+    const p = await deciderPermissionPour(s.organizationId, s.userId, id, decision, retenu, commentaire?.slice(0, 500) ?? null);
+    const destinataires = [p.salarieUserId, p.demandeur].filter((u): u is string => Boolean(u) && u !== s.userId);
+    await notifier(s.organizationId, [...new Set(destinataires)], {
+      categorie: "conge",
+      titre: decision === "approuve" ? `Permission accordée : ${p.numero}` : `Permission refusée : ${p.numero}`,
+      corps: decision === "approuve" ? `${TRAITEMENTS_PERMISSION[retenu!]}.${commentaire?.trim() ? ` ${commentaire.trim()}` : ""}` : commentaire?.trim() || null,
+      lien: "/presences/permissions",
+    });
+    revalider();
+    return { ok: true, message: decision === "approuve" ? `${p.numero} accordée à ${p.nom}.` : `${p.numero} refusée.` };
+  } catch (e) {
+    return { ok: false, message: lisible(e) };
+  }
+}
+
+export async function annulerPermission(id: string): Promise<Resultat> {
+  const s = await exigerEntreprise();
+  const responsable = await peut("conges.valider");
+  if (!responsable) {
+    const refus = await refusDroit("conges.demander");
+    if (refus) return { ok: false, message: refus.erreur };
+  }
+  if (!UUID.test(id)) return { ok: false, message: "Demande introuvable." };
+  try {
+    const { numero } = await annulerPermissionPour(s.organizationId, s.userId, id, responsable, await aujourdhuiDe(s.organizationId));
+    revalider();
+    return { ok: true, message: `${numero} annulée.` };
+  } catch (e) {
+    return { ok: false, message: lisible(e) };
+  }
+}
+
+/** URL signée du justificatif d'une permission : le salarié concerné ou un responsable. */
+export async function ouvrirJustificatifPermission(id: string): Promise<{ ok: true; url: string } | { ok: false; message: string }> {
+  const s = await exigerEntreprise();
+  if (!UUID.test(id)) return { ok: false, message: "Demande introuvable." };
+  const [p] = await db
+    .select({ justificatif: demandesPermission.justificatif, salarieUserId: employees.userId })
+    .from(demandesPermission)
+    .innerJoin(employees, eq(employees.id, demandesPermission.employeeId))
+    .where(and(eq(demandesPermission.id, id), eq(demandesPermission.organizationId, s.organizationId)));
+  if (!p?.justificatif) return { ok: false, message: "Aucun justificatif joint." };
+  if (p.salarieUserId !== s.userId && !(await peut("conges.valider"))) return { ok: false, message: "Ce justificatif ne vous est pas destiné." };
+  const url = await urlSignee(p.justificatif);
+  return url ? { ok: true, url } : { ok: false, message: "Le dépôt de fichiers ne répond pas." };
 }

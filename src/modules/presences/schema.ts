@@ -185,6 +185,66 @@ export const ajustementsConge = pgTable(
   ],
 );
 
+/**
+ * Demande de permission (quelques heures) ou d'absence (journées entières),
+ * numérotée PERM-AAAA-NNNNN. Elle se décide comme un congé, sans en être un :
+ * la décision fixe aussi le TRAITEMENT du temps (payé, à récupérer, déduit des
+ * congés, non payé). Déduite des congés, elle figé ses centièmes de jour,
+ * retirés du solde comme un congé payé pris.
+ */
+export const demandesPermission = pgTable(
+  "demandes_permission",
+  {
+    id: primaryId(),
+    organizationId: uuid("organization_id")
+      .notNull()
+      .references(() => organizations.id, { onDelete: "cascade" }),
+    employeeId: uuid("employee_id")
+      .notNull()
+      .references(() => employees.id, { onDelete: "restrict" }),
+    numero: text("numero").notNull(),
+    /** heures : une plage dans une journée · journees : un ou plusieurs jours entiers. */
+    genre: text("genre").notNull(),
+    debut: date("debut").notNull(),
+    fin: date("fin").notNull(),
+    heureDebut: text("heure_debut"),
+    heureFin: text("heure_fin"),
+    /** Durée d'une permission d'heures. */
+    minutes: integer("minutes").notNull().default(0),
+    /** Jours décomptés d'une absence, en centièmes. */
+    joursCentiemes: integer("jours_centiemes").notNull().default(0),
+    motif: text("motif").notNull(),
+    precision: text("precision"),
+    justificatif: text("justificatif"),
+    statut: statutConge("statut").notNull().default("demande"),
+    /** Fixé à la décision. */
+    traitement: text("traitement"),
+    /** Centièmes retirés du solde de congés : seulement si « déduite des congés ». */
+    centiemesDeduits: integer("centiemes_deduits").notNull().default(0),
+    demandeParUserId: uuid("demande_par_user_id").notNull(),
+    decideParUserId: uuid("decide_par_user_id"),
+    decideLe: timestamp("decide_le", { withTimezone: true }),
+    commentaire: text("commentaire"),
+    ...timestamps,
+    ...rowVersion,
+  },
+  (t) => [
+    unique("demandes_permission_numero").on(t.organizationId, t.numero),
+    check("demandes_permission_genre", sql`${t.genre} IN ('heures', 'journees')`),
+    check("demandes_permission_periode", sql`${t.fin} >= ${t.debut}`),
+    check(
+      "demandes_permission_heures",
+      sql`${t.genre} = 'journees' OR (${t.fin} = ${t.debut} AND ${t.heureDebut} ~ '^([01][0-9]|2[0-3]):[0-5][0-9]$' AND ${t.heureFin} ~ '^([01][0-9]|2[0-3]):[0-5][0-9]$' AND ${t.heureFin} > ${t.heureDebut})`,
+    ),
+    check("demandes_permission_motif", sql`${t.motif} IN ('medical', 'administratif', 'familial', 'enfant', 'personnel', 'autre')`),
+    check("demandes_permission_traitement", sql`${t.traitement} IS NULL OR ${t.traitement} IN ('payee', 'a_recuperer', 'deduite_conges', 'non_payee')`),
+    check("demandes_permission_durees", sql`${t.minutes} >= 0 AND ${t.joursCentiemes} >= 0 AND ${t.centiemesDeduits} >= 0`),
+    index("demandes_permission_salarie").on(t.organizationId, t.employeeId, t.debut),
+    index("demandes_permission_statut").on(t.organizationId, t.statut),
+  ],
+);
+
 export type ReglagesPresence = typeof reglagesPresence.$inferSelect;
 export type Presence = typeof presences.$inferSelect;
 export type Conge = typeof conges.$inferSelect;
+export type DemandePermission = typeof demandesPermission.$inferSelect;
