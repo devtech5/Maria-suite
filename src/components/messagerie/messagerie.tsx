@@ -113,10 +113,10 @@ function Svg({ nom, className = "size-5" }: { nom: keyof typeof TRACES; classNam
   );
 }
 
-/** Une coche : envoyé ; deux coches bleues : lu par tous. */
+/** Une coche : envoyé ; deux coches dorées : lu par tous. */
 function Coches({ lu, className = "" }: { lu: boolean; className?: string }) {
   return (
-    <svg viewBox="0 0 18 12" className={`h-3 w-[18px] shrink-0 ${lu ? "text-[#53bdeb]" : "text-[var(--bulle-faible)]"} ${className}`} fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-label={lu ? "Lu" : "Envoyé"}>
+    <svg viewBox="0 0 18 12" className={`h-3 w-[18px] shrink-0 ${lu ? "text-[var(--discussion-or)]" : "text-[var(--bulle-faible)]"} ${className}`} fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-label={lu ? "Lu" : "Envoyé"}>
       <path d="m1 6.5 3.2 3.2L11 2.5" />
       {lu && <path d="m7.5 9.2.5.5L15 2.5" />}
     </svg>
@@ -257,18 +257,18 @@ export function Messagerie({
       <aside className={`flex w-full flex-col border-r border-[var(--filet)] md:w-[22rem] md:shrink-0 xl:w-[26rem] ${ouverte ? "max-md:hidden" : ""}`}>
         {vue === "liste" && (
           <>
-            <header className="flex h-16 shrink-0 items-center justify-between gap-2 px-4">
+            <header className="flex h-16 shrink-0 items-center justify-between gap-2 border-b-2 border-or bg-nuit px-4 text-white">
               <h2 className="text-xl font-bold tracking-tight">Discussions</h2>
               <div className="flex items-center">
-                <BoutonIcone libelle="Nouvelle discussion" onClick={() => setVue("nouvelle")}>
+                <BoutonIcone libelle="Nouvelle discussion" onClick={() => setVue("nouvelle")} className="!text-white hover:!bg-white/10">
                   <Svg nom="nouveau" />
                 </BoutonIcone>
-                <BoutonIcone libelle="Actualiser" onClick={() => void rafraichir(true)}>
+                <BoutonIcone libelle="Actualiser" onClick={() => void rafraichir(true)} className="!text-white hover:!bg-white/10">
                   <Svg nom="actualiser" />
                 </BoutonIcone>
               </div>
             </header>
-            <div className="px-3 pb-2">
+            <div className="px-3 pb-2 pt-2">
               <label className="flex h-10 items-center gap-3 rounded-lg bg-[var(--surface-creuse)] px-3 text-[var(--encre-faible)]">
                 <Svg nom="recherche" className="size-4" />
                 <input
@@ -327,7 +327,7 @@ export function Messagerie({
                     <span className="min-w-0 flex-1 border-b border-[var(--filet)] py-3">
                       <span className="flex items-baseline justify-between gap-2">
                         <span className="truncate text-[15px] font-medium">{c.nom}</span>
-                        <span className={`chiffres shrink-0 text-xs ${c.nonLus > 0 ? "font-semibold text-[var(--discussion-accent)]" : "text-[var(--encre-faible)]"}`}>
+                        <span className={`chiffres shrink-0 text-xs ${c.nonLus > 0 ? "font-semibold text-[var(--discussion-or)]" : "text-[var(--encre-faible)]"}`}>
                           {chargement === c.id ? "…" : quand(c.dernierLe)}
                         </span>
                       </span>
@@ -345,7 +345,7 @@ export function Messagerie({
                           </span>
                         </span>
                         {c.nonLus > 0 && (
-                          <span className="chiffres flex h-5 min-w-5 shrink-0 items-center justify-center rounded-full bg-[var(--discussion-accent)] px-1.5 text-[11px] font-bold text-white">{c.nonLus}</span>
+                          <span className="chiffres flex h-5 min-w-5 shrink-0 items-center justify-center rounded-full bg-or px-1.5 text-[11px] font-bold text-nuit">{c.nonLus}</span>
                         )}
                       </span>
                     </span>
@@ -736,7 +736,7 @@ function Fil({
           choisirFichier(e.dataTransfer.files[0]);
         }}
       >
-        <header className="flex h-16 shrink-0 items-center gap-2 border-b border-[var(--filet)] bg-[var(--discussion-barre)] px-2 sm:px-4">
+        <header className="flex h-16 shrink-0 items-center gap-2 border-b-2 border-or bg-[var(--discussion-barre)] px-2 sm:px-4">
           <button type="button" onClick={fermer} aria-label="Retour aux discussions" className="flex size-10 items-center justify-center rounded-full hover:bg-[var(--surface-creuse)] md:hidden">
             <Svg nom="retour" />
           </button>

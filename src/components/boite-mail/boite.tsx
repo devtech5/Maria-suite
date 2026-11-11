@@ -16,6 +16,7 @@ import {
   VignettePiece,
   type NomIcone,
 } from "@/components/ui/courrier";
+import { useApercu } from "@/components/ui/apercu";
 import { CLASSE_CHAMP_COMPACT } from "@/components/ui/primitives";
 import {
   archiverMessage,
@@ -478,7 +479,16 @@ function Lecture({
   const [images, setImages] = useState(false);
   const [message, setMessage] = useState<string | null>(null);
   const [telechargement, setTelechargement] = useState<number | null>(null);
-  const [enCours, demarrer] = useTransition();
+  const { ouvrir, fenetre } = useApercu();
+  // Pièces déjà rapatriées, gardées en mémoire le temps du message : rouvrir ne refait pas l'aller-retour IMAP.
+  const recues = useRef(new Map<number, string>());
+  useEffect(() => {
+    const memoire = recues.current;
+    return () => {
+      for (const url of memoire.values()) URL.revokeObjectURL(url);
+      memoire.clear();
+    };
+  }, [m.uid]);
   const aDesImagesDistantes = Boolean(m.html && /<img[^>]+src=["']?https?:/i.test(m.html));
   const plusieurs = m.a.length + m.cc.length > 1;
   const expediteur = m.de[0];
@@ -530,30 +540,38 @@ function Lecture({
                 <VignettePiece
                   nom={p.nom}
                   type={p.type}
-                  detail={telechargement === p.index ? "Téléchargement…" : `${taille(p.taille)} · télécharger`}
-                  disabled={enCours}
-                  onClick={() =>
-                    demarrer(async () => {
-                      setMessage(null);
-                      setTelechargement(p.index);
-                      const r = await telechargerPiece(dossier, m.uid, p.index);
-                      setTelechargement(null);
-                      if (!r.ok) return setMessage(r.message);
-                      const octets = Uint8Array.from(atob(r.base64), (c) => c.charCodeAt(0));
-                      const url = URL.createObjectURL(new Blob([octets], { type: r.type }));
-                      const lien = document.createElement("a");
-                      lien.href = url;
-                      lien.download = r.nom;
-                      lien.click();
-                      setTimeout(() => URL.revokeObjectURL(url), 10_000);
-                    })
-                  }
+                  detail={telechargement === p.index ? "Ouverture…" : `${taille(p.taille)} · ouvrir`}
+                  disabled={telechargement !== null}
+                  onClick={() => {
+                    setMessage(null);
+                    // Aperçu dans le logiciel : PDF, images, Word, Excel ; « Télécharger » y reste.
+                    ouvrir({
+                      titre: p.nom,
+                      nomFichier: p.nom,
+                      typeMime: p.type,
+                      signer: async () => {
+                        const deja = recues.current.get(p.index);
+                        if (deja) return deja;
+                        setTelechargement(p.index);
+                        const r = await telechargerPiece(dossier, m.uid, p.index).finally(() => setTelechargement(null));
+                        if (!r.ok) {
+                          setMessage(r.message);
+                          return null;
+                        }
+                        const octets = Uint8Array.from(atob(r.base64), (c) => c.charCodeAt(0));
+                        const url = URL.createObjectURL(new Blob([octets], { type: r.type }));
+                        recues.current.set(p.index, url);
+                        return url;
+                      },
+                    });
+                  }}
                 />
               </li>
             ))}
           </ul>
         )}
         {message && <p className="px-4 pt-2 text-xs text-danger-600">{message}</p>}
+        {fenetre}
         {aDesImagesDistantes && !images && (
           <p className="mx-4 mt-3 rounded-lg bg-[var(--surface-creuse)] px-3 py-1.5 text-xs">
             Images distantes bloquées : elles signaleraient à l&apos;expéditeur que vous avez ouvert le message.{" "}

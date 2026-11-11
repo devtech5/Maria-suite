@@ -1,6 +1,6 @@
 import "server-only";
 
-import { and, eq, isNull, sql } from "drizzle-orm";
+import { and, eq, inArray, isNull, sql } from "drizzle-orm";
 
 import { db } from "@/db";
 import { auditLogs } from "@/db/schema";
@@ -9,7 +9,7 @@ import { newId } from "@/lib/ids";
 import { prochainNumero } from "@/lib/sequences";
 import { cheminDe, deposer, lireFichier, supprimer } from "@/lib/stockage";
 
-import { depotDossierPermis, dossierVisible, refusEnvoi, retraitPossible, type RegleDossier } from "./calcul";
+import { depotDossierPermis, dossierVisible, familleDe, refusEnvoi, retraitPossible, type RegleDossier } from "./calcul";
 import { empreinte } from "./empreinte";
 import { accesDossiersArchives, archives, dossiersArchives } from "./schema";
 
@@ -229,6 +229,29 @@ export async function autoriserOuverture(
     parAdministrateur: archive.userId !== userId,
   });
   return archive.chemin;
+}
+
+/**
+ * Les vignettes d'un espace : les images que CETTE personne a elle-même
+ * déposées, et elles seules. Regarder son propre fichier n'est pas une
+ * consultation à signaler ; l'archive d'un autre, en revanche, ne s'affiche
+ * qu'ouverte — et l'ouverture est journalisée (`autoriserOuverture`).
+ */
+export async function vignettesPropres(organizationId: string, userId: string, ids: readonly string[]): Promise<{ id: string; chemin: string }[]> {
+  if (ids.length === 0) return [];
+  const lignes = await db
+    .select({ id: archives.id, chemin: archives.chemin, typeMime: archives.typeMime })
+    .from(archives)
+    .where(
+      and(
+        eq(archives.organizationId, organizationId),
+        eq(archives.userId, userId),
+        inArray(archives.id, [...ids]),
+        isNull(archives.retireeLe),
+      ),
+    );
+  // HEIC : le navigateur ne l'affiche pas, l'icône du format suffit.
+  return lignes.filter((l) => familleDe(l.typeMime) === "image" && l.typeMime !== "image/heic").map(({ id, chemin }) => ({ id, chemin }));
 }
 
 export type ResultatVerification =

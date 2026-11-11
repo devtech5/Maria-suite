@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 
+import { IconeDossier } from "@/components/archives/icones";
 import { FormulaireRepliable } from "@/components/ui/operations";
 import { EnTetePage, EtatVide, Pastille } from "@/components/ui/primitives";
 import { Recherche } from "@/components/ui/recherche";
@@ -9,7 +10,7 @@ import { peut } from "@/lib/droits/garde";
 import { fmtEntier } from "@/lib/format";
 import { correspond, lireFiltresListe } from "@/lib/recherche";
 import { creerDossier } from "@/modules/archives/actions";
-import { resumeVisibilite, tailleLisible } from "@/modules/archives/calcul";
+import { resumeVisibilite, resumeVisibiliteCourt, tailleLisible } from "@/modules/archives/calcul";
 import { dossiersVisibles, membresEntreprise } from "@/modules/archives/requetes";
 
 import { ChampsDossier } from "./champs-dossier";
@@ -79,44 +80,57 @@ export default async function PageDossiers({ searchParams }: PageProps<"/archive
           {affiches.length === 0 ? (
             <EtatVide titre="Aucun résultat" message="Aucun dossier ouvert pour vous ne répond à cette recherche." />
           ) : (
-            <ul className="grid gap-3 sm:grid-cols-2 xl:grid-cols-3">
+            <ul className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-4">
               {affiches.map((d) => {
                 const masque = d.visibilite === "selection" && d.designes.length === 0;
                 return (
                   <li key={d.id}>
                     <Link
                       href={`/archives/dossiers/${d.id}`}
-                      className="flex h-full flex-col rounded-xl border border-[var(--filet)] bg-[var(--surface)] p-4 hover:border-marque-400"
+                      className="group flex h-full flex-col items-center rounded-2xl border border-[var(--filet)] bg-[var(--surface)] p-4 text-center shadow-sm transition hover:-translate-y-0.5 hover:border-or hover:shadow-md"
                     >
-                      <span className="flex items-start justify-between gap-2">
-                        <span className="min-w-0">
-                          <span className="block truncate text-base font-semibold">{d.nom}</span>
-                          {d.description && <span className="mt-0.5 block text-xs text-[var(--encre-faible)]">{d.description}</span>}
-                        </span>
-                        <span aria-hidden className="text-2xl leading-none text-[var(--encre-faible)]">
-                          {masque ? "◌" : "▣"}
-                        </span>
+                      <span className="relative">
+                        <IconeDossier
+                          id={d.id}
+                          masque={masque}
+                          vide={d.archives === 0}
+                          className="h-20 w-auto drop-shadow-sm transition duration-300 group-hover:scale-105 group-hover:-rotate-2 sm:h-24"
+                        />
+                        {d.archives > 0 && (
+                          <span className="chiffres absolute -top-1 -right-2 min-w-6 rounded-full bg-nuit px-1.5 py-0.5 text-[11px] font-bold text-white ring-2 ring-[var(--surface)]">
+                            {d.archives}
+                          </span>
+                        )}
                       </span>
 
-                      <span className="mt-3 flex flex-wrap gap-1.5">
+                      <span className="mt-2 block w-full truncate text-sm font-semibold" title={d.nom}>
+                        {d.nom}
+                      </span>
+                      {d.description && (
+                        <span className="mt-0.5 line-clamp-2 block text-xs text-[var(--encre-faible)]">{d.description}</span>
+                      )}
+
+                      <span className="mt-2 flex flex-wrap justify-center gap-1">
                         {gestionnaire && (
-                          <Pastille ton={masque ? "danger" : d.visibilite === "tous" ? "valide" : "neutre"}>
-                            {resumeVisibilite({ visibilite: d.visibilite, designes: d.designes.map((m) => m.userId) })}
-                          </Pastille>
+                          <span className="inline-flex" title={resumeVisibilite({ visibilite: d.visibilite, designes: d.designes.map((m) => m.userId) })}>
+                            <Pastille ton={masque ? "danger" : d.visibilite === "tous" ? "valide" : "neutre"}>
+                              {resumeVisibiliteCourt({ visibilite: d.visibilite, designes: d.designes.map((m) => m.userId) })}
+                            </Pastille>
+                          </span>
                         )}
                         <Pastille ton={d.depotOuvert ? "marque" : "neutre"}>{d.depotOuvert ? "Dépôt ouvert" : "Lecture seule"}</Pastille>
                       </span>
 
                       {gestionnaire && d.visibilite === "selection" && d.designes.length > 0 && (
-                        <span className="mt-2 block truncate text-xs text-[var(--encre-douce)]">
+                        <span className="mt-1.5 block w-full truncate text-xs text-[var(--encre-douce)]">
                           {d.designes.map((m) => m.nom).join(", ")}
                         </span>
                       )}
 
-                      <span className="chiffres mt-auto block pt-3 text-xs text-[var(--encre-faible)]">
-                        {d.archives} archive{d.archives > 1 ? "s" : ""}
+                      <span className="chiffres mt-auto block pt-2 text-[11px] text-[var(--encre-faible)]">
+                        {d.archives === 0 ? "Vide" : `${d.archives} archive${d.archives > 1 ? "s" : ""}`}
                         {d.octets > 0 && ` · ${tailleLisible(d.octets)}`}
-                        {d.derniereArchiveLe && ` · dernière le ${JOUR.format(d.derniereArchiveLe)}`}
+                        {d.derniereArchiveLe && <span className="block">dernière le {JOUR.format(d.derniereArchiveLe)}</span>}
                       </span>
                     </Link>
                   </li>

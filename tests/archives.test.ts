@@ -5,12 +5,16 @@ import {
   depotDossierPermis,
   dossierVisible,
   ENVOI_MAX_OCTETS,
+  extensionDe,
   familleDe,
+  libelleFormat,
+  TYPES_ARCHIVABLES,
   heuresAvantScellement,
   partQuota,
   QUOTA_OCTETS,
   refusEnvoi,
   resumeVisibilite,
+  resumeVisibiliteCourt,
   retraitPossible,
   tailleLisible,
 } from "@/modules/archives/calcul";
@@ -76,6 +80,27 @@ describe("présentation", () => {
     expect(familleDe("application/pdf")).toBe("pdf");
     expect(familleDe("text/csv")).toBe("tableur");
     expect(familleDe("application/inconnu")).toBe("autre");
+  });
+
+  it("nomme chaque format accepté en clair", () => {
+    expect(libelleFormat("application/vnd.openxmlformats-officedocument.wordprocessingml.document")).toBe("Word");
+    expect(libelleFormat("image/jpeg")).toBe("Image JPEG");
+    expect(libelleFormat("application/inconnu")).toBe("Fichier");
+    // Aucun format accepté ne retombe sur le libellé générique de sa famille.
+    for (const type of Object.keys(TYPES_ARCHIVABLES)) expect(libelleFormat(type)).not.toBe("Fichier");
+  });
+
+  it("résume la visibilité d'un dossier en deux mots", () => {
+    expect(resumeVisibiliteCourt({ visibilite: "tous", designes: [] })).toBe("Tous");
+    expect(resumeVisibiliteCourt({ visibilite: "selection", designes: [] })).toBe("Masqué");
+    expect(resumeVisibiliteCourt({ visibilite: "selection", designes: ["a", "b"] })).toBe("2 membres");
+  });
+
+  it("lit l'extension du nom de fichier", () => {
+    expect(extensionDe("Contrat signé.v2.pdf")).toBe("PDF");
+    expect(extensionDe("releve.xlsx")).toBe("XLSX");
+    expect(extensionDe("sans-extension")).toBe("");
+    expect(extensionDe(".cache")).toBe("");
   });
 
   it("donne une taille et une part de quota lisibles", () => {

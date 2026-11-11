@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 
+import { IconeDossier } from "@/components/archives/icones";
 import { ChoixFichiers } from "@/components/ui/fichiers";
 import { FormulaireRepliable } from "@/components/ui/operations";
 import { CLASSE_CHAMP, EnTetePage, EtatVide, Pastille } from "@/components/ui/primitives";
@@ -93,6 +94,7 @@ export default async function PageDossier({ params }: PageProps<"/archives/dossi
       />
 
       <div className="mb-5 flex flex-wrap items-center gap-2">
+        <IconeDossier id={dossier.id} masque={masque} vide={contenu.length === 0} className="mr-1 h-9 w-auto" />
         {gestionnaire && (
           <Pastille ton={masque ? "danger" : dossier.visibilite === "tous" ? "valide" : "neutre"}>
             {resumeVisibilite(regle)}

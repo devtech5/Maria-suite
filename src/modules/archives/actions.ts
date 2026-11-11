@@ -15,6 +15,7 @@ import {
   retirerArchivePour,
   supprimerDossierPour,
   verifierArchivePour,
+  vignettesPropres,
 } from "./creation";
 
 const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
@@ -123,6 +124,22 @@ export async function ouvrirArchive(archiveId: string): Promise<string | null> {
 
   revalidatePath("/archives", "layout");
   return urlSignee(chemin);
+}
+
+/** Au plus, par demande : une page d'archives n'en montre pas davantage. */
+const VIGNETTES_MAX = 200;
+
+/**
+ * URL signées des vignettes : ses propres images seulement, sans journal.
+ * Demandées après l'affichage, jamais posées dans le HTML.
+ */
+export async function vignettesArchives(ids: string[]): Promise<Record<string, string>> {
+  const session = await exigerEntreprise();
+  if (!Array.isArray(ids) || !(await peut("archives.consulter"))) return {};
+  const valides = ids.filter((i) => typeof i === "string" && UUID.test(i)).slice(0, VIGNETTES_MAX);
+  const lignes = await vignettesPropres(session.organizationId, session.userId, valides);
+  const paires = await Promise.all(lignes.map(async (l) => [l.id, await urlSignee(l.chemin)] as const));
+  return Object.fromEntries(paires.filter((p): p is readonly [string, string] => p[1] !== null));
 }
 
 export async function verifierArchive(archiveId: string): Promise<Resultat> {

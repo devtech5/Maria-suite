@@ -90,6 +90,49 @@ export const LIBELLE_FAMILLE: Record<Famille, string> = {
   autre: "Fichier",
 };
 
+/** Le format en clair, tel qu'on le nomme au bureau : « Word », « Image PNG ». */
+const FORMATS: Record<string, string> = {
+  "application/pdf": "PDF",
+  "image/jpeg": "Image JPEG",
+  "image/png": "Image PNG",
+  "image/webp": "Image WebP",
+  "image/heic": "Photo HEIC",
+  "image/gif": "Image GIF",
+  "application/vnd.openxmlformats-officedocument.wordprocessingml.document": "Word",
+  "application/msword": "Word 97-2003",
+  "application/vnd.oasis.opendocument.text": "Texte OpenDocument",
+  "text/plain": "Texte brut",
+  "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet": "Excel",
+  "application/vnd.ms-excel": "Excel 97-2003",
+  "application/vnd.oasis.opendocument.spreadsheet": "Classeur OpenDocument",
+  "text/csv": "CSV",
+  "application/vnd.openxmlformats-officedocument.presentationml.presentation": "PowerPoint",
+  "application/vnd.ms-powerpoint": "PowerPoint 97-2003",
+  "application/json": "JSON",
+  "application/xml": "XML",
+  "text/xml": "XML",
+  "application/zip": "ZIP",
+  "application/x-zip-compressed": "ZIP",
+  "audio/mpeg": "Audio MP3",
+  "audio/mp4": "Audio M4A",
+  "audio/x-m4a": "Audio M4A",
+  "audio/ogg": "Audio OGG",
+  "audio/wav": "Audio WAV",
+  "video/mp4": "Vidéo MP4",
+  "video/quicktime": "Vidéo MOV",
+};
+
+export function libelleFormat(typeMime: string): string {
+  return FORMATS[typeMime] ?? LIBELLE_FAMILLE[familleDe(typeMime)];
+}
+
+/** Extension affichée sur l'icône : celle du nom, sinon celle du format. */
+export function extensionDe(nomFichier: string): string {
+  const point = nomFichier.lastIndexOf(".");
+  if (point <= 0 || point === nomFichier.length - 1) return "";
+  return nomFichier.slice(point + 1, point + 6).toUpperCase();
+}
+
 /** Extensions proposées au sélecteur de fichiers, dans l'ordre du navigateur. */
 export const ACCEPT_ARCHIVES = [
   ".pdf",
@@ -196,4 +239,11 @@ export function resumeVisibilite(regle: Pick<RegleDossier, "visibilite" | "desig
   const n = regle.designes.length;
   if (n === 0) return "Masqué — visible des seuls administrateurs";
   return `Visible de ${n} membre${n > 1 ? "s" : ""}`;
+}
+
+/** La même règle en deux mots, pour une vignette de dossier. */
+export function resumeVisibiliteCourt(regle: Pick<RegleDossier, "visibilite" | "designes">): string {
+  if (regle.visibilite === "tous") return "Tous";
+  const n = regle.designes.length;
+  return n === 0 ? "Masqué" : `${n} membre${n > 1 ? "s" : ""}`;
 }
