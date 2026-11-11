@@ -14,7 +14,7 @@ export const CLES_ICONE = [
   "commercial", "stock", "achats", "prestataires", "marches",
   "projets", "missions", "actifs", "parc-auto", "parc-informatique",
   "comptabilite", "tresorerie",
-  "personnel", "presences", "planning", "anniversaires", "reglement", "guide", "taches", "meeting", "messagerie", "boite-mail", "documents", "archives",
+  "personnel", "presences", "planning", "anniversaires", "reglement", "guide", "visiteurs", "taches", "meeting", "messagerie", "boite-mail", "documents", "archives",
   "utilisateurs", "entreprise", "demarrage", "communication", "rapports", "journal",
 ] as const;
 export type CleIcone = (typeof CLES_ICONE)[number];
@@ -82,6 +82,7 @@ export const GROUPES_MODULES: GroupeModules[] = [
       // Ouvert à tous (`DROITS_DE_TOUS`) : le règlement s'impose à chacun.
       { href: "/reglement", racine: "/reglement", icone: "reglement", libelle: "Règlement intérieur", description: "Le règlement de l'entreprise, à relire à tout moment.", droit: "reglement.consulter" },
       // Ouvert à tous : il n'explique que les modules de chacun.
+      { href: "/visiteurs/rendez-vous", racine: "/visiteurs/rendez-vous", icone: "visiteurs", libelle: "Mes visiteurs", description: "Annoncer un visiteur à l'accueil et lui envoyer son QR d'entrée.", droit: "visiteurs.annoncer" },
       { href: "/guide", racine: "/guide", icone: "guide", libelle: "Guide d'utilisation", description: "Apprendre Maria Suite module par module, avec un parcours et un quiz.", droit: "guide.consulter" },
     ],
   },
@@ -164,6 +165,7 @@ export const GROUPES_MODULES: GroupeModules[] = [
     icone: "securite",
     modules: [
       { href: "/securite", racine: "/securite", icone: "securite", libelle: "Caméras", description: "Caméras des magasins, entrepôts et bureaux en direct.", droit: "securite.consulter" },
+      { href: "/visiteurs", racine: "/visiteurs", icone: "visiteurs", libelle: "Visiteurs", description: "Entrées et sorties des visiteurs, pièce d'identité, badge, présents à l'instant.", droit: "visiteurs.accueillir" },
     ],
   },
   {

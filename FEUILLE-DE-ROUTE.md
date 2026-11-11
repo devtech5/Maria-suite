@@ -37,6 +37,10 @@ démonstration se remplit (`pnpm guide:captures`).
 
 ## Visiteurs
 
+**Livré** (`src/modules/visiteurs/`). Le QR envoyé par WhatsApp est un lien
+vers une page qui l'affiche : l'API WhatsApp n'envoie une image qu'avec un
+modèle approuvé par Meta.
+
 - **Plusieurs points d'accueil** : siège, chantiers, sites miniers ; chaque
   accueil a son registre, la direction voit tout.
 - Photo de la pièce d'identité (recto/verso) prise par la caméra de l'appareil ;

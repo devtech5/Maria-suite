@@ -449,6 +449,80 @@ export const CHAPITRES_GESTION: Chapitre[] = [
     quiz: [],
   },
   {
+    cle: "visiteurs",
+    titre: "Accueil des visiteurs",
+    entree: "/visiteurs",
+    resume: "Enregistrer arrivées et sorties, photographier la pièce d'identité, imprimer le badge.",
+    sections: [
+      {
+        ancre: "arrivee",
+        titre: "Enregistrer une arrivée",
+        chemin: "/visiteurs",
+        texte: [
+          "Chaque point d'accueil — siège, chantier, site minier — tient son registre. « Enregistrer une arrivée » demande le nom, le motif, la personne visitée et la pièce d'identité ; la caméra de la tablette ou du poste photographie le recto et le verso, et le visiteur s'il le veut bien.",
+          "La personne visitée est prévenue dans la cloche. Le badge s'imprime avec un QR : à la sortie, le scan du QR ouvre la fiche, et un bouton enregistre la sortie.",
+        ],
+        etapes: ["Enregistrer une arrivée : identité, motif, personne visitée.", "Photographier la pièce, recto et verso.", "Imprimer le badge, le remettre au visiteur.", "À la sortie : scanner le badge, « Sortie »."],
+      },
+      {
+        ancre: "attendus",
+        titre: "Les visiteurs attendus",
+        texte: ["Un rendez-vous annoncé par un collègue apparaît dans « Attendus aujourd'hui ». Le visiteur présente le QR reçu par WhatsApp : son scan ouvre sa fiche, prête pour l'arrivée ; il ne reste qu'à relever sa pièce."],
+      },
+      {
+        ancre: "presents",
+        titre: "Présents et registre",
+        chemin: "/visiteurs/presents",
+        texte: [
+          "« Présents » liste qui est sur place, accueil par accueil, avec une case à cocher : c'est la liste d'appel en cas d'évacuation, à imprimer d'un geste.",
+          "Le registre se consulte par période et se fouille par nom, numéro ou pièce. Les photos des pièces s'effacent d'elles-mêmes trois mois après la visite (loi 2013-450) ; le registre reste.",
+        ],
+      },
+    ],
+    quiz: [
+      {
+        cle: "visiteurs-photos",
+        question: "Combien de temps les photos de la pièce d'identité d'un visiteur sont-elles conservées ?",
+        choix: ["Pour toujours", "Trois mois, puis elles s'effacent d'elles-mêmes", "Jusqu'à la sortie du visiteur"],
+        bonne: 1,
+        explication: "Données personnelles : les photos s'effacent trois mois après la visite ; le registre (nom, heures, motif) reste.",
+      },
+      {
+        cle: "visiteurs-evacuation",
+        question: "Une alarme incendie se déclenche. Où trouver la liste des visiteurs à faire sortir ?",
+        choix: ["Dans le registre du mois", "Dans « Présents », imprimable", "Dans la messagerie"],
+        bonne: 1,
+        explication: "« Présents » donne, à l'instant, qui est sur place, accueil par accueil.",
+      },
+    ],
+  },
+  {
+    cle: "mes-visiteurs",
+    titre: "Annoncer un visiteur",
+    entree: "/visiteurs/rendez-vous",
+    resume: "Prévenir l'accueil d'un rendez-vous et envoyer au visiteur son QR d'entrée.",
+    sections: [
+      {
+        ancre: "annoncer",
+        titre: "Annoncer un rendez-vous",
+        chemin: "/visiteurs/rendez-vous",
+        texte: [
+          "Vous attendez quelqu'un ? « Annoncer un visiteur » : le point d'accueil, le jour, l'heure, son nom et son téléphone. L'accueil le voit dans ses attendus du jour, et le visiteur reçoit par WhatsApp un lien vers son QR d'entrée.",
+          "Quand il arrive, vous êtes prévenu dans la cloche. Un rendez-vous qui ne tient plus s'annule de la liste.",
+        ],
+      },
+    ],
+    quiz: [
+      {
+        cle: "mes-visiteurs-qr",
+        question: "Comment votre visiteur reçoit-il son QR d'entrée ?",
+        choix: ["Il le demande à l'accueil", "Par WhatsApp, quand vous annoncez le rendez-vous", "Par courrier"],
+        bonne: 1,
+        explication: "Annoncer le rendez-vous envoie au visiteur un lien vers son QR d'entrée.",
+      },
+    ],
+  },
+  {
     cle: "marches",
     titre: "Marchés et conventions",
     entree: "/marches",

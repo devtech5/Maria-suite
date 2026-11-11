@@ -630,6 +630,30 @@ export const DROITS = [
     description: "Voir où en est chacun dans le parcours du guide et ses résultats au quiz.",
   },
 
+  // ------------------------------------------------------------- visiteurs
+  {
+    cle: "visiteurs.accueillir",
+    moduleKey: "visiteurs",
+    libelle: "Accueillir les visiteurs",
+    description:
+      "Enregistrer l'arrivée et la sortie des visiteurs, photographier leur pièce d'identité, " +
+      "imprimer leur badge, dans les points d'accueil qu'on tient.",
+  },
+  {
+    cle: "visiteurs.annoncer",
+    moduleKey: "visiteurs",
+    libelle: "Annoncer un visiteur",
+    description: "Annoncer un rendez-vous à l'accueil et envoyer au visiteur son QR d'entrée par WhatsApp.",
+  },
+  {
+    cle: "visiteurs.superviser",
+    moduleKey: "visiteurs",
+    libelle: "Superviser tous les accueils",
+    description:
+      "Voir le registre et les présents de tous les points d'accueil, créer les accueils " +
+      "et désigner leurs agents.",
+  },
+
   // ------------------------------------------------------ projets et dépenses
   {
     cle: "projet.consulter",
@@ -1026,6 +1050,7 @@ export const PRESETS_ROLES = [
       "achats.consulter",
       "achats.reception.saisir",
       "tresorerie.bon.demander",
+      "visiteurs.annoncer",
       ...ARCHIVAGE_PERSONNEL,
       ...TACHES_PERSONNELLES,
       ...PLANNING_PERSONNEL,
@@ -1046,6 +1071,8 @@ export const PRESETS_ROLES = [
       "documents.consulter",
       "documents.courrier.rediger",
       "boite_mail.utiliser",
+      "visiteurs.accueillir",
+      "visiteurs.annoncer",
       ...ARCHIVAGE_PERSONNEL,
       ...TACHES_PERSONNELLES,
       ...PLANNING_PERSONNEL,
@@ -1076,6 +1103,7 @@ export const PRESETS_ROLES = [
       "communication.consulter",
       "communication.client.notifier",
       "boite_mail.utiliser",
+      "visiteurs.annoncer",
       ...TRESORERIE_COMPTABLE,
       ...ARCHIVAGE_PERSONNEL,
       ...TACHES_PERSONNELLES,
