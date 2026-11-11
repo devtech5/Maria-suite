@@ -31,6 +31,8 @@ export const statutPlanning = pgEnum("statut_planning", [
   "teletravail",
   "en_conge",
   "absent",
+  "arret_maladie",
+  "conge_maternite",
 ]);
 
 export const creneauxPlanning = pgTable(
@@ -56,7 +58,13 @@ export const creneauxPlanning = pgTable(
   (t) => [
     check("creneaux_planning_periode", sql`${t.fin} > ${t.debut}`),
     // Un mois au plus : au-delà, c'est un congé ou un départ, pas un statut.
-    check("creneaux_planning_duree", sql`${t.fin} - ${t.debut} <= interval '31 days'`),
+    // Sauf l'arrêt maladie et le congé de maternité (14 semaines, prolongeables) :
+    // six mois au plus. Comparés en texte : une valeur d'énumération ajoutée
+    // ne se cite pas dans la transaction qui l'ajoute.
+    check(
+      "creneaux_planning_duree",
+      sql`${t.fin} - ${t.debut} <= interval '31 days' or (${t.statut}::text in ('arret_maladie', 'conge_maternite') and ${t.fin} - ${t.debut} <= interval '183 days')`,
+    ),
     index("creneaux_planning_user_idx").on(t.organizationId, t.userId, t.debut),
     index("creneaux_planning_periode_idx").on(t.organizationId, t.debut, t.fin),
   ],

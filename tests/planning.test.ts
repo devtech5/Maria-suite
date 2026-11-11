@@ -57,6 +57,11 @@ describe("validation", () => {
     expect(verifierCreneau(t("2026-10-06T10:00"), t("2026-10-06T10:00"))).toMatch(/après le début/);
     expect(verifierCreneau(t("2026-10-01T00:00"), t("2026-11-05T00:00"))).toMatch(/un mois/);
     expect(verifierCreneau(t("2026-10-06T08:00"), t("2026-10-06T12:00"))).toBeNull();
+    // Arrêt maladie et congé de maternité : jusqu'à six mois (14 semaines de maternité et leurs prolongations).
+    expect(verifierCreneau(t("2026-10-01T00:00"), t("2027-01-07T00:00"), "conge_maternite")).toBeNull();
+    expect(verifierCreneau(t("2026-10-01T00:00"), t("2026-11-15T00:00"), "arret_maladie")).toBeNull();
+    expect(verifierCreneau(t("2026-10-01T00:00"), t("2027-05-01T00:00"), "arret_maladie")).toMatch(/six mois/);
+    expect(verifierCreneau(t("2026-10-01T00:00"), t("2026-11-15T00:00"), "en_mission")).toMatch(/un mois/);
   });
 
   it("deux créneaux bout à bout ne se chevauchent pas", () => {

@@ -1,0 +1,4 @@
+ALTER TYPE "public"."statut_planning" ADD VALUE 'arret_maladie';--> statement-breakpoint
+ALTER TYPE "public"."statut_planning" ADD VALUE 'conge_maternite';--> statement-breakpoint
+ALTER TABLE "creneaux_planning" DROP CONSTRAINT "creneaux_planning_duree";--> statement-breakpoint
+ALTER TABLE "creneaux_planning" ADD CONSTRAINT "creneaux_planning_duree" CHECK ("creneaux_planning"."fin" - "creneaux_planning"."debut" <= interval '31 days' or ("creneaux_planning"."statut"::text in ('arret_maladie', 'conge_maternite') and "creneaux_planning"."fin" - "creneaux_planning"."debut" <= interval '183 days'));

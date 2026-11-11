@@ -92,7 +92,7 @@ export interface DonneesCreneau {
 
 /** Crée ou modifie un créneau. Un chevauchement est refusé, avec ce qu'il heurte. */
 export async function enregistrerCreneauDans(tx: Transaction, organizationId: string, d: DonneesCreneau, acteur: Acteur): Promise<{ id: string }> {
-  const refus = verifierCreneau(d.debut, d.fin);
+  const refus = verifierCreneau(d.debut, d.fin, d.statut);
   if (refus) throw new Error(refus);
 
   let avant: typeof creneauxPlanning.$inferSelect | undefined;
@@ -194,7 +194,7 @@ export async function poserStatutDans(
   const prochain = suivants.sort((a, b) => a.debut.getTime() - b.debut.getTime())[0];
   const fin = prochain && prochain.debut < d.fin ? prochain.debut : d.fin;
   if (fin.getTime() - maintenant.getTime() < 60_000) throw new Error("Un autre créneau commence tout de suite : modifiez-le plutôt.");
-  const refus = verifierCreneau(maintenant, fin);
+  const refus = verifierCreneau(maintenant, fin, d.statut);
   if (refus) throw new Error(refus);
 
   const id = newId();

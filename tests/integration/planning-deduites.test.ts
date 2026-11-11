@@ -103,7 +103,8 @@ describe("périodes déduites, lues en base", () => {
 
     const periodes = (await periodesDeduites(org, DU, AU, [awa], tout(awa), ABIDJAN, MAINTENANT)).filter((p) => p.origine?.source === "conge");
     expect(periodes).toHaveLength(1);
-    expect(periodes[0]).toMatchObject({ userId: awa, statut: "en_conge", debut: t("2026-10-08T00:00"), fin: t("2026-10-10T00:00"), origine: { reference: accorde, titre: "Maladie" } });
+    // Lu par qui peut ouvrir le congé : l'arrêt maladie apparaît comme tel.
+    expect(periodes[0]).toMatchObject({ userId: awa, statut: "arret_maladie", debut: t("2026-10-08T00:00"), fin: t("2026-10-10T00:00"), origine: { reference: accorde, titre: "Maladie" } });
   });
 
   it("une mission confiée au salarié s'inscrit au planning de son compte", async () => {

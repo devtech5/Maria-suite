@@ -62,7 +62,8 @@ export const CHAPITRES_EQUIPE: Chapitre[] = [
         titre: "Mon planning",
         chemin: "/planning",
         texte: [
-          "Le calendrier du mois montre vos créneaux du 1er au dernier jour ; la vue semaine détaille les heures. Posez un statut pour maintenant (occupé, en mission, en courses, sur le terrain) ou à l'avance, sur un créneau.",
+          "Le calendrier du mois montre vos créneaux du 1er au dernier jour ; la vue semaine détaille les heures. Posez un statut pour maintenant (occupé, en mission, en courses, sur le terrain), ou choisissez « Du … au … » pour lui donner un début et une fin, sur plusieurs jours s'il le faut.",
+          "Un arrêt maladie ou un congé de maternité se pose ainsi, pour six mois au plus ; les autres statuts, pour un mois. Un congé accordé dans Présences apparaît de lui-même.",
           "Les anniversaires des collègues y figurent aussi, d'une pastille 🎂.",
         ],
         capture: {

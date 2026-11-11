@@ -64,6 +64,21 @@ describe("planning sur une vraie base", () => {
     expect(await vivants(awa.userId)).toHaveLength(2);
   });
 
+  it("pose un congé de maternité de 14 semaines ; la base refuse plus de six mois", async () => {
+    await db.transaction((tx) =>
+      enregistrerCreneauDans(tx, org, { userId: kone.userId, statut: "conge_maternite", debut: t("2026-11-02T00:00"), fin: t("2027-02-08T00:00") }, kone),
+    );
+    expect((await vivants(kone.userId)).map((c) => c.statut)).toEqual(["conge_maternite"]);
+    // Même en contournant la règle applicative, la contrainte de la base tient.
+    await expect(
+      db.insert(creneauxPlanning).values({ id: newId(), organizationId: org, userId: kone.userId, statut: "en_mission", debut: t("2027-03-01T00:00"), fin: t("2027-04-15T00:00"), saisiParUserId: kone.userId }),
+    ).rejects.toThrow();
+    await expect(
+      db.insert(creneauxPlanning).values({ id: newId(), organizationId: org, userId: kone.userId, statut: "arret_maladie", debut: t("2027-03-01T00:00"), fin: t("2027-10-01T00:00"), saisiParUserId: kone.userId }),
+    ).rejects.toThrow();
+    await db.delete(creneauxPlanning).where(eq(creneauxPlanning.userId, kone.userId));
+  });
+
   it("un membre sans droit de gestion ne touche pas au planning d'un autre", async () => {
     await expect(
       db.transaction((tx) => enregistrerCreneauDans(tx, org, { userId: kone.userId, statut: "absent", debut: t("2026-10-07T08:00"), fin: t("2026-10-07T18:00") }, awa)),
