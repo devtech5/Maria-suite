@@ -40,6 +40,16 @@ export const commerciaux = pgTable(
     telephone: text("telephone"),
     userId: uuid("user_id"),
     /**
+     * Interne : choisi dans le personnel (salarié, ou compte sans fiche).
+     * Externe : un apporteur d'affaires enregistré ici, payé depuis la
+     * trésorerie, qui n'ouvre pas le logiciel. Les deux se suivent à part.
+     */
+    origine: text("origine").notNull().default("interne"),
+    /** Apporteur externe : de quoi le joindre et savoir de quelle structure il vient. */
+    email: text("email"),
+    organisme: text("organisme"),
+    ville: text("ville"),
+    /**
      * Salarié rattaché. Sans clé étrangère, pour la même raison que le compte
      * de trésorerie des commissions : le schéma du personnel importe celui
      * des ventes, qui importe celui-ci. Le code vérifie le rattachement.
@@ -63,6 +73,9 @@ export const commerciaux = pgTable(
     unique("commerciaux_nom_unique").on(t.organizationId, t.nom),
     unique("commerciaux_user_unique").on(t.organizationId, t.userId),
     unique("commerciaux_employe_unique").on(t.organizationId, t.employeeId),
+    check("commerciaux_origine", sql`${t.origine} in ('interne', 'externe')`),
+    // Un externe n'a ni fiche salarié ni compte : sinon il serait du personnel.
+    check("commerciaux_externe_sans_fiche", sql`${t.origine} = 'interne' OR (${t.employeeId} IS NULL AND ${t.userId} IS NULL)`),
     check("commerciaux_montants", sql`${t.tauxBp} BETWEEN 0 AND 10000 AND ${t.fixeMensuel} >= 0 AND ${t.objectifMensuel} >= 0`),
   ],
 );

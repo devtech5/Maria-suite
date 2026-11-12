@@ -22,9 +22,14 @@ async function journaliser(tx: Transaction, organizationId: string, userId: stri
 }
 
 export interface FicheCommercial {
-  /** Nom saisi : ne sert que pour un commercial sans fiche (apporteur externe). */
+  /** Interne : choisi dans le personnel. Externe : apporteur enregistré ici. Absent : déduit des liens. */
+  origine?: "interne" | "externe";
+  /** Nom saisi : ne sert que pour un apporteur externe. */
   nom?: string | null;
   telephone?: string | null;
+  email?: string | null;
+  organisme?: string | null;
+  ville?: string | null;
   userId?: string | null;
   employeeId?: string | null;
   base: "ca_ht" | "marge";
@@ -36,33 +41,45 @@ export interface FicheCommercial {
 }
 
 /**
- * Nom et téléphone du commercial, pris à sa fiche : le salarié du Personnel
- * d'abord, sinon le compte qui encaisse. Rien ne se recopie à la main ; le
- * nom saisi ne vaut que pour un apporteur sans fiche.
+ * Qui est le commercial : nom, téléphone et compte de caisse.
+ *
+ * Interne — le salarié du Personnel d'abord, sinon le compte ; rien ne se
+ * recopie à la main, et le compte du salarié devient son compte de caisse
+ * (ses tickets lui sont attribués d'office). Externe — la saisie, et aucun
+ * lien : un apporteur n'est ni salarié ni utilisateur.
  */
-async function identiteDe(tx: Transaction, organizationId: string, f: FicheCommercial): Promise<{ nom: string; telephone: string | null }> {
-  if (f.userId) {
-    const [membre] = await tx
-      .select({ id: memberships.id })
-      .from(memberships)
-      .where(and(eq(memberships.organizationId, organizationId), eq(memberships.userId, f.userId)));
-    if (!membre) throw new Error("Ce compte n'appartient pas à l'entreprise.");
+async function identiteDe(tx: Transaction, organizationId: string, f: FicheCommercial): Promise<{ origine: "interne" | "externe"; nom: string; telephone: string | null; userId: string | null; employeeId: string | null }> {
+  const origine = f.origine ?? (f.employeeId || f.userId ? "interne" : "externe");
+  if (origine === "externe") {
+    if (f.employeeId || f.userId) throw new Error("Un commercial externe n'est lié ni à un salarié ni à un compte.");
+    const nom = f.nom?.trim() ?? "";
+    if (nom.length < 2) throw new Error("Le nom du commercial externe est requis.");
+    return { origine, nom, telephone: f.telephone?.trim() || null, userId: null, employeeId: null };
   }
+  let userId = f.userId || null;
   if (f.employeeId) {
     const [e] = await tx
-      .select({ nom: employees.nom, telephone: employees.telephone })
+      .select({ nom: employees.nom, telephone: employees.telephone, userId: employees.userId })
       .from(employees)
       .where(and(eq(employees.id, f.employeeId), eq(employees.organizationId, organizationId), isNull(employees.deletedAt)));
     if (!e) throw new Error("Ce salarié ne figure pas au Personnel.");
-    return { nom: e.nom, telephone: e.telephone };
+    userId = userId ?? e.userId;
+    if (userId) {
+      const [membre] = await tx.select({ id: memberships.id }).from(memberships).where(and(eq(memberships.organizationId, organizationId), eq(memberships.userId, userId)));
+      // Le compte du salarié a pu être retiré de l'entreprise : le commercial reste, sans caisse.
+      if (!membre) userId = null;
+    }
+    return { origine, nom: e.nom, telephone: e.telephone, userId, employeeId: f.employeeId };
   }
-  if (f.userId) {
-    const [u] = await tx.select({ nom: users.fullName, telephone: users.phone }).from(users).where(eq(users.id, f.userId));
-    if (u) return { nom: u.nom, telephone: u.telephone };
-  }
-  const nom = f.nom?.trim() ?? "";
-  if (!nom) throw new Error("Le nom du commercial est requis.");
-  return { nom, telephone: f.telephone?.trim() || null };
+  if (!userId) throw new Error("Choisissez la personne dans le personnel.");
+  const [membre] = await tx
+    .select({ id: memberships.id })
+    .from(memberships)
+    .where(and(eq(memberships.organizationId, organizationId), eq(memberships.userId, userId)));
+  if (!membre) throw new Error("Ce compte n'appartient pas à l'entreprise.");
+  const [u] = await tx.select({ nom: users.fullName, telephone: users.phone }).from(users).where(eq(users.id, userId));
+  if (!u) throw new Error("Compte introuvable.");
+  return { origine, nom: u.nom, telephone: u.telephone, userId, employeeId: null };
 }
 
 export async function enregistrerCommercialDans(
@@ -77,10 +94,15 @@ export async function enregistrerCommercialDans(
   if (refus) throw new Error(refus);
   const identite = await identiteDe(tx, organizationId, f);
   const valeurs = {
+    origine: identite.origine,
     nom: identite.nom,
     telephone: identite.telephone,
-    userId: f.userId || null,
-    employeeId: f.employeeId || null,
+    // Les coordonnées de l'apporteur ne se saisissent que pour un externe.
+    email: identite.origine === "externe" ? f.email?.trim() || null : null,
+    organisme: identite.origine === "externe" ? f.organisme?.trim() || null : null,
+    ville: identite.origine === "externe" ? f.ville?.trim() || null : null,
+    userId: identite.userId,
+    employeeId: identite.employeeId,
     base: f.base,
     tauxBp: f.tauxBp,
     paliers: regle.paliers ? [...regle.paliers].sort((a, b) => a.seuil - b.seuil) : null,

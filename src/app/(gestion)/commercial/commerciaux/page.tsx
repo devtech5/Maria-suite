@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import Link from "next/link";
 
 import { AccesRefuse } from "@/components/coque/acces-refuse";
 import { ActionsFiche } from "@/components/ui/actions-fiche";
@@ -14,7 +15,7 @@ import { libelleMois, moisCourant } from "@/modules/paie/calcul";
 import { listerSalaries } from "@/modules/personnes/requetes";
 import { listerComptes } from "@/modules/tresorerie/requetes";
 
-import { ActionsCommission, ChoixMois, FicheCommercial } from "./edition";
+import { ActionsCommission, ChoixMois, FicheCommercial, type Personnel } from "./edition";
 
 export const metadata: Metadata = { title: "Commercial" };
 
@@ -32,6 +33,8 @@ export default async function PageCommerciaux({ searchParams }: PageProps<"/comm
   const { mois: demande } = parametres;
   // La période, c'est le mois choisi en haut : la recherche ne porte que sur le texte.
   const filtres = lireFiltresListe({ q: parametres.q });
+  // Suivi : tous, les internes (personnel) ou les externes (apporteurs d'affaires).
+  const origine = parametres.origine === "interne" || parametres.origine === "externe" ? parametres.origine : null;
   const courant = moisCourant();
   const mois = moisValide(demande) && demande <= courant ? demande : courant;
   const payer = await peut("commercial.commission.payer");
@@ -51,14 +54,23 @@ export default async function PageCommerciaux({ searchParams }: PageProps<"/comm
   const nomSalarie = new Map(salaries.map((s) => [s.id, `${s.nom} (${s.matricule})`]));
   const aujourdhui = new Date().toISOString().slice(0, 10);
   // Les indicateurs portent sur tous les commerciaux du mois ; seul le tableau suit la recherche.
-  const visibles = lignes.filter(({ commercial: c }) =>
-    correspond(filtres.q, [
-      c.nom,
-      c.telephone,
-      c.employeeId ? nomSalarie.get(c.employeeId) : "Externe",
-      c.userId ? nomMembre.get(c.userId) : null,
-    ]),
+  const visibles = lignes.filter(
+    ({ commercial: c }) =>
+      (origine === null || c.origine === origine) &&
+      correspond(filtres.q, [c.nom, c.telephone, c.email, c.organisme, c.ville, c.origine === "externe" ? "Externe" : "Interne", c.employeeId ? nomSalarie.get(c.employeeId) : null, c.userId ? nomMembre.get(c.userId) : null]),
   );
+  const nombreExternes = lignes.filter((l) => l.commercial.origine === "externe").length;
+
+  // Tout le personnel : les salariés en poste, puis les comptes sans fiche de salarié (l'associé, le comptable externe).
+  const compteDeSalarie = new Set(salaries.map((s) => s.userId).filter(Boolean));
+  const dejaSalaries = new Set(lignes.map((l) => l.commercial.employeeId).filter(Boolean));
+  const dejaComptes = new Set(lignes.map((l) => l.commercial.userId).filter(Boolean));
+  const personnel: Personnel[] = [
+    ...salaries.map((s) => ({ cle: `e:${s.id}`, nom: s.nom, detail: s.poste, pris: dejaSalaries.has(s.id) || Boolean(s.userId && dejaComptes.has(s.userId)) })),
+    ...membres
+      .filter((m) => m.statut === "actif" && !compteDeSalarie.has(m.userId))
+      .map((m) => ({ cle: `u:${m.userId}`, nom: m.nom, detail: "compte sans fiche de salarié", pris: dejaComptes.has(m.userId) })),
+  ].sort((a, b) => a.nom.localeCompare(b.nom, "fr", { sensitivity: "base" }));
 
   return (
     <>
@@ -68,24 +80,38 @@ export default async function PageCommerciaux({ searchParams }: PageProps<"/comm
         <CarteIndicateur libelle="CA HT des commerciaux" valeur={fmtCompact(ca)} unite="FCFA" precision="Factures moins avoirs, et tickets de caisse" />
         <CarteIndicateur libelle={termine ? "Commissions du mois" : "Commissions à date"} valeur={fmtCompact(commissionsMois)} unite="FCFA" precision={ca > 0 ? `${fmtTauxBp(Math.round((commissionsMois * 10_000) / ca))} du CA` : undefined} />
         <CarteIndicateur libelle="Validées, à payer" valeur={fmtCompact(aPayer.reduce((s, l) => s + (l.validee?.total ?? 0), 0))} unite="FCFA" ton={aPayer.length ? "alerte" : "neutre"} precision={`${aPayer.length} commercial${aPayer.length > 1 ? "aux" : ""}`} />
-        <CarteIndicateur libelle="Commerciaux actifs" valeur={String(lignes.filter((l) => l.commercial.actif).length)} />
+        <CarteIndicateur libelle="Commerciaux actifs" valeur={String(lignes.filter((l) => l.commercial.actif).length)} precision={`${lignes.length - nombreExternes} internes · ${nombreExternes} externes`} />
       </section>
 
-      <FicheCommercial
-        membres={membres.filter((m) => m.statut === "actif").map((m) => ({ id: m.userId, nom: m.nom }))}
-        salaries={salaries.map((s) => ({ id: s.id, nom: `${s.nom} — ${s.poste}` }))}
-      />
+      <FicheCommercial personnel={personnel} />
 
       {lignes.length === 0 ? (
         <EtatVide titre="Aucun commercial" message="Créez un commercial, liez-le à un utilisateur pour lui attribuer ses tickets de caisse, ou choisissez-le sur chaque devis et facture." />
       ) : (
         <>
+          <div className="mb-3 flex flex-wrap gap-1.5">
+            {([[null, "Tous", lignes.length], ["interne", "Internes", lignes.length - nombreExternes], ["externe", "Externes", nombreExternes]] as const).map(([valeur, libelle, n]) => (
+              <Link
+                key={libelle}
+                href={`/commercial/commerciaux?mois=${mois}${valeur ? `&origine=${valeur}` : ""}${filtres.q ? `&q=${encodeURIComponent(filtres.q)}` : ""}`}
+                aria-current={origine === valeur ? "page" : undefined}
+                className={`rounded-full border px-3 py-1 text-xs font-semibold ${origine === valeur ? "border-marque-600 bg-marque-600 text-white" : "border-[var(--filet)] bg-[var(--surface)] hover:bg-[var(--surface-creuse)]"}`}
+              >
+                {libelle} <span className="chiffres opacity-80">{n}</span>
+              </Link>
+            ))}
+          </div>
           <Recherche
-            // Le mois survit à la soumission (champ caché) comme à « Tout afficher » (adresse).
-            chemin={`/commercial/commerciaux?mois=${mois}`}
+            // Le mois et le suivi survivent à la soumission (champs cachés) comme à « Tout afficher » (adresse).
+            chemin={`/commercial/commerciaux?mois=${mois}${origine ? `&origine=${origine}` : ""}`}
             valeur={filtres.q}
-            placeholder="Nom, téléphone, salarié ou caissier lié…"
-            filtres={<input type="hidden" name="mois" value={mois} />}
+            placeholder="Nom, téléphone, structure, salarié ou caissier lié…"
+            filtres={
+              <>
+                <input type="hidden" name="mois" value={mois} />
+                {origine && <input type="hidden" name="origine" value={origine} />}
+              </>
+            }
             resultats={filtres.actif ? `${fmtEntier(visibles.length)} sur ${fmtEntier(lignes.length)}` : undefined}
           />
 
@@ -115,9 +141,11 @@ export default async function PageCommerciaux({ searchParams }: PageProps<"/comm
                     <tr key={c.id} className={c.actif ? "" : "opacity-60"}>
                       <Td fort>
                         {c.nom}
-                        <span className="block text-[11px] font-normal text-[var(--encre-faible)]">
-                          {c.employeeId ? `Salarié · ${nomSalarie.get(c.employeeId) ?? "?"}` : "Externe"}
-                          {c.userId ? ` · caisse de ${nomMembre.get(c.userId) ?? "?"}` : ""}
+                        <span className="mt-0.5 flex flex-wrap items-center gap-1.5 text-[11px] font-normal text-[var(--encre-faible)]">
+                          <Pastille ton={c.origine === "externe" ? "alerte" : "marque"}>{c.origine === "externe" ? "Externe" : "Interne"}</Pastille>
+                          {c.origine === "externe"
+                            ? [c.organisme, c.ville, c.telephone].filter(Boolean).join(" · ")
+                            : [c.employeeId ? nomSalarie.get(c.employeeId) : "compte sans fiche", c.userId ? `caisse de ${nomMembre.get(c.userId) ?? "?"}` : null].filter(Boolean).join(" · ")}
                         </span>
                       </Td>
                       <Td>
@@ -160,10 +188,13 @@ export default async function PageCommerciaux({ searchParams }: PageProps<"/comm
                           aujourdhui={aujourdhui}
                           fiche={{
                             id: c.id,
+                            origine: c.origine === "externe" ? "externe" : "interne",
+                            personne: c.employeeId ? `e:${c.employeeId}` : c.userId ? `u:${c.userId}` : "",
                             nom: c.nom,
                             telephone: c.telephone ?? "",
-                            userId: c.userId ?? "",
-                            employeeId: c.employeeId ?? "",
+                            email: c.email ?? "",
+                            organisme: c.organisme ?? "",
+                            ville: c.ville ?? "",
                             base: c.base,
                             tauxBp: c.tauxBp,
                             paliers: c.paliers ?? [],
@@ -171,8 +202,7 @@ export default async function PageCommerciaux({ searchParams }: PageProps<"/comm
                             objectifMensuel: c.objectifMensuel,
                             actif: c.actif,
                           }}
-                          membres={membres.filter((m) => m.statut === "actif").map((m) => ({ id: m.userId, nom: m.nom }))}
-                          salaries={salaries.map((s) => ({ id: s.id, nom: `${s.nom} — ${s.poste}` }))}
+                          personnel={personnel}
                         />
                         {/* La mise en off passe par la fiche ; ici, l'effacement d'une saisie erronée. */}
                         <ActionsFiche type="commercial" id={c.id} libelle={c.nom} peutGerer={false} peutSupprimer={supprimer} />

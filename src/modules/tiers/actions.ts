@@ -11,6 +11,8 @@ import { exigerDroit, refusDroit } from "@/lib/droits/garde";
 import { newId } from "@/lib/ids";
 import { creerTiersPour } from "./creation";
 import { LIBELLE_NATURE_TIERS, NATURES_TIERS, estNatureTiers } from "./natures";
+import { estOrigine, paysPourOrigine } from "./origine";
+import { paysEntreprise } from "./requetes";
 import { tiers } from "./schema";
 import { estDoublon } from "@/lib/erreurs-pg";
 
@@ -45,6 +47,8 @@ const schema = z
     ville: z.string().trim().max(80).optional(),
     identifiantFiscal: z.string().trim().max(40).optional(),
     secteur: z.string().trim().max(80).optional(),
+    origine: z.enum(["local", "international"]).default("local"),
+    pays: z.string().trim().max(2).optional(),
     plafondEncours: montant,
     delaiReglementJours: z.coerce.number().int().min(0).max(365),
     delaiLivraisonJours: z.coerce.number().int().min(0).max(365),
@@ -81,6 +85,8 @@ export async function creerTiers(
     ville: texte(donnees, "ville"),
     identifiantFiscal: texte(donnees, "identifiantFiscal"),
     secteur: texte(donnees, "secteur"),
+    origine: texte(donnees, "origine") ?? "local",
+    pays: texte(donnees, "pays"),
     plafondEncours: String(donnees.get("plafondEncours") ?? "0"),
     delaiReglementJours: donnees.get("delaiReglementJours") ?? 0,
     delaiLivraisonJours: donnees.get("delaiLivraisonJours") ?? 0,
@@ -90,13 +96,16 @@ export async function creerTiers(
     return { erreur: analyse.error.issues[0].message };
   }
 
-  const valeurs = analyse.data;
+  const { origine, pays, ...valeurs } = analyse.data;
+  const lieu = paysPourOrigine(origine, pays, await paysEntreprise(session.organizationId));
+  if ("erreur" in lieu) return { erreur: lieu.erreur };
 
   try {
     const { code } = await creerTiersPour(
       session.organizationId,
       {
         ...valeurs,
+        paysCode: lieu.paysCode,
         email: valeurs.email || null,
         telephone: valeurs.telephone ?? null,
         ville: valeurs.ville ?? null,
@@ -196,4 +205,53 @@ export async function changerNatureTiers(id: string, nature: string): Promise<{ 
   revalidatePath("/commercial");
   revalidatePath("/commercial/fournisseurs");
   return { ok: true, message: `${avant.nom} : ${LIBELLE_NATURE_TIERS[nature]}.` };
+}
+
+/** Même création, rendue comme les autres actions de fenêtre : un succès ou un refus lisible. */
+export async function enregistrerTiers(donnees: FormData): Promise<{ ok: boolean; message: string }> {
+  const etat = await creerTiers({}, donnees);
+  if (etat.erreur) return { ok: false, message: etat.erreur };
+  const libelle = donnees.get("estFournisseur") === "on" && donnees.get("estClient") !== "on" ? "Fournisseur" : "Client";
+  return { ok: true, message: `${libelle} ${etat.cree} enregistré.` };
+}
+
+/**
+ * Corrige l'origine d'un tiers sur sa fiche : local, ou international avec
+ * son pays. Ni la référence ni les comptes auxiliaires ne bougent.
+ */
+export async function changerOrigineTiers(id: string, origine: string, pays: string): Promise<{ ok: boolean; message: string }> {
+  const session = await exigerEntreprise();
+  const refus = await refusDroit("tiers.fiche.gerer");
+  if (refus) return { ok: false, message: refus.erreur };
+  if (!estOrigine(origine)) return { ok: false, message: "Origine inconnue." };
+  const lieu = paysPourOrigine(origine, pays, await paysEntreprise(session.organizationId));
+  if ("erreur" in lieu) return { ok: false, message: lieu.erreur };
+
+  const [avant] = await db
+    .select({ paysCode: tiers.paysCode, nom: tiers.nom })
+    .from(tiers)
+    .where(and(eq(tiers.id, id), eq(tiers.organizationId, session.organizationId)));
+  if (!avant) return { ok: false, message: "Fiche introuvable." };
+  if ((avant.paysCode ?? null) === lieu.paysCode) return { ok: true, message: "Origine inchangée." };
+
+  await db.transaction(async (tx) => {
+    await tx
+      .update(tiers)
+      .set({ paysCode: lieu.paysCode, updatedAt: new Date(), version: sql`${tiers.version} + 1` })
+      .where(and(eq(tiers.id, id), eq(tiers.organizationId, session.organizationId)));
+    await tx.insert(auditLogs).values({
+      id: newId(),
+      organizationId: session.organizationId,
+      userId: session.userId,
+      action: "tiers.origine",
+      entityType: "tiers",
+      entityId: id,
+      before: { paysCode: avant.paysCode },
+      after: { paysCode: lieu.paysCode },
+    });
+  });
+
+  revalidatePath("/commercial");
+  revalidatePath("/commercial/fournisseurs");
+  return { ok: true, message: `${avant.nom} : ${origine === "local" ? "local" : "international"}.` };
 }

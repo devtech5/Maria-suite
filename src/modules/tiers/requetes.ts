@@ -3,6 +3,7 @@ import "server-only";
 import { and, asc, desc, eq, isNotNull, isNull, sql } from "drizzle-orm";
 
 import { db } from "@/db";
+import { organizations } from "@/db/schema/tenancy";
 import { contactsParTiers, type ContactVue } from "./contacts";
 import { ecritures, lignesEcriture } from "@/modules/comptabilite/schema";
 import type { NatureTiers } from "./natures";
@@ -219,6 +220,9 @@ export interface FicheTiers extends SoldeAuxiliaire {
   email: string | null;
   ville: string | null;
   secteur: string | null;
+  /** Nul : le pays de l'entreprise (local). Sinon le pays du tiers (international). */
+  paysCode: string | null;
+  adresse: string | null;
   identifiantFiscal: string | null;
   compteClient: string | null;
   compteFournisseur: string | null;
@@ -265,6 +269,8 @@ export async function fichesTiers(
       email: ligne.email,
       ville: ligne.ville,
       secteur: ligne.secteur,
+      paysCode: ligne.paysCode,
+      adresse: ligne.adresse,
       identifiantFiscal: ligne.identifiantFiscal,
       compteClient: ligne.compteClient,
       compteFournisseur: ligne.compteFournisseur,
@@ -276,4 +282,10 @@ export async function fichesTiers(
       contacts: contacts.get(ligne.id) ?? [],
     };
   });
+}
+
+/** Pays de l'entreprise (« CI ») : ce qui sépare un tiers local d'un tiers international. */
+export async function paysEntreprise(organizationId: string): Promise<string> {
+  const [ligne] = await db.select({ pays: organizations.countryCode }).from(organizations).where(eq(organizations.id, organizationId));
+  return ligne?.pays ?? "CI";
 }

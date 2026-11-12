@@ -37,7 +37,10 @@ export const CHAPITRES_GESTION: Chapitre[] = [
       {
         ancre: "fiche",
         titre: "La fiche fournisseur",
-        texte: ["Comme un client, un fournisseur a sa fiche, ses contacts et son compte auxiliaire (401). Ses commandes, factures et règlements passent par le module Achats."],
+        texte: [
+          "Comme un client, un fournisseur a sa fiche, ses contacts et son compte auxiliaire (401). Un clic sur sa ligne ouvre la fiche : identité, achats, solde dû, contacts, derniers mouvements. Ses commandes, factures et règlements passent par le module Achats.",
+          "Un fournisseur est local (du pays de l'entreprise) ou international, avec son pays : on le précise à la création, et on peut le corriger sur la fiche. Les puces au-dessus du tableau filtrent les locaux et les internationaux ; l'identifiant fiscal affiché suit son pays.",
+        ],
       },
     ],
     quiz: [],
@@ -87,7 +90,10 @@ export const CHAPITRES_GESTION: Chapitre[] = [
       {
         ancre: "commissions",
         titre: "Commissions",
-        texte: ["Une facture rattachée à un commercial compte dans son chiffre d'affaires hors taxes ; la commission se calcule par paliers, puis se valide et se paie depuis la trésorerie."],
+        texte: [
+          "Un commercial est interne ou externe. Interne : on le choisit dans la liste complète du personnel, sans rien ressaisir ; son compte, s'il en a un, reçoit ses tickets de caisse. Externe : un apporteur d'affaires qu'on enregistre sur place (nom, téléphone, e-mail, structure, ville) ; on le suit à part avec les puces Internes et Externes.",
+          "Une facture rattachée à un commercial compte dans son chiffre d'affaires hors taxes ; la commission se calcule par paliers, puis se valide. Celle d'un salarié passe par sa paie, celle d'un externe se paie depuis la trésorerie.",
+        ],
       },
     ],
     quiz: [],
@@ -103,7 +109,8 @@ export const CHAPITRES_GESTION: Chapitre[] = [
         titre: "Devis et factures",
         texte: [
           "Un devis se transforme en facture sans rien ressaisir. Émettre une facture lui donne son numéro, sans trou ni doublon, et passe l'écriture comptable ; la TVA est celle de la Côte d'Ivoire (18 %).",
-          "Une ligne peut en porter d'autres : la pose d'un climatiseur facturée sous l'appareil vendu, par exemple. Une facture émise ne se modifie plus : elle s'annule par un avoir.",
+          "Chaque ligne est un service : on le choisit dans la liste du catalogue, ou on le saisit. Un service nouveau est ajouté au catalogue à l'enregistrement du brouillon, au prix saisi (TVA 18 %, compte 706) ; deux lignes du même nom n'en créent qu'un.",
+          "Le client n'est pas au fichier ? « + Nouveau client… » : on indique son nom et son type (particulier, entreprise, ONG, mutuelle, association, coopérative), et il est enregistré avec la pièce, avec sa référence et son compte 411. Une facture émise ne se modifie plus : elle s'annule par un avoir.",
         ],
         capture: {
           fichier: "factures",
