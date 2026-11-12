@@ -718,6 +718,22 @@ export const DROITS = [
     description: "Voir les bordereaux qui vous sont adressés, en accuser réception et rendre votre retour. Accordé à tous les comptes.",
   },
 
+  // ---------------------------------------------------------------- perdiem
+  {
+    cle: "perdiem.consulter",
+    moduleKey: "perdiem",
+    libelle: "Consulter les perdiem",
+    description: "Voir le barème des perdiem et ceux attribués aux collaborateurs.",
+  },
+  {
+    cle: "perdiem.gerer",
+    moduleKey: "perdiem",
+    libelle: "Gérer les perdiem",
+    description:
+      "Ajouter, modifier et supprimer les montants du barème ; attribuer un perdiem à un collaborateur, le payer ou l'annuler. " +
+      "C'est le rôle de la comptable.",
+  },
+
   // ------------------------------------------------------ projets et dépenses
   {
     cle: "projet.consulter",
@@ -1196,6 +1212,8 @@ export const PRESETS_ROLES = [
       "rapports.consulter",
       "comptabilite.ecriture.enregistrer",
       "comptabilite.fiscalite.declarer",
+      "perdiem.consulter",
+      "perdiem.gerer",
       "achats.consulter",
       "achats.facture.saisir",
       "achats.reglement.payer",

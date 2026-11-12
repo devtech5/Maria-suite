@@ -307,6 +307,19 @@ export const MODULES: ModuleDefinition[] = [
   },
 
   {
+    key: "perdiem",
+    name: "Perdiem",
+    layer: "socle",
+    // En base : barème des montants par jour tenu par la comptable (ajout,
+    // modification, suppression ; une ligne déjà utilisée se retire au lieu de
+    // s'effacer) et attributions PD-AAAA-NNNNN à un collaborateur, pour une
+    // mission ou non, au montant du jour figé, payées ou annulées avec motif.
+    status: "en_cours",
+    requires: [],
+    description: "Perdiem des collaborateurs en déplacement : barème des montants par jour, attributions, paiements.",
+  },
+
+  {
     key: "transmissions",
     name: "Transmissions",
     layer: "socle",

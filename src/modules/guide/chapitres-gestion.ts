@@ -392,6 +392,42 @@ export const CHAPITRES_GESTION: Chapitre[] = [
     ],
   },
   {
+    cle: "perdiem",
+    titre: "Perdiem",
+    entree: "/perdiem",
+    resume: "Le barème des montants par jour et les perdiem des collaborateurs en mission.",
+    sections: [
+      {
+        ancre: "bareme",
+        titre: "Le barème",
+        chemin: "/perdiem/bareme",
+        texte: [
+          "La comptable tient le barème : une ligne par situation — Abidjan, Intérieur du pays, Zone minière, International — avec le montant PAR JOUR en francs entiers. Elle ajoute une ligne, la modifie, la supprime.",
+          "Modifier un montant ne réécrit pas les perdiem déjà attribués : ils gardent celui qu'ils avaient. Une ligne qui a déjà servi ne s'efface pas, elle se retire du barème ; une ligne jamais utilisée s'efface.",
+        ],
+      },
+      {
+        ancre: "attribuer",
+        titre: "Attribuer et payer un perdiem",
+        chemin: "/perdiem",
+        texte: [
+          "« Attribuer un perdiem » : le collaborateur, la ligne du barème, le nombre de jours, et si besoin la mission. Le montant se calcule sous vos yeux (jours × montant du jour) et se fige à l'attribution ; le perdiem reçoit son numéro PD-AAAA-NNNNN.",
+          "« Payer » enregistre la date, le moyen (espèces, mobile money, virement) et une référence. Un perdiem à payer peut s'annuler, avec un motif ; payé, il ne revient plus en arrière.",
+        ],
+        etapes: ["Fixer les montants dans « Barème ».", "Attribuer : collaborateur, barème, jours.", "Payer : date, moyen, référence."],
+      },
+    ],
+    quiz: [
+      {
+        cle: "perdiem-fige",
+        question: "Le barème passe de 15 000 à 20 000 F par jour. Que deviennent les perdiem déjà attribués ?",
+        choix: ["Ils passent à 20 000 F par jour", "Ils gardent 15 000 F par jour", "Ils sont annulés"],
+        bonne: 1,
+        explication: "Le montant du jour est figé à l'attribution : le barème change pour les attributions suivantes seulement.",
+      },
+    ],
+  },
+  {
     cle: "tresorerie",
     titre: "Trésorerie",
     entree: "/tresorerie",

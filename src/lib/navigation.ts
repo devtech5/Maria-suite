@@ -149,6 +149,7 @@ export const GROUPES_MODULES: GroupeModules[] = [
     modules: [
       { href: "/comptabilite", racine: "/comptabilite", icone: "comptabilite", libelle: "Comptabilité", description: "Écritures SYSCOHADA, balance et déclarations.", droit: "comptabilite.ecriture.consulter" },
       { href: "/tresorerie", racine: "/tresorerie", icone: "tresorerie", libelle: "Trésorerie", description: "Caisses, banques, bons et plan de trésorerie.", droit: "tresorerie.bon.demander" },
+      { href: "/perdiem", racine: "/perdiem", icone: "tresorerie", libelle: "Perdiem", description: "Barème des montants par jour, perdiem des collaborateurs en mission : attribution et paiement.", droit: "perdiem.consulter" },
       { href: "/tresorerie/caisse", racine: "/tresorerie/caisse", icone: "tresorerie", libelle: "Bons", description: "Bons de caisse : demande, validation et décaissement.", droit: "tresorerie.bon.demander" },
     ],
   },
