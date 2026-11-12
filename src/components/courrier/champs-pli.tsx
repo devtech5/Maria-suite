@@ -1,12 +1,15 @@
 "use client";
 
+import { useState } from "react";
+
 import { PrisePhoto } from "@/components/ui/prise-photo";
 import { CLASSE_CHAMP, Champ } from "@/components/ui/primitives";
-import { CANAUX, LONGUEURS, NATURES, type Sens } from "@/modules/courrier/regles";
+import { CANAUX_PROPOSES, LONGUEURS, NATURES, NOUVELLE_ENTITE, PREFIXE_ENTITE, type Sens } from "@/modules/courrier/regles";
 
 /** Les champs d'un pli à enregistrer, et son scan : par la caméra, ou un PDF. */
-export function ChampsPli({ sens }: { sens: Sens }) {
+export function ChampsPli({ sens, entites }: { sens: Sens; entites: string[] }) {
   const arrivee = sens === "arrivee";
+  const [canal, setCanal] = useState(arrivee ? "main_propre" : "coursier");
   return (
     <div className="space-y-3">
       <div className="grid gap-3 sm:grid-cols-2">
@@ -31,18 +34,33 @@ export function ChampsPli({ sens }: { sens: Sens }) {
           </select>
         </Champ>
         <Champ libelle={arrivee ? "Arrivé par" : "Part par"}>
-          <select name="canal" defaultValue={arrivee ? "main_propre" : "coursier"} className={CLASSE_CHAMP}>
-            {Object.entries(CANAUX).map(([cle, libelle]) => (
+          <select name="canal" value={canal} onChange={(e) => setCanal(e.target.value)} className={CLASSE_CHAMP}>
+            {CANAUX_PROPOSES.map(([cle, libelle]) => (
               <option key={cle} value={cle}>
                 {libelle}
               </option>
             ))}
+            {entites.length > 0 && (
+              <optgroup label="Entités de livraison">
+                {entites.map((nom) => (
+                  <option key={nom} value={`${PREFIXE_ENTITE}${nom}`}>
+                    {nom}
+                  </option>
+                ))}
+              </optgroup>
+            )}
+            <option value={NOUVELLE_ENTITE}>+ Une autre entité qui {arrivee ? "livre" : "emporte"}…</option>
           </select>
         </Champ>
         <Champ libelle="Date du document">
           <input name="dateDocument" type="date" className={CLASSE_CHAMP} />
         </Champ>
       </div>
+      {canal === NOUVELLE_ENTITE && (
+        <Champ libelle={arrivee ? "Entité qui livre" : "Entité qui emporte"} precision="Elle est ajoutée à la liste : le secrétariat la retrouvera au prochain courrier.">
+          <input name="entiteNom" required autoFocus maxLength={80} placeholder="Glovo, Jumia, coursier du quartier…" className={CLASSE_CHAMP} />
+        </Champ>
+      )}
       <label className="flex items-center gap-2 text-sm">
         <input type="checkbox" name="confidentiel" className="accent-marque-600" /> Confidentiel : l&apos;objet et le scan ne se lisent que par la direction et le destinataire
       </label>

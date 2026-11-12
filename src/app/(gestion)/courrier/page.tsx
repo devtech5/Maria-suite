@@ -9,7 +9,7 @@ import { CLASSE_CHAMP_COMPACT, EnTetePage } from "@/components/ui/primitives";
 import { accesCourrier, masquer } from "@/modules/courrier/acces";
 import { enregistrerPli } from "@/modules/courrier/actions";
 import { LIBELLE_STATUT, STATUTS_ARRIVEE, STATUTS_DEPART, type Sens, type StatutPli } from "@/modules/courrier/regles";
-import { aujourdhuiPour, plisDe } from "@/modules/courrier/requetes";
+import { aujourdhuiPour, entitesDeLivraison, plisDe } from "@/modules/courrier/requetes";
 
 export const metadata: Metadata = { title: "Courrier et colis" };
 
@@ -23,7 +23,7 @@ export default async function PageRegistreCourrier({ searchParams }: PageProps<"
   const statut = typeof p.statut === "string" && statuts.includes(p.statut as StatutPli) ? (p.statut as StatutPli) : null;
   const q = typeof p.q === "string" ? p.q : "";
   const org = a.session.organizationId;
-  const [lignes, aujourdhui] = await Promise.all([plisDe(org, { sens, statuts: statut ? [statut] : undefined, recherche: q, limite: 500 }), aujourdhuiPour(org)]);
+  const [lignes, aujourdhui, entites] = await Promise.all([plisDe(org, { sens, statuts: statut ? [statut] : undefined, recherche: q, limite: 500 }), aujourdhuiPour(org), entitesDeLivraison(org)]);
   const visibles = lignes.map((l) => masquer(l, a.voitContenu(l)));
 
   return (
@@ -39,7 +39,7 @@ export default async function PageRegistreCourrier({ searchParams }: PageProps<"
               action={enregistrerPli.bind(null, sens)}
               presentation="ample"
             >
-              <ChampsPli sens={sens} />
+              <ChampsPli sens={sens} entites={entites} />
             </FormulaireRepliable>
           )
         }

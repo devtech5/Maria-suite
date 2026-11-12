@@ -38,7 +38,7 @@ export default async function PagePli({ params }: PageProps<"/courrier/[id]">) {
   const lignes: [string, React.ReactNode][] = [
     [arrivee ? "Expéditeur" : "Destinataire", p.correspondant],
     ["Nature", natureValide(p.nature) ? NATURES[p.nature] : p.nature],
-    [arrivee ? "Arrivé par" : "Part par", canalValide(p.canal) ? CANAUX[p.canal] : p.canal],
+    [arrivee ? "Arrivé par" : "Part par", p.canal === "entite" && p.transporteur ? p.transporteur : canalValide(p.canal) ? CANAUX[p.canal] : p.canal],
     ["Référence", p.reference ?? "—"],
     ["Date du document", jour(p.dateDocument)],
     ["Enregistré le", QUAND.format(p.enregistreLe)],

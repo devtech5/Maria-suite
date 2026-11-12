@@ -18,8 +18,8 @@ import { notifier } from "@/modules/communication/notifications";
 import { aujourdhuiPour } from "@/modules/reglement/requetes";
 
 import {
-  canalValide,
   formatNumero,
+  lireCanal,
   natureValide,
   passagePermis,
   refusImputation,
@@ -182,6 +182,21 @@ export async function pliParJeton(organizationId: string, token: string): Promis
  * Enregistre un pli : numéro du registre et code de l'étiquette dans la même
  * transaction. Un pli arrivé est signalé à qui l'impute.
  */
+/**
+ * Les entités de livraison déjà enregistrées : Glovo, un coursier de quartier…
+ * Pas de table à part — elles se lisent sur les plis qui les portent, et
+ * s'ajoutent d'elles-mêmes au premier pli : « ajouter » une entité, c'est
+ * enregistrer un courrier qu'elle a livré.
+ */
+export async function entitesDeLivraison(organizationId: string): Promise<string[]> {
+  const lignes = await db
+    .selectDistinct({ nom: plis.transporteur })
+    .from(plis)
+    .where(and(eq(plis.organizationId, organizationId), eq(plis.canal, "entite"), isNull(plis.deletedAt), sql`${plis.transporteur} is not null`))
+    .orderBy(asc(plis.transporteur));
+  return lignes.map((l) => l.nom).filter((n): n is string => Boolean(n));
+}
+
 export async function enregistrerPliPour(
   organizationId: string,
   userId: string,
@@ -190,9 +205,12 @@ export async function enregistrerPliPour(
   options: { confidentiel?: boolean; courrierId?: string | null } = {},
   maintenant = new Date(),
 ): Promise<{ id: string; numero: string }> {
-  const refus = refusSaisie(saisie, sens);
+  const lu = lireCanal(saisie.canal, saisie.entite ?? "", await entitesDeLivraison(organizationId));
+  if ("erreur" in lu) throw new Error(lu.erreur);
+  const saisieLue: SaisiePli = { ...saisie, canal: lu.canal };
+  const refus = refusSaisie(saisieLue, sens);
   if (refus) throw new Error(refus);
-  if (!natureValide(saisie.nature) || !canalValide(saisie.canal)) throw new Error("Nature ou canal inconnu.");
+  if (!natureValide(saisie.nature)) throw new Error("Nature ou canal inconnu.");
 
   const id = newId();
   const token = randomBytes(12).toString("base64url");
@@ -205,7 +223,8 @@ export async function enregistrerPliPour(
       numero: n,
       statut: statutInitial(sens),
       nature: saisie.nature,
-      canal: saisie.canal,
+      canal: lu.canal,
+      transporteur: lu.transporteur,
       objet: saisie.objet.trim(),
       correspondant: saisie.correspondant.trim(),
       reference: saisie.reference.trim() || null,

@@ -46,12 +46,49 @@ export type Nature = keyof typeof NATURES;
 export const CANAUX = {
   main_propre: "En main propre",
   coursier: "Coursier",
+  yango: "Yango",
   poste: "La Poste",
   transporteur: "Transporteur (DHL, Chronopost…)",
   email: "Courriel",
   autre: "Autre",
+  // Une entité de livraison ajoutée par le secrétariat : son nom est dans `transporteur`.
+  entite: "Entité de livraison",
 } as const;
 export type Canal = keyof typeof CANAUX;
+
+/** Les canaux qu'on choisit dans la liste : l'entité de livraison s'y ajoute par son nom, pas par sa clé. */
+export const CANAUX_PROPOSES = Object.entries(CANAUX).filter(([cle]) => cle !== "entite") as [Exclude<Canal, "entite">, string][];
+
+/** Valeur du choix « une entité qui n'est pas encore dans la liste ». */
+export const NOUVELLE_ENTITE = "__nouvelle__";
+/** Préfixe d'une entité de livraison déjà connue : `entite:Glovo`. */
+export const PREFIXE_ENTITE = "entite:";
+
+const sansAccent = (t: string) => t.normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase();
+const nomPropre = (t: string) => t.replace(/\s+/g, " ").trim();
+
+/**
+ * Ce que dit le choix « Arrivé par » : un canal de la liste, une entité déjà
+ * connue (`entite:Glovo`), ou une entité nouvelle saisie à la main.
+ *
+ * Un nom qui est déjà un canal de la liste (« yango », « La Poste ») rend
+ * CE canal, jamais une entité en double ; un nom déjà connu garde son
+ * orthographe d'origine, casse et accents ignorés. Seule une entité vraiment
+ * nouvelle s'ajoute — elle est proposée ensuite à tout le secrétariat.
+ */
+export function lireCanal(brut: string, entiteSaisie: string, connues: readonly string[]): { canal: Canal; transporteur: string | null } | { erreur: string } {
+  if (brut !== NOUVELLE_ENTITE && !brut.startsWith(PREFIXE_ENTITE)) {
+    return canalValide(brut) && brut !== "entite" ? { canal: brut, transporteur: null } : { erreur: "Indiquez comment le pli est arrivé." };
+  }
+  const nom = nomPropre(brut === NOUVELLE_ENTITE ? entiteSaisie : brut.slice(PREFIXE_ENTITE.length));
+  if (nom.length < 2) return { erreur: "Indiquez le nom de l'entité qui livre." };
+  if (nom.length > 80) return { erreur: "Le nom de l'entité dépasse 80 caractères." };
+  const cle = sansAccent(nom);
+  const integre = CANAUX_PROPOSES.find(([k, libelle]) => k !== "autre" && (sansAccent(libelle) === cle || sansAccent(libelle.split("(")[0].trim()) === cle));
+  if (integre) return { canal: integre[0], transporteur: null };
+  const connue = connues.find((c) => sansAccent(c) === cle);
+  return { canal: "entite", transporteur: connue ?? nom };
+}
 
 export function natureValide(v: unknown): v is Nature {
   return typeof v === "string" && Object.hasOwn(NATURES, v);
@@ -110,6 +147,8 @@ export interface SaisiePli {
   reference: string;
   nature: string;
   canal: string;
+  /** Nom de l'entité qui livre, quand le canal est « nouvelle entité ». */
+  entite?: string;
   dateDocument: string;
 }
 
