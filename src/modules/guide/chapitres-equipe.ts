@@ -338,6 +338,53 @@ export const CHAPITRES_EQUIPE: Chapitre[] = [
     ],
   },
   {
+    cle: "terrain",
+    titre: "Mon terrain",
+    entree: "/terrain",
+    resume: "Relever sur place ce qui est constaté, avec photo et position GPS, pour le superviseur et le chef de projet.",
+    sections: [
+      {
+        ancre: "equipe",
+        titre: "Confier un projet à une équipe",
+        texte: [
+          "Le chef de projet — le responsable du projet — ouvre la fiche du projet et choisit « Confier du personnel » : une personne INTERNE, prise dans la liste complète du personnel, ou EXTERNE, enregistrée sur place (nom, téléphone, structure). Il lui donne un rôle : agent, ou superviseur. Il n'y a qu'un superviseur par projet ; en nommer un autre fait passer l'ancien agent.",
+          "Le superviseur a un compte pour examiner les relevés. Un externe n'en a pas : un agent relève à sa place, et le relevé garde les deux noms.",
+        ],
+      },
+      {
+        ancre: "releve",
+        titre: "Faire un relevé",
+        chemin: "/terrain",
+        texte: [
+          "« Mon terrain » liste les projets où vous êtes en poste. Sur un projet, « Nouveau relevé » : un titre, ce qui a été constaté ou fait, l'avancement, puis les PREUVES — une ou deux photos prises par la caméra, des captures d'écran — et la position GPS relevée par l'appareil.",
+          "Sans position GPS ni photo, le relevé est refusé : c'est ce qui le rend traçable. Le superviseur et le chef de projet sont prévenus dans la cloche ; vous suivez l'état de vos relevés : à examiner, validé, ou à refaire avec le motif.",
+        ],
+        etapes: ["Ouvrir le projet dans « Mon terrain ».", "Nouveau relevé : titre, constat, avancement.", "Relever la position, prendre la photo.", "Enregistrer : le superviseur est prévenu."],
+      },
+      {
+        ancre: "examen",
+        titre: "Examiner les relevés",
+        texte: ["Le superviseur et le chef de projet voient les relevés de toute l'équipe, avec leurs photos et leur position sur la carte. « Valider » clôt le relevé ; « À refaire » le renvoie à son auteur, avec un commentaire obligatoire."],
+      },
+    ],
+    quiz: [
+      {
+        cle: "terrain-preuves",
+        question: "Que faut-il pour qu'un relevé de terrain soit accepté ?",
+        choix: ["Un titre suffit", "Une position GPS relevée par l'appareil et au moins une photo ou capture", "La signature du chef de projet"],
+        bonne: 1,
+        explication: "Position GPS et preuve photo sont exigées : sans elles, le relevé ne serait pas traçable.",
+      },
+      {
+        cle: "terrain-externe",
+        question: "Un sous-traitant externe n'a pas de compte. Comment ses relevés arrivent-ils ?",
+        choix: ["Il ne peut pas en faire", "Un agent du projet relève à sa place, et les deux noms sont gardés", "Le chef de projet les ressaisit à la fin"],
+        bonne: 1,
+        explication: "L'auteur du relevé est l'externe ; le compte qui l'a saisi est conservé pour la traçabilité.",
+      },
+    ],
+  },
+  {
     cle: "anniversaires",
     titre: "Anniversaires",
     entree: "/anniversaires",

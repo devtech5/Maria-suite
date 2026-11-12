@@ -732,6 +732,14 @@ export const DROITS = [
     description: "Créer un projet, l'affecter à un responsable, changer son statut, ajouter photos et pièces.",
   },
   {
+    cle: "projet.terrain.collecter",
+    moduleKey: "projet",
+    libelle: "Relever sur le terrain",
+    description:
+      "Voir les projets qui vous sont confiés (comme agent, superviseur ou chef de projet) et y relever ce qui est constaté, " +
+      "avec photo et position GPS. Accordé à tous les comptes : seuls les projets où vous êtes en poste apparaissent.",
+  },
+  {
     cle: "depense.demander",
     moduleKey: "projet",
     libelle: "Demander une dépense",
@@ -959,7 +967,7 @@ const CLES = new Set<string>(TOUS_LES_DROITS);
  * un module coupé pour l'entreprise les retire comme les autres. Ils ne se
  * proposent pas à la composition d'un rôle, où une case sans effet tromperait.
  */
-export const DROITS_DE_TOUS: readonly Droit[] = ["reglement.consulter", "guide.consulter", "courrier.recevoir", "transmissions.recevoir"];
+export const DROITS_DE_TOUS: readonly Droit[] = ["reglement.consulter", "guide.consulter", "courrier.recevoir", "transmissions.recevoir", "projet.terrain.collecter"];
 
 /** Les droits d'un rôle, augmentés de ceux de tout compte. */
 export function avecDroitsDeTous(droits: ReadonlySet<Droit>): Set<Droit> {

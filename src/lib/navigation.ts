@@ -84,6 +84,8 @@ export const GROUPES_MODULES: GroupeModules[] = [
       // Ouvert à tous : il n'explique que les modules de chacun.
       { href: "/transmissions/recues", racine: "/transmissions/recues", icone: "transmissions", libelle: "Mes transmissions", description: "Les bordereaux qui vous sont adressés : accuser réception, rendre votre retour.", droit: "transmissions.recevoir" },
       { href: "/courrier/mon-courrier", racine: "/courrier/mon-courrier", icone: "courrier", libelle: "Mon courrier", description: "Le courrier qui vous est imputé : accuser réception, répondre.", droit: "courrier.recevoir" },
+      // Ouvert à tous : n'apparaissent que les projets où l'on est en poste (agent, superviseur) ou chef de projet.
+      { href: "/terrain", racine: "/terrain", icone: "projets", libelle: "Mon terrain", description: "Les projets qui vous sont confiés : relevez sur place, avec photo et position GPS.", droit: "projet.terrain.collecter" },
       { href: "/guide", racine: "/guide", icone: "guide", libelle: "Guide d'utilisation", description: "Apprendre Maria Suite module par module, avec un parcours et un quiz.", droit: "guide.consulter" },
     ],
   },
