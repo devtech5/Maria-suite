@@ -55,7 +55,7 @@ export default async function PagePlanProspection({ params }: PageProps<"/commer
         actions={
           <>
             {gere && (
-              <FormulaireRepliable libelle="Ajouter un prospect" titre="Nouveau prospect" action={ajouterProspect.bind(null, plan.id)} presentation="tiroir">
+              <FormulaireRepliable libelle="Ajouter un prospect" titre="Nouveau prospect" action={ajouterProspect.bind(null, plan.id)} presentation="ample">
                 <ChampsProspect />
               </FormulaireRepliable>
             )}

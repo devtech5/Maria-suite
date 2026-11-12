@@ -16,7 +16,7 @@ import { listerComptes } from "@/modules/tresorerie/requetes";
 
 import { ActionsCommission, ChoixMois, FicheCommercial } from "./edition";
 
-export const metadata: Metadata = { title: "Commerciaux" };
+export const metadata: Metadata = { title: "Commercial" };
 
 const moisValide = (m: unknown): m is string => typeof m === "string" && /^\d{4}-(0[1-9]|1[0-2])$/.test(m);
 
@@ -62,7 +62,7 @@ export default async function PageCommerciaux({ searchParams }: PageProps<"/comm
 
   return (
     <>
-      <EnTetePage titre="Commerciaux" sousTitre={`Réalisations et commissions — ${libelleMois(mois)}${termine ? "" : " (mois en cours)"}`} actions={<ChoixMois mois={mois} max={courant} />} />
+      <EnTetePage titre="Commercial" sousTitre={`Réalisations et commissions — ${libelleMois(mois)}${termine ? "" : " (mois en cours)"}`} actions={<ChoixMois mois={mois} max={courant} />} />
 
       <section className="mb-5 grid grid-cols-2 gap-2 sm:gap-3 xl:grid-cols-4">
         <CarteIndicateur libelle="CA HT des commerciaux" valeur={fmtCompact(ca)} unite="FCFA" precision="Factures moins avoirs, et tickets de caisse" />

@@ -49,7 +49,7 @@ export default async function PageProspection() {
         sousTitre={a.superviser ? "Les plans de tous les commerciaux" : "Vos plans de prospection"}
         actions={
           peutCreer && (
-            <FormulaireRepliable libelle="Nouveau plan" titre="Nouveau plan de prospection" action={creerPlan} presentation="tiroir">
+            <FormulaireRepliable libelle="Nouveau plan" titre="Nouveau plan de prospection" action={creerPlan} presentation="ample">
               <ChampsPlan commerciaux={commerciaux} aujourdhui={aujourdhui} />
             </FormulaireRepliable>
           )
@@ -61,8 +61,8 @@ export default async function PageProspection() {
           titre={a.superviser ? "Aucun commercial enregistré" : "Votre compte n'est lié à aucun commercial"}
           message={
             a.superviser
-              ? "Enregistrez d'abord les commerciaux dans « Commerciaux » : chaque plan de prospection appartient à l'un d'eux."
-              : "Demandez à la direction de vous enregistrer dans « Commerciaux », lié à votre compte : vous pourrez alors élaborer vos plans."
+              ? "Enregistrez d'abord les commerciaux dans « Commercial » : chaque plan de prospection appartient à l'un d'eux."
+              : "Demandez à la direction de vous enregistrer dans « Commercial », lié à votre compte : vous pourrez alors élaborer vos plans."
           }
         />
       ) : (

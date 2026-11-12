@@ -95,7 +95,7 @@ export const GROUPES_MODULES: GroupeModules[] = [
     modules: [
       { href: "/commercial", racine: "/commercial", icone: "commercial", libelle: "Clients", description: "Clients, devis, factures et encaissements.", droit: "tiers.fiche.consulter" },
       { href: "/commercial/prospection", racine: "/commercial/prospection", icone: "commercial", libelle: "Prospection", description: "Plans de prospection : zone, objectifs, prospects par type, visites et appels jusqu'au client.", droit: "commercial.prospection.planifier" },
-      { href: "/commercial/commerciaux", racine: "/commercial/commerciaux", icone: "commercial", libelle: "Commerciaux", description: "Commerciaux, objectifs et commissions.", droit: "commercial.commission.gerer" },
+      { href: "/commercial/commerciaux", racine: "/commercial/commerciaux", icone: "commercial", libelle: "Commercial", description: "L'équipe commerciale : objectifs et commissions.", droit: "commercial.commission.gerer" },
       { href: "/commercial/fournisseurs", racine: "/commercial/fournisseurs", icone: "achats", libelle: "Fournisseurs", description: "Fiches fournisseurs, leurs factures et ce qui leur est dû.", droit: "tiers.fiche.consulter" },
       { href: "/commercial/factures", racine: "/commercial/factures", icone: "commercial", libelle: "Devis et factures", description: "Devis, factures et avoirs clients.", droit: "tiers.fiche.consulter" },
       { href: "/achats", racine: "/achats", icone: "achats", libelle: "Achats", description: "Commandes et factures fournisseurs.", droit: "achats.consulter" },

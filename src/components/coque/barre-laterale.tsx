@@ -83,13 +83,15 @@ function ListeSections({ sections, onChoisir }: { sections: Section[]; onChoisir
                     href={e.href}
                     onClick={onChoisir}
                     aria-current={actif ? "page" : undefined}
+                    // L'entrée courante peut être loin dans la liste (Archives, Administration) : on l'amène à l'écran.
+                    ref={actif ? (el) => el?.scrollIntoView({ block: "nearest" }) : undefined}
                     className={`flex items-center gap-3 rounded-lg px-3 py-2 text-sm transition-colors ${
                       actif
-                        ? "bg-white font-semibold text-nuit-profond shadow-sm"
+                        ? "bg-or font-semibold text-white shadow-sm"
                         : "text-[var(--encre-douce)] hover:bg-[var(--surface-creuse)] hover:text-white"
                     }`}
                   >
-                    <IconeModule cle={e.icone} className={`size-[18px] shrink-0 ${actif ? "text-or-700" : ""}`} />
+                    <IconeModule cle={e.icone} className="size-[18px] shrink-0" />
                     <span className="min-w-0 truncate">{e.libelle}</span>
                   </Link>
                 </li>
@@ -107,7 +109,7 @@ function ListeSections({ sections, onChoisir }: { sections: Section[]; onChoisir
  *
  * Bleu nuit de la charte, la marque en tête sur une carte blanche, puis
  * chaque domaine en intertitre et ses entrées en dessous. L'entrée courante
- * passe en blanc. Seule la liste défile : la marque reste en place.
+ * passe en or MARIA, texte blanc. Seule la liste défile : la marque reste en place.
  */
 export function BarreLaterale({ droits, modulesOuverts }: { droits: Droit[]; modulesOuverts: string[] }) {
   const sections = sectionsVisibles(droits, modulesOuverts);

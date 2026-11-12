@@ -4,7 +4,9 @@ import { afterAll, beforeAll, describe, expect, it } from "vitest";
 import type { db as Db } from "@/db";
 import { memberships, notifications, roles, transmissions, users } from "@/db/schema";
 import { newId } from "@/lib/ids";
-import { accuserPour, creerTransmissionPour, recevoirPour, relancerRetardsPour, traiterPour, transmettrePour, transmissionsDe } from "@/modules/transmissions/requetes";
+import { creerSalariePour } from "@/modules/personnes/creation";
+import { employees } from "@/modules/personnes/schema";
+import { accuserPour, choixPossibles, creerTransmissionPour, recevoirPour, relancerRetardsPour, traiterPour, transmettrePour, transmissionsDe } from "@/modules/transmissions/requetes";
 
 import { ouvrirBaseDeTest, semerEntreprise } from "./base";
 
@@ -101,5 +103,21 @@ describe("transmissions sur une vraie base", () => {
   it("ne montre à chacun que ce qui le concerne", async () => {
     expect((await transmissionsDe(org, { concerne: daf })).length).toBe(2);
     expect((await transmissionsDe(org, { recherche: "ferraillage" })).map((t) => t.objet)).toEqual(["Plans d'exécution R+3"]);
+  });
+
+  it("propose tout le personnel comme destinataire, les salariés sans compte signalés", async () => {
+    const { id: avecCompte } = await creerSalariePour(org, { nom: "Aya Touré", poste: "Comptable", debut: "2026-01-05", salaireBase: 200_000, service: "Finances" }, daf);
+    await db.update(employees).set({ userId: daf }).where(eq(employees.id, avecCompte));
+    const { id: sansCompte } = await creerSalariePour(org, { nom: "Zoé Bamba", poste: "Chauffeur", debut: "2026-01-05", salaireBase: 120_000 }, daf);
+
+    const { personnes } = await choixPossibles(org);
+    const noms = personnes.map((p) => p.nom);
+    // Ordre alphabétique, et personne n'apparaît deux fois (la fiche et le compte de Aya sont une seule ligne).
+    expect(noms).toEqual([...noms].sort((a, b) => a.localeCompare(b, "fr", { sensitivity: "base" })));
+    expect(new Set(personnes.map((p) => p.id)).size).toBe(personnes.length);
+    expect(personnes.find((p) => p.nom === "Aya Touré")).toMatchObject({ id: daf, sansCompte: false, detail: "Comptable · Finances" });
+    expect(personnes.find((p) => p.nom === "Zoé Bamba")).toMatchObject({ id: sansCompte, sansCompte: true, detail: "Chauffeur" });
+    // Un compte sans fiche de salarié reste proposé.
+    expect(personnes.find((p) => p.id === ingenieur)).toMatchObject({ sansCompte: false });
   });
 });

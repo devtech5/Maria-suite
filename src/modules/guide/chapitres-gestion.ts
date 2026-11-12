@@ -80,7 +80,7 @@ export const CHAPITRES_GESTION: Chapitre[] = [
   },
   {
     cle: "commerciaux",
-    titre: "Commerciaux",
+    titre: "Commercial",
     entree: "/commercial/commerciaux",
     resume: "Les commerciaux, leur chiffre d'affaires et leurs commissions à paliers.",
     sections: [

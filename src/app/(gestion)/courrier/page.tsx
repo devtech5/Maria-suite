@@ -37,7 +37,7 @@ export default async function PageRegistreCourrier({ searchParams }: PageProps<"
               libelle={sens === "arrivee" ? "Enregistrer une arrivée" : "Enregistrer un départ"}
               titre={sens === "arrivee" ? "Courrier arrivé" : "Courrier au départ"}
               action={enregistrerPli.bind(null, sens)}
-              presentation="tiroir"
+              presentation="ample"
             >
               <ChampsPli sens={sens} />
             </FormulaireRepliable>

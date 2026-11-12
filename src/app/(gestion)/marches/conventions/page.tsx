@@ -40,7 +40,7 @@ export default async function PageConventions({ searchParams }: PageProps<"/marc
         sousTitre="Contrats-cadres avec vos clients, fournisseurs et partenaires"
         actions={
           gerer ? (
-            <FormulaireRepliable libelle="Nouvelle convention" titre="Convention" presentation="tiroir" action={creerConvention}>
+            <FormulaireRepliable libelle="Nouvelle convention" titre="Convention" presentation="ample" action={creerConvention}>
               <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
                 <Champ libelle="Intitulé">
                   <input name="intitule" required placeholder="Contrat de maintenance annuel" className={CLASSE_CHAMP} />

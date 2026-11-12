@@ -5,11 +5,12 @@ import { useState } from "react";
 import { PrisePhoto } from "@/components/ui/prise-photo";
 import { CLASSE_CHAMP, Champ } from "@/components/ui/primitives";
 import { MENTIONS, MOYENS, type Sens } from "@/modules/transmissions/regles";
+import type { ChoixPersonne } from "@/modules/transmissions/requetes";
 
 import { EditeurPieces } from "./editeur-pieces";
 
 export interface Choix {
-  personnes: { id: string; nom: string }[];
+  personnes: ChoixPersonne[];
   services: { id: string; libelle: string; code: string }[];
   entreprises: { id: string; nom: string }[];
 }
@@ -45,8 +46,10 @@ export function ChampsTransmission({ sens, choix, moi, aujourdhui }: { sens: Sen
               {choix.personnes
                 .filter((p) => p.id !== moi)
                 .map((p) => (
-                  <option key={p.id} value={p.id}>
+                  <option key={p.id} value={p.id} disabled={p.sansCompte}>
                     {p.nom}
+                    {p.detail ? ` — ${p.detail}` : ""}
+                    {p.sansCompte ? " (sans compte)" : ""}
                   </option>
                 ))}
             </select>
@@ -92,11 +95,13 @@ export function ChampsTransmission({ sens, choix, moi, aujourdhui }: { sens: Sen
           </Champ>
           <Champ libelle="Suivi par">
             <select name="responsableUserId" defaultValue={moi} className={CLASSE_CHAMP}>
-              {choix.personnes.map((p) => (
-                <option key={p.id} value={p.id}>
-                  {p.nom}
-                </option>
-              ))}
+              {choix.personnes
+                .filter((p) => !p.sansCompte)
+                .map((p) => (
+                  <option key={p.id} value={p.id}>
+                    {p.nom}
+                  </option>
+                ))}
             </select>
           </Champ>
         </div>
