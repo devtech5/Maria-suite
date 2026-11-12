@@ -1,6 +1,7 @@
 import { sql } from "drizzle-orm";
 import {
   check,
+  date,
   index,
   integer,
   jsonb,
@@ -16,6 +17,7 @@ import { money, primaryId, rowVersion, timestamps } from "@/db/schema/_shared";
 import { organizations } from "@/db/schema/tenancy";
 import { actifs } from "@/modules/actifs/schema";
 import { employees, workers } from "@/modules/personnes/schema";
+import { prestataires } from "@/modules/prestataires/schema";
 import { tiers } from "@/modules/tiers/schema";
 
 /**
@@ -64,7 +66,7 @@ export const typePreuve = pgEnum("type_preuve", [
  * `preuves_mission` — les stocker à côté des lignes qui les composent
  * garantit qu'ils divergeront.
  *
- * L'exécutant est un salarié OU un intervenant, jamais les deux (même règle que
+ * L'exécutant est un collaborateur du Personnel OU un intervenant, jamais les deux (même règle que
  * pour les actifs) : un livreur occasionnel payé à la course et un chauffeur
  * sous contrat n'engagent pas les mêmes obligations. Les deux colonnes nulles
  * sont admises — une mission se planifie avant d'être attribuée.
@@ -106,6 +108,14 @@ export const missions = pgTable(
     /** Montant facturable au client. Zéro pour une mission interne. */
     montant: money("montant").notNull().default(0),
 
+    /**
+     * Budget des intervenants de la mission : ce qu'on peut engager, en francs
+     * entiers. Nul tant qu'aucun intervenant n'est prévu. Les intervenants
+     * (manutention, vendeuse, entreprise, prestataire) se confient dans la
+     * limite de ce budget et se paient sur place, décharge à l'appui.
+     */
+    budget: money("budget"),
+
     echeanceLe: timestamp("echeance_le", { withTimezone: true }),
     debuteLe: timestamp("debute_le", { withTimezone: true }),
     clotureLe: timestamp("cloture_le", { withTimezone: true }),
@@ -120,6 +130,7 @@ export const missions = pgTable(
   (t) => [
     unique("missions_reference_unique").on(t.organizationId, t.reference),
     check("missions_montant_positif", sql`${t.montant} >= 0`),
+    check("missions_budget_positif", sql`${t.budget} IS NULL OR ${t.budget} >= 0`),
     check(
       "missions_un_seul_executant",
       sql`${t.employeId} IS NULL OR ${t.intervenantId} IS NULL`,
@@ -323,6 +334,72 @@ export const reponsesFormulaire = pgTable(
     index("reponses_formulaire_org_idx").on(t.organizationId),
   ],
 );
+
+/**
+ * Intervenant d'une mission : une personne ou une entreprise à qui l'on confie
+ * UNE tâche précise — manutention, vendeuse, entreprise de nettoyage,
+ * prestataire — pour un montant convenu, imputé au budget de la mission.
+ * Payé sur place : le paiement exige la décharge, preuve de paiement.
+ * Règles dans `./budget.ts`.
+ */
+export const intervenantsMission = pgTable(
+  "intervenants_mission",
+  {
+    id: primaryId(),
+    organizationId: uuid("organization_id")
+      .notNull()
+      .references(() => organizations.id, { onDelete: "cascade" }),
+    missionId: uuid("mission_id")
+      .notNull()
+      .references(() => missions.id, { onDelete: "cascade" }),
+
+    /** La tâche précise : « Manutention », « Vente sur stand »… */
+    tache: text("tache").notNull(),
+    /** `intervenant`, `entreprise` ou `prestataire`. */
+    nature: text("nature").notNull(),
+    /** Son nom, recopié : il survit à la fiche d'origine. */
+    nom: text("nom").notNull(),
+    telephone: text("telephone"),
+    workerId: uuid("worker_id").references(() => workers.id, { onDelete: "set null" }),
+    prestataireId: uuid("prestataire_id").references(() => prestataires.id, { onDelete: "set null" }),
+
+    /** Montant convenu pour la tâche, en francs entiers. */
+    montantConvenu: money("montant_convenu").notNull(),
+
+    /** `a_payer`, `paye` ou `annule`. */
+    statut: text("statut").notNull().default("a_payer"),
+    payeLe: date("paye_le"),
+    /** `especes` ou `mobile_money`. */
+    moyen: text("moyen"),
+    /** Qui a reçu l'argent, tel qu'il signe la décharge. */
+    recuPar: text("recu_par"),
+    /** La décharge : photo ou scan du reçu signé. Le fichier vit dans le dépôt. */
+    dechargeChemin: text("decharge_chemin"),
+    dechargeNom: text("decharge_nom"),
+    dechargeType: text("decharge_type"),
+    payeParUserId: uuid("paye_par_user_id"),
+    motifAnnulation: text("motif_annulation"),
+    creeParUserId: uuid("cree_par_user_id"),
+
+    ...timestamps,
+    ...rowVersion,
+  },
+  (t) => [
+    index("intervenants_mission_mission_idx").on(t.organizationId, t.missionId),
+    check("intervenants_mission_nature", sql`${t.nature} in ('intervenant', 'entreprise', 'prestataire')`),
+    check("intervenants_mission_statut", sql`${t.statut} in ('a_payer', 'paye', 'annule')`),
+    check("intervenants_mission_montant", sql`${t.montantConvenu} > 0`),
+    check("intervenants_mission_moyen", sql`${t.moyen} IS NULL OR ${t.moyen} in ('especes', 'mobile_money')`),
+    // Pas de paiement sans date, moyen, nom de qui a reçu, et décharge.
+    check(
+      "intervenants_mission_paiement",
+      sql`${t.statut} <> 'paye' OR (${t.payeLe} IS NOT NULL AND ${t.moyen} IS NOT NULL AND ${t.recuPar} IS NOT NULL AND ${t.dechargeChemin} IS NOT NULL)`,
+    ),
+    check("intervenants_mission_annulation_motivee", sql`${t.statut} <> 'annule' OR ${t.motifAnnulation} IS NOT NULL`),
+  ],
+);
+
+export type IntervenantMission = typeof intervenantsMission.$inferSelect;
 
 export type Mission = typeof missions.$inferSelect;
 export type EtapeMission = typeof etapesMission.$inferSelect;

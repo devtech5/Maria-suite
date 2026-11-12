@@ -55,7 +55,7 @@ export default async function PagePaie({ searchParams }: PageProps<"/rh/paie">) 
             </Link>
             <Link
               href={`/rapports/disa?du=${mois.slice(0, 4)}-01-01&au=${mois.slice(0, 4)}-12-31`}
-              title="Déclaration annuelle des salaires : cumuls par salarié de l'année, à reporter à la CNPS"
+              title="Déclaration annuelle des salaires : cumuls par collaborateur de l'année, à reporter à la CNPS"
               className="h-cible inline-flex items-center rounded-lg border border-[var(--filet)] bg-[var(--surface)] px-3.5 text-sm font-medium hover:bg-[var(--surface-creuse)]"
             >
               DISA {mois.slice(0, 4)}
@@ -104,7 +104,7 @@ export default async function PagePaie({ searchParams }: PageProps<"/rh/paie">) 
       {!detail ? (
         <EtatVide
           titre="Paie non préparée"
-          message="Préparez la paie du mois : un bulletin par salarié sous contrat, calculé sur son salaire de base, moins les jours hors contrat et les congés sans solde accordés dans Présences. Vous ajouterez ensuite absences, primes, indemnités et retenues."
+          message="Préparez la paie du mois : un bulletin par collaborateur sous contrat, calculé sur son salaire de base, moins les jours hors contrat et les congés sans solde accordés dans Présences. Vous ajouterez ensuite absences, primes, indemnités et retenues."
         />
       ) : (
         <>
@@ -146,7 +146,7 @@ export default async function PagePaie({ searchParams }: PageProps<"/rh/paie">) 
             // « Tout afficher » reste sur le même mois ; le champ caché le garde à la soumission.
             chemin={`/rh/paie?mois=${mois}`}
             valeur={filtres.q}
-            placeholder="Salarié, matricule, n° de bulletin, poste…"
+            placeholder="Collaborateur, matricule, n° de bulletin, poste…"
             filtres={<input type="hidden" name="mois" value={mois} />}
             resultats={filtres.q ? `${fmtEntier(affiches.length)} sur ${fmtEntier(bulletins.length)}` : undefined}
           />

@@ -75,9 +75,9 @@ export default async function PagePresences({ searchParams }: PageProps<"/presen
         {monSolde ? (
           <CarteIndicateur libelle="Mon solde de congés" valeur={formatJours(monSolde.solde)} precision={monSolde.enAttente ? `${formatJours(monSolde.enAttente)} en attente de décision` : `Acquis depuis le ${monSolde.depuis.split("-").reverse().join("/")}`} ton="marque" href="/presences/conges" />
         ) : (
-          <CarteIndicateur libelle="Mon solde de congés" valeur="—" precision="Compte non rattaché à une fiche salarié" />
+          <CarteIndicateur libelle="Mon solde de congés" valeur="—" precision="Compte non rattaché à une fiche collaborateur" />
         )}
-        {equipe && <CarteIndicateur libelle="Présents aujourd'hui" valeur={`${presents.length}`} precision={`${retards.length} retard(s) · ${salaries.length} salarié(s) en poste`} />}
+        {equipe && <CarteIndicateur libelle="Présents aujourd'hui" valeur={`${presents.length}`} precision={`${retards.length} retard(s) · ${salaries.length} collaborateur(s) en poste`} />}
       </div>
 
       {equipe && (
@@ -140,7 +140,7 @@ export default async function PagePresences({ searchParams }: PageProps<"/presen
           <div className="mt-6 grid gap-4 lg:grid-cols-2">
             <section className="rounded-xl border border-[var(--filet)] bg-[var(--surface)] p-4">
               <h2 className="text-sm font-semibold">{attendus ? "Non pointés" : "Pas encore arrivés"}</h2>
-              <p className="text-xs text-[var(--encre-faible)]">Salariés en poste, ni pointés ni en congé aujourd&apos;hui{travaille ? "" : " (jour non travaillé)"}.</p>
+              <p className="text-xs text-[var(--encre-faible)]">Collaborateurs en poste, ni pointés ni en congé aujourd&apos;hui{travaille ? "" : " (jour non travaillé)"}.</p>
               <ul className="mt-2 divide-y divide-[var(--filet)] text-sm">
                 {manquants.map((s) => (
                   <li key={s.id} className="flex justify-between py-1.5">

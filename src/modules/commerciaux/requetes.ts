@@ -11,8 +11,8 @@ import { realisationsDuMois } from "./creation";
 import { commerciaux, commissions } from "./schema";
 
 /**
- * Commerciaux, avec le nom et le téléphone lus à leur fiche — le salarié,
- * sinon le compte — : un salarié renommé au Personnel l'est ici aussi. Le
+ * Commerciaux, avec le nom et le téléphone lus à leur fiche — le collaborateur,
+ * sinon le compte — : un collaborateur renommé au Personnel l'est ici aussi. Le
  * nom enregistré ne sert plus que pour l'apporteur sans fiche.
  */
 export async function listerCommerciaux(organizationId: string) {

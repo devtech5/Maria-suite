@@ -1,0 +1,1 @@
+ALTER TABLE "acces_dossiers_archives" ADD COLUMN "peut_deposer" boolean DEFAULT false NOT NULL;

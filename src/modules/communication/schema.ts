@@ -10,7 +10,7 @@ import { organizations } from "@/db/schema/tenancy";
  *
  *   · `notifications` — à l'intérieur : la cloche d'un utilisateur ;
  *   · `envois`        — vers l'extérieur : un e-mail ou un WhatsApp, à un
- *                        client ou à un salarié, tracé un par un ;
+ *                        client ou à un collaborateur, tracé un par un ;
  *   · `campagnes`     — un message groupé, qui produit un envoi par destinataire ;
  *   · `desinscriptions` — qui ne veut plus rien recevoir, sur quel canal.
  */

@@ -67,7 +67,7 @@ describe("etatContratSalarie", () => {
     expect(etatContratSalarie({ debut: "2026-01-01", fin: "2026-08-31", actif: true }, jour)).toEqual({ etat: "echu", jours: -45 });
   });
 
-  it("une embauche future est à venir ; un salarié sorti, sorti", () => {
+  it("une embauche future est à venir ; un collaborateur sorti, sorti", () => {
     expect(etatContratSalarie({ debut: "2026-11-01", fin: null, actif: true }, jour)).toEqual({ etat: "a_venir", jours: 17 });
     expect(etatContratSalarie({ debut: "2024-01-01", fin: "2026-08-31", actif: false }, jour)).toEqual({ etat: "sorti", jours: null });
   });

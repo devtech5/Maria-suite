@@ -30,7 +30,7 @@ export interface DocumentAffiche {
 
 const LIBELLE_ENTITE: Record<TypeEntiteDocument, string> = {
   tiers: "Client ou fournisseur",
-  employe: "Salarié",
+  employe: "Collaborateur",
   intervenant: "Intervenant",
   actif: "Actif",
   article: "Article",

@@ -62,6 +62,12 @@ export const accesDossiersArchives = pgTable(
       .notNull()
       .references(() => organizations.id, { onDelete: "cascade" }),
     userId: uuid("user_id").notNull(),
+    /**
+     * Ce membre peut y DÉPOSER. Voir et déposer se donnent séparément : on
+     * accorde de voir à beaucoup, de déposer à quelques-uns. Un déposant voit
+     * toujours le dossier (sa ligne en est la preuve).
+     */
+    peutDeposer: boolean("peut_deposer").notNull().default(false),
     ...timestamps,
   },
   (t) => [

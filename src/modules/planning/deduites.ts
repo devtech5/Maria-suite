@@ -59,7 +59,7 @@ function finDuJour(instant: Date, fuseau: string): Date {
 export interface CongeSource {
   id: string;
   numero: string;
-  /** Compte du salarié : le planning appartient à un utilisateur. */
+  /** Compte du collaborateur : le planning appartient à un utilisateur. */
   userId: string;
   nature: NatureConge;
   debut: string;
@@ -104,7 +104,7 @@ export interface MissionSource {
   titre: string;
   lieu: string | null;
   statut: StatutMission;
-  /** Compte du salarié exécutant. Un intervenant sans compte ne tient pas de planning. */
+  /** Compte du collaborateur exécutant. Un intervenant sans compte ne tient pas de planning. */
   userId: string;
   echeanceLe: Date | null;
   debuteLe: Date | null;

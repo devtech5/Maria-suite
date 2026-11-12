@@ -110,7 +110,7 @@ export function ListePostes({ postes, gerer, services }: { postes: LignePoste[];
         <tr>
           <Th>Poste</Th>
           <Th>Service</Th>
-          <Th aligne="droite">Salariés</Th>
+          <Th aligne="droite">Collaborateurs</Th>
           <Th>État</Th>
           {gerer && <Th aligne="droite">Actions</Th>}
         </tr>

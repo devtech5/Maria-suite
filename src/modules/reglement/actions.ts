@@ -6,7 +6,10 @@ import { headers } from "next/headers";
 import { exigerEntreprise } from "@/lib/auth/dal";
 import { refusDroit } from "@/lib/droits/garde";
 
-import { dateLongue } from "./regles";
+import { TAILLE_MAX, formatDe, lireTexte } from "@/lib/texte-fichier";
+
+import { decouperReglement } from "./import";
+import { dateLongue, type Article } from "./regles";
 import { accepterPour, creerBrouillonPour, enregistrerBrouillonPour, publierPour, relancerPour, supprimerBrouillonPour } from "./requetes";
 
 export type Resultat = { ok: true; message: string; id?: string } | { ok: false; message: string };
@@ -29,6 +32,35 @@ async function gestionnaire() {
   const session = await exigerEntreprise();
   const refus = await refusDroit("reglement.gerer");
   return { session, refus: refus?.erreur ?? null };
+}
+
+export type ResultatImport =
+  | { ok: true; message: string; titre: string | null; preambule: string; articles: Article[]; avertissements: string[] }
+  | { ok: false; message: string };
+
+/**
+ * Importe un règlement déposé en fichier (Word ou texte) : la plateforme en
+ * RÉCUPÈRE le titre, le préambule et les articles, et les rend à l'éditeur.
+ * Rien n'est écrit en base : le fichier n'est pas conservé, et l'on relit
+ * avant d'enregistrer ou de publier. Même droit que la rédaction.
+ */
+export async function importerReglement(versionId: string, donnees: FormData): Promise<ResultatImport> {
+  const { refus } = await gestionnaire();
+  if (refus) return { ok: false, message: refus };
+  if (!UUID.test(versionId)) return { ok: false, message: "Version introuvable." };
+  const fichier = donnees.get("fichier");
+  if (!(fichier instanceof File) || fichier.size === 0) return { ok: false, message: "Choisissez un fichier Word (.docx) ou texte (.txt)." };
+  if (fichier.size > TAILLE_MAX) return { ok: false, message: "Ce fichier dépasse 5 Mo." };
+  const format = formatDe(fichier.name, fichier.type);
+  if (format === "pdf") return { ok: false, message: "Le PDF ne peut pas être lu de façon fiable : enregistrez le règlement en Word (.docx) ou en texte (.txt), puis importez-le." };
+  if (format === null) return { ok: false, message: "Format non accepté : Word (.docx) ou texte (.txt)." };
+  try {
+    const lu = decouperReglement(await lireTexte(await fichier.arrayBuffer(), format));
+    if (lu.articles.length === 0) return { ok: false, message: lu.avertissements[0] ?? "Aucun article repéré." };
+    return { ok: true, message: `${lu.articles.length} article${lu.articles.length > 1 ? "s" : ""} repéré${lu.articles.length > 1 ? "s" : ""} : relisez, puis enregistrez.`, ...lu };
+  } catch (erreur) {
+    return { ok: false, message: lisible(erreur) };
+  }
 }
 
 /**

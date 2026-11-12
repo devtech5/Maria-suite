@@ -150,7 +150,7 @@ export async function completerVehiculePour(
       });
 
     if (details.conducteurId !== undefined) {
-      // Le conducteur EST l'affectation de l'actif : un salarié, jamais un
+      // Le conducteur EST l'affectation de l'actif : un collaborateur, jamais un
       // intervenant en même temps (contrainte `actifs_une_seule_affectation`).
       await tx
         .update(actifs)

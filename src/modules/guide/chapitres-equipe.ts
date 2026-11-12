@@ -338,6 +338,53 @@ export const CHAPITRES_EQUIPE: Chapitre[] = [
     ],
   },
   {
+    cle: "terrain",
+    titre: "Mon terrain",
+    entree: "/terrain",
+    resume: "Relever sur place ce qui est constaté, avec photo et position GPS, pour le superviseur et le chef de projet.",
+    sections: [
+      {
+        ancre: "equipe",
+        titre: "Confier un projet à une équipe",
+        texte: [
+          "Le chef de projet — le responsable du projet — ouvre la fiche du projet et choisit « Confier du personnel » : une personne INTERNE, prise dans la liste complète du personnel, ou EXTERNE, enregistrée sur place (nom, téléphone, structure). Il lui donne un rôle : agent, ou superviseur. Il n'y a qu'un superviseur par projet ; en nommer un autre fait passer l'ancien agent.",
+          "Le superviseur a un compte pour examiner les relevés. Un externe n'en a pas : un agent relève à sa place, et le relevé garde les deux noms.",
+        ],
+      },
+      {
+        ancre: "releve",
+        titre: "Faire un relevé",
+        chemin: "/terrain",
+        texte: [
+          "« Mon terrain » liste les projets où vous êtes en poste. Sur un projet, « Nouveau relevé » : un titre, ce qui a été constaté ou fait, l'avancement, puis les PREUVES — une ou deux photos prises par la caméra, des captures d'écran — et la position GPS relevée par l'appareil.",
+          "Sans position GPS ni photo, le relevé est refusé : c'est ce qui le rend traçable. Le superviseur et le chef de projet sont prévenus dans la cloche ; vous suivez l'état de vos relevés : à examiner, validé, ou à refaire avec le motif.",
+        ],
+        etapes: ["Ouvrir le projet dans « Mon terrain ».", "Nouveau relevé : titre, constat, avancement.", "Relever la position, prendre la photo.", "Enregistrer : le superviseur est prévenu."],
+      },
+      {
+        ancre: "examen",
+        titre: "Examiner les relevés",
+        texte: ["Le superviseur et le chef de projet voient les relevés de toute l'équipe, avec leurs photos et leur position sur la carte. « Valider » clôt le relevé ; « À refaire » le renvoie à son auteur, avec un commentaire obligatoire."],
+      },
+    ],
+    quiz: [
+      {
+        cle: "terrain-preuves",
+        question: "Que faut-il pour qu'un relevé de terrain soit accepté ?",
+        choix: ["Un titre suffit", "Une position GPS relevée par l'appareil et au moins une photo ou capture", "La signature du chef de projet"],
+        bonne: 1,
+        explication: "Position GPS et preuve photo sont exigées : sans elles, le relevé ne serait pas traçable.",
+      },
+      {
+        cle: "terrain-externe",
+        question: "Un sous-traitant externe n'a pas de compte. Comment ses relevés arrivent-ils ?",
+        choix: ["Il ne peut pas en faire", "Un agent du projet relève à sa place, et les deux noms sont gardés", "Le chef de projet les ressaisit à la fin"],
+        bonne: 1,
+        explication: "L'auteur du relevé est l'externe ; le compte qui l'a saisi est conservé pour la traçabilité.",
+      },
+    ],
+  },
+  {
     cle: "anniversaires",
     titre: "Anniversaires",
     entree: "/anniversaires",
@@ -363,20 +410,20 @@ export const CHAPITRES_EQUIPE: Chapitre[] = [
     cle: "personnel",
     titre: "Personnel",
     entree: "/rh",
-    resume: "Salariés, dossiers, services et postes, paie.",
+    resume: "Collaborateurs, dossiers, services et postes, paie.",
     sections: [
       {
         ancre: "salaries",
-        titre: "Salariés et dossiers",
+        titre: "Collaborateurs et dossiers",
         chemin: "/rh",
         texte: [
-          "La liste des salariés ouvre chaque dossier : état civil, contrat, poste et service, pièces jointes, paiement du salaire. L'embauche se saisit dans une grande fenêtre, étape par étape.",
-          "Un salarié a un bulletin de paie ; un maçon payé à la journée n'en a pas : c'est un intervenant, tenu à part.",
+          "La liste des collaborateurs ouvre chaque dossier : état civil, contrat, poste et service, pièces jointes, paiement du salaire. L'embauche se saisit dans une grande fenêtre, étape par étape.",
+          "Un collaborateur a un bulletin de paie ; un maçon payé à la journée n'en a pas : c'est un intervenant, tenu à part.",
         ],
         capture: {
           fichier: "personnel",
           page: "/rh",
-          alt: "La liste des salariés.",
+          alt: "La liste des collaborateurs.",
           reperes: [
             { cible: "role=link[name='Services']", texte: "Les services de l'entreprise." },
             { cible: "role=link[name='Paie']", texte: "La paie du mois." },
@@ -387,7 +434,7 @@ export const CHAPITRES_EQUIPE: Chapitre[] = [
         ancre: "services",
         titre: "Services et postes",
         chemin: "/rh/services",
-        texte: ["Chaque poste se range dans un service (Direction générale, Ressources humaines, Travaux…). Changer le service d'un poste met à jour les fiches des salariés qui l'occupent."],
+        texte: ["Chaque poste se range dans un service (Direction générale, Ressources humaines, Travaux…). Changer le service d'un poste met à jour les fiches des collaborateurs qui l'occupent."],
       },
       {
         ancre: "paie",
@@ -403,9 +450,9 @@ export const CHAPITRES_EQUIPE: Chapitre[] = [
       {
         cle: "rh-intervenant",
         question: "Un manœuvre payé à la journée sur un chantier, c'est :",
-        choix: ["Un salarié avec un bulletin", "Un intervenant, payé par bon de paiement", "Un utilisateur du logiciel"],
+        choix: ["Un collaborateur avec un bulletin", "Un intervenant, payé par bon de paiement", "Un utilisateur du logiciel"],
         bonne: 1,
-        explication: "Intervenants et salariés sont deux natures distinctes : l'intervenant est pointé et payé par bon.",
+        explication: "Intervenants et collaborateurs sont deux natures distinctes : l'intervenant est pointé et payé par bon.",
       },
       {
         cle: "rh-bulletin",
@@ -445,7 +492,7 @@ export const CHAPITRES_EQUIPE: Chapitre[] = [
     cle: "contrats",
     titre: "Contrats",
     entree: "/contrats",
-    resume: "Contrats des salariés et des fournisseurs, avec leurs échéances.",
+    resume: "Contrats des collaborateurs et des fournisseurs, avec leurs échéances.",
     sections: [
       {
         ancre: "contrats",

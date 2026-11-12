@@ -3,11 +3,11 @@
  */
 
 /**
- * Matricule d'un salarié : MG-2601-007.
+ * Matricule d'un collaborateur : MG-2601-007.
  *
  *   MG    — MARIA GROUP ;
  *   2601  — année et mois d'entrée (janvier 2026) ;
- *   007   — rang dans l'effectif : septième salarié enregistré.
+ *   007   — rang dans l'effectif : septième collaborateur enregistré.
  *
  * Le rang suit l'ordre d'enregistrement et ne se réutilise jamais : un départ
  * ne libère pas son numéro, sans quoi deux personnes porteraient le même
@@ -143,7 +143,7 @@ export function nomComplet(nom: string, prenoms?: string | null): string {
 }
 
 /**
- * Lien entre le salarié et la personne à prévenir. Une liste plutôt qu'un
+ * Lien entre le collaborateur et la personne à prévenir. Une liste plutôt qu'un
  * texte libre : « épouse », « Epouse » et « femme » ne doivent pas faire
  * trois réponses dans un registre du personnel.
  */
@@ -207,9 +207,9 @@ export function libelleAnciennete(duree: { annees: number; mois: number } | null
 
 /**
  * Vrai si placer `superieurId` au-dessus de `employeeId` ferait une boucle :
- * le salarié deviendrait, par la chaîne, le supérieur de son supérieur.
+ * le collaborateur deviendrait, par la chaîne, le supérieur de son supérieur.
  *
- * `superieurDe` donne le supérieur actuel de chaque salarié. La remontée
+ * `superieurDe` donne le supérieur actuel de chaque collaborateur. La remontée
  * s'arrête au sommet ; une chaîne déjà bouclée en base (qui ne devrait pas
  * exister) est traitée comme une boucle plutôt que de tourner sans fin.
  */
@@ -222,7 +222,7 @@ export function formeUneBoucle(employeeId: string, superieurId: string | null, s
   return false;
 }
 
-/** État du contrat d'un salarié, vu depuis l'écran Contrats. */
+/** État du contrat d'un collaborateur, vu depuis l'écran Contrats. */
 export type EtatContratSalarie = "a_venir" | "en_cours" | "a_echeance" | "echu" | "sorti";
 
 export const ETATS_CONTRAT_SALARIE: Record<EtatContratSalarie, string> = {
@@ -243,10 +243,10 @@ function joursEntre(de: string, a: string): number {
 /**
  * Où en est un contrat de travail un jour donné.
  *
- * Un CDI n'a pas de terme : il est en cours tant que le salarié est en poste.
+ * Un CDI n'a pas de terme : il est en cours tant que le collaborateur est en poste.
  * Un CDD, un stage ou un essai l'est jusqu'à son terme, annoncé
  * `ALERTE_TERME_JOURS` à l'avance ; passé ce terme sans sortie enregistrée,
- * il est échu — un salarié qui travaille sur un contrat expiré, c'est un CDI
+ * il est échu — un collaborateur qui travaille sur un contrat expiré, c'est un CDI
  * de fait, et l'écran doit le montrer.
  */
 export function etatContratSalarie(

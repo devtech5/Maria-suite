@@ -18,7 +18,7 @@ import {
 import { registre } from "./requetes";
 
 
-/** Au-delà, le registre se calcule jour par jour pour chaque salarié : trois mois suffisent à un bilan. */
+/** Au-delà, le registre se calcule jour par jour pour chaque collaborateur : trois mois suffisent à un bilan. */
 const JOURS_MAX = 93;
 
 export const RAPPORTS_PRESENCES: DefinitionRapport[] = [
@@ -26,8 +26,8 @@ export const RAPPORTS_PRESENCES: DefinitionRapport[] = [
     cle: "assiduite",
     module: "presences",
     rubrique: "Présences et congés",
-    titre: "Assiduité par salarié",
-    description: "Jours de présence, retards, absences et congés de chaque salarié sur la période.",
+    titre: "Assiduité par collaborateur",
+    description: "Jours de présence, retards, absences et congés de chaque collaborateur sur la période.",
     droit: "presences.consulter",
     periode: "intervalle",
     async executer(organizationId, { du, au }) {
@@ -38,7 +38,7 @@ export const RAPPORTS_PRESENCES: DefinitionRapport[] = [
       return {
         colonnes: [
           { cle: "matricule", libelle: "Matricule", type: "texte" },
-          { cle: "nom", libelle: "Salarié", type: "texte" },
+          { cle: "nom", libelle: "Collaborateur", type: "texte" },
           { cle: "poste", libelle: "Poste", type: "texte" },
           { cle: "presents", libelle: "Jours présents", type: "entier", total: true },
           { cle: "retards", libelle: "Retards", type: "entier", total: true },
@@ -65,7 +65,7 @@ export const RAPPORTS_PRESENCES: DefinitionRapport[] = [
     module: "presences",
     rubrique: "Présences et congés",
     titre: "Congés et absences accordés",
-    description: "Chaque congé accordé qui touche la période : salarié, nature, dates et jours décomptés.",
+    description: "Chaque congé accordé qui touche la période : collaborateur, nature, dates et jours décomptés.",
     droit: "presences.consulter",
     periode: "intervalle",
     async executer(organizationId, { du, au }) {
@@ -80,7 +80,7 @@ export const RAPPORTS_PRESENCES: DefinitionRapport[] = [
         colonnes: [
           { cle: "numero", libelle: "N°", type: "texte" },
           { cle: "matricule", libelle: "Matricule", type: "texte" },
-          { cle: "nom", libelle: "Salarié", type: "texte" },
+          { cle: "nom", libelle: "Collaborateur", type: "texte" },
           { cle: "nature", libelle: "Nature", type: "texte" },
           { cle: "debut", libelle: "Du", type: "date" },
           { cle: "fin", libelle: "Au", type: "date" },
@@ -133,7 +133,7 @@ export const RAPPORTS_PRESENCES: DefinitionRapport[] = [
         colonnes: [
           { cle: "numero", libelle: "N°", type: "texte" },
           { cle: "matricule", libelle: "Matricule", type: "texte" },
-          { cle: "nom", libelle: "Salarié", type: "texte" },
+          { cle: "nom", libelle: "Collaborateur", type: "texte" },
           { cle: "motif", libelle: "Motif", type: "texte" },
           { cle: "debut", libelle: "Du", type: "date" },
           { cle: "fin", libelle: "Au", type: "date" },

@@ -1,7 +1,7 @@
 import { CLASSE_CHAMP } from "@/components/ui/primitives";
 import { LIBELLE_PRIORITE, type Priorite } from "@/modules/taches/calcul";
 
-/** Un salarié du Personnel, avec sa fonction. */
+/** Un collaborateur du Personnel, avec sa fonction. */
 export interface Salarie {
   id: string;
   nom: string;
@@ -10,7 +10,7 @@ export interface Salarie {
 }
 
 /**
- * Exécutant tel que le formulaire l'envoie : vide pour soi, `e:<salarié>`
+ * Exécutant tel que le formulaire l'envoie : vide pour soi, `e:<collaborateur>`
  * pour le Personnel, `u:<compte>` pour une tâche d'avant le Personnel.
  */
 export function valeurExecutant(t: { assigneeEmployeId: string | null; assigneeUserId: string }, moi: string): string {

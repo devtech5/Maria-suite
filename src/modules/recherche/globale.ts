@@ -93,7 +93,7 @@ const SOURCES: Source[] = [
   },
   {
     cle: "salaries",
-    libelle: "Salariés",
+    libelle: "Collaborateurs",
     racine: "/rh",
     tout: avecQ("/rh"),
     chercher: async (org, mots, limite) => {

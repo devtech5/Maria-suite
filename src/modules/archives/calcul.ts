@@ -210,9 +210,12 @@ export function partQuota(utilise: number): number {
 
 export interface RegleDossier {
   visibilite: "tous" | "selection";
+  /** Tous ceux qui voient le dossier peuvent y déposer. */
   depotOuvert: boolean;
-  /** Membres désignés, pour la visibilité « sélection ». */
+  /** Membres désignés, pour la visibilité « sélection » ; avec « tous », ceux qui ont un droit particulier. */
   designes: readonly string[];
+  /** Membres à qui le dépôt est accordé un par un, le dossier fût-il visible de tous. */
+  deposants?: readonly string[];
 }
 
 /**
@@ -227,10 +230,31 @@ export function dossierVisible(regle: RegleDossier, userId: string, gestionnaire
   return regle.visibilite === "tous" || regle.designes.includes(userId);
 }
 
-/** Peut-elle y déposer ? Il faut le voir, et que le dépôt y soit ouvert. */
+/**
+ * Peut-elle y déposer ? Le gestionnaire toujours ; un membre à qui le dépôt est
+ * accordé nommément ; sinon, tout membre qui voit le dossier si le dépôt y est
+ * ouvert à tous. Voir ne suffit jamais : on accorde de voir à beaucoup, de
+ * déposer à quelques-uns.
+ */
 export function depotDossierPermis(regle: RegleDossier, userId: string, gestionnaire: boolean): boolean {
   if (gestionnaire) return true;
+  if (regle.deposants?.includes(userId)) return true;
   return regle.depotOuvert && dossierVisible(regle, userId, false);
+}
+
+/** Qui dépose, en une phrase, tel que l'écran le dit. */
+export function resumeDepot(regle: Pick<RegleDossier, "depotOuvert" | "deposants">): string {
+  if (regle.depotOuvert) return "Les membres qui le voient peuvent y déposer";
+  const n = regle.deposants?.length ?? 0;
+  if (n > 0) return `Dépôt accordé à ${n} membre${n > 1 ? "s" : ""} — lecture seule pour les autres`;
+  return "Lecture seule pour les membres";
+}
+
+/** La même chose en deux ou trois mots, pour une vignette. */
+export function resumeDepotCourt(regle: Pick<RegleDossier, "depotOuvert" | "deposants">): string {
+  if (regle.depotOuvert) return "Dépôt ouvert";
+  const n = regle.deposants?.length ?? 0;
+  return n > 0 ? `Dépôt : ${n} membre${n > 1 ? "s" : ""}` : "Lecture seule";
 }
 
 /** Résumé de la visibilité, tel que l'écran l'affiche. */

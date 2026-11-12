@@ -3,8 +3,13 @@
 import { useEffect, useId, useRef, useSyncExternalStore, type KeyboardEvent, type ReactNode } from "react";
 import { createPortal } from "react-dom";
 
-/** Modale centrée pour un formulaire court ; tiroir à droite pour un long (lignes, fiche complète). */
-export type Presentation = "modale" | "tiroir";
+/**
+ * Toujours une modale centrée, sa hauteur suit son contenu. « modale » pour
+ * un formulaire court, « ample » pour un long (lignes, fiche complète) : seule
+ * la largeur change. Il n'y a plus de tiroir latéral : une seule forme de
+ * fenêtre dans toute l'application.
+ */
+export type Presentation = "modale" | "ample";
 
 const FOCALISABLES =
   'a[href], button:not([disabled]), input:not([disabled]):not([type="hidden"]), select:not([disabled]), textarea:not([disabled]), [tabindex]:not([tabindex="-1"])';
@@ -12,8 +17,8 @@ const FOCALISABLES =
 const rien = () => () => {};
 
 /**
- * Fenêtre posée au-dessus de l'écran : modale centrée ou tiroir à droite,
- * plein écran sur un téléphone.
+ * Fenêtre posée au-dessus de l'écran : modale centrée, plein écran sur un
+ * téléphone.
  *
  * Pas de `<dialog>` natif : `showModal()` place la fenêtre dans la couche
  * supérieure du navigateur, au-dessus de tout z-index — donc au-dessus du
@@ -87,14 +92,10 @@ export function Fenetre({
     }
   };
 
-  const tiroir = presentation === "tiroir";
-
   return createPortal(
     <div
       hidden={!ouverte}
-      className={`fixed inset-0 z-[60] flex bg-nuit-profond/55 sm:p-4 print:hidden ${
-        tiroir ? "justify-end sm:p-0" : "items-end justify-center sm:items-center"
-      }`}
+      className="fixed inset-0 z-[60] flex items-end justify-center bg-nuit-profond/55 sm:items-center sm:p-4 print:hidden"
       onMouseDown={(e) => {
         if (e.target === e.currentTarget && !retenir) onFermer();
       }}
@@ -106,10 +107,8 @@ export function Fenetre({
         aria-labelledby={idTitre}
         tabIndex={-1}
         onKeyDown={auClavier}
-        className={`flex h-dvh w-full flex-col overflow-y-auto bg-[var(--surface)] text-left shadow-2xl outline-none ${
-          tiroir
-            ? "sm:max-w-4xl sm:border-l sm:border-[var(--filet)]"
-            : `sm:h-auto sm:max-h-[92dvh] sm:rounded-2xl ${large ? "sm:max-w-6xl" : "sm:max-w-3xl"}`
+        className={`flex h-dvh w-full flex-col overflow-y-auto bg-[var(--surface)] text-left shadow-2xl outline-none sm:h-auto sm:max-h-[92dvh] sm:rounded-2xl ${
+          large ? "sm:max-w-6xl" : presentation === "ample" ? "sm:max-w-4xl" : "sm:max-w-3xl"
         }`}
       >
         <div className="sticky top-0 z-[1] flex items-center justify-between gap-3 border-b border-[var(--filet)] bg-[var(--surface)] px-5 py-3.5">

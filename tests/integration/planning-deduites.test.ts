@@ -107,7 +107,7 @@ describe("périodes déduites, lues en base", () => {
     expect(periodes[0]).toMatchObject({ userId: awa, statut: "arret_maladie", debut: t("2026-10-08T00:00"), fin: t("2026-10-10T00:00"), origine: { reference: accorde, titre: "Maladie" } });
   });
 
-  it("une mission confiée au salarié s'inscrit au planning de son compte", async () => {
+  it("une mission confiée au collaborateur s'inscrit au planning de son compte", async () => {
     const id = await mission({ reference: "LIV-2026-00001", titre: "Livraison Bouaké", lieu: "Bouaké", employeId: awaSalarie, echeanceLe: t("2026-10-07T17:00") });
     await mission({ reference: "LIV-2026-00002", employeId: awaSalarie, echeanceLe: t("2026-10-07T17:00"), statut: "annulee", motif: "Client absent" });
     await mission({ reference: "LIV-2026-00003", employeId: awaSalarie, echeanceLe: null });
@@ -171,7 +171,7 @@ describe("périodes déduites, lues en base", () => {
     expect(labas.map((p) => p.origine?.source).sort()).toEqual(["conge", "mission"]);
   });
 
-  it("un salarié sans compte ne tient pas de planning", async () => {
+  it("un collaborateur sans compte ne tient pas de planning", async () => {
     const sansCompte = await salarie(org, "Yao (sans compte)", null);
     await mission({ reference: "LIV-2026-00010", employeId: sansCompte, echeanceLe: t("2026-10-07T17:00") });
     const periodes = await periodesDeduites(org, DU, AU, [awa], tout(awa), ABIDJAN, MAINTENANT);

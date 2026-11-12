@@ -122,12 +122,12 @@ export const DROITS = [
     cle: "personnes.consulter",
     moduleKey: "personnes",
     libelle: "Consulter le personnel",
-    description: "Voir les salariés, les intervenants et ce qui leur est dû.",
+    description: "Voir les collaborateurs, les intervenants et ce qui leur est dû.",
   },
   {
     cle: "personnes.salarie.gerer",
     moduleKey: "personnes",
-    libelle: "Gérer les salariés",
+    libelle: "Gérer les collaborateurs",
     description: "Embaucher, modifier un contrat, sortir des effectifs.",
   },
   {
@@ -135,14 +135,14 @@ export const DROITS = [
     moduleKey: "personnes",
     libelle: "Consulter les dossiers du personnel",
     description:
-      "Voir les pièces des salariés — identité, CMU, casier, RIB, CV — et en ouvrir " +
+      "Voir les pièces des collaborateurs — identité, CMU, casier, RIB, CV — et en ouvrir " +
       "les fichiers. Données sensibles : chaque ouverture est tracée au journal.",
   },
   {
     cle: "personnes.dossier.gerer",
     moduleKey: "personnes",
     libelle: "Tenir les dossiers du personnel",
-    description: "Compléter l'état civil, la photo et les pièces d'un salarié, en retirer une déposée par erreur.",
+    description: "Compléter l'état civil, la photo et les pièces d'un collaborateur, en retirer une déposée par erreur.",
   },
   {
     cle: "personnes.intervenant.gerer",
@@ -153,7 +153,7 @@ export const DROITS = [
   {
     cle: "personnes.fiche.supprimer",
     moduleKey: "personnes",
-    libelle: "Supprimer un salarié ou un intervenant",
+    libelle: "Supprimer un collaborateur ou un intervenant",
     description: SUPPRESSION,
   },
   {
@@ -258,7 +258,7 @@ export const DROITS = [
     cle: "presences.gerer",
     moduleKey: "presences",
     libelle: "Gérer les présences",
-    description: "Pointer ou corriger la présence d'un salarié, régler les horaires et les jours fériés.",
+    description: "Pointer ou corriger la présence d'un collaborateur, régler les horaires et les jours fériés.",
   },
   {
     cle: "conges.demander",
@@ -270,7 +270,7 @@ export const DROITS = [
     cle: "conges.valider",
     moduleKey: "presences",
     libelle: "Accorder les congés",
-    description: "Accorder ou refuser une demande, saisir un congé pour un salarié, ajuster un solde.",
+    description: "Accorder ou refuser une demande, saisir un congé pour un collaborateur, ajuster un solde.",
   },
 
   // ------------------------------------------------------------- planning
@@ -454,7 +454,21 @@ export const DROITS = [
     cle: "commercial.commission.payer",
     moduleKey: "tiers",
     libelle: "Payer les commissions",
-    description: "Verser une commission validée depuis la trésorerie, ou l'ajouter au bulletin de paie d'un salarié.",
+    description: "Verser une commission validée depuis la trésorerie, ou l'ajouter au bulletin de paie d'un collaborateur.",
+  },
+  {
+    cle: "commercial.prospection.planifier",
+    moduleKey: "tiers",
+    libelle: "Élaborer son plan de prospection",
+    description:
+      "Le commercial établit ses plans de prospection : zone, objectifs, prospects et leur type, " +
+      "visites et appels planifiés, comptes rendus. Il ne voit que les siens.",
+  },
+  {
+    cle: "commercial.prospection.superviser",
+    moduleKey: "tiers",
+    libelle: "Superviser la prospection",
+    description: "Voir et suivre les plans de prospection de tous les commerciaux, en établir pour eux.",
   },
 
   // ------------------------------------------------------------- missions
@@ -499,7 +513,7 @@ export const DROITS = [
     moduleKey: "documents",
     libelle: "Déposer et retirer un document",
     description:
-      "Joindre une pièce à un client, un salarié, un actif. Retirer un document " +
+      "Joindre une pièce à un client, un collaborateur, un actif. Retirer un document " +
       "efface son fichier pour de bon.",
   },
   {
@@ -704,6 +718,22 @@ export const DROITS = [
     description: "Voir les bordereaux qui vous sont adressés, en accuser réception et rendre votre retour. Accordé à tous les comptes.",
   },
 
+  // ---------------------------------------------------------------- perdiem
+  {
+    cle: "perdiem.consulter",
+    moduleKey: "perdiem",
+    libelle: "Consulter les perdiem",
+    description: "Voir le barème des perdiem et ceux attribués aux collaborateurs.",
+  },
+  {
+    cle: "perdiem.gerer",
+    moduleKey: "perdiem",
+    libelle: "Gérer les perdiem",
+    description:
+      "Ajouter, modifier et supprimer les montants du barème ; attribuer un perdiem à un collaborateur, le payer ou l'annuler. " +
+      "C'est le rôle de la comptable.",
+  },
+
   // ------------------------------------------------------ projets et dépenses
   {
     cle: "projet.consulter",
@@ -716,6 +746,14 @@ export const DROITS = [
     moduleKey: "projet",
     libelle: "Gérer les projets",
     description: "Créer un projet, l'affecter à un responsable, changer son statut, ajouter photos et pièces.",
+  },
+  {
+    cle: "projet.terrain.collecter",
+    moduleKey: "projet",
+    libelle: "Relever sur le terrain",
+    description:
+      "Voir les projets qui vous sont confiés (comme agent, superviseur ou chef de projet) et y relever ce qui est constaté, " +
+      "avec photo et position GPS. Accordé à tous les comptes : seuls les projets où vous êtes en poste apparaissent.",
   },
   {
     cle: "depense.demander",
@@ -945,7 +983,7 @@ const CLES = new Set<string>(TOUS_LES_DROITS);
  * un module coupé pour l'entreprise les retire comme les autres. Ils ne se
  * proposent pas à la composition d'un rôle, où une case sans effet tromperait.
  */
-export const DROITS_DE_TOUS: readonly Droit[] = ["reglement.consulter", "guide.consulter", "courrier.recevoir", "transmissions.recevoir"];
+export const DROITS_DE_TOUS: readonly Droit[] = ["reglement.consulter", "guide.consulter", "courrier.recevoir", "transmissions.recevoir", "projet.terrain.collecter"];
 
 /** Les droits d'un rôle, augmentés de ceux de tout compte. */
 export function avecDroitsDeTous(droits: ReadonlySet<Droit>): Set<Droit> {
@@ -1138,6 +1176,30 @@ export const PRESETS_ROLES = [
     ],
   },
   {
+    cle: "commercial",
+    nom: "Commercial",
+    description:
+      "Prospecte et suit ses clients : élabore son plan de prospection, enregistre les clients " +
+      "et leur type, prépare devis et factures. N'encaisse pas.",
+    droits: [
+      "tiers.fiche.consulter",
+      "tiers.fiche.gerer",
+      "commercial.piece.consulter",
+      "commercial.piece.gerer",
+      "commercial.prospection.planifier",
+      "stock.article.consulter",
+      "communication.consulter",
+      "boite_mail.utiliser",
+      "visiteurs.annoncer",
+      "transmissions.emettre",
+      ...ARCHIVAGE_PERSONNEL,
+      ...TACHES_PERSONNELLES,
+      ...PLANNING_PERSONNEL,
+      "messagerie.utiliser",
+      "meeting.participer",
+    ],
+  },
+  {
     cle: "comptable",
     nom: "Comptable",
     description:
@@ -1150,6 +1212,8 @@ export const PRESETS_ROLES = [
       "rapports.consulter",
       "comptabilite.ecriture.enregistrer",
       "comptabilite.fiscalite.declarer",
+      "perdiem.consulter",
+      "perdiem.gerer",
       "achats.consulter",
       "achats.facture.saisir",
       "achats.reglement.payer",

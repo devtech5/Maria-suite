@@ -22,7 +22,7 @@ function solde(compte: string, debit: number, credit: number): SoldeCompte {
   return { compte, libelle: compte, debit, credit };
 }
 
-/** Une boutique ordinaire : elle achète, elle revend, elle paie deux salariés. */
+/** Une boutique ordinaire : elle achète, elle revend, elle paie deux collaborateurs. */
 const BOUTIQUE: SoldeCompte[] = [
   solde("701", 0, 74_200_000),
   solde("706", 0, 3_100_000),

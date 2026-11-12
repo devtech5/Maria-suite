@@ -16,7 +16,7 @@ export const metadata: Metadata = { title: "Anniversaires" };
  * Les anniversaires des douze prochains mois, ouverts à toute l'équipe :
  * chacun voit ceux de ses collègues et en est prévenu dans la cloche, la
  * semaine qui précède puis le jour même. La direction — qui gère les
- * salariés — voit en plus l'âge, et ceux qui ont choisi de ne pas annoncer
+ * collaborateurs — voit en plus l'âge, et ceux qui ont choisi de ne pas annoncer
  * leur anniversaire.
  */
 export default async function PageAnniversaires() {
@@ -44,7 +44,7 @@ export default async function PageAnniversaires() {
           : " Pour ne pas annoncer le vôtre, demandez aux ressources humaines de décocher la case sur votre dossier."}
       </p>
       {prochains.length === 0 ? (
-        <EtatVide titre="Aucun anniversaire" message="Les dates de naissance se saisissent sur l'état civil du dossier de chaque salarié." />
+        <EtatVide titre="Aucun anniversaire" message="Les dates de naissance se saisissent sur l'état civil du dossier de chaque collaborateur." />
       ) : (
         <ListeAnniversaires prochains={prochains} />
       )}

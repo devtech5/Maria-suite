@@ -4,11 +4,12 @@ import { db } from "@/db";
 import { auditLogs } from "@/db/schema";
 import { newId } from "@/lib/ids";
 import { prochainNumero, type Transaction } from "@/lib/sequences";
+import type { NatureTiers } from "./natures";
 import { tiers } from "./schema";
 
 export interface NouveauTiers {
   nom: string;
-  nature?: "entreprise" | "particulier";
+  nature?: NatureTiers;
   estClient?: boolean;
   estFournisseur?: boolean;
   telephone?: string | null;
@@ -17,6 +18,8 @@ export interface NouveauTiers {
   ville?: string | null;
   identifiantFiscal?: string | null;
   secteur?: string | null;
+  /** Pays du tiers : nul pour un tiers local, le code du pays pour un international. */
+  paysCode?: string | null;
   plafondEncours?: number;
   delaiReglementJours?: number;
   delaiLivraisonJours?: number;
@@ -93,6 +96,7 @@ export async function creerTiersDans(
     ville: donnees.ville ?? null,
     identifiantFiscal: donnees.identifiantFiscal ?? null,
     secteur: donnees.secteur ?? null,
+    paysCode: donnees.paysCode ?? null,
     compteClient,
     compteFournisseur,
     plafondEncours: donnees.plafondEncours ?? 0,

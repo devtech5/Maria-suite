@@ -60,7 +60,7 @@ async function verifierMembre(tx: Transaction, organizationId: string, userId: s
 }
 
 /**
- * À qui la tâche est confiée : un salarié du Personnel, ou un compte (les
+ * À qui la tâche est confiée : un collaborateur du Personnel, ou un compte (les
  * tâches d'avant le Personnel). Absent : la tâche est pour soi.
  */
 export type Executant = { employeId: string } | { userId: string };
@@ -83,9 +83,9 @@ interface ExecutantResolu {
 /**
  * Ramène l'exécutant choisi au compte qui fera avancer la tâche.
  *
- * Un salarié avec un compte actif la reçoit dans sa liste. Sans compte — ou
+ * Un collaborateur avec un compte actif la reçoit dans sa liste. Sans compte — ou
  * avec un accès révoqué —, c'est l'auteur qui la suit pour lui : la tâche
- * reste rattachée au salarié, mais personne d'autre ne pourrait la terminer.
+ * reste rattachée au collaborateur, mais personne d'autre ne pourrait la terminer.
  */
 async function resoudreExecutant(
   tx: Transaction,
@@ -111,7 +111,7 @@ async function resoudreExecutant(
         isNull(employees.deletedAt),
       ),
     );
-  if (!salarie) throw new Error("Ce salarié ne figure pas, ou plus, au Personnel.");
+  if (!salarie) throw new Error("Ce collaborateur ne figure pas, ou plus, au Personnel.");
 
   const compte = salarie.userId && (await estMembreActif(tx, organizationId, salarie.userId)) ? salarie.userId : null;
   return {

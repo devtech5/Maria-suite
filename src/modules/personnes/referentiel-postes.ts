@@ -21,7 +21,7 @@ export interface LignePoste {
   actif: boolean;
   /** Service où le poste est rangé ; nul s'il reste à ranger. */
   serviceId: string | null;
-  /** Salariés en poste qui l'occupent. */
+  /** Collaborateurs en poste qui l'occupent. */
   occupants: number;
 }
 
@@ -36,7 +36,7 @@ export async function postesActifs(organizationId: string): Promise<string[]> {
 }
 
 /**
- * Tous les postes, retirés compris, avec le nombre de salariés en poste qui
+ * Tous les postes, retirés compris, avec le nombre de collaborateurs en poste qui
  * les occupent — à titre principal ou non : une personne qui tient deux
  * postes compte dans les deux.
  */
@@ -73,7 +73,7 @@ export async function listerPostes(organizationId: string): Promise<LignePoste[]
     .orderBy(sql`${postes.actif} desc`, asc(postes.ordre), asc(postes.libelle));
 }
 
-/** Les postes d'un salarié, principal en tête. */
+/** Les postes d'un collaborateur, principal en tête. */
 export async function postesDuSalarie(organizationId: string, employeeId: string): Promise<string[]> {
   const lignes = await db
     .select({ libelle: postes.libelle })
@@ -90,7 +90,7 @@ export async function postesDuSalarie(organizationId: string, employeeId: string
   return lignes.map((l) => l.libelle);
 }
 
-/** Les postes de chaque salarié de l'entreprise, principal en tête : pour les listes. */
+/** Les postes de chaque collaborateur de l'entreprise, principal en tête : pour les listes. */
 export async function postesParSalarie(organizationId: string): Promise<Map<string, string[]>> {
   const lignes = await db
     .select({ employeeId: affectationsPostes.employeeId, libelle: postes.libelle })
@@ -104,7 +104,7 @@ export async function postesParSalarie(organizationId: string): Promise<Map<stri
 }
 
 /**
- * Donne à un salarié ses postes, dans la transaction qui écrit sa fiche : le
+ * Donne à un collaborateur ses postes, dans la transaction qui écrit sa fiche : le
  * premier est le principal, recopié dans `employees.poste`, les suivants
  * s'y ajoutent. Les postes qu'il n'a plus sont retirés (logiquement), ceux
  * qu'il retrouve sont ranimés.
@@ -121,7 +121,7 @@ export async function affecterPostesDans(
   options: { creerManquants?: boolean } = {},
 ): Promise<string[]> {
   const voulus = selectionPostes(libelles[0] ?? "", libelles.slice(1));
-  if (voulus.length === 0) throw new Error("Un salarié occupe au moins un poste.");
+  if (voulus.length === 0) throw new Error("Un collaborateur occupe au moins un poste.");
 
   const referentiel = await tx
     .select({ id: postes.id, libelle: postes.libelle, ordre: postes.ordre })
@@ -207,8 +207,8 @@ export async function ajouterPostePour(organizationId: string, userId: string, s
 }
 
 /**
- * Renomme un poste, et les fiches des salariés qui le portent avec lui, dans
- * la même transaction : un poste renommé à moitié laisserait des salariés sur
+ * Renomme un poste, et les fiches des collaborateurs qui le portent avec lui, dans
+ * la même transaction : un poste renommé à moitié laisserait des collaborateurs sur
  * un intitulé qu'on ne peut plus choisir.
  */
 export async function renommerPostePour(
@@ -264,7 +264,7 @@ export async function renommerPostePour(
 }
 
 /**
- * Retire un poste de la liste de choix, ou l'y remet. Les salariés qui
+ * Retire un poste de la liste de choix, ou l'y remet. Les collaborateurs qui
  * l'occupent le gardent sur leur fiche.
  */
 export async function basculerPostePour(organizationId: string, userId: string, posteId: string, actif: boolean): Promise<void> {

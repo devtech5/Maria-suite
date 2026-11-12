@@ -378,7 +378,7 @@ export function FormulaireEtatCivil({ employeeId, initial }: { employeeId: strin
         <Champ libelle="Personne à prévenir" precision="En cas d'urgence : nom et prénoms.">
           <input name="contactUrgence" defaultValue={v("contactUrgence")} className={CLASSE_CHAMP} />
         </Champ>
-        <Champ libelle="Lien avec le salarié">
+        <Champ libelle="Lien avec le collaborateur">
           <select name="contactUrgenceLien" defaultValue={v("contactUrgenceLien")} className={CLASSE_CHAMP}>
             <option value="">—</option>
             {Object.entries(LIENS_URGENCE).map(([cle, libelle]) => (

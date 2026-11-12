@@ -60,7 +60,7 @@ export function CarteService({ service: s, gerer }: { service: LigneService; ger
             <div className="min-w-0 flex-1">
               <h3 className="font-semibold leading-tight">{s.libelle}</h3>
               <p className="mt-0.5 text-xs text-[var(--encre-douce)]">
-                {s.effectif} salarié{s.effectif > 1 ? "s" : ""} · {s.postes.length} poste{s.postes.length > 1 ? "s" : ""}
+                {s.effectif} collaborateur{s.effectif > 1 ? "s" : ""} · {s.postes.length} poste{s.postes.length > 1 ? "s" : ""}
               </p>
             </div>
             {!s.actif && <Pastille>Retiré</Pastille>}

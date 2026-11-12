@@ -62,7 +62,8 @@ function Section({ titre, liste, jour, heure, acteur }: { titre: string; liste: 
   return (
     <section className="mb-5">
       <h2 className="mb-2 text-sm font-semibold text-[var(--encre-douce)]">{titre}</h2>
-      <ul className="divide-y divide-[var(--filet)] overflow-hidden rounded-xl border border-[var(--filet)] bg-[var(--surface)]">
+      {/* Pas d'`overflow-hidden` ici : il couperait le menu « ⋯ » qui déborde sous la dernière ligne. */}
+      <ul className="divide-y divide-[var(--filet)] rounded-xl border border-[var(--filet)] bg-[var(--surface)]">
         {liste.map((r) => (
           <Ligne key={r.id} r={r} jour={jour} heure={heure} acteur={acteur} />
         ))}

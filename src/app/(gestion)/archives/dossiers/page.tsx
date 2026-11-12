@@ -10,7 +10,7 @@ import { peut } from "@/lib/droits/garde";
 import { fmtEntier } from "@/lib/format";
 import { correspond, lireFiltresListe } from "@/lib/recherche";
 import { creerDossier } from "@/modules/archives/actions";
-import { resumeVisibilite, resumeVisibiliteCourt, tailleLisible } from "@/modules/archives/calcul";
+import { resumeDepotCourt, resumeVisibilite, resumeVisibiliteCourt, tailleLisible } from "@/modules/archives/calcul";
 import { dossiersVisibles, membresEntreprise } from "@/modules/archives/requetes";
 
 import { ChampsDossier } from "./champs-dossier";
@@ -118,7 +118,7 @@ export default async function PageDossiers({ searchParams }: PageProps<"/archive
                             </Pastille>
                           </span>
                         )}
-                        <Pastille ton={d.depotOuvert ? "marque" : "neutre"}>{d.depotOuvert ? "Dépôt ouvert" : "Lecture seule"}</Pastille>
+                        <Pastille ton={d.depotOuvert || d.deposants.length > 0 ? "marque" : "neutre"}>{resumeDepotCourt({ depotOuvert: d.depotOuvert, deposants: d.deposants.map((m) => m.userId) })}</Pastille>
                       </span>
 
                       {gestionnaire && d.visibilite === "selection" && d.designes.length > 0 && (

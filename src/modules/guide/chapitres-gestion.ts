@@ -13,7 +13,7 @@ export const CHAPITRES_GESTION: Chapitre[] = [
         ancre: "fiche",
         titre: "La fiche client",
         texte: [
-          "Chaque client a sa fiche : coordonnées, N° de compte contribuable (NCC), contacts, délai de règlement et encours autorisé. Son compte auxiliaire est créé d'office en comptabilité ; le solde dû se lit dans les écritures, jamais saisi à la main.",
+          "Chaque client a sa fiche et son type : particulier, entreprise, ONG, mutuelle, association ou coopérative. Les puces au-dessus de la liste filtrent par type ; le type se corrige sur la fiche. Coordonnées, N° de compte contribuable (NCC), contacts, délai de règlement et encours autorisé. Son compte auxiliaire est créé d'office en comptabilité ; le solde dû se lit dans les écritures, jamais saisi à la main.",
           "Une fiche saisie par erreur et jamais utilisée peut se supprimer ; une fiche qui a servi se met en off et garde son historique.",
         ],
       },
@@ -37,21 +37,63 @@ export const CHAPITRES_GESTION: Chapitre[] = [
       {
         ancre: "fiche",
         titre: "La fiche fournisseur",
-        texte: ["Comme un client, un fournisseur a sa fiche, ses contacts et son compte auxiliaire (401). Ses commandes, factures et règlements passent par le module Achats."],
+        texte: [
+          "Comme un client, un fournisseur a sa fiche, ses contacts et son compte auxiliaire (401). Un clic sur sa ligne ouvre la fiche : identité, achats, solde dû, contacts, derniers mouvements. Ses commandes, factures et règlements passent par le module Achats.",
+          "Un fournisseur est local (du pays de l'entreprise) ou international, avec son pays : on le précise à la création, et on peut le corriger sur la fiche. Les puces au-dessus du tableau filtrent les locaux et les internationaux ; l'identifiant fiscal affiché suit son pays.",
+        ],
       },
     ],
     quiz: [],
   },
   {
+    cle: "prospection",
+    titre: "Prospection",
+    entree: "/commercial/prospection",
+    resume: "Élaborer son plan de prospection, approcher chaque prospect selon son type, et le suivre jusqu'à ce qu'il devienne client.",
+    sections: [
+      {
+        ancre: "plan",
+        titre: "Élaborer un plan",
+        chemin: "/commercial/prospection",
+        texte: [
+          "« Nouveau plan » : un titre, la période (un an au plus), la zone couverte, les cibles, et les objectifs — contacts à réaliser, nouveaux clients, chiffre d'affaires visé. Le plan reçoit son numéro PP-AAAA-NNNNN.",
+          "Un commercial ne voit que ses plans ; la direction voit ceux de tous et peut en établir pour eux. En tête de l'écran : les actions du jour et celles en retard, tous plans confondus.",
+        ],
+        etapes: ["Nouveau plan : période, zone, objectifs.", "Ajouter les prospects avec leur type.", "Planifier visites et appels.", "Après chaque action : le compte rendu."],
+      },
+      {
+        ancre: "prospects",
+        titre: "Prospects et actions",
+        texte: [
+          "Chaque prospect a son type — particulier, entreprise, ONG, mutuelle, association, coopérative —, la personne à voir, le besoin repéré et le potentiel estimé. Ses actions (visite, appel, WhatsApp, e-mail, rendez-vous, démonstration) se planifient à une date.",
+          "Le compte rendu d'une action dit où en est le prospect — en discussion, intéressé, ou perdu avec le motif — et peut planifier l'action suivante d'un geste.",
+          "« Devenu client » crée sa fiche client avec son type, sa référence et son compte 411 ; la personne rencontrée devient son contact. S'il était déjà au fichier, on rattache sa fiche.",
+        ],
+      },
+    ],
+    quiz: [
+      {
+        cle: "prospection-perdu",
+        question: "Une mutuelle refuse votre offre. Que faites-vous dans le plan ?",
+        choix: ["Je supprime le prospect", "Je le passe « perdu » en notant le motif", "Je ne touche à rien"],
+        bonne: 1,
+        explication: "Le motif de perte sert au plan suivant ; une piste perdue peut d'ailleurs se rouvrir.",
+      },
+    ],
+  },
+  {
     cle: "commerciaux",
-    titre: "Commerciaux",
+    titre: "Commercial",
     entree: "/commercial/commerciaux",
     resume: "Les commerciaux, leur chiffre d'affaires et leurs commissions à paliers.",
     sections: [
       {
         ancre: "commissions",
         titre: "Commissions",
-        texte: ["Une facture rattachée à un commercial compte dans son chiffre d'affaires hors taxes ; la commission se calcule par paliers, puis se valide et se paie depuis la trésorerie."],
+        texte: [
+          "Un commercial est interne ou externe. Interne : on le choisit dans la liste complète du personnel, sans rien ressaisir ; son compte, s'il en a un, reçoit ses tickets de caisse. Externe : un apporteur d'affaires qu'on enregistre sur place (nom, téléphone, e-mail, structure, ville) ; on le suit à part avec les puces Internes et Externes.",
+          "Une facture rattachée à un commercial compte dans son chiffre d'affaires hors taxes ; la commission se calcule par paliers, puis se valide. Celle d'un collaborateur passe par sa paie, celle d'un externe se paie depuis la trésorerie.",
+        ],
       },
     ],
     quiz: [],
@@ -67,7 +109,8 @@ export const CHAPITRES_GESTION: Chapitre[] = [
         titre: "Devis et factures",
         texte: [
           "Un devis se transforme en facture sans rien ressaisir. Émettre une facture lui donne son numéro, sans trou ni doublon, et passe l'écriture comptable ; la TVA est celle de la Côte d'Ivoire (18 %).",
-          "Une ligne peut en porter d'autres : la pose d'un climatiseur facturée sous l'appareil vendu, par exemple. Une facture émise ne se modifie plus : elle s'annule par un avoir.",
+          "Chaque ligne est un service : on le choisit dans la liste du catalogue, ou on le saisit. Un service nouveau est ajouté au catalogue à l'enregistrement du brouillon, au prix saisi (TVA 18 %, compte 706) ; deux lignes du même nom n'en créent qu'un.",
+          "Le client n'est pas au fichier ? « + Nouveau client… » : on indique son nom et son type (particulier, entreprise, ONG, mutuelle, association, coopérative), et il est enregistré avec la pièce, avec sa référence et son compte 411. Une facture émise ne se modifie plus : elle s'annule par un avoir.",
         ],
         capture: {
           fichier: "factures",
@@ -207,6 +250,15 @@ export const CHAPITRES_GESTION: Chapitre[] = [
         ],
       },
       {
+        ancre: "intervenants",
+        titre: "Budget et intervenants",
+        texte: [
+          "Une mission est confiée à un collaborateur. Dans son exécution, on peut confier une tâche précise — manutention, vendeuse, nettoyage — à un intervenant, une entreprise ou un prestataire. La mission est alors budgétisée : « Budget et intervenants », sous la mission, fixe le budget, et chaque tâche confiée s'impute dessus ; on ne dépasse pas ce qui reste.",
+          "L'intervenant est payé sur place : « Payer sur place » demande la date, le moyen, le nom de qui reçoit, et la DÉCHARGE signée (photo ou fichier). Sans décharge, le paiement n'est pas enregistré ; une fois payé, la décharge se consulte dans la plateforme comme preuve.",
+        ],
+        etapes: ["Fixer le budget de la mission.", "Confier une tâche : qui, quoi, combien.", "Sur place : payer, photographier la décharge."],
+      },
+      {
         ancre: "suivi",
         titre: "Suivi terrain",
         chemin: "/missions/suivi",
@@ -312,7 +364,7 @@ export const CHAPITRES_GESTION: Chapitre[] = [
       {
         ancre: "fournitures",
         titre: "Fournitures",
-        texte: ["Les fournitures entrent avec leur coût et se remettent à un salarié ou à un service ; le stock se déduit des mouvements et une alerte signale le seuil. L'entretien des locaux se suit comme celui d'un matériel : interventions et échéances."],
+        texte: ["Les fournitures entrent avec leur coût et se remettent à un collaborateur ou à un service ; le stock se déduit des mouvements et une alerte signale le seuil. L'entretien des locaux se suit comme celui d'un matériel : interventions et échéances."],
       },
     ],
     quiz: [],
@@ -345,6 +397,42 @@ export const CHAPITRES_GESTION: Chapitre[] = [
         choix: ["Elle est enregistrée avec un avertissement", "Elle est refusée", "La différence va au compte d'attente"],
         bonne: 1,
         explication: "Toute écriture doit porter autant au débit qu'au crédit.",
+      },
+    ],
+  },
+  {
+    cle: "perdiem",
+    titre: "Perdiem",
+    entree: "/perdiem",
+    resume: "Le barème des montants par jour et les perdiem des collaborateurs en mission.",
+    sections: [
+      {
+        ancre: "bareme",
+        titre: "Le barème",
+        chemin: "/perdiem/bareme",
+        texte: [
+          "La comptable tient le barème : une ligne par situation — Abidjan, Intérieur du pays, Zone minière, International — avec le montant PAR JOUR en francs entiers. Elle ajoute une ligne, la modifie, la supprime.",
+          "Modifier un montant ne réécrit pas les perdiem déjà attribués : ils gardent celui qu'ils avaient. Une ligne qui a déjà servi ne s'efface pas, elle se retire du barème ; une ligne jamais utilisée s'efface.",
+        ],
+      },
+      {
+        ancre: "attribuer",
+        titre: "Attribuer et payer un perdiem",
+        chemin: "/perdiem",
+        texte: [
+          "« Attribuer un perdiem » : le collaborateur, la ligne du barème, le nombre de jours, et si besoin la mission. Le montant se calcule sous vos yeux (jours × montant du jour) et se fige à l'attribution ; le perdiem reçoit son numéro PD-AAAA-NNNNN.",
+          "« Payer » enregistre la date, le moyen (espèces, mobile money, virement) et une référence. Un perdiem à payer peut s'annuler, avec un motif ; payé, il ne revient plus en arrière.",
+        ],
+        etapes: ["Fixer les montants dans « Barème ».", "Attribuer : collaborateur, barème, jours.", "Payer : date, moyen, référence."],
+      },
+    ],
+    quiz: [
+      {
+        cle: "perdiem-fige",
+        question: "Le barème passe de 15 000 à 20 000 F par jour. Que deviennent les perdiem déjà attribués ?",
+        choix: ["Ils passent à 20 000 F par jour", "Ils gardent 15 000 F par jour", "Ils sont annulés"],
+        bonne: 1,
+        explication: "Le montant du jour est figé à l'attribution : le barème change pour les attributions suivantes seulement.",
       },
     ],
   },
@@ -407,7 +495,7 @@ export const CHAPITRES_GESTION: Chapitre[] = [
         ancre: "documents",
         titre: "Documents",
         chemin: "/documents",
-        texte: ["Un document se rattache à une fiche (salarié, véhicule, client…) et peut porter une date d'expiration : il s'annonce avant d'expirer. Les fichiers ne s'ouvrent que par un lien valable quelques minutes."],
+        texte: ["Un document se rattache à une fiche (collaborateur, véhicule, client…) et peut porter une date d'expiration : il s'annonce avant d'expirer. Les fichiers ne s'ouvrent que par un lien valable quelques minutes."],
       },
       {
         ancre: "courriers",
@@ -563,10 +651,19 @@ export const CHAPITRES_GESTION: Chapitre[] = [
   },
   {
     cle: "visiteurs",
-    titre: "Accueil des visiteurs",
+    titre: "Visiteurs",
     entree: "/visiteurs",
-    resume: "Enregistrer arrivées et sorties, photographier la pièce d'identité, imprimer le badge.",
+    resume: "Annoncer un rendez-vous ; à l'accueil, enregistrer arrivées et sorties, photographier la pièce d'identité, imprimer le badge.",
     sections: [
+      {
+        ancre: "annoncer",
+        titre: "Annoncer un rendez-vous",
+        chemin: "/visiteurs/rendez-vous",
+        texte: [
+          "Vous attendez quelqu'un ? Dans « Rendez-vous », « Annoncer un visiteur » : le point d'accueil, le jour, l'heure, son nom et son téléphone. L'accueil le voit dans ses attendus du jour, et le visiteur reçoit par WhatsApp un lien vers son QR d'entrée.",
+          "Quand il arrive, vous êtes prévenu dans la cloche. Un rendez-vous qui ne tient plus s'annule de la liste.",
+        ],
+      },
       {
         ancre: "arrivee",
         titre: "Enregistrer une arrivée",
@@ -607,25 +704,6 @@ export const CHAPITRES_GESTION: Chapitre[] = [
         bonne: 1,
         explication: "« Présents » donne, à l'instant, qui est sur place, accueil par accueil.",
       },
-    ],
-  },
-  {
-    cle: "mes-visiteurs",
-    titre: "Annoncer un visiteur",
-    entree: "/visiteurs/rendez-vous",
-    resume: "Prévenir l'accueil d'un rendez-vous et envoyer au visiteur son QR d'entrée.",
-    sections: [
-      {
-        ancre: "annoncer",
-        titre: "Annoncer un rendez-vous",
-        chemin: "/visiteurs/rendez-vous",
-        texte: [
-          "Vous attendez quelqu'un ? « Annoncer un visiteur » : le point d'accueil, le jour, l'heure, son nom et son téléphone. L'accueil le voit dans ses attendus du jour, et le visiteur reçoit par WhatsApp un lien vers son QR d'entrée.",
-          "Quand il arrive, vous êtes prévenu dans la cloche. Un rendez-vous qui ne tient plus s'annule de la liste.",
-        ],
-      },
-    ],
-    quiz: [
       {
         cle: "mes-visiteurs-qr",
         question: "Comment votre visiteur reçoit-il son QR d'entrée ?",
@@ -712,7 +790,7 @@ export const CHAPITRES_GESTION: Chapitre[] = [
       {
         cle: "membres-adresse",
         question: "Quelles adresses peuvent recevoir un compte Maria Suite ?",
-        choix: ["Toute adresse e-mail", "Les adresses @maria-groupe.com", "Les adresses Gmail des salariés"],
+        choix: ["Toute adresse e-mail", "Les adresses @maria-groupe.com", "Les adresses Gmail des collaborateurs"],
         bonne: 1,
         explication: "La plateforme n'admet que le domaine de l'entreprise (et l'adresse du super administrateur).",
       },

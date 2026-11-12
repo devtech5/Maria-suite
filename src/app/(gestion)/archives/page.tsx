@@ -44,7 +44,7 @@ export default async function PageMesArchives({ searchParams }: PageProps<"/arch
   // Les dossiers partagés où la personne peut déposer : proposés au formulaire.
   const destinations = dossiersPartages.filter((d) =>
     depotDossierPermis(
-      { visibilite: d.visibilite, depotOuvert: d.depotOuvert, designes: d.designes.map((m) => m.userId) },
+      { visibilite: d.visibilite, depotOuvert: d.depotOuvert, designes: d.designes.map((m) => m.userId), deposants: d.deposants.map((m) => m.userId) },
       session.userId,
       gestionnaire,
     ),

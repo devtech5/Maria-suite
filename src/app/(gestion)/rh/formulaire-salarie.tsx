@@ -372,12 +372,12 @@ function ChampsPaiement() {
 }
 
 /**
- * Embauche d'un salarié, dans une grande fenêtre.
+ * Embauche d'un collaborateur, dans une grande fenêtre.
  *
  * Cinq parties : identité, contact, contrat et poste, rémunération, notes —
  * plus les pièces jointes pour qui tient les dossiers. Seuls le nom, le
  * poste, le contrat et la date d'embauche sont exigés : le reste se complète
- * ensuite sur la fiche du salarié.
+ * ensuite sur la fiche du collaborateur.
  */
 export function FormulaireSalarie({
   premier = false,
@@ -424,13 +424,13 @@ export function FormulaireSalarie({
           onClick={() => setOuvert(true)}
           className="h-cible rounded-lg bg-marque-600 px-3.5 text-sm font-semibold text-white hover:bg-marque-700"
         >
-          {premier ? "Embaucher le premier salarié" : "Nouveau salarié"}
+          {premier ? "Embaucher le premier collaborateur" : "Nouveau collaborateur"}
         </button>
       </div>
 
       <Fenetre
         ouverte={ouvert}
-        titre="Nouveau salarié"
+        titre="Nouveau collaborateur"
         sousTitre="Le matricule (MG-AAMM-N) est attribué à l'enregistrement, d'après la date d'embauche. Les champs marqués * sont exigés ; le reste se complète ensuite sur la fiche."
         large
         retenir
@@ -495,7 +495,7 @@ export function FormulaireSalarie({
               <Champ libelle="Personne à prévenir">
                 <input name="contactUrgence" maxLength={200} placeholder="Nom et prénoms" className={CLASSE_CHAMP} />
               </Champ>
-              <Champ libelle="Lien avec le salarié">
+              <Champ libelle="Lien avec le collaborateur">
                 <select name="contactUrgenceLien" defaultValue="" className={CLASSE_CHAMP}>
                   <option value="">—</option>
                   {Object.entries(LIENS_URGENCE).map(([cle, libelle]) => (
@@ -540,7 +540,7 @@ export function FormulaireSalarie({
             </Section>
 
             {/* Facultatif : le dossier se complète ensuite depuis la fiche du
-                salarié — CMU, casier, diplômes… */}
+                collaborateur — CMU, casier, diplômes… */}
             {dossier && (
               <Section titre="Pièces jointes — facultatives">
                 <Champ libelle="Contrat signé" precision="Le contrat numérisé, versé au dossier avec son terme.">

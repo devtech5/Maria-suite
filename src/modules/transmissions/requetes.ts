@@ -5,6 +5,7 @@ import { after } from "next/server";
 
 import { db } from "@/db";
 import { memberships, services, tiers, users } from "@/db/schema";
+import { employees } from "@/modules/personnes/schema";
 import { tracerPour } from "@/lib/audit";
 import { newId } from "@/lib/ids";
 import { moduleOuvert } from "@/lib/modules/garde";
@@ -374,15 +375,33 @@ export function relancerApresReponse(organizationId: string | null): void {
   );
 }
 
-/** Pour les formulaires : comptes actifs, services, entreprises du fichier tiers. */
-export async function choixPossibles(organizationId: string): Promise<{ personnes: { id: string; nom: string }[]; services: { id: string; libelle: string; code: string }[]; entreprises: { id: string; nom: string }[] }> {
-  const [personnes, liste, entreprises] = await Promise.all([
+export interface ChoixPersonne {
+  /** Le compte quand il y en a un ; sinon la fiche du collaborateur, jamais proposée comme destinataire. */
+  id: string;
+  nom: string;
+  /** « Ingénieur · Chantier de Cocody » : de quoi distinguer deux homonymes. */
+  detail: string | null;
+  /** Collaborateur sans compte : il n'ouvre pas le logiciel, un bordereau ne peut pas lui être adressé. */
+  sansCompte: boolean;
+}
+
+/**
+ * Pour les formulaires : tout le personnel (collaborateurs en poste, avec ou sans
+ * compte) et les comptes sans fiche de collaborateur — l'associé, le comptable
+ * externe —, les services, les entreprises du fichier tiers. Pas de saisie :
+ * on choisit dans la liste.
+ */
+export async function choixPossibles(organizationId: string): Promise<{ personnes: ChoixPersonne[]; services: { id: string; libelle: string; code: string }[]; entreprises: { id: string; nom: string }[] }> {
+  const [salaries, comptes, liste, entreprises] = await Promise.all([
+    db
+      .select({ id: employees.id, nom: employees.nom, poste: employees.poste, service: employees.service, userId: employees.userId })
+      .from(employees)
+      .where(and(eq(employees.organizationId, organizationId), eq(employees.actif, true), isNull(employees.deletedAt))),
     db
       .select({ id: users.id, nom: users.fullName })
       .from(memberships)
       .innerJoin(users, eq(users.id, memberships.userId))
-      .where(and(eq(memberships.organizationId, organizationId), eq(memberships.status, "actif"), eq(users.status, "actif")))
-      .orderBy(users.fullName),
+      .where(and(eq(memberships.organizationId, organizationId), eq(memberships.status, "actif"), eq(users.status, "actif"))),
     db
       .select({ id: services.id, libelle: services.libelle, code: services.code })
       .from(services)
@@ -395,5 +414,16 @@ export async function choixPossibles(organizationId: string): Promise<{ personne
       .orderBy(tiers.nom)
       .limit(1000),
   ]);
+  const actifs = new Set(comptes.map((c) => c.id));
+  const dejaVus = new Set<string>();
+  const personnes: ChoixPersonne[] = [];
+  for (const s of salaries) {
+    // Un compte suspendu ou retiré ne reçoit plus rien : le collaborateur passe « sans compte ».
+    const compte = s.userId && actifs.has(s.userId) ? s.userId : null;
+    if (compte) dejaVus.add(compte);
+    personnes.push({ id: compte ?? s.id, nom: s.nom, detail: [s.poste, s.service].filter(Boolean).join(" · ") || null, sansCompte: compte === null });
+  }
+  for (const c of comptes) if (!dejaVus.has(c.id)) personnes.push({ id: c.id, nom: c.nom, detail: null, sansCompte: false });
+  personnes.sort((a, b) => a.nom.localeCompare(b.nom, "fr", { sensitivity: "base" }));
   return { personnes, services: liste, entreprises };
 }

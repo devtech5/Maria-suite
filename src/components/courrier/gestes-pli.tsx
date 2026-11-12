@@ -1,9 +1,10 @@
 "use client";
 
-import { useState, useTransition } from "react";
+import { useState } from "react";
 
+import { BoutonApercu } from "@/components/ui/apercu";
 import { PrisePhoto } from "@/components/ui/prise-photo";
-import { Retour, useOperation, type Resultat } from "@/components/ui/operations";
+import { Retour, useOperation } from "@/components/ui/operations";
 import { CLASSE_CHAMP, Champ } from "@/components/ui/primitives";
 import { accuserReception, expedierPli, joindrePiece, ouvrirPiece, remettrePli, traiterPli } from "@/modules/courrier/actions";
 
@@ -120,8 +121,6 @@ export function Remettre({ id }: { id: string }) {
 
 /** Ouvre le scan ou la décharge par une adresse signée de deux minutes ; ou les joint s'ils manquent. */
 export function Piece({ id, piece, presente, joindre }: { id: string; piece: "scan" | "decharge"; presente: boolean; joindre: boolean }) {
-  const [enCours, demarrer] = useTransition();
-  const [resultat, setResultat] = useState<Resultat | null>(null);
   const [ajout, setAjout] = useState(false);
   const op = useOperation();
   const libelle = piece === "scan" ? "le scan" : "la décharge";
@@ -129,20 +128,13 @@ export function Piece({ id, piece, presente, joindre }: { id: string; piece: "sc
     <div className="space-y-2">
       <div className="flex flex-wrap gap-2">
         {presente && (
-          <button
-            type="button"
-            disabled={enCours}
-            onClick={() =>
-              demarrer(async () => {
-                const url = await ouvrirPiece(id, piece);
-                if (url) window.open(url, "_blank", "noopener");
-                else setResultat({ ok: false, message: "Pièce indisponible." });
-              })
-            }
+          // Aperçu DANS la plateforme : le scan ne quitte pas l'écran, ni notre origine.
+          <BoutonApercu
+            piece={{ titre: piece === "scan" ? "Scan du pli" : "Décharge", nomFichier: piece, signer: () => ouvrirPiece(id, piece) }}
             className="h-9 rounded-lg border border-[var(--filet)] bg-[var(--surface)] px-3 text-sm font-semibold hover:bg-[var(--surface-creuse)]"
           >
             Ouvrir {libelle}
-          </button>
+          </BoutonApercu>
         )}
         {joindre && !ajout && (
           <button type="button" onClick={() => setAjout(true)} className="h-9 rounded-lg px-3 text-sm font-semibold text-marque-600 hover:underline">
@@ -166,7 +158,7 @@ export function Piece({ id, piece, presente, joindre }: { id: string; piece: "sc
           </button>
         </form>
       )}
-      <Retour resultat={resultat ?? op.resultat} />
+      <Retour resultat={op.resultat} />
     </div>
   );
 }

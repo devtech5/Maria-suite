@@ -11,7 +11,7 @@ import { correspond, dansPeriode, lireFiltresListe } from "@/lib/recherche";
 import { ALERTE_TERME_JOURS, ETATS_CONTRAT_SALARIE, etatContratSalarie, type EtatContratSalarie } from "@/modules/personnes/calcul";
 import { listerSalaries } from "@/modules/personnes/requetes";
 
-export const metadata: Metadata = { title: "Contrats des salariés" };
+export const metadata: Metadata = { title: "Contrats des collaborateurs" };
 
 const CONTRAT: Record<string, string> = { cdi: "CDI", cdd: "CDD", stage: "Stage", essai: "Essai" };
 const TON: Record<EtatContratSalarie, TonPastille> = { a_venir: "neutre", en_cours: "valide", a_echeance: "alerte", echu: "danger", sorti: "neutre" };
@@ -27,7 +27,7 @@ function delai(etat: EtatContratSalarie, jours: number | null): string | null {
   return null;
 }
 
-/** Contrats de travail des salariés en poste, échéances en tête. */
+/** Contrats de travail des collaborateurs en poste, échéances en tête. */
 export default async function PageContratsSalaries({ searchParams }: PageProps<"/contrats">) {
   if (!(await peut("personnes.consulter"))) return <AccesRefuse droit="personnes.consulter" />;
   const session = await exigerEntreprise();
@@ -49,7 +49,7 @@ export default async function PageContratsSalaries({ searchParams }: PageProps<"
   return (
     <>
       <EnTetePage
-        titre="Contrats des salariés"
+        titre="Contrats des collaborateurs"
         sousTitre={`Type, entrée, terme et période d'essai. Un terme s'annonce ${ALERTE_TERME_JOURS} jours à l'avance.`}
         actions={
           <Link href="/rh" className="h-cible flex items-center rounded-lg bg-marque-600 px-3.5 text-sm font-semibold text-white hover:bg-marque-700">
@@ -61,12 +61,12 @@ export default async function PageContratsSalaries({ searchParams }: PageProps<"
       <div className="mb-5 grid grid-cols-2 gap-3 lg:grid-cols-4">
         <CarteIndicateur libelle="En cours" valeur={fmtEntier(compte("en_cours"))} ton="valide" precision={`${fmtEntier(lignes.filter((l) => !l.fin).length)} CDI`} />
         <CarteIndicateur libelle="À échéance" valeur={fmtEntier(compte("a_echeance"))} ton="alerte" precision={`Terme sous ${ALERTE_TERME_JOURS} jours`} />
-        <CarteIndicateur libelle="Échus" valeur={fmtEntier(compte("echu"))} ton="danger" precision="Terme passé, salarié encore en poste" />
+        <CarteIndicateur libelle="Échus" valeur={fmtEntier(compte("echu"))} ton="danger" precision="Terme passé, collaborateur encore en poste" />
         <CarteIndicateur libelle="En période d'essai" valeur={fmtEntier(essais)} ton="marque" />
       </div>
 
       {lignes.length === 0 ? (
-        <EtatVide titre="Aucun salarié en poste" message="Les contrats apparaissent ici dès la première embauche, depuis le module Personnel." />
+        <EtatVide titre="Aucun collaborateur en poste" message="Les contrats apparaissent ici dès la première embauche, depuis le module Personnel." />
       ) : (
         <>
           <Recherche
@@ -82,7 +82,7 @@ export default async function PageContratsSalaries({ searchParams }: PageProps<"
             <Tableau>
               <thead>
                 <tr>
-                  <Th>Salarié</Th>
+                  <Th>Collaborateur</Th>
                   <Th>Fonction</Th>
                   <Th>Contrat</Th>
                   <Th>Entrée</Th>

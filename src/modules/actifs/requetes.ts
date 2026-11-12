@@ -29,7 +29,7 @@ export interface ActifSuivi {
   uniteCompteur: string | null;
   /** Nom de la personne à qui l'actif est confié, quelle que soit sa nature. */
   affecteA: string | null;
-  /** Salarié affecté, quand c'en est un : conducteur, utilisateur d'un poste. */
+  /** Collaborateur affecté, quand c'en est un : conducteur, utilisateur d'un poste. */
   employeId: string | null;
   /** Client propriétaire. Nul quand l'actif appartient à l'entreprise. */
   proprietaire: string | null;

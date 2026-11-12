@@ -144,7 +144,7 @@ export interface SoldeGestion {
  * Chaque solde découle du précédent, aucun n'est recopié. Le concurrent
  * affiche une valeur ajoutée strictement égale à son excédent brut
  * d'exploitation, et un résultat d'exploitation égal au résultat net : c'est
- * arithmétiquement impossible dès qu'il y a un salarié ou un impôt. Les cases
+ * arithmétiquement impossible dès qu'il y a un collaborateur ou un impôt. Les cases
  * sont remplies avec la même valeur, la cascade n'est pas calculée.
  *
  * Les codes sont ceux du compte de résultat AUDCIF, pour qu'un comptable

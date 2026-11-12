@@ -50,13 +50,13 @@ function texte(donnees: FormData, champ: string): string | undefined {
   return propre === "" ? undefined : propre;
 }
 
-// ------------------------------------------------------------------ salariés
+// ------------------------------------------------------------------ collaborateurs
 
 export interface EtatSalarie {
   erreur?: string;
-  /** Matricule attribué au salarié embauché. */
+  /** Matricule attribué au collaborateur embauché. */
   matricule?: string;
-  /** Le salarié est embauché, mais une pièce jointe n'a pas suivi. */
+  /** Le collaborateur est embauché, mais une pièce jointe n'a pas suivi. */
   avertissement?: string;
 }
 
@@ -66,7 +66,7 @@ const facultatif = (max: number) => z.string().trim().max(max).optional();
 const schemaSalarie = z.object({
   civilite: z.enum(["M", "Mme", "Mlle"]).optional(),
   sexe: z.enum(["F", "M"]).optional(),
-  nom: z.string().trim().min(2, "Indiquez le nom du salarié.").max(80),
+  nom: z.string().trim().min(2, "Indiquez le nom du collaborateur.").max(80),
   prenoms: facultatif(120),
   dateNaissance: z.string().regex(DATE_ISO, "Date de naissance invalide.").optional(),
   lieuNaissance: facultatif(120),
@@ -85,7 +85,7 @@ const schemaSalarie = z.object({
     .optional(),
   adresse: facultatif(200),
   contactUrgence: facultatif(200),
-  contactUrgenceLien: z.string().refine(lienUrgenceConnu, "Lien avec le salarié inconnu.").optional(),
+  contactUrgenceLien: z.string().refine(lienUrgenceConnu, "Lien avec le collaborateur inconnu.").optional(),
   contactUrgenceTelephone: facultatif(30),
 
   poste: z.string().trim().min(2, "Choisissez le poste occupé."),
@@ -182,7 +182,7 @@ export async function embaucherSalarie(
       ),
     );
   } catch (erreur) {
-    if (violeContrainte(erreur, "employees_matricule_unique")) return { erreur: "Ce matricule est déjà porté par un autre salarié." };
+    if (violeContrainte(erreur, "employees_matricule_unique")) return { erreur: "Ce matricule est déjà porté par un autre collaborateur." };
     if (erreur instanceof Error && !erreur.message.startsWith("Failed query")) return { erreur: erreur.message };
     console.error("Embauche refusée", erreur);
     return { erreur: "L'embauche n'a pas abouti. Réessayez." };
@@ -220,7 +220,7 @@ async function joindreAEmbauche(
   const pieceNature = texte(donnees, "pieceNature") === "passeport" ? "passeport" : "cni";
   if (!photo && !cv && !lettre && !contrat && !pieceNumero) return undefined;
   if (!(await peut("personnes.dossier.gerer"))) {
-    return "Salarié embauché, mais les pièces jointes n'ont pas été gardées : votre rôle ne permet pas de tenir les dossiers du personnel.";
+    return "Collaborateur embauché, mais les pièces jointes n'ont pas été gardées : votre rôle ne permet pas de tenir les dossiers du personnel.";
   }
 
   const refus: string[] = [];
@@ -263,12 +263,12 @@ async function joindreAEmbauche(
     }
   }
   return refus.length > 0
-    ? `Salarié embauché. À reprendre depuis sa fiche : ${refus.join(" ; ")}.`
+    ? `Collaborateur embauché. À reprendre depuis sa fiche : ${refus.join(" ; ")}.`
     : undefined;
 }
 
 /**
- * Sort un salarié des effectifs. Sa fiche reste, ses bulletins aussi.
+ * Sort un collaborateur des effectifs. Sa fiche reste, ses bulletins aussi.
  *
  * Pas de suppression : un contrat de travail se conserve des années après le
  * départ, et l'effacer rendrait indéfendable toute déclaration passée.

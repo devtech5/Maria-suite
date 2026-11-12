@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
 
 import { DROITS_DE_TOUS, presetRole } from "@/lib/droits/catalogue";
-import { enRetard, formatNumero, joursDeRetard, passagePermis, refusImputation, refusSaisie, relanceDue, statutInitial } from "@/modules/courrier/regles";
+import { CANAUX_PROPOSES, NOUVELLE_ENTITE, canalValide, enRetard, formatNumero, joursDeRetard, lireCanal, passagePermis, refusImputation, refusSaisie, relanceDue, statutInitial } from "@/modules/courrier/regles";
 
 /**
  * Courrier. Ce qui compte : un registre sans trou, un pli qui ne saute pas
@@ -78,3 +78,35 @@ describe("droits du courrier", () => {
     expect(DROITS_DE_TOUS).toContain("courrier.recevoir");
   });
 });
+
+describe("« Arrivé par » : Yango et les entités de livraison", () => {
+  it("propose Yango dans la liste, et garde l'entité hors de la liste des canaux", () => {
+    expect(CANAUX_PROPOSES.map(([cle]) => cle)).toContain("yango");
+    expect(CANAUX_PROPOSES.map(([cle]) => cle)).not.toContain("entite");
+    expect(canalValide("yango")).toBe(true);
+  });
+
+  it("rend le canal choisi tel quel", () => {
+    expect(lireCanal("yango", "", [])).toEqual({ canal: "yango", transporteur: null });
+    expect(lireCanal("poste", "", [])).toEqual({ canal: "poste", transporteur: null });
+    expect(lireCanal("pigeon", "", [])).toHaveProperty("erreur");
+    expect(lireCanal("entite", "", [])).toHaveProperty("erreur");
+  });
+
+  it("ajoute une entité nouvelle, avec son nom nettoyé", () => {
+    expect(lireCanal(NOUVELLE_ENTITE, "  Glovo   Abidjan ", [])).toEqual({ canal: "entite", transporteur: "Glovo Abidjan" });
+    expect(lireCanal(NOUVELLE_ENTITE, "", [])).toHaveProperty("erreur");
+    expect(lireCanal(NOUVELLE_ENTITE, "x", [])).toHaveProperty("erreur");
+    expect(lireCanal(NOUVELLE_ENTITE, "a".repeat(81), [])).toHaveProperty("erreur");
+  });
+
+  it("ne crée pas de doublon : un nom déjà canal rend ce canal, un nom connu garde son orthographe", () => {
+    expect(lireCanal(NOUVELLE_ENTITE, "yango", [])).toEqual({ canal: "yango", transporteur: null });
+    expect(lireCanal(NOUVELLE_ENTITE, "YANGO", [])).toEqual({ canal: "yango", transporteur: null });
+    expect(lireCanal(NOUVELLE_ENTITE, "la poste", [])).toEqual({ canal: "poste", transporteur: null });
+    expect(lireCanal(NOUVELLE_ENTITE, "glovo abidjan", ["Glovo Abidjan"])).toEqual({ canal: "entite", transporteur: "Glovo Abidjan" });
+    expect(lireCanal("entite:Jumia", "", ["Jumia"])).toEqual({ canal: "entite", transporteur: "Jumia" });
+    expect(lireCanal(NOUVELLE_ENTITE, "Courriel", [])).toEqual({ canal: "email", transporteur: null });
+  });
+});
+

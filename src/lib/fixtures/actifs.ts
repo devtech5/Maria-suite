@@ -31,7 +31,7 @@ export interface ActifDemo {
   designation: string;
   type: TypeActif;
   statut: StatutActif;
-  /** Nom du salarié ou de l'intervenant à qui l'actif est confié. */
+  /** Nom du collaborateur ou de l'intervenant à qui l'actif est confié. */
   affecteA?: string;
   site: string;
   dateAcquisition: string;

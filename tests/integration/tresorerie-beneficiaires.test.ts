@@ -104,7 +104,7 @@ describe("bénéficiaire des bons de caisse", () => {
 });
 
 describe("bénéficiaire des avances", () => {
-  it("se choisit au Personnel ; le compte du salarié suit", async () => {
+  it("se choisit au Personnel ; le compte du collaborateur suit", async () => {
     const compte = newId();
     await db.insert(users).values({ id: compte, fullName: "Awa (compte)", email: `${compte}@exemple.test` });
     const { id: awa } = await creerSalariePour(org, { nom: "Awa Koné", poste: "Commerciale", debut: "2026-01-05", salaireBase: 150_000 }, user);

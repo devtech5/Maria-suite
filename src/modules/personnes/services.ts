@@ -1,6 +1,6 @@
 /**
  * Services de l'entreprise : l'organigramme dans lequel se rangent les postes
- * et les salariés.
+ * et les collaborateurs.
  *
  * Fichier sans base ni React : la liste de départ sert à l'installation, à la
  * migration 0070 et aux tests ; les règles de libellé au serveur comme au
@@ -13,7 +13,7 @@
  * conception de projets et recherche de financement. Chaque poste de
  * départ appartient à un seul service.
  *
- * Le service reste écrit en toutes lettres sur la fiche du salarié
+ * Le service reste écrit en toutes lettres sur la fiche du collaborateur
  * (`employees.service`), comme le poste : le référentiel décide de ce qu'on
  * peut y choisir, et un renommage s'y propage.
  */

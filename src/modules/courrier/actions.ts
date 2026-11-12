@@ -67,6 +67,7 @@ export async function enregistrerPli(sens: Sens, d: FormData): Promise<Resultat>
     reference: texte(d, "reference"),
     nature: texte(d, "nature"),
     canal: texte(d, "canal"),
+    entite: texte(d, "entiteNom"),
     dateDocument: texte(d, "dateDocument"),
   };
   try {

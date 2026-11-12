@@ -29,9 +29,9 @@ export const RAPPORTS_PAIE: DefinitionRapport[] = [
       return {
         colonnes: [
           { cle: "mois", libelle: "Mois", type: "texte" },
-          { cle: "effectif", libelle: "Salariés", type: "entier", total: false },
+          { cle: "effectif", libelle: "Collaborateurs", type: "entier", total: false },
           { cle: "brut", libelle: "Salaires bruts", type: "montant" },
-          { cle: "cnps", libelle: "CNPS salarié", type: "montant" },
+          { cle: "cnps", libelle: "CNPS collaborateur", type: "montant" },
           { cle: "impot", libelle: "Impôt sur salaire", type: "montant" },
           { cle: "net", libelle: "Net à payer", type: "montant" },
           { cle: "patronal", libelle: "Charges patronales", type: "montant" },
@@ -47,7 +47,7 @@ export const RAPPORTS_PAIE: DefinitionRapport[] = [
           patronal: Number(l.patronal),
           cout: Number(l.brut) + Number(l.patronal),
         })),
-        note: "Mois de paie validés seulement. Les intervenants payés à la tâche n'y figurent pas : ils ne sont pas salariés.",
+        note: "Mois de paie validés seulement. Les intervenants payés à la tâche n'y figurent pas : ils ne sont pas collaborateurs.",
       };
     },
   },
@@ -55,8 +55,8 @@ export const RAPPORTS_PAIE: DefinitionRapport[] = [
     cle: "salaires-par-salarie",
     module: "personnes",
     rubrique: "Personnel",
-    titre: "Cumul des salaires par salarié",
-    description: "Ce que chaque salarié a perçu et coûté sur la période : brut, retenues, net, charges patronales.",
+    titre: "Cumul des salaires par collaborateur",
+    description: "Ce que chaque collaborateur a perçu et coûté sur la période : brut, retenues, net, charges patronales.",
     droit: "personnes.paie.preparer",
     periode: "intervalle",
     async executer(organizationId, { du, au }) {
@@ -71,11 +71,11 @@ export const RAPPORTS_PAIE: DefinitionRapport[] = [
       return {
         colonnes: [
           { cle: "matricule", libelle: "Matricule", type: "texte" },
-          { cle: "nom", libelle: "Salarié", type: "texte" },
+          { cle: "nom", libelle: "Collaborateur", type: "texte" },
           { cle: "poste", libelle: "Poste", type: "texte" },
           { cle: "mois", libelle: "Bulletins", type: "entier", total: true },
           { cle: "brut", libelle: "Brut", type: "montant" },
-          { cle: "cnps", libelle: "CNPS salarié", type: "montant" },
+          { cle: "cnps", libelle: "CNPS collaborateur", type: "montant" },
           { cle: "impot", libelle: "Impôt", type: "montant" },
           { cle: "net", libelle: "Net", type: "montant" },
           { cle: "patronal", libelle: "Charges patronales", type: "montant" },
@@ -100,7 +100,7 @@ export const RAPPORTS_PAIE: DefinitionRapport[] = [
     rubrique: "Personnel",
     titre: "Déclaration annuelle des salaires (DISA)",
     description:
-      "Par salarié, sur l'année : période d'emploi, salaire brut, assiette retraite plafonnée, cotisations CNPS et impôt retenu. La base de la DISA à déposer à la CNPS.",
+      "Par collaborateur, sur l'année : période d'emploi, salaire brut, assiette retraite plafonnée, cotisations CNPS et impôt retenu. La base de la DISA à déposer à la CNPS.",
     droit: "personnes.paie.preparer",
     periode: "intervalle",
     async executer(organizationId, { du, au }) {
@@ -141,7 +141,7 @@ export const RAPPORTS_PAIE: DefinitionRapport[] = [
       return {
         colonnes: [
           { cle: "matricule", libelle: "Matricule", type: "texte" },
-          { cle: "nom", libelle: "Salarié", type: "texte" },
+          { cle: "nom", libelle: "Collaborateur", type: "texte" },
           { cle: "cnps", libelle: "N° CNPS", type: "texte" },
           { cle: "naissance", libelle: "Naissance", type: "date" },
           { cle: "entree", libelle: "Entrée", type: "date" },
@@ -149,7 +149,7 @@ export const RAPPORTS_PAIE: DefinitionRapport[] = [
           { cle: "mois", libelle: "Mois payés", type: "entier", total: false },
           { cle: "brut", libelle: "Salaire brut", type: "montant" },
           { cle: "assiette", libelle: "Assiette retraite", type: "montant" },
-          { cle: "retraiteSal", libelle: "Retraite salarié", type: "montant" },
+          { cle: "retraiteSal", libelle: "Retraite collaborateur", type: "montant" },
           { cle: "retraitePat", libelle: "Retraite employeur", type: "montant" },
           { cle: "pf", libelle: "Prestations familiales", type: "montant" },
           { cle: "at", libelle: "Accident du travail", type: "montant" },
@@ -176,7 +176,7 @@ export const RAPPORTS_PAIE: DefinitionRapport[] = [
         note:
           "Bulletins des mois de paie validés, rappels compris dans le mois où ils sont versés. Choisissez l'année civile (1er janvier au 31 décembre). " +
           "Le dépôt se fait auprès de la CNPS, au format qu'elle impose : confrontez ce relevé à son gabarit en vigueur avant de le reporter." +
-          (sansNumero ? ` ${sansNumero} salarié${sansNumero > 1 ? "s n'ont" : " n'a"} pas de numéro CNPS : à renseigner sur sa fiche avant le dépôt.` : ""),
+          (sansNumero ? ` ${sansNumero} collaborateur${sansNumero > 1 ? "s n'ont" : " n'a"} pas de numéro CNPS : à renseigner sur sa fiche avant le dépôt.` : ""),
       };
     },
   },

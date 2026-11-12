@@ -34,7 +34,7 @@ import {
   paiementSalaireConnu,
 } from "@/modules/personnes/calcul";
 
-export const metadata: Metadata = { title: "Fiche salarié" };
+export const metadata: Metadata = { title: "Fiche collaborateur" };
 
 const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 const CONTRAT: Record<string, string> = { cdi: "CDI", cdd: "CDD", stage: "Stage", essai: "Essai" };
@@ -42,12 +42,12 @@ const JOUR = new Intl.DateTimeFormat("fr-FR", { day: "2-digit", month: "2-digit"
 const date = (iso: string | null) => (iso ? JOUR.format(new Date(`${iso}T00:00:00Z`)) : "—");
 
 /**
- * Fiche d'un salarié : contrat, état civil, état professionnel, photo et
+ * Fiche d'un collaborateur : contrat, état civil, état professionnel, photo et
  * dossier de pièces.
  *
  * Le dossier ne se montre qu'avec `personnes.dossier.consulter`, et chaque
  * affichage du dossier se trace : savoir qui a lu le casier judiciaire d'un
- * salarié fait partie de ce qu'une entreprise doit pouvoir répondre.
+ * collaborateur fait partie de ce qu'une entreprise doit pouvoir répondre.
  */
 export default async function PageFicheSalarie({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
@@ -119,7 +119,7 @@ export default async function PageFicheSalarie({ params }: { params: Promise<{ i
   return (
     <>
       <Link href="/rh" className="mb-3 inline-block text-sm text-[var(--encre-douce)] hover:underline">
-        ← Salariés
+        ← Collaborateurs
       </Link>
 
       <header className="mb-6 flex flex-wrap items-center gap-5 rounded-xl border border-[var(--filet)] bg-[var(--surface)] p-4">
@@ -163,7 +163,7 @@ export default async function PageFicheSalarie({ params }: { params: Promise<{ i
               ["Numéro CNPS", etatCivil.numeroCnps],
               ["Adresse", etatCivil.adresse],
               ["Personne à prévenir", etatCivil.contactUrgence],
-              ["Lien avec le salarié", etatCivil.contactUrgenceLien && lienUrgenceConnu(etatCivil.contactUrgenceLien) ? LIENS_URGENCE[etatCivil.contactUrgenceLien] : null],
+              ["Lien avec le collaborateur", etatCivil.contactUrgenceLien && lienUrgenceConnu(etatCivil.contactUrgenceLien) ? LIENS_URGENCE[etatCivil.contactUrgenceLien] : null],
               ["Téléphone de la personne à prévenir", etatCivil.contactUrgenceTelephone],
             ].map(([libelle, valeur]) => (
               <div key={libelle}>

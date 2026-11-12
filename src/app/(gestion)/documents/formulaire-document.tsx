@@ -15,7 +15,7 @@ export interface CibleDocument {
 const RATTACHEMENTS: { valeur: TypeEntiteDocument | ""; libelle: string }[] = [
   { valeur: "", libelle: "Aucun" },
   { valeur: "tiers", libelle: "Client ou fournisseur" },
-  { valeur: "employe", libelle: "Salarié" },
+  { valeur: "employe", libelle: "Collaborateur" },
   { valeur: "intervenant", libelle: "Intervenant" },
   { valeur: "actif", libelle: "Actif" },
   { valeur: "organisation", libelle: "L'entreprise" },
@@ -25,7 +25,7 @@ const RATTACHEMENTS: { valeur: TypeEntiteDocument | ""; libelle: string }[] = [
  * Dépôt d'un document.
  *
  * Le rattachement se choisit en deux temps — la nature, puis l'élément — parce
- * qu'une liste unique mêlant clients, salariés et véhicules deviendrait
+ * qu'une liste unique mêlant clients, collaborateurs et véhicules deviendrait
  * illisible passé la centaine de fiches.
  *
  * La pièce jointe est FACULTATIVE. Une fiche sans fichier reste légitime : le

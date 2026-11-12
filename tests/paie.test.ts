@@ -92,7 +92,7 @@ describe("impôt sur les salaires", () => {
 
   it("est continu au passage de chaque tranche", () => {
     // Un barème par tranches qui saute à la frontière ferait perdre de l'argent
-    // à un salarié augmenté d'un franc.
+    // à un collaborateur augmenté d'un franc.
     for (const seuil of [75_000, 240_000, 800_000]) {
       const avant = impotSurSalaire(seuil);
       const apres = impotSurSalaire(seuil + 1);
@@ -177,7 +177,7 @@ describe("bon de paiement", () => {
    * 66 est celle du personnel déclaré, et l'y mêler gonflerait la masse
    * salariale de gens absents de toute déclaration CNPS.
    */
-  it("n'impute jamais un intervenant en charges de personnel salarié", () => {
+  it("n'impute jamais un intervenant en charges de personnel collaborateur", () => {
     const ecriture = ecritureBonPaiement({ ...bon, moyen: "mobile_money" });
     for (const ligne of ecriture.lignes) {
       expect(ligne.compte.startsWith("66")).toBe(false);

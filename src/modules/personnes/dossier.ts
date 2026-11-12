@@ -20,12 +20,12 @@ import { affecterPostesDans } from "./referentiel-postes";
 import { affectationsPostes, employees, piecesEmploye, postes, type PieceEmploye } from "./schema";
 
 /**
- * Dossier du salarié : état civil, photo, pièces.
+ * Dossier du collaborateur : état civil, photo, pièces.
  *
  * Les pièces sont des données sensibles (casier judiciaire, RIB, CMU). Toute
  * lecture passe par une fonction de ce fichier, et toute ouverture de fichier
  * se trace : l'entreprise doit pouvoir dire qui a consulté le casier d'un
- * salarié, et quand.
+ * collaborateur, et quand.
  */
 
 export interface FichierRecu {
@@ -51,7 +51,7 @@ export async function fichierDe(donnees: FormData, champ: string): Promise<Fichi
   return { nom: brut.name || "document", typeMime: brut.type, contenu: await brut.arrayBuffer() };
 }
 
-/** Salarié de l'entreprise, ou erreur : un identifiant venu du client ne prouve rien. */
+/** Collaborateur de l'entreprise, ou erreur : un identifiant venu du client ne prouve rien. */
 export async function salarieDe(organizationId: string, employeeId: string) {
   const [salarie] = await db
     .select()
@@ -60,7 +60,7 @@ export async function salarieDe(organizationId: string, employeeId: string) {
   return salarie ?? null;
 }
 
-/** Pièces en vigueur d'un salarié, retirées exclues. */
+/** Pièces en vigueur d'un collaborateur, retirées exclues. */
 export async function piecesDuSalarie(organizationId: string, employeeId: string): Promise<PieceEmploye[]> {
   return db
     .select()
@@ -106,7 +106,7 @@ export async function ajouterPiecePour(
   fichier: FichierRecu | null,
 ): Promise<{ id: string }> {
   const salarie = await salarieDe(organizationId, employeeId);
-  if (!salarie) throw new Error("Salarié introuvable.");
+  if (!salarie) throw new Error("Collaborateur introuvable.");
 
   const definition = PIECES[saisie.nature];
   if (definition.fichierRequis && !fichier) throw new Error(`${definition.libelle} : joignez le document.`);
@@ -162,7 +162,7 @@ export async function ajouterPiecePour(
 
 /**
  * Retire une pièce : la ligne reste (qui l'avait déposée, quand), le fichier
- * quitte le dépôt. Une CNI déposée sur le mauvais salarié ne doit plus être
+ * quitte le dépôt. Une CNI déposée sur le mauvais collaborateur ne doit plus être
  * lisible par personne.
  */
 export async function retirerPiecePour(organizationId: string, userId: string, pieceId: string): Promise<void> {
@@ -184,7 +184,7 @@ export async function retirerPiecePour(organizationId: string, userId: string, p
   // Après la mise à jour : un échec ici laisse au pire un fichier que plus
   // aucune ligne ne désigne, jamais une ligne qui désigne un fichier absent.
   if (avant.chemin && !(await supprimer(avant.chemin))) {
-    console.error("Dossier salarié : fichier de pièce retirée resté dans le dépôt", avant.chemin);
+    console.error("Dossier collaborateur : fichier de pièce retirée resté dans le dépôt", avant.chemin);
   }
 
   await tracerPour(organizationId, userId, {
@@ -257,7 +257,7 @@ export async function modifierEtatCivilPour(
     .set({ ...etat, updatedAt: new Date() })
     .where(and(eq(employees.organizationId, organizationId), eq(employees.id, employeeId)))
     .returning({ nom: employees.nom });
-  if (!modifie) throw new Error("Salarié introuvable.");
+  if (!modifie) throw new Error("Collaborateur introuvable.");
   await tracerPour(organizationId, userId, {
     action: "salarie.etat_civil",
     entite: "employe",
@@ -280,7 +280,7 @@ export interface EtatProfessionnel {
   coordonneesPaiement: string | null;
 }
 
-/** Les autres salariés de l'entreprise, candidats au rôle de supérieur. Les sortis restent, pour qu'un ancien rattachement se lise. */
+/** Les autres collaborateurs de l'entreprise, candidats au rôle de supérieur. Les sortis restent, pour qu'un ancien rattachement se lise. */
 export async function collegues(organizationId: string, saufId: string): Promise<{ id: string; nom: string; poste: string; actif: boolean; superieurId: string | null }[]> {
   const lignes = await db
     .select({ id: employees.id, nom: employees.nom, poste: employees.poste, actif: employees.actif, superieurId: employees.superieurId })
@@ -304,7 +304,7 @@ export async function modifierEtatProfessionnelPour(
       .from(employees)
       .where(and(eq(employees.organizationId, organizationId), isNull(employees.deletedAt)));
     const salarie = tous.find((e) => e.id === employeeId);
-    if (!salarie) throw new Error("Salarié introuvable.");
+    if (!salarie) throw new Error("Collaborateur introuvable.");
     // Des postes du référentiel, ou ceux que la fiche portait déjà : un poste
     // retiré de la liste reste à qui l'occupe, il ne s'attribue plus.
     const actifs = await tx
@@ -325,7 +325,7 @@ export async function modifierEtatProfessionnelPour(
     if (!choix.ok) throw new Error("Choisissez les postes dans la liste. Un poste manquant s'ajoute dans l'onglet Postes.");
     if (etat.superieurId && !tous.some((e) => e.id === etat.superieurId)) throw new Error("Supérieur hiérarchique inconnu.");
     if (formeUneBoucle(employeeId, etat.superieurId, new Map(tous.map((e) => [e.id, e.superieurId])))) {
-      throw new Error("Ce choix ferait du salarié le supérieur de son propre supérieur.");
+      throw new Error("Ce choix ferait du collaborateur le supérieur de son propre supérieur.");
     }
     if (etat.finPeriodeEssai && etat.finPeriodeEssai < salarie.debut) {
       throw new Error("La période d'essai ne peut pas finir avant l'entrée dans l'entreprise.");
@@ -367,7 +367,7 @@ export async function changerPhotoPour(
     .set({ photo, updatedAt: new Date() })
     .where(and(eq(employees.organizationId, organizationId), eq(employees.id, employeeId)))
     .returning({ nom: employees.nom });
-  if (!modifie) throw new Error("Salarié introuvable.");
+  if (!modifie) throw new Error("Collaborateur introuvable.");
   await tracerPour(organizationId, userId, {
     action: photo ? "salarie.photo" : "salarie.photo_retirer",
     entite: "employe",
@@ -379,12 +379,12 @@ export async function changerPhotoPour(
 export interface EtatDossiers {
   expirees: number;
   bientot: number;
-  /** Salariés concernés, pour l'alerte. */
+  /** Collaborateurs concernés, pour l'alerte. */
   salaries: number;
 }
 
 /**
- * Pièces expirées ou sur le point de l'être, chez les salariés en poste.
+ * Pièces expirées ou sur le point de l'être, chez les collaborateurs en poste.
  * Une pièce remplacée par une plus récente ne compte plus.
  */
 export async function etatDossiers(organizationId: string, aujourdhui: string): Promise<EtatDossiers> {
@@ -428,7 +428,7 @@ export async function etatDossiers(organizationId: string, aujourdhui: string): 
   return resultat;
 }
 
-/** Natures présentes par salarié, pour la colonne « Dossier » de la liste. */
+/** Natures présentes par collaborateur, pour la colonne « Dossier » de la liste. */
 export async function naturesParSalarie(organizationId: string): Promise<Map<string, Set<NaturePiece>>> {
   const lignes = await db
     .select({ employeeId: piecesEmploye.employeeId, nature: piecesEmploye.nature })

@@ -15,7 +15,10 @@ import {
 import { money, primaryId, rowVersion, timestamps } from "@/db/schema/_shared";
 import { organizations } from "@/db/schema/tenancy";
 
-export const natureTiers = pgEnum("nature_tiers", ["entreprise", "particulier"]);
+import { NATURES_TIERS } from "./natures";
+
+/** Type de client (`./natures.ts`) : particulier, entreprise, ONG, mutuelle, association, coopérative. */
+export const natureTiers = pgEnum("nature_tiers", NATURES_TIERS);
 
 /**
  * Tiers : client, fournisseur, ou les deux.

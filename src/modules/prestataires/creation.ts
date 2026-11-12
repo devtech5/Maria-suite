@@ -9,6 +9,7 @@ import { prochainNumero, type Transaction } from "@/lib/sequences";
 import { enregistrerEcritureDans } from "@/modules/comptabilite/enregistrement";
 import { compteTresorerieDe } from "@/modules/tresorerie/creation";
 import { creerTiersDans } from "@/modules/tiers/creation";
+import type { NatureTiers } from "@/modules/tiers/natures";
 import { tiers } from "@/modules/tiers/schema";
 
 import { ecriturePrestation, noteMoyenne, retenue as calculerRetenue, transitionPermise, type CompteCharge, type StatutPrestation, type UniteTarif } from "./calcul";
@@ -34,7 +35,10 @@ export interface NouveauPrestataire extends ProfilPrestataire {
   /** Fiche tiers existante (un fournisseur déjà connu). Sinon, elle est créée. */
   tiersId?: string | null;
   nom?: string;
-  nature?: "entreprise" | "particulier";
+  /** Type de prestataire : particulier, entreprise, ONG, mutuelle, association, coopérative. */
+  nature?: NatureTiers;
+  /** Nul : local (pays de l'entreprise). Un code pays : international. */
+  paysCode?: string | null;
   telephone?: string | null;
   email?: string | null;
   ville?: string | null;
@@ -75,6 +79,7 @@ export async function creerPrestatairePour(organizationId: string, userId: strin
         {
           nom: saisie.nom.trim(),
           nature: saisie.nature ?? "particulier",
+          paysCode: saisie.paysCode ?? null,
           estClient: false,
           estFournisseur: true,
           telephone: saisie.telephone ?? null,
@@ -251,6 +256,10 @@ export async function payerPour(organizationId: string, userId: string, id: stri
 
 export interface PrestataireSuivi extends Prestataire {
   nom: string;
+  /** Type de prestataire, lu à sa fiche tiers. */
+  nature: NatureTiers;
+  /** Nul : local ; sinon le pays d'un prestataire international. */
+  paysCode: string | null;
   telephone: string | null;
   email: string | null;
   ville: string | null;
@@ -264,7 +273,7 @@ export interface PrestataireSuivi extends Prestataire {
 export async function listerPrestataires(organizationId: string): Promise<PrestataireSuivi[]> {
   const [lignes, toutes] = await Promise.all([
     db
-      .select({ p: prestataires, nom: tiers.nom, telephone: tiers.telephone, email: tiers.email, ville: tiers.ville, identifiantFiscal: tiers.identifiantFiscal })
+      .select({ p: prestataires, nom: tiers.nom, telephone: tiers.telephone, email: tiers.email, ville: tiers.ville, identifiantFiscal: tiers.identifiantFiscal, nature: tiers.nature, paysCode: tiers.paysCode })
       .from(prestataires)
       .innerJoin(tiers, eq(tiers.id, prestataires.tiersId))
       .where(and(eq(prestataires.organizationId, organizationId), isNull(prestataires.deletedAt)))

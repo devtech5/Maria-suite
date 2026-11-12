@@ -171,7 +171,7 @@ export function TableBulletins({ bulletins, modifiable }: { bulletins: BulletinA
       <Tableau>
         <thead>
           <tr>
-            <Th>Salarié</Th>
+            <Th>Collaborateur</Th>
             <Th aligne="droite">Base</Th>
             <Th aligne="droite">Absences</Th>
             <Th aligne="droite">Primes</Th>

@@ -5,7 +5,7 @@ import { exigerEntreprise } from "@/lib/auth/dal";
 import { peut } from "@/lib/droits/garde";
 import { fmt } from "@/lib/format";
 import { lireFiltresListe } from "@/lib/recherche";
-import { fichesTiers } from "@/modules/tiers/requetes";
+import { fichesTiers, paysEntreprise } from "@/modules/tiers/requetes";
 import { FormulaireTiers } from "./formulaire-tiers";
 import { ListeClients } from "./liste-clients";
 
@@ -17,7 +17,7 @@ export default async function PageClients({ searchParams }: PageProps<"/commerci
   const filtres = lireFiltresListe(await searchParams);
   const [gerer, supprimer] = await Promise.all([peut("tiers.fiche.gerer"), peut("tiers.fiche.supprimer")]);
   // Qui peut réactiver voit aussi les fiches en off.
-  const clients = await fichesTiers(session.organizationId, "client", gerer);
+  const [clients, pays] = await Promise.all([fichesTiers(session.organizationId, "client", gerer), paysEntreprise(session.organizationId)]);
 
   const encoursTotal = clients.reduce(
     (somme, client) => somme + client.encoursClient,
@@ -33,7 +33,7 @@ export default async function PageClients({ searchParams }: PageProps<"/commerci
             ? "Aucun client enregistré"
             : `${clients.length} clients · ${fmt(encoursTotal)} FCFA d'encours`
         }
-        actions={<FormulaireTiers role="client" />}
+        actions={<FormulaireTiers role="client" paysEntreprise={pays} />}
       />
 
       {clients.length === 0 ? (

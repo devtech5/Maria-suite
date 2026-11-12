@@ -18,7 +18,7 @@ function lisible(erreur: unknown): string {
   return "L'opération n'a pas abouti. Réessayez.";
 }
 
-/** Les postes se tiennent avec le droit de gérer les salariés : c'est là qu'ils se choisissent. */
+/** Les postes se tiennent avec le droit de gérer les collaborateurs : c'est là qu'ils se choisissent. */
 export async function ajouterPoste(donnees: FormData): Promise<Resultat & { libelle?: string }> {
   const session = await exigerEntreprise();
   const refus = await refusDroit("personnes.salarie.gerer");
@@ -40,7 +40,7 @@ export async function renommerPoste(posteId: string, libelle: string): Promise<R
   try {
     const { libelle: retenu, fiches } = await renommerPostePour(session.organizationId, session.userId, posteId, libelle);
     revalidatePath("/rh", "layout");
-    const suite = fiches === 0 ? "" : fiches === 1 ? " Une fiche salarié suit." : ` ${fiches} fiches salarié suivent.`;
+    const suite = fiches === 0 ? "" : fiches === 1 ? " Une fiche collaborateur suit." : ` ${fiches} fiches collaborateur suivent.`;
     return { ok: true, message: `Poste renommé en « ${retenu} ».${suite}` };
   } catch (erreur) {
     return { ok: false, message: lisible(erreur) };

@@ -26,7 +26,7 @@ export interface PresenceDuJour {
   motif: string | null;
 }
 
-/** Qui est venu ce jour-là, salariés et comptes sans fiche confondus. */
+/** Qui est venu ce jour-là, collaborateurs et comptes sans fiche confondus. */
 export async function presencesDuJour(organizationId: string, jour: string, fuseau: string): Promise<PresenceDuJour[]> {
   const lignes = await db
     .select({
@@ -79,7 +79,7 @@ export interface SalarieActif {
   userId: string | null;
 }
 
-/** Salariés dont le contrat couvre au moins un jour de la période. */
+/** Collaborateurs dont le contrat couvre au moins un jour de la période. */
 export async function salariesSur(organizationId: string, debut: string, fin: string): Promise<SalarieActif[]> {
   return db
     .select({ id: employees.id, nom: employees.nom, poste: employees.poste, matricule: employees.matricule, debut: employees.debut, fin: employees.fin, userId: employees.userId })
@@ -136,7 +136,7 @@ export interface LigneRegistre {
   permissions: number;
 }
 
-/** Registre d'une période (un mois en pratique) : une ligne par salarié, une case par jour. */
+/** Registre d'une période (un mois en pratique) : une ligne par collaborateur, une case par jour. */
 export async function registre(
   organizationId: string,
   debut: string,
@@ -195,7 +195,7 @@ export interface SoldeSalarie extends Solde {
   depuis: string;
 }
 
-/** Soldes de congés payés au jour dit, pour un salarié ou pour tous. */
+/** Soldes de congés payés au jour dit, pour un collaborateur ou pour tous. */
 export async function soldesConges(organizationId: string, r: Reglages, aujourdhui: string, employeeIds?: string[]): Promise<SoldeSalarie[]> {
   let salaries = await salariesSur(organizationId, aujourdhui, aujourdhui);
   if (employeeIds) salaries = salaries.filter((s) => employeeIds.includes(s.id));

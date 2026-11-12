@@ -109,10 +109,10 @@ async function periodeVerrouillee(tx: Transaction, organizationId: string, id: s
 }
 
 /**
- * Prépare la paie d'un mois : un bulletin par salarié sous contrat pendant le
+ * Prépare la paie d'un mois : un bulletin par collaborateur sous contrat pendant le
  * mois, calculé sur son salaire de base moins les jours non dus (entrée ou
  * sortie en cours de mois, congé sans solde). Relancée, elle ajoute les
- * nouveaux salariés et recalcule les bulletins déjà là avec le barème et les
+ * nouveaux collaborateurs et recalcule les bulletins déjà là avec le barème et les
  * congés du jour, sans toucher aux éléments variables saisis.
  */
 export async function preparerPeriodeDans(
@@ -254,7 +254,7 @@ export async function modifierElementsDans(
 
 /**
  * Rappel proposé pour un bulletin en préparation : relit les bulletins validés
- * du salarié depuis `depuis`, avant le mois de ce bulletin, et chiffre l'écart
+ * du collaborateur depuis `depuis`, avant le mois de ce bulletin, et chiffre l'écart
  * avec `nouveauSalaire`. Ne modifie rien : la saisie reste à faire.
  */
 export async function proposerRappel(
@@ -287,7 +287,7 @@ export async function proposerRappel(
   return rappelRetroactif(passes, nouveauSalaire);
 }
 
-/** Retire un salarié de la paie du mois (absent tout le mois, sorti avant le début). */
+/** Retire un collaborateur de la paie du mois (absent tout le mois, sorti avant le début). */
 export async function retirerBulletinDans(tx: Transaction, organizationId: string, bulletinId: string, userId: string): Promise<{ nom: string }> {
   const [b] = await tx.select().from(bulletinsPaie).where(and(eq(bulletinsPaie.id, bulletinId), eq(bulletinsPaie.organizationId, organizationId))).for("update");
   if (!b) throw new Error("Bulletin introuvable.");
@@ -371,7 +371,7 @@ async function compteTresorerie(tx: Transaction, organizationId: string, id: str
 }
 
 /**
- * Paie les salaires d'une paie validée : une écriture par salarié, depuis le
+ * Paie les salaires d'une paie validée : une écriture par collaborateur, depuis le
  * compte choisi. Les bulletins déjà payés sont laissés de côté.
  */
 export async function payerSalairesDans(

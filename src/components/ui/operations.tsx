@@ -30,7 +30,7 @@ export function Retour({ resultat }: { resultat: Resultat | null }) {
 
 /**
  * Formulaire ouvert par un bouton, dans une fenêtre : modale pour un
- * formulaire court, tiroir à droite pour un long. Branché sur une action
+ * formulaire court, plus large pour un long — toujours centrée. Branché sur une action
  * serveur à FormData.
  *
  * Se ferme et se vide sur un succès ; garde la saisie sur un refus. Fermer

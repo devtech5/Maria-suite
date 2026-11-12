@@ -34,7 +34,7 @@ export const metadata: Metadata = { title: "Intervenants" };
 const SANS_CHANTIER = "Sans affectation";
 
 /**
- * Main-d'œuvre non salariée.
+ * Main-d'œuvre non collaboratrice.
  *
  * Un maçon sur un chantier n'ouvre jamais le logiciel, n'a pas de contrat à
  * durée indéterminée, pas de numéro CNPS et pas de bulletin de paie. Il est
@@ -247,7 +247,7 @@ export default async function PageIntervenants({ searchParams }: PageProps<"/rh/
       <p className="mt-5 max-w-[70ch] text-xs text-[var(--encre-faible)]">
         Un intervenant ne reçoit pas de bulletin de paie mais un bon de paiement.
         Sa rémunération se ventile en 637 — personnel extérieur — et non en
-        charges de personnel salarié : l&apos;y mêler gonflerait la masse
+        charges de personnel collaborateur : l&apos;y mêler gonflerait la masse
         salariale déclarée de gens qui ne figurent sur aucune déclaration CNPS.
         Un intervenant régularisé en contrat de travail conserve son historique.
       </p>

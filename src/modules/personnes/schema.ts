@@ -31,7 +31,7 @@ import { moyenReglement } from "@/modules/ventes/schema";
  * et chantiers.
  *
  * Le référentiel de l'organigramme : chaque poste s'y rattache, et le
- * service d'un salarié se choisit dans cette liste. La fiche garde le
+ * service d'un collaborateur se choisit dans cette liste. La fiche garde le
  * libellé en toutes lettres (`employees.service`) ; un renommage ici s'y
  * propage. Un service ne se supprime pas : il se retire (`actif`).
  *
@@ -68,7 +68,7 @@ export const services = pgTable(
 /**
  * Poste de travail : Comptable, Chef de projet, Gardien.
  *
- * Le référentiel dans lequel se choisit le poste d'un salarié. La fiche garde
+ * Le référentiel dans lequel se choisit le poste d'un collaborateur. La fiche garde
  * le libellé en toutes lettres (`employees.poste`) ; un renommage ici s'y
  * propage. Un poste ne se supprime pas : il se retire (`actif`), et les
  * fiches qui le portent le gardent.
@@ -107,7 +107,7 @@ export const postes = pgTable(
 export const typeContrat = pgEnum("type_contrat", ["cdi", "cdd", "stage", "essai"]);
 
 /**
- * Salarié déclaré.
+ * Collaborateur déclaré.
  *
  * Ni un `users` — le compte qui ouvre le logiciel — ni un `workers`. La
  * caissière peut être les trois à la fois, mais ce sont trois lignes dans trois
@@ -140,15 +140,15 @@ export const employees = pgTable(
     /** Salaire brut mensuel de base, en francs entiers. */
     salaireBase: money("salaire_base").notNull().default(0),
 
-    // État professionnel : ce que le salarié est DANS l'entreprise, à côté de
+    // État professionnel : ce que le collaborateur est DANS l'entreprise, à côté de
     // ce qu'il est à l'état civil. Facultatif, complété après l'embauche.
     /** Adresse de travail, distincte de l'adresse personnelle (`email`). */
     emailProfessionnel: text("email_professionnel"),
     /** Service ou département : Comptabilité, Logistique, Chantier de Cocody. */
     service: text("service"),
     /**
-     * Supérieur hiérarchique direct : un autre salarié. Son départ laisse le
-     * champ vide plutôt que d'effacer la fiche. Un salarié n'est jamais son
+     * Supérieur hiérarchique direct : un autre collaborateur. Son départ laisse le
+     * champ vide plutôt que d'effacer la fiche. Un collaborateur n'est jamais son
      * propre supérieur, ni directement (contrainte) ni par une chaîne (vérifié
      * à l'enregistrement).
      */
@@ -189,7 +189,7 @@ export const employees = pgTable(
     enfantsACharge: integer("enfants_a_charge"),
     /** Personne à prévenir en cas d'urgence : son nom. */
     contactUrgence: text("contact_urgence"),
-    /** Son lien avec le salarié, clé de `LIENS_URGENCE` (personnes/calcul.ts). */
+    /** Son lien avec le collaborateur, clé de `LIENS_URGENCE` (personnes/calcul.ts). */
     contactUrgenceLien: text("contact_urgence_lien"),
     /** Le numéro où la joindre. */
     contactUrgenceTelephone: text("contact_urgence_telephone"),
@@ -202,14 +202,14 @@ export const employees = pgTable(
     photo: text("photo"),
 
     /**
-     * Compte de connexion du salarié, quand il en a un. La plupart n'en ont
+     * Compte de connexion du collaborateur, quand il en a un. La plupart n'en ont
      * pas : un magasinier n'ouvre pas le logiciel. Sans référence à `users`
      * pour que la révocation d'un accès n'efface pas un contrat.
      */
     userId: uuid("user_id"),
 
     /**
-     * Un salarié parti ne se supprime pas : il se désactive. Ses bulletins et
+     * Un collaborateur parti ne se supprime pas : il se désactive. Ses bulletins et
      * ses déclarations doivent rester lisibles bien après son départ.
      */
     actif: boolean("actif").notNull().default(true),
@@ -256,7 +256,7 @@ export const employees = pgTable(
 );
 
 /**
- * Postes occupés par un salarié : un ou plusieurs.
+ * Postes occupés par un collaborateur : un ou plusieurs.
  *
  * Une personne peut tenir plusieurs postes — comptable et assistante de
  * direction, gardien et chauffeur. Un seul est principal : c'est lui
@@ -308,14 +308,14 @@ export const modeRemuneration = pgEnum("mode_remuneration", [
 ]);
 
 /**
- * Intervenant : ni utilisateur du logiciel, ni salarié déclaré.
+ * Intervenant : ni utilisateur du logiciel, ni collaborateur déclaré.
  *
  * Maçon, ferrailleur, coffreur, manœuvre, peintre, mais aussi chauffeur
  * occasionnel, serveur extra au maquis, coiffeuse à la commission, ouvrier
  * saisonnier, mécanicien à la tâche. Il n'a ni contrat, ni numéro CNPS, ni
  * bulletin de paie — il a un pointage, un taux et un bon de paiement.
  *
- * Le confondre avec un salarié produirait des déclarations sociales sur des
+ * Le confondre avec un collaborateur produirait des déclarations sociales sur des
  * gens qui n'y figurent pas, et une masse salariale fausse. Le confondre avec
  * un fournisseur perdrait le pointage, qui est la seule preuve du travail fait.
  */
@@ -504,13 +504,13 @@ export const bonsPaiement = pgTable(
 );
 
 /**
- * Nature d'une pièce du dossier salarié. La liste et ce que chaque nature
+ * Nature d'une pièce du dossier collaborateur. La liste et ce que chaque nature
  * porte vivent dans `./pieces.ts`, lu aussi par le navigateur.
  */
 export const naturePieceEmploye = pgEnum("nature_piece_employe", NATURES_PIECE);
 
 /**
- * Pièce du dossier d'un salarié : CNI, passeport, CMU, permis, casier, RIB,
+ * Pièce du dossier d'un collaborateur : CNI, passeport, CMU, permis, casier, RIB,
  * CV, lettre de motivation…
  *
  * Données sensibles. Elles ne se lisent qu'avec `personnes.dossier.consulter`,
