@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import { SignatureMaria } from "@/components/coque/signature";
 import { notFound } from "next/navigation";
 
 import { DocumentPiece } from "@/components/impression/document-piece";
@@ -36,6 +37,8 @@ export default async function PageConsulter({ params }: { params: Promise<{ jeto
         <BoutonImprimer />
       </div>
       {document}
+      {/* La pièce d'un client est un document de l'entreprise : la signature reste au pied de l'écran, hors impression. */}
+      <SignatureMaria className="mt-6" />
     </main>
   );
 }

@@ -1,7 +1,7 @@
 import type { Metadata } from "next";
 import { redirect } from "next/navigation";
 
-import { EmblemeMaria } from "@/components/coque/signature";
+import { EmblemeMaria, SignatureMaria } from "@/components/coque/signature";
 import { VerrouInactivite } from "@/components/coque/verrou-inactivite";
 import { Acceptation } from "@/components/reglement/acceptation";
 import { TexteReglement } from "@/components/reglement/texte-reglement";
@@ -64,6 +64,9 @@ export default async function PageLectureReglement() {
           <TexteReglement version={version} />
           <Acceptation versionId={version.id} numero={version.numero} suite="/accueil" />
         </div>
+        <footer className="py-6">
+          <SignatureMaria />
+        </footer>
       </main>
       {/* Un règlement se lit en plus de quinze minutes : sans signe de vie, l'acceptation tomberait sur un verrou. */}
       <VerrouInactivite cible="coque-reglement" delaiMinutes={session.delaiVerrouillage} nom={session.nom} email={session.email} entreprise={session.organizationNom} />

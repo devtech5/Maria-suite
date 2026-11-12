@@ -1,6 +1,8 @@
 import Image from "next/image";
 import type { ReactNode } from "react";
 
+import { SignatureMaria } from "./signature";
+
 /**
  * Coque des écrans d'accès — connexion, mot de passe oublié, nouveau mot de
  * passe, accès non ouvert — aux couleurs de MARIA GROUP : bleu nuit et or.
@@ -44,6 +46,9 @@ export function CoqueAcces({
           </header>
 
           {children}
+
+          {/* Sous 1024 px le panneau de marque disparaît : la signature passe sous le formulaire. */}
+          <SignatureMaria className="mt-10 lg:hidden" />
         </div>
       </section>
     </main>
@@ -84,9 +89,7 @@ function PanneauMarque() {
         </p>
       </div>
 
-      <p className="relative text-center text-xs text-white/50">
-        Maria Suite — propulsé par Fiessou ERP
-      </p>
+      <SignatureMaria surSombre className="relative text-xs" />
     </aside>
   );
 }
