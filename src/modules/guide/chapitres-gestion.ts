@@ -250,6 +250,15 @@ export const CHAPITRES_GESTION: Chapitre[] = [
         ],
       },
       {
+        ancre: "intervenants",
+        titre: "Budget et intervenants",
+        texte: [
+          "Une mission est confiée à un collaborateur. Dans son exécution, on peut confier une tâche précise — manutention, vendeuse, nettoyage — à un intervenant, une entreprise ou un prestataire. La mission est alors budgétisée : « Budget et intervenants », sous la mission, fixe le budget, et chaque tâche confiée s'impute dessus ; on ne dépasse pas ce qui reste.",
+          "L'intervenant est payé sur place : « Payer sur place » demande la date, le moyen, le nom de qui reçoit, et la DÉCHARGE signée (photo ou fichier). Sans décharge, le paiement n'est pas enregistré ; une fois payé, la décharge se consulte dans la plateforme comme preuve.",
+        ],
+        etapes: ["Fixer le budget de la mission.", "Confier une tâche : qui, quoi, combien.", "Sur place : payer, photographier la décharge."],
+      },
+      {
         ancre: "suivi",
         titre: "Suivi terrain",
         chemin: "/missions/suivi",
