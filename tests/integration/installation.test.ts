@@ -1,3 +1,4 @@
+import { readFileSync } from "node:fs";
 import { resolve } from "node:path";
 
 import { PGlite } from "@electric-sql/pglite";
@@ -111,6 +112,30 @@ describe("installation de MARIA GROUP SARL", () => {
     expect(cles).toEqual(["commercial", "comptable", "gerant", "proprietaire", "secretaire"]);
     const [stock] = await requete(`select enabled from organization_modules where module_key = 'stock'`);
     expect(stock.enabled).toBe(false);
+  });
+
+  it("porte les coordonnées du papier à en-tête, sans inventer le NCC", async () => {
+    await installerEntreprise(requete, options);
+    const [o] = await requete(`select address, phone, email, site_web, rccm, capital_social, pied_de_page, tax_id from organizations`);
+    expect(o).toMatchObject({
+      address: "Cocody Angré 7e tranche, cour des comptes",
+      phone: "+225 27 22 63 98 / 07 04 61 74 74",
+      email: "hello@maria-groupe.com",
+      site_web: "www.maria-groupe.com",
+      rccm: "N° CI-TDI-01-2026-B12-00406",
+      tax_id: null,
+    });
+    expect(Number(o.capital_social)).toBe(10_000_000);
+    expect(o.pied_de_page).toBe("Siège social : Yamoussoukro, quartier Kami CAFOP\nBureaux : Cocody Angré 7e tranche, cour des comptes");
+  });
+
+  it("la migration 0090 met à jour une entreprise déjà installée, sans toucher au NCC saisi", async () => {
+    await requete(`insert into organizations (name, slug, tax_id, phone) values ('MARIA GROUP SARL', 'maria-group', 'NCC-SAISI', '000')`);
+    await client.exec(readFileSync(resolve("./drizzle/0090_entreprise_coordonnees.sql"), "utf8"));
+    const [o] = await requete(`select phone, tax_id, rccm, capital_social, version from organizations`);
+    expect(o).toMatchObject({ phone: "+225 27 22 63 98 / 07 04 61 74 74", tax_id: "NCC-SAISI", rccm: "N° CI-TDI-01-2026-B12-00406" });
+    expect(Number(o.capital_social)).toBe(10_000_000);
+    expect(Number(o.version)).toBe(2);
   });
 
   it("refuse une base qui porte une autre entreprise", async () => {
