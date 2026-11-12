@@ -1,4 +1,5 @@
 import { BandeauDemo } from "@/components/coque/bandeau-demo";
+import { SignatureMaria } from "@/components/coque/signature";
 import { BarreLaterale, EnTete } from "@/components/coque/barre-laterale";
 import { Calculette } from "@/components/coque/calculette";
 import { Cloche } from "@/components/coque/cloche";
@@ -113,6 +114,11 @@ export default async function LayoutGestion({ children }: LayoutProps<"/">) {
           <main className="min-h-0 min-w-0 flex-1 overflow-y-auto p-4 lg:px-8 lg:py-6 print:overflow-visible print:p-0">
             {children}
           </main>
+
+          {/* Pied de page de la plateforme : sa signature. Hors impression, et jamais sur un document de l'entreprise. */}
+          <footer className="shrink-0 border-t border-[var(--filet)] bg-[var(--surface)] py-1.5 print:hidden">
+            <SignatureMaria />
+          </footer>
         </div>
       </div>
       <VerrouInactivite

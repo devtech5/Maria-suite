@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 
+import { SignatureMaria } from "@/components/coque/signature";
 import { BoutonDesinscription } from "./bouton";
 import { verifierLien } from "@/lib/liens-publics";
 import { identiteEntreprise } from "@/lib/identite";
@@ -21,7 +22,7 @@ export default async function PageDesinscription({ params }: { params: Promise<{
   const entreprise = valide ? (await identiteEntreprise(parties[1]).catch(() => null))?.nom : null;
 
   return (
-    <main className="flex min-h-dvh items-center justify-center bg-[var(--fond)] p-4">
+    <main className="flex min-h-dvh flex-col items-center justify-center gap-6 bg-[var(--fond)] p-4">
       <div className="w-full max-w-md rounded-2xl border border-[var(--filet)] bg-[var(--surface)] p-6 text-center">
         <h1 className="text-lg font-semibold">Ne plus recevoir de messages</h1>
         {valide ? (
@@ -36,6 +37,7 @@ export default async function PageDesinscription({ params }: { params: Promise<{
           <p className="mt-2 text-sm text-[var(--encre-douce)]">Ce lien n&apos;est plus valable. Répondez au message reçu pour demander votre désinscription.</p>
         )}
       </div>
+      <SignatureMaria />
     </main>
   );
 }

@@ -63,7 +63,6 @@ export const GROUPES_MODULES: GroupeModules[] = [
     icone: "tableau-de-bord",
     modules: [
       { href: "/rapports", racine: "/rapports", icone: "rapports", libelle: "Rapports", description: "Ventes, stock, trésorerie, paie : chaque module en chiffres, imprimable et exportable vers Excel.", droit: "rapports.consulter" },
-      { href: "/journal", racine: "/journal", icone: "journal", libelle: "Journal d'activité", description: "Qui a fait quoi, et quand.", droit: "organisation.journal.consulter" },
     ],
   },
   {
@@ -188,6 +187,8 @@ export const GROUPES_MODULES: GroupeModules[] = [
       { href: "/marches", racine: "/marches", icone: "marches", libelle: "Marchés et conventions", description: "Appels d'offres, consultations et conventions.", droit: "marches.consulter" },
       { href: "/contrats", racine: "/contrats", icone: "documents", libelle: "Contrats", description: "Contrats des collaborateurs et des fournisseurs, échéances en tête.", droit: "personnes.consulter" },
       { href: "/membres", racine: "/membres", icone: "utilisateurs", libelle: "Utilisateurs", description: "Comptes, rôles et accès.", droit: "organisation.membre.gerer" },
+      // Le journal suit les utilisateurs : qui a fait quoi se lit à côté de qui a accès à quoi.
+      { href: "/journal", racine: "/journal", icone: "journal", libelle: "Journal d'activité", description: "Qui a fait quoi, et quand.", droit: "organisation.journal.consulter" },
       ...(REPRISE_OUVERTE
         ? [{ href: "/demarrage", racine: "/demarrage", icone: "demarrage", libelle: "Démarrage", description: "Reprise de l'existant : articles, tiers, soldes.", droit: "organisation.reprise.importer" } satisfies EntreeModule]
         : []),
