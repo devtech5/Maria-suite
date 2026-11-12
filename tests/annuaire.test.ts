@@ -1,4 +1,5 @@
 import { describe, expect, it } from "vitest";
+import * as XLSX from "xlsx";
 
 import { resoudreDroits } from "@/lib/droits/catalogue";
 import {
@@ -17,8 +18,11 @@ import {
   numeroValide,
   numerosVisibles,
   statutAffectation,
+  tableauAdresses,
+  tableauAnnuaire,
   type LigneAdresse,
   type LigneAnnuaire,
+  type LigneExport,
   type NumeroAffiche,
 } from "@/modules/contacts/regles";
 
@@ -227,5 +231,60 @@ describe("droits de l'annuaire", () => {
     const vide = resoudreDroits({ cleRole: "role-maison", estProprietaire: false });
     expect(vide.has("contacts.consulter")).toBe(false);
     expect(vide.has("contacts.gerer")).toBe(false);
+  });
+});
+
+describe("export Excel de l'annuaire", () => {
+  const awa: LigneExport = {
+    id: "1",
+    nom: "Koné Awa",
+    matricule: "S0001",
+    poste: "Comptable",
+    service: "Administration et finances",
+    emails: ["awa.kone@maria-groupe.com", "compta@maria-groupe.com"],
+    numeros: [
+      { numero: "2250707123456", nature: "mobile", usage: "professionnel" },
+      { numero: "2250102030405", nature: "fixe", usage: "professionnel" },
+      { numero: "2250505000002", nature: "whatsapp", usage: "personnel" },
+    ],
+    emailPersonnel: "awa.privee@gmail.com",
+  };
+
+  it("sans le droit de tenir l'annuaire, aucune colonne ni donnée personnelle", () => {
+    const t = tableauAnnuaire([awa], false);
+    expect(t[0]).toEqual(["Nom et prénoms", "Matricule", "Service", "Poste", "Adresses e-mail professionnelles", "Téléphones professionnels"]);
+    expect(t[1]).toEqual(["Koné Awa", "S0001", "Administration et finances", "Comptable", "awa.kone@maria-groupe.com ; compta@maria-groupe.com", "+225 07 07 12 34 56 (Mobile) ; +225 01 02 03 04 05 (Fixe)"]);
+    expect(JSON.stringify(t)).not.toContain("gmail");
+    expect(JSON.stringify(t)).not.toContain("05 05 00 00 02");
+  });
+
+  it("avec le droit, ajoute l'e-mail et les numéros personnels", () => {
+    const t = tableauAnnuaire([awa, { ...awa, id: "2", nom: "Yao Marc", emails: [], numeros: [], emailPersonnel: null, service: null }], true);
+    expect(t[0].slice(-2)).toEqual(["E-mail personnel", "Téléphones personnels"]);
+    expect(t[1].slice(-2)).toEqual(["awa.privee@gmail.com", "+225 05 05 00 00 02 (WhatsApp)"]);
+    expect(t[2]).toEqual(["Yao Marc", "S0001", "", "Comptable", "", "", "", ""]);
+  });
+
+  it("liste les adresses avec leur état", () => {
+    const t = tableauAdresses([
+      { id: "a", adresse: "rh@maria-groupe.com", libelle: "Boîte RH", actif: true, serviceId: "s", serviceLibelle: "Ressources humaines", employeeId: null, titulaire: null, statut: "service" },
+      { id: "b", adresse: "vieux@maria-groupe.com", libelle: null, actif: false, serviceId: null, serviceLibelle: null, employeeId: null, titulaire: null, statut: "libre" },
+    ]);
+    expect(t).toEqual([
+      ["Adresse", "Usage", "Service", "Titulaire", "État"],
+      ["rh@maria-groupe.com", "Boîte RH", "Ressources humaines", "", "Commune au service"],
+      ["vieux@maria-groupe.com", "", "", "", "Fermée"],
+    ]);
+  });
+
+  it("produit un vrai classeur où une saisie commençant par « = » reste du texte", () => {
+    const piege = { ...awa, nom: "=HYPERLINK(\"http://x\")" };
+    const classeur = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(classeur, XLSX.utils.aoa_to_sheet(tableauAnnuaire([piege], false)), "Personnel");
+    const relu = XLSX.read(XLSX.write(classeur, { type: "buffer", bookType: "xlsx" }), { type: "buffer" });
+    const cellule = relu.Sheets.Personnel.A2;
+    expect(cellule.t).toBe("s");
+    expect(cellule.f).toBeUndefined();
+    expect(cellule.v).toBe("=HYPERLINK(\"http://x\")");
   });
 });

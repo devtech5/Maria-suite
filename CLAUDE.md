@@ -498,6 +498,9 @@ professionnelle et le téléphone portés par la fiche s'ajoutent à l'affichage
 (`employees.email`) ne sortent de `annuaireDe` que pour `contacts.gerer`
 (`numerosVisibles`, `emailPersonnelVisible`, appliqués dans la requête, jamais
 seulement à l'écran). L'e-mail personnel n'entre jamais dans `adresses_pro`.
+L'export Excel (`/contacts/export`, SheetJS, `.xlsx`) suit la même règle :
+`tableauAnnuaire` n'a de colonnes personnelles, et le classeur d'onglet
+« Adresses e-mail », que pour `contacts.gerer` ; chaque export se trace.
 
 ## Interrogations de fond et liens publics
 

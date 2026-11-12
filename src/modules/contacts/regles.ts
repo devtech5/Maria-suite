@@ -285,3 +285,41 @@ export function adressesAReprendre(
   }
   return reprises;
 }
+
+// ------------------------------------------------------------------ export
+
+/** Ce qu'un export de l'annuaire peut contenir d'une ligne : les numéros portent leur usage. */
+export interface LigneExport extends LigneAnnuaire {
+  numeros: { numero: string; nature: NatureNumero; usage: UsageNumero }[];
+}
+
+/**
+ * Le tableau de l'export Excel, en-tête compris. Les colonnes personnelles
+ * (e-mail et numéros personnels) n'existent que pour qui tient l'annuaire :
+ * sans ce droit, elles ne figurent même pas vides dans le fichier.
+ */
+export function tableauAnnuaire(lignes: readonly LigneExport[], peutVoirPersonnels: boolean): string[][] {
+  const numeros = (l: LigneExport, usage: UsageNumero) =>
+    l.numeros
+      .filter((n) => n.usage === usage)
+      .map((n) => `${formaterNumero(n.numero)} (${NATURES_NUMERO[n.nature]})`)
+      .join(" ; ");
+  const entete = ["Nom et prénoms", "Matricule", "Service", "Poste", "Adresses e-mail professionnelles", "Téléphones professionnels"];
+  if (peutVoirPersonnels) entete.push("E-mail personnel", "Téléphones personnels");
+  const corps = lignes.map((l) => {
+    const ligne = [l.nom, l.matricule, l.service ?? "", l.poste, l.emails.join(" ; "), numeros(l, "professionnel")];
+    if (peutVoirPersonnels) ligne.push(l.emailPersonnel ?? "", numeros(l, "personnel"));
+    return ligne;
+  });
+  return [entete, ...corps];
+}
+
+const LIBELLE_STATUT: Record<StatutAffectation, string> = { libre: "Sans service", service: "Commune au service", titulaire: "Affectée", a_revoir: "À revoir" };
+
+/** Le tableau des adresses professionnelles, pour l'onglet réservé à qui tient l'annuaire. */
+export function tableauAdresses(lignes: readonly LigneAdresse[]): string[][] {
+  return [
+    ["Adresse", "Usage", "Service", "Titulaire", "État"],
+    ...lignes.map((l) => [l.adresse, l.libelle ?? "", l.serviceLibelle ?? "", l.titulaire ?? "", l.actif ? LIBELLE_STATUT[l.statut] : "Fermée"]),
+  ];
+}
