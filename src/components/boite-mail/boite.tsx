@@ -23,6 +23,7 @@ import {
   deconnecterBoite,
   envoyerCourriel,
   listerDossiers,
+  rechercherMessages,
   listerMessages,
   marquerNonLu,
   marquerSuivi,
@@ -93,6 +94,8 @@ export function BoiteMail({ adresse, signature }: { adresse: string; signature: 
   /** Message en cours d'ouverture : la lecture s'affiche aussitôt, son corps suit. */
   const [ouverture, setOuverture] = useState<number | null>(null);
   const [recherche, setRecherche] = useState("");
+  /** Résultat de la recherche chez le fournisseur : tout le dossier, pas seulement la page affichée. */
+  const [trouves, setTrouves] = useState<{ pour: string; messages: ApercuMessage[]; tronque: boolean } | null>(null);
   const routeur = useRouter();
 
   const charger = useCallback((d: string, p: number, tour: number) => {
@@ -126,6 +129,24 @@ export function BoiteMail({ adresse, signature }: { adresse: string; signature: 
   useEffect(() => {
     charger(dossier, page, actualisation);
   }, [dossier, page, actualisation, charger]);
+
+  // La recherche interroge le dossier entier, après une courte pause dans la frappe.
+  useEffect(() => {
+    const t = recherche.trim();
+    if (t.length < 2) return;
+    let actif = true;
+    const cle = `${dossier}:${t}`;
+    const minuterie = window.setTimeout(async () => {
+      const r = await rechercherMessages(dossier, t).catch(() => null);
+      if (!actif) return;
+      if (r?.ok) setTrouves({ pour: cle, messages: r.messages, tronque: r.tronque });
+      else setTrouves({ pour: cle, messages: [], tronque: false });
+    }, 400);
+    return () => {
+      actif = false;
+      window.clearTimeout(minuterie);
+    };
+  }, [recherche, dossier]);
 
   function lire(uid: number) {
     setErreur(null);
@@ -220,7 +241,14 @@ export function BoiteMail({ adresse, signature }: { adresse: string; signature: 
   const pages = Math.max(1, Math.ceil(total / parPage));
   const libelleDossier = dossiers?.find((d) => d.chemin === dossier)?.libelle ?? "Boîte de réception";
   const cherche = recherche.trim().toLocaleLowerCase("fr");
-  const visibles = (liste ?? []).filter((m) => !cherche || m.de.toLocaleLowerCase("fr").includes(cherche) || m.objet.toLocaleLowerCase("fr").includes(cherche));
+  const rechercheActive = cherche.length >= 2;
+  const resultatPret = rechercheActive && trouves?.pour === `${dossier}:${recherche.trim()}`;
+  const enRecherche = rechercheActive && !resultatPret;
+  const visibles = rechercheActive
+    ? resultatPret
+      ? trouves.messages
+      : []
+    : (liste ?? []).filter((m) => !cherche || m.de.toLocaleLowerCase("fr").includes(cherche) || m.objet.toLocaleLowerCase("fr").includes(cherche));
   const groupes = grouperParDate(visibles);
   const enOuverture = ouverture !== null && ouvert?.uid !== ouverture ? liste?.find((m) => m.uid === ouverture) : undefined;
 
@@ -342,14 +370,17 @@ export function BoiteMail({ adresse, signature }: { adresse: string; signature: 
               value={recherche}
               onChange={(e) => setRecherche(e.target.value)}
               placeholder={`Rechercher dans ${libelleDossier.toLocaleLowerCase("fr")}`}
-              aria-label="Rechercher un message de cette page"
+              aria-label="Rechercher un message dans ce dossier"
               className="min-w-0 flex-1 bg-transparent text-sm text-[var(--encre)] outline-none"
             />
           </label>
           <ul className={`flex-1 overflow-y-auto transition-opacity ${listeEnCours && liste ? "opacity-60" : ""}`} aria-busy={listeEnCours}>
             {liste === null && (listeEnCours ? <SqueletteListe /> : null)}
-            {liste?.length === 0 && !listeEnCours && <li className="p-6 text-center text-sm text-[var(--encre-faible)]">Aucun message dans ce dossier.</li>}
-            {liste && liste.length > 0 && visibles.length === 0 && <li className="p-6 text-center text-sm text-[var(--encre-faible)]">Aucun message de cette page ne correspond.</li>}
+            {!rechercheActive && liste?.length === 0 && !listeEnCours && <li className="p-6 text-center text-sm text-[var(--encre-faible)]">Aucun message dans ce dossier.</li>}
+            {enRecherche && <li className="p-6 text-center text-sm text-[var(--encre-faible)]">Recherche en cours…</li>}
+            {resultatPret && visibles.length === 0 && <li className="p-6 text-center text-sm text-[var(--encre-faible)]">Aucun message ne correspond à « {recherche.trim()} ».</li>}
+            {resultatPret && trouves.tronque && <li className="px-3 py-2 text-center text-xs text-[var(--encre-faible)]">Les 60 plus récents sont affichés : précisez la recherche.</li>}
+            {!rechercheActive && liste && liste.length > 0 && visibles.length === 0 && <li className="p-6 text-center text-sm text-[var(--encre-faible)]">Aucun message ne correspond.</li>}
             {groupes.map((g) => (
               <li key={g.titre}>
                 <p className="sticky top-0 z-10 border-b border-[var(--filet)] bg-[var(--surface-creuse)] px-3 py-1 text-[11px] font-semibold uppercase tracking-wide text-[var(--encre-douce)]">{g.titre}</p>

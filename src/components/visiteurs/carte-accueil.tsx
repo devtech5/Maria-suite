@@ -5,6 +5,7 @@ import { useState } from "react";
 import { Retour, useOperation } from "@/components/ui/operations";
 import { CLASSE_CHAMP, CLASSE_CHAMP_COMPACT, Champ, Pastille } from "@/components/ui/primitives";
 import { affecterAgent, enregistrerAccueil } from "@/modules/visiteurs/actions";
+import { Fenetre } from "@/components/ui/fenetre";
 
 export interface AccueilAffiche {
   id: string;
@@ -23,38 +24,6 @@ export function CarteAccueil({ accueil: a, membres }: { accueil: AccueilAffiche;
 
   return (
     <article className={`rounded-2xl border border-[var(--filet)] bg-[var(--surface)] p-4 shadow-sm ${a.actif ? "" : "opacity-60"}`}>
-      {edition ? (
-        <form
-          onSubmit={(e) => {
-            e.preventDefault();
-            const d = new FormData(e.currentTarget);
-            op.lancer(() => enregistrerAccueil(d), () => setEdition(false));
-          }}
-          className="space-y-3"
-        >
-          <input type="hidden" name="id" value={a.id} />
-          <Champ libelle="Nom">
-            <input name="nom" required defaultValue={a.nom} maxLength={80} className={CLASSE_CHAMP} />
-          </Champ>
-          <Champ libelle="Lieu">
-            <input name="lieu" defaultValue={a.lieu ?? ""} maxLength={160} className={CLASSE_CHAMP} />
-          </Champ>
-          <label className="flex items-center gap-2 text-sm">
-            <input type="checkbox" name="pieceExigee" defaultChecked={a.pieceExigee} className="accent-marque-600" /> Pièce d&apos;identité exigée à l&apos;arrivée
-          </label>
-          <label className="flex items-center gap-2 text-sm">
-            <input type="checkbox" name="actif" defaultChecked={a.actif} className="accent-marque-600" /> Point d&apos;accueil ouvert
-          </label>
-          <div className="flex justify-end gap-3">
-            <button type="button" onClick={() => setEdition(false)} className="text-sm text-[var(--encre-faible)] hover:underline">
-              Annuler
-            </button>
-            <button type="submit" disabled={op.enCours} className="h-cible rounded-lg bg-marque-600 px-3.5 text-sm font-semibold text-white hover:bg-marque-700 disabled:opacity-50">
-              Enregistrer
-            </button>
-          </div>
-        </form>
-      ) : (
         <>
           <div className="flex items-start gap-2">
             <div className="min-w-0 flex-1">
@@ -101,7 +70,38 @@ export function CarteAccueil({ accueil: a, membres }: { accueil: AccueilAffiche;
             </button>
           </div>
         </>
-      )}
+      <Fenetre ouverte={edition} titre="Modifier le point d'accueil" onFermer={() => setEdition(false)}>
+        <form
+          onSubmit={(e) => {
+            e.preventDefault();
+            const d = new FormData(e.currentTarget);
+            op.lancer(() => enregistrerAccueil(d), () => setEdition(false));
+          }}
+          className="space-y-3 px-5 py-4"
+        >
+          <input type="hidden" name="id" value={a.id} />
+          <Champ libelle="Nom">
+            <input name="nom" required defaultValue={a.nom} maxLength={80} className={CLASSE_CHAMP} />
+          </Champ>
+          <Champ libelle="Lieu">
+            <input name="lieu" defaultValue={a.lieu ?? ""} maxLength={160} className={CLASSE_CHAMP} />
+          </Champ>
+          <label className="flex items-center gap-2 text-sm">
+            <input type="checkbox" name="pieceExigee" defaultChecked={a.pieceExigee} className="accent-marque-600" /> Pièce d&apos;identité exigée à l&apos;arrivée
+          </label>
+          <label className="flex items-center gap-2 text-sm">
+            <input type="checkbox" name="actif" defaultChecked={a.actif} className="accent-marque-600" /> Point d&apos;accueil ouvert
+          </label>
+          <div className="flex justify-end gap-3">
+            <button type="button" onClick={() => setEdition(false)} className="text-sm text-[var(--encre-faible)] hover:underline">
+              Annuler
+            </button>
+            <button type="submit" disabled={op.enCours} className="h-cible rounded-lg bg-marque-600 px-3.5 text-sm font-semibold text-white hover:bg-marque-700 disabled:opacity-50">
+              Enregistrer
+            </button>
+          </div>
+        </form>
+      </Fenetre>
       <Retour resultat={op.resultat} />
     </article>
   );

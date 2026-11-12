@@ -8,6 +8,7 @@ import {
   enregistrerMouvement,
   type EtatMouvement,
 } from "@/modules/stock/actions";
+import { Fenetre } from "@/components/ui/fenetre";
 
 export interface OptionDepot {
   id: string;
@@ -78,8 +79,8 @@ export function FormulaireMouvement({
   const article = articles.find((a) => a.id === articleId);
   const unite = article ? UNITES[article.unite] : UNITES.piece;
 
-  if (!ouvert) {
-    return (
+  return (
+    <>
       <div className="flex items-center gap-3">
         {etat.piece && (
           <span className="text-sm text-valide-600">
@@ -96,175 +97,164 @@ export function FormulaireMouvement({
           Enregistrer un mouvement
         </button>
       </div>
-    );
-  }
-
-  return (
-    <form
-      action={action}
-      className="mb-5 rounded-xl border border-[var(--filet)] bg-[var(--surface)] p-4"
-    >
-      <div className="mb-4 flex items-center justify-between gap-3">
-        <h2 className="text-sm font-semibold">Nouveau mouvement</h2>
-        <button
-          type="button"
-          onClick={() => setOuvert(false)}
-          className="text-sm text-[var(--encre-faible)] hover:underline"
+      <Fenetre ouverte={ouvert} titre="Nouveau mouvement" presentation="ample" onFermer={() => setOuvert(false)}>
+        <form
+          action={action}
+          className="space-y-4 px-5 py-4"
         >
-          Annuler
-        </button>
-      </div>
 
-      <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-        <Champ libelle="Nature" precision={definition.precision}>
-          <select
-            name="type"
-            value={geste}
-            onChange={(e) => setGeste(e.target.value as Geste)}
-            className={CLASSE_CHAMP}
-          >
-            {GESTES.map((g) => (
-              <option key={g.valeur} value={g.valeur}>
-                {g.libelle}
-              </option>
-            ))}
-          </select>
-        </Champ>
+          <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+            <Champ libelle="Nature" precision={definition.precision}>
+              <select
+                name="type"
+                value={geste}
+                onChange={(e) => setGeste(e.target.value as Geste)}
+                className={CLASSE_CHAMP}
+              >
+                {GESTES.map((g) => (
+                  <option key={g.valeur} value={g.valeur}>
+                    {g.libelle}
+                  </option>
+                ))}
+              </select>
+            </Champ>
 
-        <Champ libelle={geste === "transfert" ? "Dépôt de départ" : "Dépôt"}>
-          <select name="depotId" defaultValue={depots[0]?.id} className={CLASSE_CHAMP}>
-            {depots.map((depot) => (
-              <option key={depot.id} value={depot.id}>
-                {depot.nom}
-              </option>
-            ))}
-          </select>
-        </Champ>
+            <Champ libelle={geste === "transfert" ? "Dépôt de départ" : "Dépôt"}>
+              <select name="depotId" defaultValue={depots[0]?.id} className={CLASSE_CHAMP}>
+                {depots.map((depot) => (
+                  <option key={depot.id} value={depot.id}>
+                    {depot.nom}
+                  </option>
+                ))}
+              </select>
+            </Champ>
 
-        {geste === "transfert" && (
-          <Champ
-            libelle="Dépôt d'arrivée"
-            precision="Différent du départ : un transfert sur place n'existe pas."
-          >
-            <select
-              name="depotDestinationId"
-              defaultValue={depots[1]?.id ?? ""}
-              className={CLASSE_CHAMP}
+            {geste === "transfert" && (
+              <Champ
+                libelle="Dépôt d'arrivée"
+                precision="Différent du départ : un transfert sur place n'existe pas."
+              >
+                <select
+                  name="depotDestinationId"
+                  defaultValue={depots[1]?.id ?? ""}
+                  className={CLASSE_CHAMP}
+                >
+                  {depots.map((depot) => (
+                    <option key={depot.id} value={depot.id}>
+                      {depot.nom}
+                    </option>
+                  ))}
+                </select>
+              </Champ>
+            )}
+
+            <Champ libelle="Article">
+              <select
+                name="articleId"
+                value={articleId}
+                onChange={(e) => setArticleId(e.target.value)}
+                className={CLASSE_CHAMP}
+              >
+                {articles.map((a) => (
+                  <option key={a.id} value={a.id}>
+                    {a.designation}
+                  </option>
+                ))}
+              </select>
+            </Champ>
+
+            <Champ
+              libelle="Quantité"
+              precision={
+                unite.fractionnable
+                  ? `En ${unite.libelle.toLowerCase()}s, décimales admises.`
+                  : `En ${unite.libelle.toLowerCase()}s entières.`
+              }
             >
-              {depots.map((depot) => (
-                <option key={depot.id} value={depot.id}>
-                  {depot.nom}
-                </option>
-              ))}
-            </select>
-          </Champ>
-        )}
+              <input
+                name="quantite"
+                inputMode={unite.fractionnable ? "decimal" : "numeric"}
+                defaultValue="1"
+                required
+                className={`${CLASSE_CHAMP} chiffres`}
+              />
+            </Champ>
 
-        <Champ libelle="Article">
-          <select
-            name="articleId"
-            value={articleId}
-            onChange={(e) => setArticleId(e.target.value)}
-            className={CLASSE_CHAMP}
-          >
-            {articles.map((a) => (
-              <option key={a.id} value={a.id}>
-                {a.designation}
-              </option>
-            ))}
-          </select>
-        </Champ>
+            {/* Seul l'ajustement peut retrancher : l'inventaire trouve autant qu'il
+                perd, et la casse doit pouvoir se saisir. */}
+            {geste === "ajustement" ? (
+              <Champ libelle="Sens" precision="Ce que l'inventaire constate.">
+                <select name="sens" defaultValue="sortie" className={CLASSE_CHAMP}>
+                  <option value="sortie">Manquant — retirer du stock</option>
+                  <option value="entree">Excédent — ajouter au stock</option>
+                </select>
+              </Champ>
+            ) : (
+              <input type="hidden" name="sens" value="entree" />
+            )}
 
-        <Champ
-          libelle="Quantité"
-          precision={
-            unite.fractionnable
-              ? `En ${unite.libelle.toLowerCase()}s, décimales admises.`
-              : `En ${unite.libelle.toLowerCase()}s entières.`
-          }
-        >
-          <input
-            name="quantite"
-            inputMode={unite.fractionnable ? "decimal" : "numeric"}
-            defaultValue="1"
-            required
-            className={`${CLASSE_CHAMP} chiffres`}
-          />
-        </Champ>
+            {geste === "reception" && (
+              <Champ
+                libelle="Prix d'achat unitaire"
+                precision="Vide : le dernier prix d'achat connu de l'article."
+              >
+                <input
+                  name="coutUnitaire"
+                  inputMode="numeric"
+                  placeholder="0"
+                  className={`${CLASSE_CHAMP} chiffres`}
+                />
+              </Champ>
+            )}
 
-        {/* Seul l'ajustement peut retrancher : l'inventaire trouve autant qu'il
-            perd, et la casse doit pouvoir se saisir. */}
-        {geste === "ajustement" ? (
-          <Champ libelle="Sens" precision="Ce que l'inventaire constate.">
-            <select name="sens" defaultValue="sortie" className={CLASSE_CHAMP}>
-              <option value="sortie">Manquant — retirer du stock</option>
-              <option value="entree">Excédent — ajouter au stock</option>
-            </select>
-          </Champ>
-        ) : (
-          <input type="hidden" name="sens" value="entree" />
-        )}
+            <Champ
+              libelle="Pièce"
+              precision="Laissée vide, elle est numérotée automatiquement."
+            >
+              <input
+                name="piece"
+                placeholder="REC-2026-00012"
+                className={`${CLASSE_CHAMP} chiffres`}
+              />
+            </Champ>
 
-        {geste === "reception" && (
-          <Champ
-            libelle="Prix d'achat unitaire"
-            precision="Vide : le dernier prix d'achat connu de l'article."
-          >
-            <input
-              name="coutUnitaire"
-              inputMode="numeric"
-              placeholder="0"
-              className={`${CLASSE_CHAMP} chiffres`}
-            />
-          </Champ>
-        )}
+            <Champ
+              libelle="Motif"
+              precision={
+                geste === "ajustement"
+                  ? "Obligatoire : un écart sans motif ne s'explique plus."
+                  : "Facultatif."
+              }
+            >
+              <input
+                name="motif"
+                required={geste === "ajustement"}
+                placeholder="Casse constatée à l'inventaire"
+                className={CLASSE_CHAMP}
+              />
+            </Champ>
+          </div>
 
-        <Champ
-          libelle="Pièce"
-          precision="Laissée vide, elle est numérotée automatiquement."
-        >
-          <input
-            name="piece"
-            placeholder="REC-2026-00012"
-            className={`${CLASSE_CHAMP} chiffres`}
-          />
-        </Champ>
+          {etat.erreur && (
+            <p
+              role="alert"
+              className="mt-4 rounded-lg bg-danger-50 px-3 py-2.5 text-sm font-medium text-danger-600"
+            >
+              {etat.erreur}
+            </p>
+          )}
 
-        <Champ
-          libelle="Motif"
-          precision={
-            geste === "ajustement"
-              ? "Obligatoire : un écart sans motif ne s'explique plus."
-              : "Facultatif."
-          }
-        >
-          <input
-            name="motif"
-            required={geste === "ajustement"}
-            placeholder="Casse constatée à l'inventaire"
-            className={CLASSE_CHAMP}
-          />
-        </Champ>
-      </div>
-
-      {etat.erreur && (
-        <p
-          role="alert"
-          className="mt-4 rounded-lg bg-danger-50 px-3 py-2.5 text-sm font-medium text-danger-600"
-        >
-          {etat.erreur}
-        </p>
-      )}
-
-      <div className="mt-4 flex justify-end">
-        <button
-          type="submit"
-          disabled={enCours}
-          className="h-cible rounded-lg bg-marque-600 px-4 text-sm font-semibold text-white hover:bg-marque-700 disabled:opacity-50"
-        >
-          {enCours ? "Enregistrement…" : "Enregistrer le mouvement"}
-        </button>
-      </div>
-    </form>
+          <div className="mt-4 flex justify-end">
+            <button
+              type="submit"
+              disabled={enCours}
+              className="h-cible rounded-lg bg-marque-600 px-4 text-sm font-semibold text-white hover:bg-marque-700 disabled:opacity-50"
+            >
+              {enCours ? "Enregistrement…" : "Enregistrer le mouvement"}
+            </button>
+          </div>
+        </form>
+      </Fenetre>
+    </>
   );
 }

@@ -12,7 +12,7 @@
  * `application/octet-stream`, et la visionneuse propose de le télécharger.
  */
 
-export type NatureApercu = "pdf" | "image" | "texte" | "tableur" | "docx" | "audio" | "video" | "telecharger";
+export type NatureApercu = "pdf" | "image" | "texte" | "tableur" | "docx" | "pptx" | "audio" | "video" | "telecharger";
 
 interface Format {
   type: string;
@@ -41,7 +41,7 @@ const FORMATS: Record<string, Format> = {
   docx: { type: "application/vnd.openxmlformats-officedocument.wordprocessingml.document", nature: "docx" },
   doc: { type: "application/msword", nature: "telecharger" },
   odt: { type: "application/vnd.oasis.opendocument.text", nature: "telecharger" },
-  pptx: { type: "application/vnd.openxmlformats-officedocument.presentationml.presentation", nature: "telecharger" },
+  pptx: { type: "application/vnd.openxmlformats-officedocument.presentationml.presentation", nature: "pptx" },
   ppt: { type: "application/vnd.ms-powerpoint", nature: "telecharger" },
   zip: { type: "application/zip", nature: "telecharger" },
   mp3: { type: "audio/mpeg", nature: "audio" },

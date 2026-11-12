@@ -2,6 +2,7 @@
 
 import { useActionState, useState } from "react";
 
+import { Fenetre } from "@/components/ui/fenetre";
 import { Champ, CLASSE_CHAMP } from "@/components/ui/primitives";
 import type { RoleAttribuable } from "@/lib/auth/membres";
 import { ajouterMembre, type EtatMembre } from "./actions";
@@ -51,29 +52,6 @@ export function FormulaireMembre({ roles }: { roles: RoleAttribuable[] }) {
   // avec son nom et son numéro. Un message en plus survivrait aux gestes
   // suivants et finirait par annoncer « peut désormais se connecter » à côté
   // d'une ligne qu'on vient de suspendre.
-  if (!ouvert) {
-    if (remis?.motDePasse && remis.email && remis.ajoute) {
-      return (
-        <MotDePasseRemis
-          nom={remis.ajoute}
-          email={remis.email}
-          motDePasse={remis.motDePasse}
-          onFermer={() => setRemis(null)}
-        />
-      );
-    }
-
-    return (
-      <button
-        type="button"
-        onClick={() => setOuvert(true)}
-        className="h-cible rounded-lg bg-marque-600 px-3.5 text-sm font-semibold text-white hover:bg-marque-700"
-      >
-        + Nouveau compte
-      </button>
-    );
-  }
-
   // La secrétaire d'abord : c'est l'accès le plus souvent ouvert, et le plus
   // étroit. Élargir se fait alors en connaissance de cause, alors qu'un rôle
   // trop large proposé par défaut ne se remarque qu'au moment du dégât.
@@ -81,20 +59,24 @@ export function FormulaireMembre({ roles }: { roles: RoleAttribuable[] }) {
   const retenu = roles.find((role) => role.id === choisi) ?? parDefaut;
 
   return (
-    <form
-      action={action}
-      className="mb-5 rounded-xl border border-[var(--filet)] bg-[var(--surface)] p-4 text-left"
-    >
-      <div className="mb-4 flex items-center justify-between gap-3">
-        <h2 className="text-sm font-semibold">Nouvel accès</h2>
-        <button
-          type="button"
-          onClick={() => setOuvert(false)}
-          className="text-sm text-[var(--encre-faible)] hover:underline"
-        >
-          Annuler
-        </button>
-      </div>
+    <>
+      {remis?.motDePasse && remis.email && remis.ajoute && (
+        <MotDePasseRemis
+          nom={remis.ajoute}
+          email={remis.email}
+          motDePasse={remis.motDePasse}
+          onFermer={() => setRemis(null)}
+        />
+      )}
+      <button
+        type="button"
+        onClick={() => setOuvert(true)}
+        className="h-cible rounded-lg bg-marque-600 px-3.5 text-sm font-semibold text-white hover:bg-marque-700"
+      >
+        + Nouveau compte
+      </button>
+      <Fenetre ouverte={ouvert} titre="Nouvel accès" presentation="ample" onFermer={() => setOuvert(false)}>
+    <form action={action} className="px-5 py-4 text-left">
 
       <div className="grid gap-4 sm:grid-cols-3">
         <Champ libelle="Nom">
@@ -158,5 +140,7 @@ export function FormulaireMembre({ roles }: { roles: RoleAttribuable[] }) {
         </button>
       </div>
     </form>
+      </Fenetre>
+    </>
   );
 }

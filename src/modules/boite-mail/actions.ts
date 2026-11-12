@@ -148,6 +148,18 @@ export async function listerMessages(dossier: string, page = 0): Promise<{ ok: t
   }
 }
 
+export async function rechercherMessages(dossier: string, texte: string): Promise<{ ok: true; messages: imap.ApercuMessage[]; tronque: boolean } | Echec> {
+  const m = await maConnexion();
+  if (echoue(m)) return m;
+  const t = texte.trim().slice(0, 100);
+  if (t.length < 2) return { ok: true, messages: [], tronque: false };
+  try {
+    return { ok: true, ...(await imap.rechercher(m.connexion, dossier.slice(0, 300), t)) };
+  } catch (erreur) {
+    return { ok: false, message: imap.messageErreur(erreur) };
+  }
+}
+
 export async function ouvrirMessage(dossier: string, uid: number): Promise<{ ok: true; message: imap.MessageLu } | Echec> {
   const m = await maConnexion();
   if (echoue(m)) return m;

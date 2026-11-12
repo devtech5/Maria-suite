@@ -37,7 +37,7 @@ export function RechercheGlobale() {
 
   return (
     <>
-      <form role="search" method="get" action="/recherche" className="relative hidden w-full max-w-md lg:block">
+      <form role="search" method="get" action="/recherche" className="relative hidden w-full max-w-md xl:block">
         <Loupe className="pointer-events-none absolute left-2.5 top-1/2 size-4 -translate-y-1/2 text-[var(--encre-faible)]" />
         <input
           ref={champ}
@@ -56,7 +56,7 @@ export function RechercheGlobale() {
       <Link
         href="/recherche"
         aria-label="Rechercher"
-        className="flex size-9 items-center justify-center rounded-lg text-[var(--encre-douce)] hover:bg-[var(--surface-creuse)] hover:text-[var(--encre)] lg:hidden"
+        className="flex size-9 items-center justify-center rounded-lg text-[var(--encre-douce)] hover:bg-[var(--surface-creuse)] hover:text-[var(--encre)] xl:hidden"
       >
         <Loupe className="size-5" />
       </Link>
