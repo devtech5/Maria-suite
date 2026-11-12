@@ -40,7 +40,7 @@ export const ENTREPRISE = {
   email: "hello@maria-groupe.com",
   rccm: "N° CI-TDI-01-2026-B12-00406",
   capitalSocial: 10_000_000,
-  piedDePage: "Siège social : Yamoussoukro, quartier Kami CAFOP\nBureaux : Cocody Angré 7e tranche, cour des comptes",
+  piedDePage: "Siège social : Yamoussoukro, quartier Kami CAFOP",
 };
 
 /**
