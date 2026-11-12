@@ -25,7 +25,19 @@ export default async function PageContacts({ searchParams }: PageProps<"/contact
 
   return (
     <>
-      <EnTetePage titre="Contacts" sousTitre={`${liste.length} collaborateur${liste.length > 1 ? "s" : ""} sur ${fiches.length}`} />
+      <EnTetePage
+        titre="Contacts"
+        sousTitre={`${liste.length} collaborateur${liste.length > 1 ? "s" : ""} sur ${fiches.length}`}
+        actions={
+          // Lien simple : le navigateur télécharge le classeur, avec la recherche et le filtre en cours.
+          <a
+            href={`/contacts/export?${new URLSearchParams({ ...(q ? { q } : {}), ...(service ? { service } : {}) })}`}
+            className="h-cible inline-flex items-center rounded-lg border border-[var(--filet)] bg-[var(--surface)] px-3.5 text-sm font-semibold hover:bg-[var(--surface-creuse)]"
+          >
+            Exporter en Excel
+          </a>
+        }
+      />
       <BarreRecherche
         q={q}
         placeholder="Nom, service, poste, adresse e-mail, numéro…"
