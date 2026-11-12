@@ -4,6 +4,7 @@ import * as XLSX from "xlsx";
 import { resoudreDroits } from "@/lib/droits/catalogue";
 import {
   adresseProValide,
+  annuaireParService,
   adressesAReprendre,
   appartientAuService,
   correspond,
@@ -286,5 +287,26 @@ describe("export Excel de l'annuaire", () => {
     expect(cellule.t).toBe("s");
     expect(cellule.f).toBeUndefined();
     expect(cellule.v).toBe("=HYPERLINK(\"http://x\")");
+  });
+});
+
+describe("impression de l'annuaire par service", () => {
+  const ligne = (id: string, nom: string, service: string | null): LigneAnnuaire => ({ id, nom, matricule: id, poste: "Agent", service, emails: [], numeros: [] });
+
+  it("suit l'ordre du référentiel, puis les services hors référentiel, puis sans service ; par nom dans chacun", () => {
+    const groupes = annuaireParService(
+      [ligne("1", "Yao Marc", "Ressources humaines"), ligne("2", "Traoré Ali", null), ligne("3", "Koné Awa", "administration et finances"), ligne("4", "Bamba Ive", "Ressources  humaines"), ligne("5", "Zoro Léa", "Chantier de Cocody")],
+      ["Administration et finances", "Ressources humaines"],
+    );
+    expect(groupes.map((g) => [g.service, g.lignes.map((l) => l.nom)])).toEqual([
+      ["administration et finances", ["Koné Awa"]],
+      ["Ressources humaines", ["Yao Marc", "Bamba Ive"].sort((a, b) => a.localeCompare(b, "fr"))],
+      ["Chantier de Cocody", ["Zoro Léa"]],
+      [null, ["Traoré Ali"]],
+    ]);
+  });
+
+  it("rend une liste vide sans collaborateur", () => {
+    expect(annuaireParService([], ["Ressources humaines"])).toEqual([]);
   });
 });

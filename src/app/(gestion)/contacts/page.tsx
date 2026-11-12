@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import Link from "next/link";
 
 import { BarreRecherche } from "@/components/contacts/barre-recherche";
 import { NumerosCollaborateur } from "@/components/contacts/numeros-collaborateur";
@@ -8,6 +9,9 @@ import { filtrerAnnuaire, formaterNumero, NATURES_NUMERO } from "@/modules/conta
 import { annuaireDe, servicesDe } from "@/modules/contacts/requetes";
 
 export const metadata: Metadata = { title: "Contacts" };
+
+const CLASSE_BOUTON_SECONDAIRE =
+  "h-cible inline-flex items-center rounded-lg border border-[var(--filet)] bg-[var(--surface)] px-3.5 text-sm font-semibold hover:bg-[var(--surface-creuse)]";
 
 /**
  * L'annuaire du personnel : nom et prénoms, service, poste, adresses
@@ -22,6 +26,7 @@ export default async function PageContacts({ searchParams }: PageProps<"/contact
   const org = a.session.organizationId;
   const [fiches, services] = await Promise.all([annuaireDe(org, a.gerer), servicesDe(org)]);
   const liste = filtrerAnnuaire(fiches, { q, service });
+  const filtres = new URLSearchParams({ ...(q ? { q } : {}), ...(service ? { service } : {}) }).toString();
 
   return (
     <>
@@ -29,13 +34,15 @@ export default async function PageContacts({ searchParams }: PageProps<"/contact
         titre="Contacts"
         sousTitre={`${liste.length} collaborateur${liste.length > 1 ? "s" : ""} sur ${fiches.length}`}
         actions={
-          // Lien simple : le navigateur télécharge le classeur, avec la recherche et le filtre en cours.
-          <a
-            href={`/contacts/export?${new URLSearchParams({ ...(q ? { q } : {}), ...(service ? { service } : {}) })}`}
-            className="h-cible inline-flex items-center rounded-lg border border-[var(--filet)] bg-[var(--surface)] px-3.5 text-sm font-semibold hover:bg-[var(--surface-creuse)]"
-          >
-            Exporter en Excel
-          </a>
+          // Liens simples, avec la recherche et le filtre en cours : le classeur se télécharge, la feuille A4 s'ouvre.
+          <>
+            <Link href={`/imprimer/annuaire?${filtres}`} className={CLASSE_BOUTON_SECONDAIRE}>
+              Imprimer (PDF)
+            </Link>
+            <a href={`/contacts/export?${filtres}`} className={CLASSE_BOUTON_SECONDAIRE}>
+              Exporter en Excel
+            </a>
+          </>
         }
       />
       <BarreRecherche

@@ -501,6 +501,8 @@ seulement à l'écran). L'e-mail personnel n'entre jamais dans `adresses_pro`.
 L'export Excel (`/contacts/export`, SheetJS, `.xlsx`) suit la même règle :
 `tableauAnnuaire` n'a de colonnes personnelles, et le classeur d'onglet
 « Adresses e-mail », que pour `contacts.gerer` ; chaque export se trace.
+Même règle pour l'impression (`/imprimer/annuaire`, papier à en-tête, par
+service, « Imprimer ou enregistrer en PDF »), tracée aussi.
 
 ## Interrogations de fond et liens publics
 
