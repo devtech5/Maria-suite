@@ -323,3 +323,26 @@ export function tableauAdresses(lignes: readonly LigneAdresse[]): string[][] {
     ...lignes.map((l) => [l.adresse, l.libelle ?? "", l.serviceLibelle ?? "", l.titulaire ?? "", l.actif ? LIBELLE_STATUT[l.statut] : "Fermée"]),
   ];
 }
+
+/**
+ * L'annuaire rangé par service pour l'impression : les services dans l'ordre
+ * du référentiel, puis ceux que seule une fiche porte, puis « sans service ».
+ * Dans chaque service, par nom.
+ */
+export function annuaireParService<T extends LigneAnnuaire>(lignes: readonly T[], ordreServices: readonly string[]): { service: string | null; lignes: T[] }[] {
+  const groupes = new Map<string, { service: string | null; lignes: T[] }>();
+  for (const l of lignes) {
+    const cle = l.service ? cleService(l.service) : "";
+    const groupe = groupes.get(cle) ?? { service: l.service ? l.service.trim() : null, lignes: [] };
+    groupe.lignes.push(l);
+    groupes.set(cle, groupe);
+  }
+  const rang = (cle: string) => {
+    if (cle === "") return Number.MAX_SAFE_INTEGER;
+    const i = ordreServices.findIndex((s) => cleService(s) === cle);
+    return i === -1 ? ordreServices.length : i;
+  };
+  return [...groupes.entries()]
+    .sort(([a, ga], [b, gb]) => rang(a) - rang(b) || (ga.service ?? "").localeCompare(gb.service ?? "", "fr"))
+    .map(([, g]) => ({ service: g.service, lignes: [...g.lignes].sort((x, y) => x.nom.localeCompare(y.nom, "fr")) }));
+}
