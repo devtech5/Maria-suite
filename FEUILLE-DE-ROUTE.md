@@ -83,6 +83,25 @@ module, trois usages.
   que NOUS DEVONS lui transmettre, avec une date limite, une relance, la preuve
   de l'envoi ou de la réception.
 
+## Contacts
+
+**Livré** (`src/modules/contacts/`). Demande du propriétaire, 12 novembre 2026 :
+l'annuaire INTERNE de l'entreprise (pas les contacts clients, `contacts_tiers`).
+
+- **Adresses e-mail professionnelles** (`@maria-groupe.com`) : on les liste, on
+  les **affecte au service, puis à une personne de ce service**. Une adresse
+  commune reste au service ; un titulaire qui change de service la fait passer
+  « à revoir ».
+- **Personnel** : nom et prénoms, service, poste, adresses et **plusieurs
+  numéros de téléphone** par collaborateur (mobile, fixe, WhatsApp ; professionnel
+  ou personnel).
+- Les numéros sont des données personnelles : `contacts.consulter` lit
+  l'annuaire et les numéros professionnels ; `contacts.gerer` tient les
+  adresses et les numéros, et seul lit les numéros personnels et l'e-mail
+  personnel du collaborateur (précisé le 12 novembre : l'annuaire en tient compte).
+- Une quatrième exigence de la demande n'a pas été écrite (puce vide) : à
+  confirmer avec le propriétaire.
+
 ## Immobilier et lotissement
 
 > Reporté à plus tard (11 novembre 2026). Ne pas commencer sans nouvelle

@@ -718,6 +718,26 @@ export const DROITS = [
     description: "Voir les bordereaux qui vous sont adressés, en accuser réception et rendre votre retour. Accordé à tous les comptes.",
   },
 
+  // ---------------------------------------------------------------- contacts
+  {
+    cle: "contacts.consulter",
+    moduleKey: "contacts",
+    libelle: "Consulter l'annuaire",
+    description:
+      "Lire l'annuaire de l'entreprise : nom et prénoms, service, poste, adresses e-mail " +
+      "professionnelles et numéros professionnels des collaborateurs. Les numéros personnels " +
+      "restent réservés à ceux qui tiennent l'annuaire.",
+  },
+  {
+    cle: "contacts.gerer",
+    moduleKey: "contacts",
+    libelle: "Tenir l'annuaire",
+    description:
+      "Lister les adresses e-mail professionnelles, les affecter à un service puis à une personne " +
+      "de ce service, ajouter ou retirer les numéros de téléphone des collaborateurs. Donne aussi " +
+      "accès aux numéros personnels.",
+  },
+
   // ---------------------------------------------------------------- perdiem
   {
     cle: "perdiem.consulter",
@@ -1104,6 +1124,8 @@ const TACHES_PERSONNELLES = ["taches.consulter", "taches.executer", "conges.dema
 
 /** Chacun dit où il est ; voir et modifier le planning des autres reste à l'encadrement. */
 const PLANNING_PERSONNEL = ["planning.utiliser"] as const satisfies readonly Droit[];
+/** Lire l'annuaire : chaque collaborateur y cherche un collègue. Les numéros personnels n'y figurent pas. */
+const ANNUAIRE_PERSONNEL = ["contacts.consulter"] as const satisfies readonly Droit[];
 
 const CONSULTATION_COMMERCE = [
   "tiers.fiche.consulter",
@@ -1145,6 +1167,7 @@ export const PRESETS_ROLES = [
       ...ARCHIVAGE_PERSONNEL,
       ...TACHES_PERSONNELLES,
       ...PLANNING_PERSONNEL,
+      ...ANNUAIRE_PERSONNEL,
       "messagerie.utiliser",
       "meeting.participer",
     ],
@@ -1170,6 +1193,7 @@ export const PRESETS_ROLES = [
       ...ARCHIVAGE_PERSONNEL,
       ...TACHES_PERSONNELLES,
       ...PLANNING_PERSONNEL,
+      ...ANNUAIRE_PERSONNEL,
       "messagerie.utiliser",
       "meeting.participer",
       "meeting.organiser",
@@ -1195,6 +1219,7 @@ export const PRESETS_ROLES = [
       ...ARCHIVAGE_PERSONNEL,
       ...TACHES_PERSONNELLES,
       ...PLANNING_PERSONNEL,
+      ...ANNUAIRE_PERSONNEL,
       "messagerie.utiliser",
       "meeting.participer",
     ],
@@ -1229,6 +1254,7 @@ export const PRESETS_ROLES = [
       ...ARCHIVAGE_PERSONNEL,
       ...TACHES_PERSONNELLES,
       ...PLANNING_PERSONNEL,
+      ...ANNUAIRE_PERSONNEL,
       "messagerie.utiliser",
       "meeting.participer",
     ],
