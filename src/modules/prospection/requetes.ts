@@ -41,7 +41,7 @@ const entier = (v: number | undefined): number => (v === undefined ? 0 : Number.
 
 // ------------------------------------------------------------------ lecture
 
-/** Nom du commercial : celui de sa fiche salarié, sinon du compte, sinon saisi. */
+/** Nom du commercial : celui de sa fiche collaborateur, sinon du compte, sinon saisi. */
 const nomCommercial = sql<string>`coalesce(${employees.nom}, ${users.fullName}, ${commerciaux.nom})`;
 
 export async function commerciauxActifs(organizationId: string) {

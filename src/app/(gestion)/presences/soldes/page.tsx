@@ -36,14 +36,14 @@ export default async function PageSoldes({ searchParams }: PageProps<"/presences
         <Recherche
           chemin="/presences/soldes"
           valeur={filtres.q}
-          placeholder="Salarié, matricule, poste…"
+          placeholder="Collaborateur, matricule, poste…"
           resultats={filtres.q ? `${fmtEntier(affiches.length)} sur ${fmtEntier(soldes.length)}` : undefined}
         />
       )}
       <Tableau>
         <thead>
           <tr>
-            <Th>Salarié</Th>
+            <Th>Collaborateur</Th>
             <Th>Décompte depuis</Th>
             <Th aligne="droite">Acquis</Th>
             <Th aligne="droite">Pris</Th>
@@ -78,14 +78,14 @@ export default async function PageSoldes({ searchParams }: PageProps<"/presences
           {affiches.length === 0 && (
             <tr>
               <Td>
-                <span className="text-[var(--encre-faible)]">{soldes.length === 0 ? "Aucun salarié en poste." : "Aucun résultat : aucun salarié ne répond à cette recherche."}</span>
+                <span className="text-[var(--encre-faible)]">{soldes.length === 0 ? "Aucun collaborateur en poste." : "Aucun résultat : aucun collaborateur ne répond à cette recherche."}</span>
               </Td>
             </tr>
           )}
         </tbody>
       </Tableau>
       <p className="mt-3 text-xs text-[var(--encre-faible)]">
-        Le décompte part de l&apos;embauche, ou de la dernière reprise de solde. Pour un salarié embauché avant Maria Suite, saisissez une reprise : son solde réel à une
+        Le décompte part de l&apos;embauche, ou de la dernière reprise de solde. Pour un collaborateur embauché avant Maria Suite, saisissez une reprise : son solde réel à une
         date.
       </p>
     </>

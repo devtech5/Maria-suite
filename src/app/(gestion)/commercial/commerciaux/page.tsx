@@ -61,7 +61,7 @@ export default async function PageCommerciaux({ searchParams }: PageProps<"/comm
   );
   const nombreExternes = lignes.filter((l) => l.commercial.origine === "externe").length;
 
-  // Tout le personnel : les salariés en poste, puis les comptes sans fiche de salarié (l'associé, le comptable externe).
+  // Tout le personnel : les collaborateurs en poste, puis les comptes sans fiche de collaborateur (l'associé, le comptable externe).
   const compteDeSalarie = new Set(salaries.map((s) => s.userId).filter(Boolean));
   const dejaSalaries = new Set(lignes.map((l) => l.commercial.employeeId).filter(Boolean));
   const dejaComptes = new Set(lignes.map((l) => l.commercial.userId).filter(Boolean));
@@ -69,7 +69,7 @@ export default async function PageCommerciaux({ searchParams }: PageProps<"/comm
     ...salaries.map((s) => ({ cle: `e:${s.id}`, nom: s.nom, detail: s.poste, pris: dejaSalaries.has(s.id) || Boolean(s.userId && dejaComptes.has(s.userId)) })),
     ...membres
       .filter((m) => m.statut === "actif" && !compteDeSalarie.has(m.userId))
-      .map((m) => ({ cle: `u:${m.userId}`, nom: m.nom, detail: "compte sans fiche de salarié", pris: dejaComptes.has(m.userId) })),
+      .map((m) => ({ cle: `u:${m.userId}`, nom: m.nom, detail: "compte sans fiche de collaborateur", pris: dejaComptes.has(m.userId) })),
   ].sort((a, b) => a.nom.localeCompare(b.nom, "fr", { sensitivity: "base" }));
 
   return (
@@ -105,7 +105,7 @@ export default async function PageCommerciaux({ searchParams }: PageProps<"/comm
             // Le mois et le suivi survivent à la soumission (champs cachés) comme à « Tout afficher » (adresse).
             chemin={`/commercial/commerciaux?mois=${mois}${origine ? `&origine=${origine}` : ""}`}
             valeur={filtres.q}
-            placeholder="Nom, téléphone, structure, salarié ou caissier lié…"
+            placeholder="Nom, téléphone, structure, collaborateur ou caissier lié…"
             filtres={
               <>
                 <input type="hidden" name="mois" value={mois} />
@@ -218,7 +218,7 @@ export default async function PageCommerciaux({ searchParams }: PageProps<"/comm
 
       <p className="mt-4 max-w-[75ch] text-xs text-[var(--encre-faible)]">
         Une vente compte pour le commercial choisi sur le devis ou la facture ; un ticket de caisse, pour le commercial lié au caissier. Les paliers sont progressifs : chaque
-        taux ne s&apos;applique qu&apos;à sa tranche. La commission d&apos;un salarié passe par sa paie (cotisée et imposée) ; celle d&apos;un externe se paie depuis la
+        taux ne s&apos;applique qu&apos;à sa tranche. La commission d&apos;un collaborateur passe par sa paie (cotisée et imposée) ; celle d&apos;un externe se paie depuis la
         trésorerie, en charge au compte 6322.
       </p>
     </>

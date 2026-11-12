@@ -105,7 +105,7 @@ describe("transmissions sur une vraie base", () => {
     expect((await transmissionsDe(org, { recherche: "ferraillage" })).map((t) => t.objet)).toEqual(["Plans d'exécution R+3"]);
   });
 
-  it("propose tout le personnel comme destinataire, les salariés sans compte signalés", async () => {
+  it("propose tout le personnel comme destinataire, les collaborateurs sans compte signalés", async () => {
     const { id: avecCompte } = await creerSalariePour(org, { nom: "Aya Touré", poste: "Comptable", debut: "2026-01-05", salaireBase: 200_000, service: "Finances" }, daf);
     await db.update(employees).set({ userId: daf }).where(eq(employees.id, avecCompte));
     const { id: sansCompte } = await creerSalariePour(org, { nom: "Zoé Bamba", poste: "Chauffeur", debut: "2026-01-05", salaireBase: 120_000 }, daf);
@@ -117,7 +117,7 @@ describe("transmissions sur une vraie base", () => {
     expect(new Set(personnes.map((p) => p.id)).size).toBe(personnes.length);
     expect(personnes.find((p) => p.nom === "Aya Touré")).toMatchObject({ id: daf, sansCompte: false, detail: "Comptable · Finances" });
     expect(personnes.find((p) => p.nom === "Zoé Bamba")).toMatchObject({ id: sansCompte, sansCompte: true, detail: "Chauffeur" });
-    // Un compte sans fiche de salarié reste proposé.
+    // Un compte sans fiche de collaborateur reste proposé.
     expect(personnes.find((p) => p.id === ingenieur)).toMatchObject({ sansCompte: false });
   });
 });

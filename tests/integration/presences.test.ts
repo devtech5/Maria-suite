@@ -43,7 +43,7 @@ describe("présences en base", () => {
 
     await pointerPresence(org, caissiere);
     await pointerPresence(org, caissiere); // le second appel, rapproché, ne crée rien
-    await pointerPresence(org, user); // l'exploitant, sans fiche salarié
+    await pointerPresence(org, user); // l'exploitant, sans fiche collaborateur
 
     const jour = jourLocal(new Date());
     const lignes = await db.select().from(presences).where(and(eq(presences.organizationId, org), eq(presences.jour, jour)));
@@ -57,7 +57,7 @@ describe("présences en base", () => {
     expect(await salarieDuCompte(org, caissiere)).toMatchObject({ id: fiche });
   });
 
-  it("pointe à la main un salarié sans compte, puis corrige, motif obligatoire", async () => {
+  it("pointe à la main un collaborateur sans compte, puis corrige, motif obligatoire", async () => {
     const { id } = await creerSalariePour(org, { nom: "Koffi Magasinier", poste: "Magasinier", debut: "2026-01-05", salaireBase: 100_000 }, user);
     await expect(pointerManuellementPour(org, user, { employeeId: id, jour: "2026-10-05", arrivee: "08:00", depart: null, motif: "" })).rejects.toThrow(/motif/);
     await expect(pointerManuellementPour(org, user, { employeeId: id, jour: "2026-10-05", arrivee: "17:00", depart: "08:00", motif: "Oubli" })).rejects.toThrow(/précéder/);

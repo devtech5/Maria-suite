@@ -92,7 +92,7 @@ export const CHAPITRES_GESTION: Chapitre[] = [
         titre: "Commissions",
         texte: [
           "Un commercial est interne ou externe. Interne : on le choisit dans la liste complète du personnel, sans rien ressaisir ; son compte, s'il en a un, reçoit ses tickets de caisse. Externe : un apporteur d'affaires qu'on enregistre sur place (nom, téléphone, e-mail, structure, ville) ; on le suit à part avec les puces Internes et Externes.",
-          "Une facture rattachée à un commercial compte dans son chiffre d'affaires hors taxes ; la commission se calcule par paliers, puis se valide. Celle d'un salarié passe par sa paie, celle d'un externe se paie depuis la trésorerie.",
+          "Une facture rattachée à un commercial compte dans son chiffre d'affaires hors taxes ; la commission se calcule par paliers, puis se valide. Celle d'un collaborateur passe par sa paie, celle d'un externe se paie depuis la trésorerie.",
         ],
       },
     ],
@@ -364,7 +364,7 @@ export const CHAPITRES_GESTION: Chapitre[] = [
       {
         ancre: "fournitures",
         titre: "Fournitures",
-        texte: ["Les fournitures entrent avec leur coût et se remettent à un salarié ou à un service ; le stock se déduit des mouvements et une alerte signale le seuil. L'entretien des locaux se suit comme celui d'un matériel : interventions et échéances."],
+        texte: ["Les fournitures entrent avec leur coût et se remettent à un collaborateur ou à un service ; le stock se déduit des mouvements et une alerte signale le seuil. L'entretien des locaux se suit comme celui d'un matériel : interventions et échéances."],
       },
     ],
     quiz: [],
@@ -495,7 +495,7 @@ export const CHAPITRES_GESTION: Chapitre[] = [
         ancre: "documents",
         titre: "Documents",
         chemin: "/documents",
-        texte: ["Un document se rattache à une fiche (salarié, véhicule, client…) et peut porter une date d'expiration : il s'annonce avant d'expirer. Les fichiers ne s'ouvrent que par un lien valable quelques minutes."],
+        texte: ["Un document se rattache à une fiche (collaborateur, véhicule, client…) et peut porter une date d'expiration : il s'annonce avant d'expirer. Les fichiers ne s'ouvrent que par un lien valable quelques minutes."],
       },
       {
         ancre: "courriers",
@@ -790,7 +790,7 @@ export const CHAPITRES_GESTION: Chapitre[] = [
       {
         cle: "membres-adresse",
         question: "Quelles adresses peuvent recevoir un compte Maria Suite ?",
-        choix: ["Toute adresse e-mail", "Les adresses @maria-groupe.com", "Les adresses Gmail des salariés"],
+        choix: ["Toute adresse e-mail", "Les adresses @maria-groupe.com", "Les adresses Gmail des collaborateurs"],
         bonne: 1,
         explication: "La plateforme n'admet que le domaine de l'entreprise (et l'adresse du super administrateur).",
       },

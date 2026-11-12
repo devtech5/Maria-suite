@@ -72,7 +72,7 @@ export async function enregistrerMouvementPour(organizationId: string, userId: s
         .select({ id: employees.id })
         .from(employees)
         .where(and(eq(employees.organizationId, organizationId), eq(employees.id, m.employeId)));
-      if (!salarie) throw new Error("Salarié introuvable.");
+      if (!salarie) throw new Error("Collaborateur introuvable.");
     }
 
     if (m.sens === "sortie") {

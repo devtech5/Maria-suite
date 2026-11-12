@@ -35,7 +35,7 @@ beforeAll(async () => {
 afterAll(async () => fermer());
 
 describe("identité d'un commercial", () => {
-  it("lié à un salarié : nom et téléphone viennent du Personnel, la saisie est ignorée", async () => {
+  it("lié à un collaborateur : nom et téléphone viennent du Personnel, la saisie est ignorée", async () => {
     const { id: awa } = await creerSalariePour(org, { nom: "Awa Koné", poste: "Commerciale", debut: "2026-01-05", salaireBase: 150_000, telephone: "0707070707" }, user);
     const { id, nom } = await db.transaction((tx) =>
       enregistrerCommercialDans(tx, org, null, { ...regle, nom: "Awa K.", telephone: "0101", employeeId: awa }, user),
@@ -64,7 +64,7 @@ describe("identité d'un commercial", () => {
     await expect(db.transaction((tx) => enregistrerCommercialDans(tx, org, null, { ...regle }, user))).rejects.toThrow(/nom/);
   });
 
-  it("refuse un compte étranger et un salarié déjà commercial", async () => {
+  it("refuse un compte étranger et un collaborateur déjà commercial", async () => {
     const etranger = newId();
     await db.insert(users).values({ id: etranger, fullName: "Hors entreprise", email: `${etranger}@exemple.test` });
     await expect(db.transaction((tx) => enregistrerCommercialDans(tx, org, null, { ...regle, userId: etranger }, user))).rejects.toThrow(/entreprise/);
@@ -74,7 +74,7 @@ describe("identité d'un commercial", () => {
     await expect(db.transaction((tx) => enregistrerCommercialDans(tx, org, null, { ...regle, nom: "Autre", employeeId: ina }, user))).rejects.toThrow();
   });
 
-  it("interne choisi dans le personnel : le compte du salarié devient son compte de caisse", async () => {
+  it("interne choisi dans le personnel : le compte du collaborateur devient son compte de caisse", async () => {
     const caissier = await compte("Kouassi Vendeur");
     const { id: kouassi } = await creerSalariePour(org, { nom: "Kouassi Vendeur", poste: "Vendeur", debut: "2026-01-05", salaireBase: 100_000 }, user);
     await db.update(employees).set({ userId: caissier }).where(eq(employees.id, kouassi));
@@ -91,7 +91,7 @@ describe("identité d'un commercial", () => {
     const [ligne] = await db.select().from(commerciaux).where(eq(commerciaux.id, id));
     expect(ligne).toMatchObject({ origine: "externe", nom: "Diabaté Courtier", email: "d@courtage.ci", organisme: "Cabinet Diabaté", ville: "Bouaké", employeeId: null, userId: null });
     const caissier = await compte("Quelqu'un");
-    await expect(db.transaction((tx) => enregistrerCommercialDans(tx, org, null, { ...regle, origine: "externe", nom: "Faux externe", userId: caissier }, user))).rejects.toThrow(/ni à un salarié/);
+    await expect(db.transaction((tx) => enregistrerCommercialDans(tx, org, null, { ...regle, origine: "externe", nom: "Faux externe", userId: caissier }, user))).rejects.toThrow(/ni à un collaborateur/);
     // La base elle-même refuse un externe lié à une fiche.
     await expect(db.update(commerciaux).set({ userId: caissier }).where(eq(commerciaux.id, id))).rejects.toThrow();
   });

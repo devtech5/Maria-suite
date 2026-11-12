@@ -172,7 +172,7 @@ export interface BonVue {
   montant: number;
   /** Nom de la fiche quand le bénéficiaire en a une, sinon le nom saisi. */
   beneficiaire: string;
-  /** Fonction du salarié, métier de l'intervenant, « Fournisseur » ; nul sans fiche. */
+  /** Fonction du collaborateur, métier de l'intervenant, « Fournisseur » ; nul sans fiche. */
   beneficiaireQualite: string | null;
   motif: string;
   statut: "demande" | "approuve" | "rejete" | "decaisse" | "annule";
@@ -274,7 +274,7 @@ export interface AvanceVue {
   numero: string;
   caisse: string;
   beneficiaire: string;
-  /** Fonction au Personnel, quand l'avance est remise à un salarié. */
+  /** Fonction au Personnel, quand l'avance est remise à un collaborateur. */
   beneficiaireQualite: string | null;
   montant: number;
   reste: number;

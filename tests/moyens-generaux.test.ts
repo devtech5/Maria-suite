@@ -39,7 +39,7 @@ describe("fournitures", () => {
     expect(coutMoyenUnitaire(mouvements.filter((m) => m.fournitureId === "encre"))).toBeNull();
   });
 
-  it("consommation par service, le salarié à défaut", () => {
+  it("consommation par service, le collaborateur à défaut", () => {
     expect(
       consommationParService([
         { quantite: 5, service: "Comptabilité", beneficiaire: "Fatou" },

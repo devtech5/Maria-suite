@@ -1,14 +1,14 @@
 /**
  * Postes de travail : le référentiel dans lequel se choisit le poste d'un
- * salarié.
+ * collaborateur.
  *
  * Fichier sans base ni React : la liste de départ sert à l'installation et
  * aux tests, les règles de libellé au serveur comme au formulaire.
  *
- * Le poste reste écrit en toutes lettres sur la fiche du salarié
+ * Le poste reste écrit en toutes lettres sur la fiche du collaborateur
  * (`employees.poste`) : le bulletin, le contrat et l'annuaire le lisent tel
  * quel. Le référentiel décide de ce qu'on peut y choisir, et un renommage s'y
- * propage aux salariés qui l'occupent.
+ * propage aux collaborateurs qui l'occupent.
  */
 
 /**
@@ -98,7 +98,7 @@ function listeActuels(actuels: Actuels): string[] {
 /**
  * Les postes à proposer dans une liste de choix.
  *
- * Les postes actifs, dans leur ordre, précédés des postes actuels du salarié
+ * Les postes actifs, dans leur ordre, précédés des postes actuels du collaborateur
  * qui n'y figurent pas : un poste retiré du référentiel ou saisi avant lui
  * reste affiché sur la fiche qui le porte, plutôt que de disparaître au
  * premier enregistrement.

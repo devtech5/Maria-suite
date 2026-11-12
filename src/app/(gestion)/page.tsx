@@ -196,13 +196,13 @@ export default async function PageTableauDeBord() {
         dossiers.bientot > 0 && `${dossiers.bientot} dans les 30 jours`,
       ]
         .filter(Boolean)
-        .join(" · ") + ` — ${dossiers.salaries} salarié${dossiers.salaries > 1 ? "s" : ""}`,
+        .join(" · ") + ` — ${dossiers.salaries} collaborateur${dossiers.salaries > 1 ? "s" : ""}`,
       href: "/rh",
       nombre: dossiers.expirees + dossiers.bientot,
     });
   }
 
-  // Congés à décider : un salarié qui attend sa réponse ne peut rien réserver.
+  // Congés à décider : un collaborateur qui attend sa réponse ne peut rien réserver.
   if (presencesEtat && presencesEtat.demandesEnAttente > 0) {
     const n = presencesEtat.demandesEnAttente;
     toutesLesAlertes.push({
@@ -211,7 +211,7 @@ export default async function PageTableauDeBord() {
       source: "base",
       module: "Présences",
       titre: n > 1 ? `${n} demandes de congé à décider` : "Une demande de congé à décider",
-      detail: `${presencesEtat.presentsAujourdhui} présent${presencesEtat.presentsAujourdhui > 1 ? "s" : ""} aujourd'hui sur ${presencesEtat.salaries} salarié${presencesEtat.salaries > 1 ? "s" : ""}`,
+      detail: `${presencesEtat.presentsAujourdhui} présent${presencesEtat.presentsAujourdhui > 1 ? "s" : ""} aujourd'hui sur ${presencesEtat.salaries} collaborateur${presencesEtat.salaries > 1 ? "s" : ""}`,
       href: "/presences/conges",
       nombre: n,
     });

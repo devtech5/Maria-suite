@@ -87,7 +87,7 @@ export const COMPTES = {
    *
    * C'est là que va ce qu'on verse à un maçon, un manœuvre, un chauffeur
    * occasionnel ou un serveur extra — pas en classe 66, qui est celle des
-   * charges de personnel salarié. Les confondre gonflerait la masse salariale
+   * charges de personnel collaborateur. Les confondre gonflerait la masse salariale
    * déclarée de gens qui ne figurent sur aucune déclaration CNPS, et l'écart
    * se découvrirait au contrôle.
    */

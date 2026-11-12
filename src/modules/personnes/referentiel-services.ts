@@ -23,7 +23,7 @@ export interface LigneService {
   actif: boolean;
   /** Postes rangés dans le service, retirés compris. */
   postes: { id: string; libelle: string; actif: boolean }[];
-  /** Salariés en poste dont la fiche porte ce service. */
+  /** Collaborateurs en poste dont la fiche porte ce service. */
   effectif: number;
 }
 
@@ -114,7 +114,7 @@ export async function ajouterServicePour(
 }
 
 /**
- * Modifie un service. Un nouveau libellé se propage aux fiches des salariés
+ * Modifie un service. Un nouveau libellé se propage aux fiches des collaborateurs
  * qui portent l'ancien, dans la même transaction.
  */
 export async function modifierServicePour(

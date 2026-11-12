@@ -410,20 +410,20 @@ export const CHAPITRES_EQUIPE: Chapitre[] = [
     cle: "personnel",
     titre: "Personnel",
     entree: "/rh",
-    resume: "Salariés, dossiers, services et postes, paie.",
+    resume: "Collaborateurs, dossiers, services et postes, paie.",
     sections: [
       {
         ancre: "salaries",
-        titre: "Salariés et dossiers",
+        titre: "Collaborateurs et dossiers",
         chemin: "/rh",
         texte: [
-          "La liste des salariés ouvre chaque dossier : état civil, contrat, poste et service, pièces jointes, paiement du salaire. L'embauche se saisit dans une grande fenêtre, étape par étape.",
-          "Un salarié a un bulletin de paie ; un maçon payé à la journée n'en a pas : c'est un intervenant, tenu à part.",
+          "La liste des collaborateurs ouvre chaque dossier : état civil, contrat, poste et service, pièces jointes, paiement du salaire. L'embauche se saisit dans une grande fenêtre, étape par étape.",
+          "Un collaborateur a un bulletin de paie ; un maçon payé à la journée n'en a pas : c'est un intervenant, tenu à part.",
         ],
         capture: {
           fichier: "personnel",
           page: "/rh",
-          alt: "La liste des salariés.",
+          alt: "La liste des collaborateurs.",
           reperes: [
             { cible: "role=link[name='Services']", texte: "Les services de l'entreprise." },
             { cible: "role=link[name='Paie']", texte: "La paie du mois." },
@@ -434,7 +434,7 @@ export const CHAPITRES_EQUIPE: Chapitre[] = [
         ancre: "services",
         titre: "Services et postes",
         chemin: "/rh/services",
-        texte: ["Chaque poste se range dans un service (Direction générale, Ressources humaines, Travaux…). Changer le service d'un poste met à jour les fiches des salariés qui l'occupent."],
+        texte: ["Chaque poste se range dans un service (Direction générale, Ressources humaines, Travaux…). Changer le service d'un poste met à jour les fiches des collaborateurs qui l'occupent."],
       },
       {
         ancre: "paie",
@@ -450,9 +450,9 @@ export const CHAPITRES_EQUIPE: Chapitre[] = [
       {
         cle: "rh-intervenant",
         question: "Un manœuvre payé à la journée sur un chantier, c'est :",
-        choix: ["Un salarié avec un bulletin", "Un intervenant, payé par bon de paiement", "Un utilisateur du logiciel"],
+        choix: ["Un collaborateur avec un bulletin", "Un intervenant, payé par bon de paiement", "Un utilisateur du logiciel"],
         bonne: 1,
-        explication: "Intervenants et salariés sont deux natures distinctes : l'intervenant est pointé et payé par bon.",
+        explication: "Intervenants et collaborateurs sont deux natures distinctes : l'intervenant est pointé et payé par bon.",
       },
       {
         cle: "rh-bulletin",
@@ -492,7 +492,7 @@ export const CHAPITRES_EQUIPE: Chapitre[] = [
     cle: "contrats",
     titre: "Contrats",
     entree: "/contrats",
-    resume: "Contrats des salariés et des fournisseurs, avec leurs échéances.",
+    resume: "Contrats des collaborateurs et des fournisseurs, avec leurs échéances.",
     sections: [
       {
         ancre: "contrats",

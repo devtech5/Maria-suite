@@ -58,12 +58,12 @@ function ChoixSalarie({ salaries, name = "employeeId" }: { salaries: OptionSalar
 
 export function FormulairePointage({ salaries, aujourdhui }: { salaries: OptionSalarie[]; aujourdhui: string }) {
   return (
-    <FormulaireRepliable libelle="Pointer un salarié" titre="Pointer ou corriger une journée" action={pointerSalarie}>
+    <FormulaireRepliable libelle="Pointer un collaborateur" titre="Pointer ou corriger une journée" action={pointerSalarie}>
       <p className="mb-3 text-sm text-[var(--encre-douce)]">
-        Pour un salarié sans compte, un oubli ou un travail hors site. Une journée déjà pointée est corrigée ; le motif est inscrit au journal.
+        Pour un collaborateur sans compte, un oubli ou un travail hors site. Une journée déjà pointée est corrigée ; le motif est inscrit au journal.
       </p>
       <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-5">
-        <Champ libelle="Salarié">
+        <Champ libelle="Collaborateur">
           <ChoixSalarie salaries={salaries} />
         </Champ>
         <Champ libelle="Jour">
@@ -89,7 +89,7 @@ export function FormulaireConge({ salaries, aujourdhui, pourMoi }: { salaries?: 
     <FormulaireRepliable libelle={salaries ? "Saisir un congé" : "Demander un congé"} titre={salaries ? "Saisir un congé (accordé d'office)" : "Demander un congé"} action={demanderConge}>
       <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
         {salaries && (
-          <Champ libelle="Salarié">
+          <Champ libelle="Collaborateur">
             <ChoixSalarie salaries={salaries} />
           </Champ>
         )}
@@ -335,11 +335,11 @@ export function FormulaireAjustement({ salaries, aujourdhui }: { salaries: Optio
   return (
     <FormulaireRepliable libelle="Ajuster un solde" titre="Ajuster un solde de congés" action={ajusterSolde}>
       <p className="mb-3 text-sm text-[var(--encre-douce)]">
-        <strong>Reprise</strong> : le solde réel à une date (salarié embauché avant Maria Suite) ; le décompte repart de là. <strong>Majoration</strong> : jours
+        <strong>Reprise</strong> : le solde réel à une date (collaborateur embauché avant Maria Suite) ; le décompte repart de là. <strong>Majoration</strong> : jours
         supplémentaires (ancienneté, enfants). <strong>Correction</strong> : rectification motivée, en plus ou en moins.
       </p>
       <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-5">
-        <Champ libelle="Salarié">
+        <Champ libelle="Collaborateur">
           <ChoixSalarie salaries={salaries} />
         </Champ>
         <Champ libelle="Type">

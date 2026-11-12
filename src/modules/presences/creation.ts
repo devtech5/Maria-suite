@@ -155,7 +155,7 @@ async function salarieDe(tx: Transaction | typeof db, organizationId: string, em
     .select({ id: employees.id, nom: employees.nom, userId: employees.userId, debut: employees.debut, fin: employees.fin, actif: employees.actif })
     .from(employees)
     .where(and(eq(employees.id, employeeId), eq(employees.organizationId, organizationId)));
-  if (!s) throw new Error("Salarié introuvable.");
+  if (!s) throw new Error("Collaborateur introuvable.");
   return s;
 }
 
@@ -167,7 +167,7 @@ export interface SaisiePointage {
   motif: string;
 }
 
-/** Pointe ou corrige à la main la journée d'un salarié. Toujours motivé, toujours tracé. */
+/** Pointe ou corrige à la main la journée d'un collaborateur. Toujours motivé, toujours tracé. */
 export async function pointerManuellementPour(organizationId: string, userId: string, s: SaisiePointage): Promise<void> {
   if (!heureValide(s.arrivee) || (s.depart && !heureValide(s.depart))) throw new Error("Heure au format HH:MM.");
   if (s.depart && s.depart < s.arrivee) throw new Error("Le départ ne peut pas précéder l'arrivée.");
@@ -300,7 +300,7 @@ export async function deciderCongePour(
   decision: "approuve" | "refuse",
   commentaire: string | null,
 ): Promise<{ numero: string; demandeur: string | null; salarieUserId: string | null; nom: string }> {
-  if (decision === "refuse" && !commentaire?.trim()) throw new Error("Dites pourquoi la demande est refusée : le salarié le lira.");
+  if (decision === "refuse" && !commentaire?.trim()) throw new Error("Dites pourquoi la demande est refusée : le collaborateur le lira.");
   // Le recompte lit réglages et fériés : il se fait AVANT la transaction, qui
   // ne doit tenir son verrou que le temps d'écrire.
   const [lu] = await db
@@ -329,7 +329,7 @@ export async function deciderCongePour(
 }
 
 /**
- * Annule un congé. Le salarié annule le sien tant qu'il n'a pas commencé ;
+ * Annule un congé. Le collaborateur annule le sien tant qu'il n'a pas commencé ;
  * un responsable annule n'importe lequel, même entamé (retour anticipé).
  */
 export async function annulerCongePour(organizationId: string, userId: string, id: string, responsable: boolean, aujourdhui: string): Promise<{ numero: string }> {
@@ -366,7 +366,7 @@ export async function ajusterSoldePour(organizationId: string, userId: string, s
   await journaliser(db, organizationId, userId, "conge.ajuster", "ajustement_conge", id, { salarie: salarie.nom, ...s });
 }
 
-/** Fiche salarié active rattachée à un compte, s'il y en a une. */
+/** Fiche collaborateur active rattachée à un compte, s'il y en a une. */
 export async function salarieDuCompte(organizationId: string, userId: string): Promise<{ id: string; nom: string } | null> {
   const [s] = await db
     .select({ id: employees.id, nom: employees.nom })
@@ -507,7 +507,7 @@ export async function deciderPermissionPour(
   traitement: TraitementPermission | null,
   commentaire: string | null,
 ): Promise<{ numero: string; demandeur: string; salarieUserId: string | null; nom: string }> {
-  if (decision === "refuse" && !commentaire?.trim()) throw new Error("Dites pourquoi la demande est refusée : le salarié le lira.");
+  if (decision === "refuse" && !commentaire?.trim()) throw new Error("Dites pourquoi la demande est refusée : le collaborateur le lira.");
   if (decision === "approuve" && !traitement) throw new Error("Choisissez comment ce temps est traité : payé, à récupérer, déduit des congés ou non payé.");
   const r = await reglagesDe(organizationId);
 
@@ -540,7 +540,7 @@ export async function deciderPermissionPour(
 }
 
 /**
- * Annule une demande. Le salarié retire la sienne tant qu'elle attend, ou
+ * Annule une demande. Le collaborateur retire la sienne tant qu'elle attend, ou
  * tant que le jour n'est pas venu ; un responsable annule n'importe laquelle.
  */
 export async function annulerPermissionPour(organizationId: string, userId: string, id: string, responsable: boolean, aujourdhui: string): Promise<{ numero: string }> {

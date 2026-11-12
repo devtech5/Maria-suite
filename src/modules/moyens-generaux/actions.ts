@@ -70,7 +70,7 @@ const schemaMouvement = z.object({
   quantite: z.number({ error: "Quantité : nombre entier." }).int("Quantité : nombre entier.").positive("La quantité doit être positive.").max(1_000_000),
   date: z.string({ error: "Indiquez la date." }).regex(DATE_ISO, "Indiquez la date."),
   cout: z.number().int("Coût : montant entier en francs.").min(0).nullable(),
-  employeId: z.string().regex(UUID, "Salarié inconnu.").nullable(),
+  employeId: z.string().regex(UUID, "Collaborateur inconnu.").nullable(),
   service: z.string().max(80).nullable(),
   note: z.string().max(300).nullable(),
 });
@@ -97,7 +97,7 @@ export async function enregistrerEntree(d: FormData): Promise<Resultat> {
   });
 }
 
-/** Remise à un salarié ou à un service : des fournitures sortent du placard. */
+/** Remise à un collaborateur ou à un service : des fournitures sortent du placard. */
 export async function enregistrerSortie(d: FormData): Promise<Resultat> {
   return operer(async ({ organizationId, userId }) => {
     const analyse = lireMouvement(d);

@@ -9,7 +9,7 @@ import { CLASSE_CHAMP_COMPACT } from "@/components/ui/primitives";
 import { fmt } from "@/lib/format";
 import { enregistrerCommercial, payerCommission, reporterEnPaie, validerCommission } from "@/modules/commerciaux/actions";
 
-/** Une personne du personnel : le salarié (`e:`), ou le compte sans fiche de salarié (`u:`). */
+/** Une personne du personnel : le collaborateur (`e:`), ou le compte sans fiche de collaborateur (`u:`). */
 export interface Personnel {
   cle: string;
   nom: string;
@@ -21,7 +21,7 @@ export interface Personnel {
 export interface FicheInitiale {
   id?: string;
   origine: "interne" | "externe";
-  /** Clé du personnel choisi (interne) : `e:<salarié>` ou `u:<compte>`. */
+  /** Clé du personnel choisi (interne) : `e:<collaborateur>` ou `u:<compte>`. */
   personne: string;
   /** Apporteur externe : sa propre fiche. */
   nom: string;
@@ -88,7 +88,7 @@ function FormulaireFiche({ initiale, personnel, onFerme }: { initiale: FicheInit
               email: externe ? f.email || null : null,
               organisme: externe ? f.organisme || null : null,
               ville: externe ? f.ville || null : null,
-              // Interne : le salarié choisi ; son compte de caisse se déduit de sa fiche.
+              // Interne : le collaborateur choisi ; son compte de caisse se déduit de sa fiche.
               employeeId: !externe && f.personne.startsWith("e:") ? f.personne.slice(2) : null,
               userId: !externe && f.personne.startsWith("u:") ? f.personne.slice(2) : null,
               base: f.base,

@@ -18,10 +18,10 @@ export interface PalierCommission {
 /**
  * Commercial : celui à qui une vente est attribuée.
  *
- * Ce n'est ni un utilisateur ni un salarié, mais il peut être l'un ou l'autre
+ * Ce n'est ni un utilisateur ni un collaborateur, mais il peut être l'un ou l'autre
  * — ou aucun des deux : un apporteur d'affaires externe ne se connecte pas et
  * n'a pas de bulletin. D'où deux liens facultatifs. Le lien utilisateur
- * attribue d'office les tickets qu'il encaisse ; le lien salarié fait passer
+ * attribue d'office les tickets qu'il encaisse ; le lien collaborateur fait passer
  * sa commission par la paie, où elle est cotisée et imposée.
  */
 export const commerciaux = pgTable(
@@ -32,7 +32,7 @@ export const commerciaux = pgTable(
       .notNull()
       .references(() => organizations.id, { onDelete: "cascade" }),
     /**
-     * Nom et téléphone : ceux de la fiche salarié, ou du compte, recopiés à
+     * Nom et téléphone : ceux de la fiche collaborateur, ou du compte, recopiés à
      * l'enregistrement et relus à jour à l'affichage. Saisis seulement pour
      * un apporteur sans fiche.
      */
@@ -40,7 +40,7 @@ export const commerciaux = pgTable(
     telephone: text("telephone"),
     userId: uuid("user_id"),
     /**
-     * Interne : choisi dans le personnel (salarié, ou compte sans fiche).
+     * Interne : choisi dans le personnel (collaborateur, ou compte sans fiche).
      * Externe : un apporteur d'affaires enregistré ici, payé depuis la
      * trésorerie, qui n'ouvre pas le logiciel. Les deux se suivent à part.
      */
@@ -50,7 +50,7 @@ export const commerciaux = pgTable(
     organisme: text("organisme"),
     ville: text("ville"),
     /**
-     * Salarié rattaché. Sans clé étrangère, pour la même raison que le compte
+     * Collaborateur rattaché. Sans clé étrangère, pour la même raison que le compte
      * de trésorerie des commissions : le schéma du personnel importe celui
      * des ventes, qui importe celui-ci. Le code vérifie le rattachement.
      */
@@ -74,7 +74,7 @@ export const commerciaux = pgTable(
     unique("commerciaux_user_unique").on(t.organizationId, t.userId),
     unique("commerciaux_employe_unique").on(t.organizationId, t.employeeId),
     check("commerciaux_origine", sql`${t.origine} in ('interne', 'externe')`),
-    // Un externe n'a ni fiche salarié ni compte : sinon il serait du personnel.
+    // Un externe n'a ni fiche collaborateur ni compte : sinon il serait du personnel.
     check("commerciaux_externe_sans_fiche", sql`${t.origine} = 'interne' OR (${t.employeeId} IS NULL AND ${t.userId} IS NULL)`),
     check("commerciaux_montants", sql`${t.tauxBp} BETWEEN 0 AND 10000 AND ${t.fixeMensuel} >= 0 AND ${t.objectifMensuel} >= 0`),
   ],

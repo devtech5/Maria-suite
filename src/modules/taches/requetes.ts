@@ -17,10 +17,10 @@ export interface TacheVue {
   creeParUserId: string;
   createur: string;
   assigneeUserId: string;
-  /** Salarié du Personnel, quand la tâche lui a été confiée. */
+  /** Collaborateur du Personnel, quand la tâche lui a été confiée. */
   assigneeEmployeId: string | null;
   assignee: string;
-  /** Salarié sans compte actif : l'auteur suit la tâche pour lui. */
+  /** Collaborateur sans compte actif : l'auteur suit la tâche pour lui. */
   sansCompte: boolean;
   creeLe: Date;
   attribueeLe: Date;
@@ -181,7 +181,7 @@ export async function tachesEnRetard(
   return { liste, miennes, autres: liste.length - miennes };
 }
 
-/** Un salarié du Personnel, tel que le propose le choix de l'exécutant. */
+/** Un collaborateur du Personnel, tel que le propose le choix de l'exécutant. */
 export interface SalariePropose {
   id: string;
   nom: string;

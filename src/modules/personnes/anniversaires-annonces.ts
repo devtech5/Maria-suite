@@ -20,7 +20,7 @@ import { anniversairesAnnonces, employees } from "./schema";
  *
  *   · TOUT LE MONDE — tout compte actif — est prévenu dans la semaine qui
  *     précède, puis le jour même.
- *   · La DIRECTION — le propriétaire et qui gère les salariés (droit
+ *   · La DIRECTION — le propriétaire et qui gère les collaborateurs (droit
  *     `personnes.salarie.gerer`) — l'est avec l'âge, et l'est aussi pour qui
  *     a choisi de ne pas annoncer son anniversaire ; l'équipe, sans l'âge,
  *     seulement pour ceux qui l'annoncent.
@@ -49,7 +49,7 @@ async function fuseauDe(organizationId: string): Promise<string> {
 }
 
 /**
- * Les salariés en poste dont on connaît la date de naissance. `direction` :
+ * Les collaborateurs en poste dont on connaît la date de naissance. `direction` :
  * tous ; sinon seulement ceux qui ont choisi d'annoncer leur anniversaire.
  */
 export async function personnesAnniversaire(organizationId: string, options: { direction: boolean }): Promise<PersonneAnniversaire[]> {

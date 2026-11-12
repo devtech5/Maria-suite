@@ -180,7 +180,7 @@ export default async function PageParc({ searchParams }: PageProps<"/actifs">) {
                     </Td>
                     <Td>
                       {/* L'affectation pointe vers une personne du module
-                          Personnel, salariée ou intervenante. */}
+                          Personnel, collaboratrice ou intervenante. */}
                       {actif.affecteA ?? (
                         <span className="text-xs text-[var(--encre-faible)]">
                           Non affecté

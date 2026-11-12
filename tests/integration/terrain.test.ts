@@ -90,7 +90,7 @@ describe("équipe d'un projet", () => {
         ["Diabaté Sous-traitant", "agent", "externe", false],
       ]),
     );
-    // Le compte d'un salarié se lit à sa fiche : agent et superviseur retrouvent leur projet.
+    // Le compte d'un collaborateur se lit à sa fiche : agent et superviseur retrouvent leur projet.
     expect((await projetsDuTerrain(org, agent)).map((p) => [p.id, p.role])).toEqual([[projetId, "agent"]]);
     expect((await projetsDuTerrain(org, superviseur))[0]).toMatchObject({ id: projetId, role: "superviseur", chef: false });
     expect((await projetsDuTerrain(org, chef))[0]).toMatchObject({ id: projetId, chef: true });
@@ -101,7 +101,7 @@ describe("équipe d'un projet", () => {
     const choix = await personnelPourProjet(org, await equipeDuProjet(org, projetId));
     expect(choix.find((p) => p.nom === "Traoré Agent")).toMatchObject({ pris: true, avecCompte: true });
     expect(choix.find((p) => p.nom === "Yao Manœuvre")).toMatchObject({ pris: true, avecCompte: false });
-    // Un compte sans fiche de salarié reste proposé.
+    // Un compte sans fiche de collaborateur reste proposé.
     expect(choix.find((p) => p.cle === `u:${exploitant}`)).toBeUndefined();
     const libre = await salarie("Libre Disponible", null);
     expect((await personnelPourProjet(org, await equipeDuProjet(org, projetId))).find((p) => p.cle === `e:${libre}`)).toMatchObject({ pris: false });

@@ -45,7 +45,7 @@ export const sensMouvementFourniture = pgEnum("sens_mouvement_fourniture", ["ent
 
 /**
  * Mouvement de fourniture : une entrée (achat, don) ou une sortie (remise à un
- * salarié ou à un service).
+ * collaborateur ou à un service).
  *
  * Le stock n'est stocké NULLE PART : c'est la somme des entrées moins celle
  * des sorties. Un compteur tenu à côté finirait par diverger de ses
@@ -70,7 +70,7 @@ export const mouvementsFournitures = pgTable(
     date: date("date").notNull(),
     /** Coût total de l'entrée, en francs. Jamais sur une sortie. */
     cout: money("cout"),
-    /** Bénéficiaire d'une sortie : un salarié… */
+    /** Bénéficiaire d'une sortie : un collaborateur… */
     employeId: uuid("employe_id").references(() => employees.id, { onDelete: "set null" }),
     /** …et/ou un service : Comptabilité, Accueil, Chantier de Cocody. */
     service: text("service"),

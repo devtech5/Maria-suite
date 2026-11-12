@@ -135,7 +135,7 @@ export const GROUPES_MODULES: GroupeModules[] = [
     court: "RH",
     icone: "personnel",
     modules: [
-      { href: "/rh", racine: "/rh", icone: "personnel", libelle: "Personnel", description: "Salariés, intervenants, dossiers et paie.", droit: "personnes.consulter" },
+      { href: "/rh", racine: "/rh", icone: "personnel", libelle: "Personnel", description: "Collaborateurs, intervenants, dossiers et paie.", droit: "personnes.consulter" },
       { href: "/presences", racine: "/presences", icone: "presences", libelle: "Présences et congés", description: "Pointage à la connexion, retards, congés et soldes.", droit: "conges.demander" },
       { href: "/planning", racine: "/planning", icone: "planning", libelle: "Planning", description: "Qui est disponible, occupé, en mission ou sur le terrain.", droit: "planning.utiliser" },
       { href: "/taches", racine: "/taches", icone: "taches", libelle: "Tâches", description: "Ce qui est à faire, par qui et pour quand.", droit: "taches.consulter" },
@@ -186,7 +186,7 @@ export const GROUPES_MODULES: GroupeModules[] = [
     modules: [
       { href: "/entreprise", racine: "/entreprise", icone: "entreprise", libelle: "Entreprise", description: "Identité, numérotation et sécurité.", droit: "organisation.parametres.gerer" },
       { href: "/marches", racine: "/marches", icone: "marches", libelle: "Marchés et conventions", description: "Appels d'offres, consultations et conventions.", droit: "marches.consulter" },
-      { href: "/contrats", racine: "/contrats", icone: "documents", libelle: "Contrats", description: "Contrats des salariés et des fournisseurs, échéances en tête.", droit: "personnes.consulter" },
+      { href: "/contrats", racine: "/contrats", icone: "documents", libelle: "Contrats", description: "Contrats des collaborateurs et des fournisseurs, échéances en tête.", droit: "personnes.consulter" },
       { href: "/membres", racine: "/membres", icone: "utilisateurs", libelle: "Utilisateurs", description: "Comptes, rôles et accès.", droit: "organisation.membre.gerer" },
       ...(REPRISE_OUVERTE
         ? [{ href: "/demarrage", racine: "/demarrage", icone: "demarrage", libelle: "Démarrage", description: "Reprise de l'existant : articles, tiers, soldes.", droit: "organisation.reprise.importer" } satisfies EntreeModule]

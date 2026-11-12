@@ -1,5 +1,5 @@
 /**
- * Dossier du salarié : ce que chaque pièce porte, et ce qu'elle dit du dossier.
+ * Dossier du collaborateur : ce que chaque pièce porte, et ce qu'elle dit du dossier.
  *
  * Fichier sans dépendance : lu par le serveur (validation, alertes) et par le
  * navigateur (formulaire qui n'affiche que les champs de la nature choisie).
@@ -47,7 +47,7 @@ export interface DefinitionPiece {
   /** Une pièce sans fichier n'a pas de sens : un CV est un document. */
   fichierRequis: boolean;
   /**
-   * Une seule pièce en cours par salarié : la nouvelle CNI remplace l'ancienne.
+   * Une seule pièce en cours par collaborateur : la nouvelle CNI remplace l'ancienne.
    * Faux pour ce qui s'accumule — diplômes, pièces diverses.
    */
   remplacable: boolean;
@@ -113,7 +113,7 @@ function jours(de: string, a: string): number {
 }
 
 /**
- * État de chaque pièce du dossier d'un salarié.
+ * État de chaque pièce du dossier d'un collaborateur.
  *
  * Pour une nature remplaçable, seule la plus récente compte : la CNI expirée
  * l'an dernier, remplacée depuis, ne doit plus déclencher d'alerte. « Plus
@@ -155,7 +155,7 @@ function plusRecente(a: PieceDatee, b: PieceDatee): boolean {
 }
 
 /**
- * Ce qu'un dossier de salarié doit au minimum contenir.
+ * Ce qu'un dossier de collaborateur doit au minimum contenir.
  *
  * Une pièce d'identité — CNI ou passeport, l'un ou l'autre —, la CMU, le RIB
  * pour verser le salaire, le CV et la photo. Le reste dépend du poste : un

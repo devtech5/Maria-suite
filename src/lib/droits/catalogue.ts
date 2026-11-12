@@ -122,12 +122,12 @@ export const DROITS = [
     cle: "personnes.consulter",
     moduleKey: "personnes",
     libelle: "Consulter le personnel",
-    description: "Voir les salariés, les intervenants et ce qui leur est dû.",
+    description: "Voir les collaborateurs, les intervenants et ce qui leur est dû.",
   },
   {
     cle: "personnes.salarie.gerer",
     moduleKey: "personnes",
-    libelle: "Gérer les salariés",
+    libelle: "Gérer les collaborateurs",
     description: "Embaucher, modifier un contrat, sortir des effectifs.",
   },
   {
@@ -135,14 +135,14 @@ export const DROITS = [
     moduleKey: "personnes",
     libelle: "Consulter les dossiers du personnel",
     description:
-      "Voir les pièces des salariés — identité, CMU, casier, RIB, CV — et en ouvrir " +
+      "Voir les pièces des collaborateurs — identité, CMU, casier, RIB, CV — et en ouvrir " +
       "les fichiers. Données sensibles : chaque ouverture est tracée au journal.",
   },
   {
     cle: "personnes.dossier.gerer",
     moduleKey: "personnes",
     libelle: "Tenir les dossiers du personnel",
-    description: "Compléter l'état civil, la photo et les pièces d'un salarié, en retirer une déposée par erreur.",
+    description: "Compléter l'état civil, la photo et les pièces d'un collaborateur, en retirer une déposée par erreur.",
   },
   {
     cle: "personnes.intervenant.gerer",
@@ -153,7 +153,7 @@ export const DROITS = [
   {
     cle: "personnes.fiche.supprimer",
     moduleKey: "personnes",
-    libelle: "Supprimer un salarié ou un intervenant",
+    libelle: "Supprimer un collaborateur ou un intervenant",
     description: SUPPRESSION,
   },
   {
@@ -258,7 +258,7 @@ export const DROITS = [
     cle: "presences.gerer",
     moduleKey: "presences",
     libelle: "Gérer les présences",
-    description: "Pointer ou corriger la présence d'un salarié, régler les horaires et les jours fériés.",
+    description: "Pointer ou corriger la présence d'un collaborateur, régler les horaires et les jours fériés.",
   },
   {
     cle: "conges.demander",
@@ -270,7 +270,7 @@ export const DROITS = [
     cle: "conges.valider",
     moduleKey: "presences",
     libelle: "Accorder les congés",
-    description: "Accorder ou refuser une demande, saisir un congé pour un salarié, ajuster un solde.",
+    description: "Accorder ou refuser une demande, saisir un congé pour un collaborateur, ajuster un solde.",
   },
 
   // ------------------------------------------------------------- planning
@@ -454,7 +454,7 @@ export const DROITS = [
     cle: "commercial.commission.payer",
     moduleKey: "tiers",
     libelle: "Payer les commissions",
-    description: "Verser une commission validée depuis la trésorerie, ou l'ajouter au bulletin de paie d'un salarié.",
+    description: "Verser une commission validée depuis la trésorerie, ou l'ajouter au bulletin de paie d'un collaborateur.",
   },
   {
     cle: "commercial.prospection.planifier",
@@ -513,7 +513,7 @@ export const DROITS = [
     moduleKey: "documents",
     libelle: "Déposer et retirer un document",
     description:
-      "Joindre une pièce à un client, un salarié, un actif. Retirer un document " +
+      "Joindre une pièce à un client, un collaborateur, un actif. Retirer un document " +
       "efface son fichier pour de bon.",
   },
   {

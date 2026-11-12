@@ -33,7 +33,7 @@ export interface TacheAffichee {
   assigneeUserId: string;
   assigneeEmployeId: string | null;
   assignee: string;
-  /** Salarié sans compte : l'auteur suit la tâche pour lui. */
+  /** Collaborateur sans compte : l'auteur suit la tâche pour lui. */
   sansCompte: boolean;
   creeLeIso: string;
   termineeLeIso: string | null;

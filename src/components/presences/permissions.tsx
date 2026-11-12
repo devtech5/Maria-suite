@@ -41,7 +41,7 @@ function ChoixTraitement({ name = "traitement", value, onChange }: { name?: stri
 
 /**
  * Demande de permission (quelques heures) ou d'absence (journées) ; avec la
- * liste des salariés, saisie par un responsable, accordée d'office.
+ * liste des collaborateurs, saisie par un responsable, accordée d'office.
  */
 export function FormulairePermission({ salaries, aujourdhui, debutMin }: { salaries?: OptionSalarie[]; aujourdhui: string; debutMin: string }) {
   const [genre, setGenre] = useState<GenrePermission>("heures");
@@ -74,7 +74,7 @@ export function FormulairePermission({ salaries, aujourdhui, debutMin }: { salar
 
       <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
         {salaries && (
-          <Champ libelle="Salarié">
+          <Champ libelle="Collaborateur">
             <select name="employeeId" required defaultValue="" className={CLASSE_CHAMP}>
               <option value="" disabled>
                 Choisir…
@@ -135,7 +135,7 @@ export function FormulairePermission({ salaries, aujourdhui, debutMin }: { salar
       </div>
       <p className="mt-2 text-xs text-[var(--encre-faible)]">
         {salaries
-          ? "Accordée d'office. « Déduite des congés » retire ce temps du solde du salarié."
+          ? "Accordée d'office. « Déduite des congés » retire ce temps du solde du collaborateur."
           : `Votre responsable décide, et dit comment ce temps est traité : payé, à récupérer, déduit des congés ou non payé. Une permission oubliée se régularise dans les ${REGULARISATION_JOURS} jours.`}
       </p>
     </FormulaireRepliable>

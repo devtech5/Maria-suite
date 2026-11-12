@@ -14,12 +14,12 @@ import {
   type ModeRemuneration,
 } from "./schema";
 
-// ------------------------------------------------------------------ salariés
+// ------------------------------------------------------------------ collaborateurs
 
 /**
- * Les salariés de l'entreprise, les partis exclus par défaut.
+ * Les collaborateurs de l'entreprise, les partis exclus par défaut.
  *
- * Un salarié parti reste en base — ses bulletins et ses déclarations doivent
+ * Un collaborateur parti reste en base — ses bulletins et ses déclarations doivent
  * rester lisibles — mais il ne compte plus dans la masse salariale du mois.
  */
 export async function listerSalaries(
@@ -39,7 +39,7 @@ export async function listerSalaries(
     .orderBy(asc(employees.matricule));
 }
 
-/** L'entreprise a-t-elle au moins un salarié ? Sert aux écrans vides. */
+/** L'entreprise a-t-elle au moins un collaborateur ? Sert aux écrans vides. */
 export async function aUnSalarie(organizationId: string): Promise<boolean> {
   const [salarie] = await db
     .select({ id: employees.id })
@@ -204,7 +204,7 @@ export interface LigneBonPaiement {
 }
 
 /**
- * Salariés en poste, pour un choix de personne : conducteur d'un véhicule,
+ * Collaborateurs en poste, pour un choix de personne : conducteur d'un véhicule,
  * utilisateur d'un poste informatique.
  */
 export async function salariesEnPoste(organizationId: string): Promise<{ id: string; nom: string; matricule: string }[]> {

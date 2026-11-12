@@ -52,11 +52,11 @@ export interface MembreVue extends MembreRole {
   nom: string;
   telephone: string | null;
   organisme: string | null;
-  /** Interne : poste de la fiche salarié. */
+  /** Interne : poste de la fiche collaborateur. */
   detail: string | null;
 }
 
-/** L'équipe du projet, en poste d'abord. Le compte d'un salarié est celui de sa fiche. */
+/** L'équipe du projet, en poste d'abord. Le compte d'un collaborateur est celui de sa fiche. */
 export async function equipeDuProjet(organizationId: string, projetId: string, inclureHorsPoste = false): Promise<MembreVue[]> {
   const conditions = [eq(membresProjet.organizationId, organizationId), eq(membresProjet.projetId, projetId), isNull(membresProjet.deletedAt)];
   if (!inclureHorsPoste) conditions.push(eq(membresProjet.actif, true));
@@ -89,7 +89,7 @@ export async function equipeDuProjet(organizationId: string, projetId: string, i
 }
 
 export interface PersonnelChoix {
-  /** `e:<salarié>` ou `u:<compte>`. */
+  /** `e:<collaborateur>` ou `u:<compte>`. */
   cle: string;
   nom: string;
   detail: string | null;
@@ -99,7 +99,7 @@ export interface PersonnelChoix {
   avecCompte: boolean;
 }
 
-/** Tout le personnel : les salariés en poste, et les comptes sans fiche de salarié. */
+/** Tout le personnel : les collaborateurs en poste, et les comptes sans fiche de collaborateur. */
 export async function personnelPourProjet(organizationId: string, equipe: readonly MembreVue[]): Promise<PersonnelChoix[]> {
   const [salaries, comptes] = await Promise.all([
     db
@@ -126,7 +126,7 @@ export async function personnelPourProjet(organizationId: string, equipe: readon
     })),
     ...comptes
       .filter((c) => !deSalaries.has(c.id))
-      .map((c) => ({ cle: `u:${c.id}`, nom: c.nom, detail: "compte sans fiche de salarié", pris: utilisateurs.has(c.id), avecCompte: true })),
+      .map((c) => ({ cle: `u:${c.id}`, nom: c.nom, detail: "compte sans fiche de collaborateur", pris: utilisateurs.has(c.id), avecCompte: true })),
   ];
   return liste.sort((a, b) => a.nom.localeCompare(b.nom, "fr", { sensitivity: "base" }));
 }
@@ -273,7 +273,7 @@ export async function preuvesAvecContexte(organizationId: string, ids: readonly 
 export interface NouveauMembre {
   role: string;
   origine: string;
-  /** Interne : `e:<salarié>` ou `u:<compte>`. */
+  /** Interne : `e:<collaborateur>` ou `u:<compte>`. */
   personne?: string | null;
   /** Externe : sa propre fiche. */
   nom?: string | null;
@@ -342,7 +342,7 @@ export async function confierMembrePour(organizationId: string, userId: string, 
       role: n.role,
       origine: n.origine,
       employeeId,
-      // Le compte d'un salarié se lit à sa fiche : on ne le copie que pour un compte sans fiche.
+      // Le compte d'un collaborateur se lit à sa fiche : on ne le copie que pour un compte sans fiche.
       userId: employeeId ? null : compte,
       nom,
       telephone,

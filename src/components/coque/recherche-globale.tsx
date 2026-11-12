@@ -44,7 +44,7 @@ export function RechercheGlobale() {
           type="search"
           name="q"
           maxLength={80}
-          placeholder="Rechercher un client, une facture, un salarié…"
+          placeholder="Rechercher un client, une facture, un collaborateur…"
           aria-label="Rechercher dans Maria Suite (Ctrl+K)"
           title="Rechercher dans Maria Suite (Ctrl+K)"
           className="h-9 w-full rounded-lg border border-[var(--filet)] bg-[var(--surface)] pl-8 pr-16 text-sm text-[var(--encre)] outline-none placeholder:text-[var(--encre-faible)] focus:border-marque-500"

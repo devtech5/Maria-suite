@@ -89,9 +89,9 @@ export const MODULES: ModuleDefinition[] = [
     key: "personnes",
     name: "Personnes & Rémunération",
     layer: "socle",
-    // En base : salariés et contrats, intervenants, pointages et bons de
+    // En base : collaborateurs et contrats, intervenants, pointages et bons de
     // paiement — le versement à un intervenant pose son écriture en 637.
-    // Dossier du salarié avec ses pièces. Paie émise : barème par entreprise
+    // Dossier du collaborateur avec ses pièces. Paie émise : barème par entreprise
     // attesté vérifié, bulletins numérotés et figés, écriture de paie,
     // salaires payés depuis la trésorerie, versements CNPS et impôt, état
     // mensuel des cotisations. Le bulletin se cale sur Présences : entrée ou
@@ -99,12 +99,12 @@ export const MODULES: ModuleDefinition[] = [
     // prorata des jours, congés payés pris et solde imprimés. Rappel de
     // salaire ou reprise de trop-perçu sur le bulletin, chiffré depuis les
     // mois validés après une augmentation rétroactive. État annuel DISA par
-    // salarié, assiette retraite plafonnée mois par mois. Restent
+    // collaborateur, assiette retraite plafonnée mois par mois. Restent
     // l'allocation de congés payés et le fichier de dépôt au gabarit e-CNPS.
     status: "en_cours",
     requires: [],
     description:
-      "Deux régimes : salariés (contrat, bulletin, CNPS, ITS) et intervenants " +
+      "Deux régimes : collaborateurs (contrat, bulletin, CNPS, ITS) et intervenants " +
       "(maçon, manœuvre, tâcheron, extra) payés à la journée, à la tâche ou à l'unité d'œuvre.",
   },
   {
@@ -143,7 +143,7 @@ export const MODULES: ModuleDefinition[] = [
     name: "Présences et congés",
     layer: "socle",
     // En base : pointage automatique à la première activité du jour (compte
-    // et fiche salarié), pointage et correction à la main, horaires et
+    // et fiche collaborateur), pointage et correction à la main, horaires et
     // retards, jours fériés du pays, demandes de congé numérotées et
     // décidées, soldes en centièmes de jour avec reprise et majorations.
     // Le sans solde accordé est retenu sur la paie du mois. Reste le badge QR.
@@ -452,7 +452,7 @@ export const MODULES: ModuleDefinition[] = [
     name: "Moyens généraux",
     layer: "metier",
     // En base : fournitures de bureau (catalogue, entrées chiffrées, remises
-    // à un salarié ou un service, stock tiré des mouvements, alerte au seuil).
+    // à un collaborateur ou un service, stock tiré des mouvements, alerte au seuil).
     // L'entretien des locaux passe par le moteur : un local est un actif de
     // type « local », avec ses interventions et ses échéances.
     status: "en_cours",

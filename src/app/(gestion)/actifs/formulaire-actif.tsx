@@ -159,7 +159,7 @@ export function FormulaireActif({
 
         <Champ
           libelle="Confié à"
-          precision="Salarié ou intervenant. Une personne, pas deux."
+          precision="Collaborateur ou intervenant. Une personne, pas deux."
         >
           <select
             name={

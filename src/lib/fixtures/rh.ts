@@ -14,7 +14,7 @@ import { pointages, type ModeRemuneration, type TypeContrat } from "@/modules/pe
  *
  * Ces tableaux ont longtemps servi d'affichage : les écrans RH lisaient
  * directement le jeu en mémoire. Ils ne servent plus qu'à VERSER en base — les
- * salariés, les intervenants et leurs pointages traversent désormais les
+ * collaborateurs, les intervenants et leurs pointages traversent désormais les
  * contraintes, la numérotation et le journal d'audit, comme le ferait une
  * saisie réelle.
  *
@@ -23,7 +23,7 @@ import { pointages, type ModeRemuneration, type TypeContrat } from "@/modules/pe
  * rien à faire dans un jeu d'essai.
  */
 
-// ------------------------------------------------------------------ salariés
+// ------------------------------------------------------------------ collaborateurs
 
 export interface SalarieDemo {
   matricule: string;
@@ -82,7 +82,7 @@ export interface ResultatPersonnel {
   pointages: number;
   /**
    * Identifiants créés, par nom. Le parc de démonstration en a besoin pour
-   * affecter un fourgon à un chauffeur salarié et une bétonnière à un maçon —
+   * affecter un fourgon à un chauffeur collaborateur et une bétonnière à un maçon —
    * sans quoi il faudrait relire la base juste après l'avoir écrite.
    */
   reperes: {

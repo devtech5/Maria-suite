@@ -34,7 +34,7 @@ export const otpPurpose = pgEnum("otp_purpose", [
  * confondues dans une seule table :
  *
  *   1. `users`      — celui qui ouvre le logiciel (compte, rôle, permissions)
- *   2. `employees`  — le salarié déclaré (contrat, bulletin, CNPS, ITS)
+ *   2. `employees`  — le collaborateur déclaré (contrat, bulletin, CNPS, ITS)
  *   3. `workers`    — l'intervenant : maçon, ferrailleur, manœuvre, tâcheron,
  *                     chauffeur occasionnel, serveur extra, coach…
  *                     Payé à la journée, à la tâche ou à l'unité d'œuvre.

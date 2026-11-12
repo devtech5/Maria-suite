@@ -29,7 +29,7 @@ beforeAll(async () => {
 });
 afterAll(async () => fermer());
 
-describe("dossier du salarié en base", () => {
+describe("dossier du collaborateur en base", () => {
   it("pièces, remplacement, alerte d'expiration et retrait", async () => {
     const { id } = await creerSalariePour(org, { nom: "Awa Koné", poste: "Chauffeuse", debut: "2026-01-05", salaireBase: 150_000 }, user);
 
@@ -67,7 +67,7 @@ describe("dossier du salarié en base", () => {
     expect(traces.map((t) => t.action)).toEqual(expect.arrayContaining(["piece_employe.ajouter", "piece_employe.retirer"]));
   });
 
-  it("un salarié d'une autre entreprise est hors d'atteinte", async () => {
+  it("un collaborateur d'une autre entreprise est hors d'atteinte", async () => {
     const autre = await semerEntreprise(db, "Voisine");
     const { id } = await creerSalariePour(autre.organizationId, { nom: "Yao", poste: "Vendeur", debut: "2026-01-01", salaireBase: 0 });
     await expect(ajouterPiecePour(org, user, id, { nature: "cmu", numero: "1" }, null)).rejects.toThrow(/introuvable/);
@@ -113,7 +113,7 @@ describe("dossier du salarié en base", () => {
     await expect(
       modifierEtatProfessionnelPour(o, user, chef, { ...etat, poste: "Directeur", superieurId: adjoint, finPeriodeEssai: null }),
     ).rejects.toThrow(/supérieur de son propre supérieur/);
-    // Ni soi-même, ni un essai qui finit avant l'entrée, ni un salarié d'ailleurs.
+    // Ni soi-même, ni un essai qui finit avant l'entrée, ni un collaborateur d'ailleurs.
     await expect(modifierEtatProfessionnelPour(o, user, adjoint, { ...etat, superieurId: adjoint })).rejects.toThrow(/propre supérieur/);
     await expect(modifierEtatProfessionnelPour(o, user, adjoint, { ...etat, finPeriodeEssai: "2025-02-28" })).rejects.toThrow(/avant l'entrée/);
     const { id: etranger } = await creerSalariePour(org, { nom: "Hors", poste: "A", debut: "2026-01-01", salaireBase: 0 });

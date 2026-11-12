@@ -41,7 +41,7 @@ describe("absences et congés dans la paie", () => {
     await demanderCongePour(org, user, { employeeId: ancien.id, nature: "sans_solde", debut: "2026-10-19", fin: "2026-10-20", debutDemi: false, finDemi: false, motif: "Affaire personnelle" }, { accorder: true });
     await demanderCongePour(org, user, { employeeId: ancien.id, nature: "paye", debut: "2026-10-05", fin: "2026-10-07", debutDemi: false, finDemi: false, motif: null }, { accorder: true });
 
-    // Octobre 2026 : 27 jours ouvrables. Le salarié embauché en novembre n'a pas de bulletin.
+    // Octobre 2026 : 27 jours ouvrables. Le collaborateur embauché en novembre n'a pas de bulletin.
     const { id: periode, bulletins } = await preparer("2026-10");
     expect(bulletins).toBe(2);
 
@@ -101,13 +101,13 @@ describe("absences et congés dans la paie", () => {
     expect(apres.brut).toBe(apres.salaireBase - apres.retenueAbsence + 23_500);
   });
 
-  it("cumule l'année par salarié pour la DISA, assiette plafonnée mois par mois", async () => {
+  it("cumule l'année par collaborateur pour la DISA, assiette plafonnée mois par mois", async () => {
     const disa = RAPPORTS_PAIE.find((r) => r.cle === "disa")!;
     const r = await disa.executer(org, { du: "2026-01-01", au: "2026-12-31" });
     // Seul octobre est validé ; novembre est en préparation.
     expect(r.lignes.map((l) => l.nom)).toEqual(["Awa Comptable", "Koffi Commercial"]);
     expect(r.lignes[0]).toMatchObject({ mois: 1, brut: 240_000, assiette: 240_000, entree: "2025-01-06", sortie: null, cnps: null });
-    expect(r.note).toMatch(/2 salariés n'ont pas de numéro CNPS/);
+    expect(r.note).toMatch(/2 collaborateurs n'ont pas de numéro CNPS/);
 
     // Un plafond bas plafonne l'assiette, pas le brut.
     await db.update(periodesPaie).set({ baremeApplique: { ...BAREME_PAR_DEFAUT, cnpsPlafondMensuel: 200_000 } }).where(eq(periodesPaie.mois, "2026-10"));

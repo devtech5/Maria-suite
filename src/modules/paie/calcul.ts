@@ -112,7 +112,7 @@ export interface CalculBulletin {
 }
 
 /**
- * Bulletin d'un salarié. L'assiette retraite est plafonnée ; celles des
+ * Bulletin d'un collaborateur. L'assiette retraite est plafonnée ; celles des
  * prestations familiales et de l'accident du travail ne le sont pas.
  */
 export function calculerBulletinPaie(e: ElementsVariables, b: BaremePaie): CalculBulletin {
@@ -130,7 +130,7 @@ export function calculerBulletinPaie(e: ElementsVariables, b: BaremePaie): Calcu
   const baseImposable = brut - cnpsSalarie;
   const impot = impotProgressif(baseImposable, b.tranchesImpot);
   const net = brut - cnpsSalarie - impot + e.indemnitesNonImposables - e.retenuesDiverses;
-  if (net < 0) throw new Error("Les retenues dépassent ce qui revient au salarié : le net serait négatif.");
+  if (net < 0) throw new Error("Les retenues dépassent ce qui revient au collaborateur : le net serait négatif.");
   const cnpsPatronal = rateOf(assietteCnps, b.cnpsRetraitePatronalBp);
   const prestationsFamiliales = rateOf(brut, b.prestationsFamilialesBp);
   const accidentTravail = rateOf(brut, b.accidentTravailBp);
@@ -212,10 +212,10 @@ export function ecriturePaie(p: { mois: string; date: string; totaux: TotauxPaie
   const debit = lignes.reduce((s, l) => s + l.debit, 0);
   const credit = lignes.reduce((s, l) => s + l.credit, 0);
   if (debit !== credit) throw new Error(`Écriture de paie déséquilibrée : ${debit} contre ${credit}.`);
-  return { journal: "OD", date: p.date, piece: `PAIE-${p.mois}`, libelle: `Paie de ${libelleMois(p.mois)} — ${p.salaries} salarié${p.salaries > 1 ? "s" : ""}`, lignes };
+  return { journal: "OD", date: p.date, piece: `PAIE-${p.mois}`, libelle: `Paie de ${libelleMois(p.mois)} — ${p.salaries} collaborateur${p.salaries > 1 ? "s" : ""}`, lignes };
 }
 
-/** Versement d'un salaire : la dette envers le salarié s'éteint. */
+/** Versement d'un salaire : la dette envers le collaborateur s'éteint. */
 export function ecriturePaiementSalaire(v: {
   piece: string;
   date: string;
@@ -258,7 +258,7 @@ export function ecritureVersement(v: {
 /**
  * Jours payés ou non : la paie se cale sur le même décompte que les congés
  * (jours ouvrables ou ouvrés, fériés exclus, réglés dans Présences). Un mois
- * compte ses jours décomptables ; un salarié entré le 15, parti le 10 ou en
+ * compte ses jours décomptables ; un collaborateur entré le 15, parti le 10 ou en
  * congé sans solde ne touche que la part de son salaire de base qui
  * correspond aux jours dus. Tout en CENTIÈMES de jour, comme les congés.
  *
@@ -285,7 +285,7 @@ export interface ContexteAbsences {
   options: OptionsDecompte;
   /** Congés ACCORDÉS qui touchent le mois, payés et sans solde. */
   conges: readonly CongeDuMois[];
-  /** Solde de congés payés de chaque salarié à la fin du mois, en centièmes. */
+  /** Solde de congés payés de chaque collaborateur à la fin du mois, en centièmes. */
   soldes: ReadonlyMap<string, number>;
 }
 

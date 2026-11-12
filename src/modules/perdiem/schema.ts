@@ -48,7 +48,7 @@ export const attributionsPerdiem = pgTable(
       .references(() => organizations.id, { onDelete: "cascade" }),
     /** `PD-2026-00042`, attribué à la création. */
     numero: text("numero").notNull(),
-    /** Le collaborateur, salarié du Personnel. */
+    /** Le collaborateur, de la fiche du Personnel. */
     employeeId: uuid("employee_id")
       .notNull()
       .references(() => employees.id, { onDelete: "restrict" }),

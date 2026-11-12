@@ -376,18 +376,18 @@ export function relancerApresReponse(organizationId: string | null): void {
 }
 
 export interface ChoixPersonne {
-  /** Le compte quand il y en a un ; sinon la fiche du salarié, jamais proposée comme destinataire. */
+  /** Le compte quand il y en a un ; sinon la fiche du collaborateur, jamais proposée comme destinataire. */
   id: string;
   nom: string;
   /** « Ingénieur · Chantier de Cocody » : de quoi distinguer deux homonymes. */
   detail: string | null;
-  /** Salarié sans compte : il n'ouvre pas le logiciel, un bordereau ne peut pas lui être adressé. */
+  /** Collaborateur sans compte : il n'ouvre pas le logiciel, un bordereau ne peut pas lui être adressé. */
   sansCompte: boolean;
 }
 
 /**
- * Pour les formulaires : tout le personnel (salariés en poste, avec ou sans
- * compte) et les comptes sans fiche de salarié — l'associé, le comptable
+ * Pour les formulaires : tout le personnel (collaborateurs en poste, avec ou sans
+ * compte) et les comptes sans fiche de collaborateur — l'associé, le comptable
  * externe —, les services, les entreprises du fichier tiers. Pas de saisie :
  * on choisit dans la liste.
  */
@@ -418,7 +418,7 @@ export async function choixPossibles(organizationId: string): Promise<{ personne
   const dejaVus = new Set<string>();
   const personnes: ChoixPersonne[] = [];
   for (const s of salaries) {
-    // Un compte suspendu ou retiré ne reçoit plus rien : le salarié passe « sans compte ».
+    // Un compte suspendu ou retiré ne reçoit plus rien : le collaborateur passe « sans compte ».
     const compte = s.userId && actifs.has(s.userId) ? s.userId : null;
     if (compte) dejaVus.add(compte);
     personnes.push({ id: compte ?? s.id, nom: s.nom, detail: [s.poste, s.service].filter(Boolean).join(" · ") || null, sansCompte: compte === null });

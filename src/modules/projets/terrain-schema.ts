@@ -12,8 +12,8 @@ import { projets } from "./schema";
  * Équipe d'un projet : le personnel que le chef de projet lui confie.
  * Règles dans `./terrain-regles.ts`.
  *
- * Interne : un salarié du Personnel (`employee_id`), dont le compte — s'il en
- * a un — ouvre l'interface terrain ; ou un compte sans fiche de salarié
+ * Interne : un collaborateur du Personnel (`employee_id`), dont le compte — s'il en
+ * a un — ouvre l'interface terrain ; ou un compte sans fiche de collaborateur
  * (`user_id` seul). Externe : enregistré ici (nom, téléphone, structure), sans
  * compte. Un membre qui part est mis hors poste (`actif`), pas effacé : ses
  * relevés gardent leur auteur.
@@ -64,7 +64,7 @@ export const membresProjet = pgTable(
       .where(sql`${t.userId} IS NOT NULL AND ${t.actif} AND ${t.deletedAt} IS NULL`),
     check("membres_projet_role", sql`${t.role} in ('superviseur', 'agent')`),
     check("membres_projet_origine", sql`${t.origine} in ('interne', 'externe')`),
-    // Un externe n'a ni fiche salarié ni compte, et un nom ; un interne a l'un des deux liens.
+    // Un externe n'a ni fiche collaborateur ni compte, et un nom ; un interne a l'un des deux liens.
     check(
       "membres_projet_identite",
       sql`(${t.origine} = 'externe' AND ${t.employeeId} IS NULL AND ${t.userId} IS NULL AND ${t.nom} IS NOT NULL) OR (${t.origine} = 'interne' AND (${t.employeeId} IS NOT NULL OR ${t.userId} IS NOT NULL))`,

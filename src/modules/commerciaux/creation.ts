@@ -43,15 +43,15 @@ export interface FicheCommercial {
 /**
  * Qui est le commercial : nom, téléphone et compte de caisse.
  *
- * Interne — le salarié du Personnel d'abord, sinon le compte ; rien ne se
- * recopie à la main, et le compte du salarié devient son compte de caisse
+ * Interne — le collaborateur du Personnel d'abord, sinon le compte ; rien ne se
+ * recopie à la main, et le compte du collaborateur devient son compte de caisse
  * (ses tickets lui sont attribués d'office). Externe — la saisie, et aucun
- * lien : un apporteur n'est ni salarié ni utilisateur.
+ * lien : un apporteur n'est ni collaborateur ni utilisateur.
  */
 async function identiteDe(tx: Transaction, organizationId: string, f: FicheCommercial): Promise<{ origine: "interne" | "externe"; nom: string; telephone: string | null; userId: string | null; employeeId: string | null }> {
   const origine = f.origine ?? (f.employeeId || f.userId ? "interne" : "externe");
   if (origine === "externe") {
-    if (f.employeeId || f.userId) throw new Error("Un commercial externe n'est lié ni à un salarié ni à un compte.");
+    if (f.employeeId || f.userId) throw new Error("Un commercial externe n'est lié ni à un collaborateur ni à un compte.");
     const nom = f.nom?.trim() ?? "";
     if (nom.length < 2) throw new Error("Le nom du commercial externe est requis.");
     return { origine, nom, telephone: f.telephone?.trim() || null, userId: null, employeeId: null };
@@ -62,11 +62,11 @@ async function identiteDe(tx: Transaction, organizationId: string, f: FicheComme
       .select({ nom: employees.nom, telephone: employees.telephone, userId: employees.userId })
       .from(employees)
       .where(and(eq(employees.id, f.employeeId), eq(employees.organizationId, organizationId), isNull(employees.deletedAt)));
-    if (!e) throw new Error("Ce salarié ne figure pas au Personnel.");
+    if (!e) throw new Error("Ce collaborateur ne figure pas au Personnel.");
     userId = userId ?? e.userId;
     if (userId) {
       const [membre] = await tx.select({ id: memberships.id }).from(memberships).where(and(eq(memberships.organizationId, organizationId), eq(memberships.userId, userId)));
-      // Le compte du salarié a pu être retiré de l'entreprise : le commercial reste, sans caisse.
+      // Le compte du collaborateur a pu être retiré de l'entreprise : le commercial reste, sans caisse.
       if (!membre) userId = null;
     }
     return { origine, nom: e.nom, telephone: e.telephone, userId, employeeId: f.employeeId };
@@ -216,7 +216,7 @@ async function commissionVerrouillee(tx: Transaction, organizationId: string, id
 export async function payerCommissionDans(tx: Transaction, organizationId: string, id: string, v: { compteTresorerieId: string; date: string }, userId: string): Promise<{ montant: number; ecriture: string }> {
   const k = await commissionVerrouillee(tx, organizationId, id);
   const c = await commercialDe(tx, organizationId, k.commercialId);
-  if (c.employeeId) throw new Error(`${c.nom} est salarié : sa commission passe par la paie, où elle est cotisée et imposée.`);
+  if (c.employeeId) throw new Error(`${c.nom} est collaborateur : sa commission passe par la paie, où elle est cotisée et imposée.`);
   if (k.total <= 0) throw new Error("Rien à payer.");
   const [compte] = await tx
     .select()
@@ -240,14 +240,14 @@ export async function payerCommissionDans(tx: Transaction, organizationId: strin
 }
 
 /**
- * Commercial salarié : la commission s'ajoute aux primes imposables de son
+ * Commercial collaborateur : la commission s'ajoute aux primes imposables de son
  * bulletin dans une paie en préparation. La paie la cotise, l'impose et la
  * comptabilise en 661 à sa validation.
  */
 export async function reporterEnPaieDans(tx: Transaction, organizationId: string, id: string, moisPaie: string, userId: string): Promise<{ salarie: string; net: number }> {
   const k = await commissionVerrouillee(tx, organizationId, id);
   const c = await commercialDe(tx, organizationId, k.commercialId);
-  if (!c.employeeId) throw new Error(`${c.nom} n'est pas rattaché à un salarié : payez sa commission depuis la trésorerie.`);
+  if (!c.employeeId) throw new Error(`${c.nom} n'est pas rattaché à un collaborateur : payez sa commission depuis la trésorerie.`);
   const [periode] = await tx.select().from(periodesPaie).where(and(eq(periodesPaie.organizationId, organizationId), eq(periodesPaie.mois, moisPaie)));
   if (!periode) throw new Error(`La paie de ${moisPaie} n'est pas préparée : préparez-la d'abord.`);
   if (periode.statut === "validee") throw new Error(`La paie de ${moisPaie} est déjà validée.`);
