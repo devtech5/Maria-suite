@@ -480,6 +480,25 @@ obligations en retard (`relancerApresReponse`, coque de gestion).
 `transmissions.recevoir` est dans `DROITS_DE_TOUS`. Bordereau A4 imprimable
 (`/imprimer/bordereau/[id]`) avec cases « remis par » / « reçu par » et QR.
 
+## Contacts : l'annuaire interne
+
+`src/modules/contacts/` (règles pures dans `regles.ts`). Tables
+`adresses_pro` (adresses `@maria-groupe.com`, passées par `adresseAutorisee`)
+et `numeros_collaborateurs`. Une adresse s'affecte au SERVICE d'abord
+(`service_id`), puis à un collaborateur de CE service (`employee_id`, contrainte
+`adresses_pro_titulaire_a_un_service`) : `motifRefusAffectation` compare le
+service de la fiche (`employees.service`, texte) au libellé du référentiel.
+Les services et les collaborateurs ne sont pas dupliqués ; l'adresse
+professionnelle et le téléphone portés par la fiche s'ajoutent à l'affichage
+(`fusionnerNumeros`) et « Reprendre les fiches » inscrit les adresses des fiches.
+
+**Numéros et e-mail personnels sont des données personnelles.**
+`contacts.consulter` ne voit que les numéros « professionnels » ; les numéros
+« personnels » — dont celui de la fiche — et l'e-mail personnel de la fiche
+(`employees.email`) ne sortent de `annuaireDe` que pour `contacts.gerer`
+(`numerosVisibles`, `emailPersonnelVisible`, appliqués dans la requête, jamais
+seulement à l'écran). L'e-mail personnel n'entre jamais dans `adresses_pro`.
+
 ## Interrogations de fond et liens publics
 
 Tout ce qui interroge le serveur en tâche de fond — la cloche, la

@@ -407,6 +407,49 @@ export const CHAPITRES_EQUIPE: Chapitre[] = [
     ],
   },
   {
+    cle: "contacts",
+    titre: "Contacts",
+    entree: "/contacts",
+    resume: "L'annuaire de l'entreprise : qui est qui, ses adresses e-mail professionnelles et ses numéros.",
+    sections: [
+      {
+        ancre: "annuaire",
+        titre: "Chercher un collègue",
+        chemin: "/contacts",
+        texte: [
+          "L'annuaire liste le personnel avec son service, son poste, ses adresses e-mail professionnelles et ses numéros de téléphone. La recherche accepte un nom, un service, une adresse ou un bout de numéro ; le filtre par service restreint la liste à une équipe.",
+          "Chacun lit les adresses et les numéros professionnels. Les numéros personnels et l'adresse e-mail personnelle d'un collaborateur ne s'affichent que pour ceux qui tiennent l'annuaire : ce sont des données personnelles.",
+        ],
+      },
+      {
+        ancre: "adresses",
+        titre: "Les adresses e-mail professionnelles",
+        chemin: "/contacts/adresses",
+        texte: [
+          "Qui tient l'annuaire liste ici les adresses de l'entreprise (celles du domaine maria-groupe.com, aucune autre). Chaque adresse s'affecte en deux temps : d'abord à un service, puis, si elle est nominative, à une personne de ce service. Une adresse commune, comme celle d'un service, reste au service.",
+          "Si un collaborateur change de service, ses adresses passent « à revoir » : affectez-les de nouveau. « Reprendre les fiches » inscrit d'un coup les adresses déjà saisies sur les dossiers du personnel.",
+        ],
+        etapes: ["Ajoutez l'adresse avec « Nouvelle adresse ».", "Choisissez son service.", "Choisissez, si besoin, la personne de ce service qui la détient."],
+      },
+    ],
+    quiz: [
+      {
+        cle: "contacts-affectation",
+        question: "Dans quel ordre affecte-t-on une adresse e-mail professionnelle ?",
+        choix: ["À la personne, puis à son service", "Au service, puis à une personne de ce service", "Elle n'est jamais affectée"],
+        bonne: 1,
+        explication: "On choisit le service d'abord ; la personne se choisit ensuite parmi le personnel de ce service.",
+      },
+      {
+        cle: "contacts-personnels",
+        question: "Qui voit les numéros de téléphone et l'e-mail personnels des collaborateurs ?",
+        choix: ["Tout le monde", "Seulement ceux qui tiennent l'annuaire", "Personne, même pas les RH"],
+        bonne: 1,
+        explication: "Un numéro personnel est une donnée personnelle : il ne s'affiche qu'avec le droit de tenir l'annuaire.",
+      },
+    ],
+  },
+  {
     cle: "personnel",
     titre: "Personnel",
     entree: "/rh",

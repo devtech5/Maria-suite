@@ -624,6 +624,13 @@
       "when": 1794501516828,
       "tag": "0088_messagerie_genres",
       "breakpoints": true
+    },
+    {
+      "idx": 89,
+      "version": "7",
+      "when": 1794503089921,
+      "tag": "0089_contacts_annuaire",
+      "breakpoints": true
     }
   ]
 }

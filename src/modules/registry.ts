@@ -336,6 +336,21 @@ export const MODULES: ModuleDefinition[] = [
   },
 
   {
+    key: "contacts",
+    name: "Contacts",
+    layer: "socle",
+    // En base : annuaire interne. Adresses e-mail professionnelles de
+    // l'entreprise (domaine maria-groupe.com), affectées à un service puis à
+    // une personne de ce service ; numéros de téléphone des collaborateurs
+    // (professionnels ou personnels, ceux-ci réservés à qui tient l'annuaire).
+    // Réutilise services et collaborateurs ; distinct des contacts clients
+    // (`contacts_tiers`) et de la boîte mail de chacun.
+    status: "en_cours",
+    requires: [],
+    description: "Annuaire de l'entreprise : adresses e-mail professionnelles par service, personnel et numéros de téléphone.",
+  },
+
+  {
     key: "prestataires",
     name: "Prestataires externes",
     layer: "socle",

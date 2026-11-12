@@ -14,7 +14,7 @@ export const CLES_ICONE = [
   "commercial", "stock", "achats", "prestataires", "marches",
   "projets", "missions", "actifs", "parc-auto", "parc-informatique",
   "comptabilite", "tresorerie",
-  "personnel", "presences", "planning", "anniversaires", "reglement", "guide", "visiteurs", "courrier", "transmissions", "taches", "meeting", "messagerie", "boite-mail", "documents", "archives",
+  "personnel", "presences", "planning", "anniversaires", "contacts", "reglement", "guide", "visiteurs", "courrier", "transmissions", "taches", "meeting", "messagerie", "boite-mail", "documents", "archives",
   "utilisateurs", "entreprise", "demarrage", "communication", "rapports", "journal",
 ] as const;
 export type CleIcone = (typeof CLES_ICONE)[number];
@@ -78,6 +78,8 @@ export const GROUPES_MODULES: GroupeModules[] = [
       { href: "/meeting", racine: "/meeting", icone: "meeting", libelle: "Meeting", description: "Réunions d'équipe à distance, en vidéo.", droit: "meeting.participer" },
       // Ouvert à tous : chacun a le planning personnel, et l'anniversaire d'un collègue concerne toute l'équipe.
       { href: "/anniversaires", racine: "/anniversaires", icone: "anniversaires", libelle: "Anniversaires", description: "Les anniversaires des collègues, du jour et à venir.", droit: "planning.utiliser" },
+      // Chaque rôle de personnel lit l'annuaire ; tenir les adresses et les numéros reste à `contacts.gerer`.
+      { href: "/contacts", racine: "/contacts", icone: "contacts", libelle: "Contacts", description: "L'annuaire de l'entreprise : adresses e-mail professionnelles, services, personnel et numéros.", droit: "contacts.consulter" },
       // Ouvert à tous (`DROITS_DE_TOUS`) : le règlement s'impose à chacun.
       { href: "/reglement", racine: "/reglement", icone: "reglement", libelle: "Règlement intérieur", description: "Le règlement de l'entreprise, à relire à tout moment.", droit: "reglement.consulter" },
       // Ouvert à tous : il n'explique que les modules de chacun.
