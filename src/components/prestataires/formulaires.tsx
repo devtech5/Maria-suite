@@ -3,6 +3,8 @@
 import { useRef, useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 
+import { ChoixOrigine } from "@/components/tiers/choix-origine";
+import { Fenetre } from "@/components/ui/fenetre";
 import { Retour, useOperation, type Resultat } from "@/components/ui/operations";
 import { CLASSE_CHAMP, Champ } from "@/components/ui/primitives";
 import {
@@ -13,6 +15,9 @@ import {
   modifierPrestataire,
   payerPrestation,
 } from "@/modules/prestataires/actions";
+import { referentielPays } from "@/lib/pays";
+import { LIBELLE_NATURE_TIERS, NATURES_TIERS } from "@/modules/tiers/natures";
+import type { OrigineTiers } from "@/modules/tiers/origine";
 import { COMPTES_CHARGE, METIERS_COURANTS, UNITES_TARIF, type CompteCharge, type StatutPrestation } from "@/modules/prestataires/calcul";
 
 export interface ProfilAffiche {
@@ -83,75 +88,87 @@ function ChampsProfil({ initial }: { initial?: ProfilAffiche }) {
   );
 }
 
-export function FormulaireInscription() {
+/**
+ * Inscription d'un prestataire, dans une modale centrée : son type
+ * (particulier, entreprise, ONG, mutuelle, association, coopérative), s'il est
+ * local ou international, puis son profil.
+ */
+export function FormulaireInscription({ paysEntreprise }: { paysEntreprise: string }) {
   const [ouvert, setOuvert] = useState(false);
-  const formulaire = useRef<HTMLFormElement>(null);
   const op = useOperation();
   const routeur = useRouter();
+  const [origine, setOrigine] = useState<OrigineTiers>("local");
+  const [pays, setPays] = useState("");
+  // Le libellé de l'identifiant fiscal suit le pays du prestataire : « NCC » en Côte d'Ivoire, le sigle de son pays à l'étranger.
+  const fiscal = referentielPays(origine === "international" ? pays : paysEntreprise);
 
-  if (!ouvert) {
-    return (
+  return (
+    <>
       <div className="flex items-center gap-3">
         {op.resultat?.ok && <span className="text-sm text-valide-600">{op.resultat.message}</span>}
         <button type="button" onClick={() => setOuvert(true)} className="h-cible rounded-lg bg-marque-500 px-4 text-sm font-semibold text-white hover:bg-marque-600">
           Inscrire un prestataire
         </button>
       </div>
-    );
-  }
-  return (
-    <form
-      ref={formulaire}
-      onSubmit={(e) => {
-        e.preventDefault();
-        const donnees = new FormData(e.currentTarget);
-        op.lancer(
-          () => inscrirePrestataire(donnees),
-          (r) => {
-            setOuvert(false);
-            if ("id" in r && r.id) routeur.push(`/prestataires/${r.id}`);
-          },
-        );
-      }}
-      className="mb-5 w-full space-y-4 rounded-xl border border-[var(--filet)] bg-[var(--surface)] p-4"
-    >
-      <div className="flex items-center justify-between">
-        <h2 className="text-sm font-semibold">Nouveau prestataire</h2>
-        <button type="button" onClick={() => setOuvert(false)} className="text-sm text-[var(--encre-faible)] hover:underline">
-          Annuler
-        </button>
-      </div>
-      <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-        <Champ libelle="Nom">
-          <input name="nom" required placeholder="Koné Plomberie" className={CLASSE_CHAMP} />
-        </Champ>
-        <Champ libelle="Nature">
-          <select name="nature" defaultValue="particulier" className={CLASSE_CHAMP}>
-            <option value="particulier">Indépendant</option>
-            <option value="entreprise">Entreprise</option>
-          </select>
-        </Champ>
-        <Champ libelle="Téléphone">
-          <input name="telephone" placeholder="07 07 00 00 00" className={`${CLASSE_CHAMP} chiffres`} />
-        </Champ>
-        <Champ libelle="E-mail">
-          <input name="email" type="email" className={CLASSE_CHAMP} />
-        </Champ>
-        <Champ libelle="Ville">
-          <input name="ville" placeholder="Abidjan" className={CLASSE_CHAMP} />
-        </Champ>
-        <Champ libelle="NCC">
-          <input name="identifiantFiscal" className={`${CLASSE_CHAMP} chiffres`} />
-        </Champ>
-        <ChampsProfil />
-      </div>
-      <div className="flex items-center justify-end gap-3">
-        <Retour resultat={op.resultat && !op.resultat.ok ? op.resultat : null} />
-        <button type="submit" disabled={op.enCours} className="h-cible rounded-lg bg-marque-500 px-5 text-sm font-semibold text-white disabled:opacity-50">
-          {op.enCours ? "Enregistrement…" : "Inscrire"}
-        </button>
-      </div>
-    </form>
+      {ouvert && (
+        <Fenetre ouverte titre="Nouveau prestataire" presentation="ample" onFermer={() => setOuvert(false)}>
+          <form
+            onSubmit={(e) => {
+              e.preventDefault();
+              const donnees = new FormData(e.currentTarget);
+              op.lancer(
+                () => inscrirePrestataire(donnees),
+                (r) => {
+                  setOuvert(false);
+                  if ("id" in r && r.id) routeur.push(`/prestataires/${r.id}`);
+                },
+              );
+            }}
+            className="flex flex-1 flex-col"
+          >
+            <div className="flex-1 space-y-4 px-5 py-4">
+              <ChoixOrigine libelle="Le prestataire est" paysEntreprise={paysEntreprise} origine={origine} pays={pays} onOrigine={setOrigine} onPays={setPays} />
+              <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+                <Champ libelle="Nom">
+                  <input name="nom" required autoFocus placeholder="Koné Plomberie" className={CLASSE_CHAMP} />
+                </Champ>
+                <Champ libelle="Type de prestataire">
+                  <select name="nature" defaultValue="particulier" className={CLASSE_CHAMP}>
+                    {NATURES_TIERS.map((n) => (
+                      <option key={n} value={n}>
+                        {LIBELLE_NATURE_TIERS[n]}
+                      </option>
+                    ))}
+                  </select>
+                </Champ>
+                <Champ libelle="Téléphone">
+                  <input name="telephone" placeholder={origine === "international" ? "+33 1 00 00 00 00" : "07 07 00 00 00"} className={`${CLASSE_CHAMP} chiffres`} />
+                </Champ>
+                <Champ libelle="E-mail">
+                  <input name="email" type="email" className={CLASSE_CHAMP} />
+                </Champ>
+                <Champ libelle="Ville">
+                  <input name="ville" placeholder={origine === "international" ? "Paris" : "Abidjan"} className={CLASSE_CHAMP} />
+                </Champ>
+                <Champ libelle={fiscal.identifiantFiscal}>
+                  <input name="identifiantFiscal" className={`${CLASSE_CHAMP} chiffres`} />
+                </Champ>
+                <ChampsProfil />
+              </div>
+            </div>
+            <div className="sticky bottom-0 flex items-center justify-end gap-3 border-t border-[var(--filet)] bg-[var(--surface)] px-5 py-3">
+              <Retour resultat={op.resultat && !op.resultat.ok ? op.resultat : null} />
+              <button type="button" onClick={() => setOuvert(false)} className="h-cible rounded-lg border border-[var(--filet)] px-3.5 text-sm font-semibold hover:bg-[var(--surface-creuse)]">
+                Annuler
+              </button>
+              <button type="submit" disabled={op.enCours} className="h-cible rounded-lg bg-marque-500 px-5 text-sm font-semibold text-white disabled:opacity-50">
+                {op.enCours ? "Enregistrement…" : "Inscrire"}
+              </button>
+            </div>
+          </form>
+        </Fenetre>
+      )}
+    </>
   );
 }
 

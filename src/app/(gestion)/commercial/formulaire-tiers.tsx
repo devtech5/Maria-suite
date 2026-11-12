@@ -2,15 +2,13 @@
 
 import { useState } from "react";
 
+import { ChoixOrigine } from "@/components/tiers/choix-origine";
 import { FormulaireRepliable } from "@/components/ui/operations";
 import { Champ, CLASSE_CHAMP } from "@/components/ui/primitives";
 import { referentielPays } from "@/lib/pays";
 import { enregistrerTiers } from "@/modules/tiers/actions";
 import { LIBELLE_NATURE_TIERS, NATURES_TIERS } from "@/modules/tiers/natures";
-import { PAYS_PROPOSES, nomPays } from "@/modules/tiers/origine";
-
-/** Pays proposés à l'international, classés par nom français : calculé une fois, hors du rendu. */
-export const PAYS_CLASSES = [...PAYS_PROPOSES].map((code) => ({ code, nom: nomPays(code) })).sort((a, b) => a.nom.localeCompare(b.nom, "fr", { sensitivity: "base" }));
+import { type OrigineTiers } from "@/modules/tiers/origine";
 
 /**
  * Création d'un client ou d'un fournisseur, dans une modale centrée.
@@ -29,7 +27,7 @@ export function FormulaireTiers({ role, paysEntreprise }: { role: "client" | "fo
 }
 
 function ChampsTiers({ role, paysEntreprise }: { role: "client" | "fournisseur"; paysEntreprise: string }) {
-  const [origine, setOrigine] = useState<"local" | "international">("local");
+  const [origine, setOrigine] = useState<OrigineTiers>("local");
   const [pays, setPays] = useState("");
   // Le libellé de l'identifiant fiscal suit le pays du tiers, pas un référentiel codé en dur :
   // « NCC » pour un fournisseur ivoirien, le sigle de son pays pour un étranger.
@@ -38,39 +36,7 @@ function ChampsTiers({ role, paysEntreprise }: { role: "client" | "fournisseur";
   return (
     <div className="space-y-4">
       {role === "fournisseur" && (
-        <fieldset>
-          <legend className="mb-1.5 text-sm font-medium">Type de fournisseur</legend>
-          <div className="grid gap-2 sm:grid-cols-2">
-            {([
-              ["local", "Local", `Établi en ${nomPays(paysEntreprise)}.`],
-              ["international", "International", "Établi dans un autre pays : import, achat à l'étranger."],
-            ] as const).map(([valeur, titre, aide]) => (
-              <label key={valeur} className={`flex cursor-pointer items-start gap-2.5 rounded-xl border p-3 ${origine === valeur ? "border-marque-600 bg-[var(--surface-creuse)]" : "border-[var(--filet)]"}`}>
-                <input type="radio" name="origine" value={valeur} checked={origine === valeur} onChange={() => setOrigine(valeur)} className="mt-1 accent-marque-600" />
-                <span>
-                  <span className="block text-sm font-semibold">{titre}</span>
-                  <span className="block text-xs text-[var(--encre-faible)]">{aide}</span>
-                </span>
-              </label>
-            ))}
-          </div>
-          {origine === "international" && (
-            <div className="mt-3 max-w-xs">
-              <Champ libelle="Pays du fournisseur">
-                <select name="pays" required value={pays} onChange={(e) => setPays(e.target.value)} className={CLASSE_CHAMP}>
-                  <option value="" disabled>
-                    — Choisir le pays —
-                  </option>
-                  {PAYS_CLASSES.filter((p) => p.code !== paysEntreprise.toUpperCase()).map((p) => (
-                    <option key={p.code} value={p.code}>
-                      {p.nom}
-                    </option>
-                  ))}
-                </select>
-              </Champ>
-            </div>
-          )}
-        </fieldset>
+        <ChoixOrigine libelle="Type de fournisseur" paysEntreprise={paysEntreprise} origine={origine} pays={pays} onOrigine={setOrigine} onPays={setPays} />
       )}
 
       <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">

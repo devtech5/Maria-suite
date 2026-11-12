@@ -14,7 +14,7 @@ import { LIBELLE_NATURE_TIERS } from "@/modules/tiers/natures";
 import { nomPays, origineDe, type OrigineTiers } from "@/modules/tiers/origine";
 import type { FicheTiers } from "@/modules/tiers/requetes";
 
-import { PAYS_CLASSES } from "../formulaire-tiers";
+import { PAYS_CLASSES } from "@/components/tiers/choix-origine";
 
 const LIBELLE_ORIGINE: Record<OrigineTiers, string> = { local: "Local", international: "International" };
 

@@ -9,7 +9,11 @@ import { exigerEntreprise } from "@/lib/auth/dal";
 import { peut } from "@/lib/droits/garde";
 import { fmtCompact, fmtEntier } from "@/lib/format";
 import { compteParDefaut } from "@/modules/prestataires/calcul";
+import { referentielPays } from "@/lib/pays";
 import { listerPrestataires, listerPrestations } from "@/modules/prestataires/creation";
+import { LIBELLE_NATURE_TIERS } from "@/modules/tiers/natures";
+import { nomPays, origineDe } from "@/modules/tiers/origine";
+import { paysEntreprise } from "@/modules/tiers/requetes";
 import { comptesDisponibles } from "@/modules/tresorerie/actions";
 
 export const metadata: Metadata = { title: "Prestataire" };
@@ -21,7 +25,8 @@ export default async function PagePrestataire({ params }: { params: Promise<{ id
   const { id } = await params;
   if (!UUID.test(id)) notFound();
   const session = await exigerEntreprise();
-  const p = (await listerPrestataires(session.organizationId)).find((x) => x.id === id);
+  const [tous, pays] = await Promise.all([listerPrestataires(session.organizationId), paysEntreprise(session.organizationId)]);
+  const p = tous.find((x) => x.id === id);
   if (!p) notFound();
   const [liste, gerer, payer] = await Promise.all([listerPrestations(session.organizationId, id), peut("prestataires.gerer"), peut("prestataires.payer")]);
   const comptes = payer ? await comptesDisponibles() : [];
@@ -39,9 +44,13 @@ export default async function PagePrestataire({ params }: { params: Promise<{ id
             {p.nom}
             {!p.disponible && <Pastille ton="neutre">Indisponible</Pastille>}
           </h1>
-          <p className="mt-0.5 text-sm text-[var(--encre-douce)]">{p.metiers.join(" · ")}</p>
+          <p className="mt-0.5 flex flex-wrap items-center gap-1.5 text-sm text-[var(--encre-douce)]">
+            {p.metiers.join(" · ")}
+            <Pastille ton="marque">{LIBELLE_NATURE_TIERS[p.nature]}</Pastille>
+            <Pastille ton={origineDe(p.paysCode, pays) === "local" ? "valide" : "alerte"}>{origineDe(p.paysCode, pays) === "local" ? "Local" : `International · ${nomPays(p.paysCode)}`}</Pastille>
+          </p>
           <p className="mt-1 text-sm text-[var(--encre-douce)]">
-            {[p.telephone, p.email, p.ville, p.identifiantFiscal ? `NCC ${p.identifiantFiscal}` : null, p.mobileMoney ? `Mobile money ${p.mobileMoney}` : null].filter(Boolean).join(" · ")}
+            {[p.telephone, p.email, p.ville, p.identifiantFiscal ? `${referentielPays(p.paysCode ?? pays).identifiantFiscal} ${p.identifiantFiscal}` : null, p.mobileMoney ? `Mobile money ${p.mobileMoney}` : null].filter(Boolean).join(" · ")}
           </p>
           <div className="mt-2">
             <Etoiles dixiemes={p.note} />

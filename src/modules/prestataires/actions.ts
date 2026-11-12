@@ -6,6 +6,9 @@ import { z } from "zod";
 import { exigerEntreprise } from "@/lib/auth/dal";
 import { refusDroit } from "@/lib/droits/garde";
 import { estDoublon } from "@/lib/erreurs-pg";
+import { estNatureTiers } from "@/modules/tiers/natures";
+import { estOrigine, paysPourOrigine } from "@/modules/tiers/origine";
+import { paysEntreprise } from "@/modules/tiers/requetes";
 
 import { COMPTES_CHARGE, UNITES_TARIF, type CompteCharge, type UniteTarif } from "./calcul";
 import {
@@ -86,12 +89,20 @@ export async function inscrirePrestataire(donnees: FormData): Promise<Resultat> 
   if (!profil.success) return { ok: false, message: profil.error.issues[0].message };
   const tiersId = texte(donnees, "tiersId");
   if (tiersId && !UUID.test(tiersId)) return { ok: false, message: "Fiche tiers inconnue." };
+  const nature = texte(donnees, "nature") ?? "particulier";
+  if (!estNatureTiers(nature)) return { ok: false, message: "Choisissez le type de prestataire." };
+  // Local ou international : le pays se déduit du choix, jamais saisi deux fois.
+  const origine = texte(donnees, "origine") ?? "local";
+  if (!estOrigine(origine)) return { ok: false, message: "Précisez si le prestataire est local ou international." };
+  const lieu = paysPourOrigine(origine, texte(donnees, "pays"), await paysEntreprise(session.organizationId));
+  if ("erreur" in lieu) return { ok: false, message: lieu.erreur };
   try {
     const { id } = await creerPrestatairePour(session.organizationId, session.userId, {
       ...profil.data,
       tiersId,
       nom: texte(donnees, "nom") ?? undefined,
-      nature: texte(donnees, "nature") === "entreprise" ? "entreprise" : "particulier",
+      nature,
+      paysCode: lieu.paysCode,
       telephone: texte(donnees, "telephone"),
       email: texte(donnees, "email"),
       ville: texte(donnees, "ville"),
