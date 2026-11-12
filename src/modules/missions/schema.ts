@@ -64,7 +64,7 @@ export const typePreuve = pgEnum("type_preuve", [
  * `preuves_mission` — les stocker à côté des lignes qui les composent
  * garantit qu'ils divergeront.
  *
- * L'exécutant est un salarié OU un intervenant, jamais les deux (même règle que
+ * L'exécutant est un collaborateur (salarié du Personnel) OU un intervenant, jamais les deux (même règle que
  * pour les actifs) : un livreur occasionnel payé à la course et un chauffeur
  * sous contrat n'engagent pas les mêmes obligations. Les deux colonnes nulles
  * sont admises — une mission se planifie avant d'être attribuée.

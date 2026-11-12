@@ -100,8 +100,8 @@ export function FormulaireMission({ options }: { options: OptionsFormulaire }) {
         </Champ>
 
         <Champ
-          libelle="Salarié"
-          precision="Un salarié OU un intervenant, jamais les deux."
+          libelle="Collaborateur"
+          precision="Un collaborateur OU un intervenant, jamais les deux."
         >
           <select name="employeId" defaultValue="" className={CLASSE_CHAMP}>
             <option value="">— aucun —</option>

@@ -25,7 +25,7 @@ export const RAPPORTS_MISSIONS: DefinitionRapport[] = [
     module: "missions",
     rubrique: "Missions",
     titre: "Missions par exécutant",
-    description: "Pour chaque salarié ou intervenant : missions confiées, terminées, échouées, en retard, et taux de réussite.",
+    description: "Pour chaque collaborateur ou intervenant : missions confiées, terminées, échouées, en retard, et taux de réussite.",
     droit: "missions.consulter",
     periode: "intervalle",
     async executer(organizationId, { du, au }) {
@@ -40,7 +40,7 @@ export const RAPPORTS_MISSIONS: DefinitionRapport[] = [
         montant: string;
       }>(sql`
         select coalesce(e.nom, w.nom, 'Sans exécutant') as executant,
-               case when e.id is not null then 'Salarié' when w.id is not null then 'Intervenant' else '' end as statut,
+               case when e.id is not null then 'Collaborateur' when w.id is not null then 'Intervenant' else '' end as statut,
                count(*) as missions,
                count(*) filter (where m.statut = 'terminee') as terminees,
                count(*) filter (where m.statut = 'echouee') as echouees,
