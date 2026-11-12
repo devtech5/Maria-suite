@@ -13,6 +13,8 @@ import {
   partQuota,
   QUOTA_OCTETS,
   refusEnvoi,
+  resumeDepot,
+  resumeDepotCourt,
   resumeVisibilite,
   resumeVisibiliteCourt,
   retraitPossible,
@@ -158,3 +160,42 @@ describe("dossiers partagés", () => {
     expect(resoudreDroits({ cleRole: "magasinier", estProprietaire: false }).has("archives.dossier.gerer")).toBe(false);
   });
 });
+
+describe("dépôt accordé membre par membre", () => {
+  const awa = "awa";
+  const kone = "kone";
+  const yao = "yao";
+  /** Dossier visible de tous : on accorde de voir à beaucoup, de déposer à quelques-uns. */
+  const ouvertATous = { visibilite: "tous" as const, depotOuvert: false, designes: [awa], deposants: [awa] };
+
+  it("laisse déposer le déposant nommé, et lui seul, même si tout le monde voit le dossier", () => {
+    expect(depotDossierPermis(ouvertATous, awa, false)).toBe(true);
+    expect(depotDossierPermis(ouvertATous, kone, false)).toBe(false);
+    expect(dossierVisible(ouvertATous, kone, false)).toBe(true);
+  });
+
+  it("garde le dépôt au gestionnaire quoi qu'il arrive", () => {
+    expect(depotDossierPermis({ ...ouvertATous, deposants: [] }, yao, true)).toBe(true);
+  });
+
+  it("n'ouvre pas le dépôt à qui ne voit pas, même s'il est « déposant » d'un dossier masqué à lui", () => {
+    const choisis = { visibilite: "selection" as const, depotOuvert: false, designes: [awa], deposants: [awa] };
+    expect(depotDossierPermis(choisis, kone, false)).toBe(false);
+  });
+
+  it("l'ouverture à tous ceux qui voient l'emporte sur la liste des déposants", () => {
+    const tous = { visibilite: "selection" as const, depotOuvert: true, designes: [awa, kone], deposants: [] };
+    expect(depotDossierPermis(tous, kone, false)).toBe(true);
+    expect(depotDossierPermis(tous, yao, false)).toBe(false);
+  });
+
+  it("dit en clair qui dépose", () => {
+    expect(resumeDepot({ depotOuvert: true, deposants: [] })).toMatch(/peuvent y déposer/);
+    expect(resumeDepot({ depotOuvert: false, deposants: [awa, kone] })).toMatch(/2 membres/);
+    expect(resumeDepot({ depotOuvert: false, deposants: [awa] })).toMatch(/1 membre —/);
+    expect(resumeDepot({ depotOuvert: false, deposants: [] })).toBe("Lecture seule pour les membres");
+    expect(resumeDepotCourt({ depotOuvert: false, deposants: [awa, kone] })).toBe("Dépôt : 2 membres");
+    expect(resumeDepotCourt({ depotOuvert: false })).toBe("Lecture seule");
+  });
+});
+
