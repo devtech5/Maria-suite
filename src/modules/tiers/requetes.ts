@@ -5,6 +5,7 @@ import { and, asc, desc, eq, isNotNull, isNull, sql } from "drizzle-orm";
 import { db } from "@/db";
 import { contactsParTiers, type ContactVue } from "./contacts";
 import { ecritures, lignesEcriture } from "@/modules/comptabilite/schema";
+import type { NatureTiers } from "./natures";
 import { tiers, type Tiers } from "./schema";
 
 export type RoleTiers = "client" | "fournisseur" | "tous";
@@ -213,7 +214,7 @@ export interface FicheTiers extends SoldeAuxiliaire {
   nom: string;
   /** En off : plus proposé à la saisie, historique intact. */
   actif: boolean;
-  nature: "entreprise" | "particulier";
+  nature: NatureTiers;
   telephone: string | null;
   email: string | null;
   ville: string | null;

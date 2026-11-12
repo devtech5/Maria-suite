@@ -4,11 +4,12 @@ import { db } from "@/db";
 import { auditLogs } from "@/db/schema";
 import { newId } from "@/lib/ids";
 import { prochainNumero, type Transaction } from "@/lib/sequences";
+import type { NatureTiers } from "./natures";
 import { tiers } from "./schema";
 
 export interface NouveauTiers {
   nom: string;
-  nature?: "entreprise" | "particulier";
+  nature?: NatureTiers;
   estClient?: boolean;
   estFournisseur?: boolean;
   telephone?: string | null;

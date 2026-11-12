@@ -84,7 +84,6 @@ export const GROUPES_MODULES: GroupeModules[] = [
       // Ouvert à tous : il n'explique que les modules de chacun.
       { href: "/transmissions/recues", racine: "/transmissions/recues", icone: "transmissions", libelle: "Mes transmissions", description: "Les bordereaux qui vous sont adressés : accuser réception, rendre votre retour.", droit: "transmissions.recevoir" },
       { href: "/courrier/mon-courrier", racine: "/courrier/mon-courrier", icone: "courrier", libelle: "Mon courrier", description: "Le courrier qui vous est imputé : accuser réception, répondre.", droit: "courrier.recevoir" },
-      { href: "/visiteurs/rendez-vous", racine: "/visiteurs/rendez-vous", icone: "visiteurs", libelle: "Mes visiteurs", description: "Annoncer un visiteur à l'accueil et lui envoyer son QR d'entrée.", droit: "visiteurs.annoncer" },
       { href: "/guide", racine: "/guide", icone: "guide", libelle: "Guide d'utilisation", description: "Apprendre Maria Suite module par module, avec un parcours et un quiz.", droit: "guide.consulter" },
     ],
   },
@@ -95,6 +94,7 @@ export const GROUPES_MODULES: GroupeModules[] = [
     icone: "commercial",
     modules: [
       { href: "/commercial", racine: "/commercial", icone: "commercial", libelle: "Clients", description: "Clients, devis, factures et encaissements.", droit: "tiers.fiche.consulter" },
+      { href: "/commercial/prospection", racine: "/commercial/prospection", icone: "commercial", libelle: "Prospection", description: "Plans de prospection : zone, objectifs, prospects par type, visites et appels jusqu'au client.", droit: "commercial.prospection.planifier" },
       { href: "/commercial/commerciaux", racine: "/commercial/commerciaux", icone: "commercial", libelle: "Commerciaux", description: "Commerciaux, objectifs et commissions.", droit: "commercial.commission.gerer" },
       { href: "/commercial/fournisseurs", racine: "/commercial/fournisseurs", icone: "achats", libelle: "Fournisseurs", description: "Fiches fournisseurs, leurs factures et ce qui leur est dû.", droit: "tiers.fiche.consulter" },
       { href: "/commercial/factures", racine: "/commercial/factures", icone: "commercial", libelle: "Devis et factures", description: "Devis, factures et avoirs clients.", droit: "tiers.fiche.consulter" },
@@ -169,7 +169,10 @@ export const GROUPES_MODULES: GroupeModules[] = [
     icone: "securite",
     modules: [
       { href: "/securite", racine: "/securite", icone: "securite", libelle: "Caméras", description: "Caméras des magasins, entrepôts et bureaux en direct.", droit: "securite.consulter" },
-      { href: "/visiteurs", racine: "/visiteurs", icone: "visiteurs", libelle: "Visiteurs", description: "Entrées et sorties des visiteurs, pièce d'identité, badge, présents à l'instant.", droit: "visiteurs.accueillir" },
+      // Une seule entrée pour l'accueil et pour qui annonce un rendez-vous : le
+      // module ouvre à chacun ses onglets (`visiteurs/layout.tsx`), et qui
+      // n'accueille pas arrive directement sur ses rendez-vous.
+      { href: "/visiteurs", racine: "/visiteurs", icone: "visiteurs", libelle: "Visiteurs", description: "Rendez-vous annoncés, entrées et sorties, pièce d'identité, badge, présents à l'instant.", droit: "visiteurs.annoncer" },
     ],
   },
   {

@@ -13,7 +13,7 @@ export const CHAPITRES_GESTION: Chapitre[] = [
         ancre: "fiche",
         titre: "La fiche client",
         texte: [
-          "Chaque client a sa fiche : coordonnées, N° de compte contribuable (NCC), contacts, délai de règlement et encours autorisé. Son compte auxiliaire est créé d'office en comptabilité ; le solde dû se lit dans les écritures, jamais saisi à la main.",
+          "Chaque client a sa fiche et son type : particulier, entreprise, ONG, mutuelle, association ou coopérative. Les puces au-dessus de la liste filtrent par type ; le type se corrige sur la fiche. Coordonnées, N° de compte contribuable (NCC), contacts, délai de règlement et encours autorisé. Son compte auxiliaire est créé d'office en comptabilité ; le solde dû se lit dans les écritures, jamais saisi à la main.",
           "Une fiche saisie par erreur et jamais utilisée peut se supprimer ; une fiche qui a servi se met en off et garde son historique.",
         ],
       },
@@ -41,6 +41,42 @@ export const CHAPITRES_GESTION: Chapitre[] = [
       },
     ],
     quiz: [],
+  },
+  {
+    cle: "prospection",
+    titre: "Prospection",
+    entree: "/commercial/prospection",
+    resume: "Élaborer son plan de prospection, approcher chaque prospect selon son type, et le suivre jusqu'à ce qu'il devienne client.",
+    sections: [
+      {
+        ancre: "plan",
+        titre: "Élaborer un plan",
+        chemin: "/commercial/prospection",
+        texte: [
+          "« Nouveau plan » : un titre, la période (un an au plus), la zone couverte, les cibles, et les objectifs — contacts à réaliser, nouveaux clients, chiffre d'affaires visé. Le plan reçoit son numéro PP-AAAA-NNNNN.",
+          "Un commercial ne voit que ses plans ; la direction voit ceux de tous et peut en établir pour eux. En tête de l'écran : les actions du jour et celles en retard, tous plans confondus.",
+        ],
+        etapes: ["Nouveau plan : période, zone, objectifs.", "Ajouter les prospects avec leur type.", "Planifier visites et appels.", "Après chaque action : le compte rendu."],
+      },
+      {
+        ancre: "prospects",
+        titre: "Prospects et actions",
+        texte: [
+          "Chaque prospect a son type — particulier, entreprise, ONG, mutuelle, association, coopérative —, la personne à voir, le besoin repéré et le potentiel estimé. Ses actions (visite, appel, WhatsApp, e-mail, rendez-vous, démonstration) se planifient à une date.",
+          "Le compte rendu d'une action dit où en est le prospect — en discussion, intéressé, ou perdu avec le motif — et peut planifier l'action suivante d'un geste.",
+          "« Devenu client » crée sa fiche client avec son type, sa référence et son compte 411 ; la personne rencontrée devient son contact. S'il était déjà au fichier, on rattache sa fiche.",
+        ],
+      },
+    ],
+    quiz: [
+      {
+        cle: "prospection-perdu",
+        question: "Une mutuelle refuse votre offre. Que faites-vous dans le plan ?",
+        choix: ["Je supprime le prospect", "Je le passe « perdu » en notant le motif", "Je ne touche à rien"],
+        bonne: 1,
+        explication: "Le motif de perte sert au plan suivant ; une piste perdue peut d'ailleurs se rouvrir.",
+      },
+    ],
   },
   {
     cle: "commerciaux",
@@ -563,10 +599,19 @@ export const CHAPITRES_GESTION: Chapitre[] = [
   },
   {
     cle: "visiteurs",
-    titre: "Accueil des visiteurs",
+    titre: "Visiteurs",
     entree: "/visiteurs",
-    resume: "Enregistrer arrivées et sorties, photographier la pièce d'identité, imprimer le badge.",
+    resume: "Annoncer un rendez-vous ; à l'accueil, enregistrer arrivées et sorties, photographier la pièce d'identité, imprimer le badge.",
     sections: [
+      {
+        ancre: "annoncer",
+        titre: "Annoncer un rendez-vous",
+        chemin: "/visiteurs/rendez-vous",
+        texte: [
+          "Vous attendez quelqu'un ? Dans « Rendez-vous », « Annoncer un visiteur » : le point d'accueil, le jour, l'heure, son nom et son téléphone. L'accueil le voit dans ses attendus du jour, et le visiteur reçoit par WhatsApp un lien vers son QR d'entrée.",
+          "Quand il arrive, vous êtes prévenu dans la cloche. Un rendez-vous qui ne tient plus s'annule de la liste.",
+        ],
+      },
       {
         ancre: "arrivee",
         titre: "Enregistrer une arrivée",
@@ -607,25 +652,6 @@ export const CHAPITRES_GESTION: Chapitre[] = [
         bonne: 1,
         explication: "« Présents » donne, à l'instant, qui est sur place, accueil par accueil.",
       },
-    ],
-  },
-  {
-    cle: "mes-visiteurs",
-    titre: "Annoncer un visiteur",
-    entree: "/visiteurs/rendez-vous",
-    resume: "Prévenir l'accueil d'un rendez-vous et envoyer au visiteur son QR d'entrée.",
-    sections: [
-      {
-        ancre: "annoncer",
-        titre: "Annoncer un rendez-vous",
-        chemin: "/visiteurs/rendez-vous",
-        texte: [
-          "Vous attendez quelqu'un ? « Annoncer un visiteur » : le point d'accueil, le jour, l'heure, son nom et son téléphone. L'accueil le voit dans ses attendus du jour, et le visiteur reçoit par WhatsApp un lien vers son QR d'entrée.",
-          "Quand il arrive, vous êtes prévenu dans la cloche. Un rendez-vous qui ne tient plus s'annule de la liste.",
-        ],
-      },
-    ],
-    quiz: [
       {
         cle: "mes-visiteurs-qr",
         question: "Comment votre visiteur reçoit-il son QR d'entrée ?",

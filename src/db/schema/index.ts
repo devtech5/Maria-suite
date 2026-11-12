@@ -37,6 +37,7 @@ export * from "@/modules/guide/schema";
 export * from "@/modules/visiteurs/schema";
 export * from "@/modules/courrier/schema";
 export * from "@/modules/transmissions/schema";
+export * from "@/modules/prospection/schema";
 export * from "@/modules/tresorerie/schema";
 export * from "@/modules/achats/schema";
 export * from "@/modules/paie/schema";

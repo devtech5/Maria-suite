@@ -108,7 +108,7 @@ describe("installation de MARIA GROUP SARL", () => {
   it("ne crée pas le rôle d'un métier coupé, et pose les rôles transverses", async () => {
     await installerEntreprise(requete, options);
     const cles = (await requete(`select key from roles order by key`)).map((l) => l.key);
-    expect(cles).toEqual(["comptable", "gerant", "proprietaire", "secretaire"]);
+    expect(cles).toEqual(["commercial", "comptable", "gerant", "proprietaire", "secretaire"]);
     const [stock] = await requete(`select enabled from organization_modules where module_key = 'stock'`);
     expect(stock.enabled).toBe(false);
   });

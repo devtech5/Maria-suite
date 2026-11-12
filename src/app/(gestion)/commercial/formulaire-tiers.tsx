@@ -4,6 +4,7 @@ import { useActionState, useState } from "react";
 
 import { Champ, CLASSE_CHAMP } from "@/components/ui/primitives";
 import { creerTiers, type EtatTiers } from "@/modules/tiers/actions";
+import { LIBELLE_NATURE_TIERS, NATURES_TIERS } from "@/modules/tiers/natures";
 
 /**
  * Création d'un tiers, dépliée sous l'en-tête plutôt que dans une fenêtre
@@ -87,10 +88,13 @@ export function FormulaireTiers({
           />
         </Champ>
 
-        <Champ libelle="Nature">
+        <Champ libelle={role === "client" ? "Type de client" : "Nature"}>
           <select name="nature" defaultValue="entreprise" className={CLASSE_CHAMP}>
-            <option value="entreprise">Entreprise</option>
-            <option value="particulier">Particulier</option>
+            {NATURES_TIERS.map((n) => (
+              <option key={n} value={n}>
+                {LIBELLE_NATURE_TIERS[n]}
+              </option>
+            ))}
           </select>
         </Champ>
 

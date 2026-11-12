@@ -456,6 +456,20 @@ export const DROITS = [
     libelle: "Payer les commissions",
     description: "Verser une commission validée depuis la trésorerie, ou l'ajouter au bulletin de paie d'un salarié.",
   },
+  {
+    cle: "commercial.prospection.planifier",
+    moduleKey: "tiers",
+    libelle: "Élaborer son plan de prospection",
+    description:
+      "Le commercial établit ses plans de prospection : zone, objectifs, prospects et leur type, " +
+      "visites et appels planifiés, comptes rendus. Il ne voit que les siens.",
+  },
+  {
+    cle: "commercial.prospection.superviser",
+    moduleKey: "tiers",
+    libelle: "Superviser la prospection",
+    description: "Voir et suivre les plans de prospection de tous les commerciaux, en établir pour eux.",
+  },
 
   // ------------------------------------------------------------- missions
   {
@@ -1135,6 +1149,30 @@ export const PRESETS_ROLES = [
       "messagerie.utiliser",
       "meeting.participer",
       "meeting.organiser",
+    ],
+  },
+  {
+    cle: "commercial",
+    nom: "Commercial",
+    description:
+      "Prospecte et suit ses clients : élabore son plan de prospection, enregistre les clients " +
+      "et leur type, prépare devis et factures. N'encaisse pas.",
+    droits: [
+      "tiers.fiche.consulter",
+      "tiers.fiche.gerer",
+      "commercial.piece.consulter",
+      "commercial.piece.gerer",
+      "commercial.prospection.planifier",
+      "stock.article.consulter",
+      "communication.consulter",
+      "boite_mail.utiliser",
+      "visiteurs.annoncer",
+      "transmissions.emettre",
+      ...ARCHIVAGE_PERSONNEL,
+      ...TACHES_PERSONNELLES,
+      ...PLANNING_PERSONNEL,
+      "messagerie.utiliser",
+      "meeting.participer",
     ],
   },
   {

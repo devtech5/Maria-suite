@@ -10,6 +10,7 @@ import { exigerEntreprise } from "@/lib/auth/dal";
 import { exigerDroit, refusDroit } from "@/lib/droits/garde";
 import { newId } from "@/lib/ids";
 import { creerTiersPour } from "./creation";
+import { LIBELLE_NATURE_TIERS, NATURES_TIERS, estNatureTiers } from "./natures";
 import { tiers } from "./schema";
 import { estDoublon } from "@/lib/erreurs-pg";
 
@@ -36,7 +37,7 @@ const montant = z
 const schema = z
   .object({
     nom: z.string().trim().min(2, "Indiquez le nom du tiers."),
-    nature: z.enum(["entreprise", "particulier"]),
+    nature: z.enum(NATURES_TIERS, "Choisissez le type de client."),
     estClient: z.boolean(),
     estFournisseur: z.boolean(),
     telephone: z.string().trim().max(32).optional(),
@@ -155,4 +156,44 @@ export async function archiverTiers(donnees: FormData): Promise<void> {
 
   revalidatePath("/commercial");
   revalidatePath("/commercial/fournisseurs");
+}
+
+/**
+ * Change le type d'un client : un fichier repris d'un tableur classe tout en
+ * « entreprise », et c'est en le travaillant qu'on découvre la mutuelle ou
+ * la coopérative. Ni la référence ni le compte auxiliaire ne bougent.
+ */
+export async function changerNatureTiers(id: string, nature: string): Promise<{ ok: boolean; message: string }> {
+  const session = await exigerEntreprise();
+  const refus = await refusDroit("tiers.fiche.gerer");
+  if (refus) return { ok: false, message: refus.erreur };
+  if (!estNatureTiers(nature)) return { ok: false, message: "Type de client inconnu." };
+
+  const [avant] = await db
+    .select({ nature: tiers.nature, nom: tiers.nom })
+    .from(tiers)
+    .where(and(eq(tiers.id, id), eq(tiers.organizationId, session.organizationId)));
+  if (!avant) return { ok: false, message: "Client introuvable." };
+  if (avant.nature === nature) return { ok: true, message: "Type inchangé." };
+
+  await db.transaction(async (tx) => {
+    await tx
+      .update(tiers)
+      .set({ nature, updatedAt: new Date(), version: sql`${tiers.version} + 1` })
+      .where(and(eq(tiers.id, id), eq(tiers.organizationId, session.organizationId)));
+    await tx.insert(auditLogs).values({
+      id: newId(),
+      organizationId: session.organizationId,
+      userId: session.userId,
+      action: "tiers.nature",
+      entityType: "tiers",
+      entityId: id,
+      before: { nature: avant.nature },
+      after: { nature },
+    });
+  });
+
+  revalidatePath("/commercial");
+  revalidatePath("/commercial/fournisseurs");
+  return { ok: true, message: `${avant.nom} : ${LIBELLE_NATURE_TIERS[nature]}.` };
 }
