@@ -185,7 +185,7 @@ export function EnTete({
 
       <div className="hidden min-w-0 shrink items-center md:flex">{contexte}</div>
 
-      <div className="flex min-w-0 flex-1 justify-end lg:justify-center">
+      <div className="flex min-w-0 flex-1 justify-end xl:justify-center">
         <RechercheGlobale />
       </div>
 

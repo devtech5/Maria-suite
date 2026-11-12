@@ -9,7 +9,21 @@ import { utilisateursAyantDroit } from "@/lib/droits/destinataires";
 import { newId } from "@/lib/ids";
 import { cheminDe, deposer, supprimer } from "@/lib/stockage";
 
-import { conversations, messages, participants } from "./schema";
+import {
+  corpsDuGenre,
+  depouillerEvenement,
+  depouillerSondage,
+  choixValides,
+  REPONSES_EVENEMENT,
+  type DonneesContact,
+  type DonneesEvenement,
+  type DonneesSondage,
+  type Genre,
+  type ReponseEvenement,
+  type ResultatEvenement,
+  type ResultatSondage,
+} from "./genres";
+import { conversations, messages, participants, reponsesMessages } from "./schema";
 
 /**
  * Messagerie interne.
@@ -159,6 +173,9 @@ export const TYPES_PIECE_JOINTE: Record<string, string> = {
   "application/vnd.openxmlformats-officedocument.wordprocessingml.document": "docx",
   "application/vnd.ms-excel": "xls",
   "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet": "xlsx",
+  "video/mp4": "mp4",
+  "video/webm": "webm",
+  "video/quicktime": "mov",
 };
 
 /**
@@ -182,7 +199,7 @@ export async function ecrire(
   let chemin: string | null = null;
   if (piece) {
     const ext = TYPES_PIECE_JOINTE[piece.typeMime];
-    if (!ext) throw new Error("Format non accepté : photo, PDF, Word ou Excel.");
+    if (!ext) throw new Error("Format non accepté : photo, vidéo, PDF, Word ou Excel.");
     if (piece.contenu.byteLength > 10 * 1024 * 1024) throw new Error("Fichier trop lourd : 10 Mo au plus.");
     chemin = cheminDe(organizationId, id, ext);
     const depot = await deposer({ chemin, contenu: piece.contenu, typeMime: piece.typeMime });
@@ -324,6 +341,10 @@ export interface MessageAffiche {
   auteur: string;
   corps: string | null;
   piece: { nom: string; typeMime: string; taille: number } | null;
+  genre: Genre;
+  sondage: (DonneesSondage & { resultat: ResultatSondage }) | null;
+  evenement: (DonneesEvenement & { resultat: ResultatEvenement }) | null;
+  contact: DonneesContact | null;
   efface: boolean;
   le: string;
   /** Autres participants actifs qui l'ont lu. */
@@ -372,6 +393,14 @@ export async function conversation(organizationId: string, userId: string, conve
       .limit(depuis ? 200 : 100)
   ).reverse();
 
+  const structures = lignes.filter(({ m }) => m.genre !== "texte" && !m.deletedAt).map(({ m }) => m.id);
+  const reponses = structures.length
+    ? await db
+        .select({ messageId: reponsesMessages.messageId, userId: reponsesMessages.userId, valeur: reponsesMessages.valeur })
+        .from(reponsesMessages)
+        .where(and(inArray(reponsesMessages.messageId, structures), isNull(reponsesMessages.deletedAt)))
+    : [];
+
   const autresActifs = membres.filter((m) => m.userId !== userId && !m.retireLe);
   const autre = c.type === "privee" ? membres.find((m) => m.userId !== userId) : null;
 
@@ -389,6 +418,16 @@ export async function conversation(organizationId: string, userId: string, conve
       auteur: auteur ?? "Ancien membre",
       corps: m.corps,
       piece: m.nomFichier && m.typeMime ? { nom: m.nomFichier, typeMime: m.typeMime, taille: m.tailleOctets ?? 0 } : null,
+      genre: (m.genre as Genre) ?? "texte",
+      sondage:
+        m.genre === "sondage" && m.donnees
+          ? { ...(m.donnees as unknown as DonneesSondage), resultat: depouillerSondage((m.donnees as unknown as DonneesSondage).options, reponses.filter((r) => r.messageId === m.id), userId) }
+          : null,
+      evenement:
+        m.genre === "evenement" && m.donnees
+          ? { ...(m.donnees as unknown as DonneesEvenement), resultat: depouillerEvenement(reponses.filter((r) => r.messageId === m.id), userId) }
+          : null,
+      contact: m.genre === "contact" && m.donnees ? (m.donnees as unknown as DonneesContact) : null,
       efface: m.deletedAt !== null,
       le: m.createdAt.toISOString(),
       luPar: autresActifs.filter((a) => a.luJusquAu && a.luJusquAu >= m.createdAt).length,
@@ -407,4 +446,81 @@ export async function cheminPieceJointe(organizationId: string, userId: string, 
   const p = await participation(organizationId, m.conversationId, userId);
   if (!p || (p.retireLe && m.le > p.retireLe)) return null;
   return m.chemin;
+}
+
+/**
+ * Écrit un sondage, un événement ou une carte de contact. Les données ont
+ * déjà été validées par `genres.ts` ; le `corps` en garde le résumé.
+ */
+export async function ecrireStructure(
+  organizationId: string,
+  userId: string,
+  conversationId: string,
+  genre: Exclude<Genre, "texte">,
+  donnees: DonneesSondage | DonneesEvenement | DonneesContact,
+): Promise<{ id: string; le: Date }> {
+  const p = await participation(organizationId, conversationId, userId);
+  if (!p || p.retireLe) throw new Error("Vous ne participez pas à cette conversation.");
+  const id = newId();
+  const le = new Date();
+  await db.transaction(async (tx) => {
+    await tx.insert(messages).values({
+      id,
+      organizationId,
+      conversationId,
+      auteurId: userId,
+      corps: corpsDuGenre(genre, donnees),
+      genre,
+      donnees: donnees as unknown as Record<string, unknown>,
+      createdAt: le,
+    });
+    await tx.update(conversations).set({ dernierMessageLe: le }).where(eq(conversations.id, conversationId));
+    await tx.update(participants).set({ luJusquAu: le }).where(and(eq(participants.conversationId, conversationId), eq(participants.userId, userId)));
+  });
+  return { id, le };
+}
+
+/** Un membre de l'entreprise que l'on peut partager en carte de contact. */
+export async function contactPartageable(organizationId: string, userId: string): Promise<DonneesContact | null> {
+  const m = (await membresEchangeables(organizationId)).find((x) => x.userId === userId);
+  return m ? { userId: m.userId, nom: m.nom } : null;
+}
+
+async function messageStructure(organizationId: string, userId: string, messageId: string, genre: "sondage" | "evenement") {
+  const [m] = await db
+    .select({ conversationId: messages.conversationId, genre: messages.genre, donnees: messages.donnees })
+    .from(messages)
+    .where(and(eq(messages.id, messageId), eq(messages.organizationId, organizationId), isNull(messages.deletedAt)));
+  if (!m || m.genre !== genre || !m.donnees) throw new Error("Message introuvable.");
+  const p = await participation(organizationId, m.conversationId, userId);
+  if (!p || p.retireLe) throw new Error("Vous ne participez plus à cette conversation.");
+  return m.donnees;
+}
+
+/** Remplace les réponses de la personne à un sondage : vide, elle retire son vote. */
+export async function voterSondage(organizationId: string, userId: string, messageId: string, choix: unknown): Promise<void> {
+  const sondage = (await messageStructure(organizationId, userId, messageId, "sondage")) as unknown as DonneesSondage;
+  const indices = choixValides(choix, sondage.options.length, sondage.multiple);
+  if ("erreur" in indices) throw new Error(indices.erreur);
+  await db.transaction(async (tx) => {
+    await tx.delete(reponsesMessages).where(and(eq(reponsesMessages.messageId, messageId), eq(reponsesMessages.userId, userId)));
+    if (indices.length > 0) {
+      await tx.insert(reponsesMessages).values(indices.map((i) => ({ organizationId, messageId, userId, valeur: String(i) })));
+    }
+  });
+}
+
+/** Une seule réponse par personne à un événement ; la même, renvoyée, la retire. */
+export async function repondreEvenementPour(organizationId: string, userId: string, messageId: string, reponse: unknown): Promise<ReponseEvenement | null> {
+  await messageStructure(organizationId, userId, messageId, "evenement");
+  if (typeof reponse !== "string" || !(REPONSES_EVENEMENT as readonly string[]).includes(reponse)) throw new Error("Réponse inconnue.");
+  const [actuelle] = await db
+    .select({ valeur: reponsesMessages.valeur })
+    .from(reponsesMessages)
+    .where(and(eq(reponsesMessages.messageId, messageId), eq(reponsesMessages.userId, userId)));
+  await db.transaction(async (tx) => {
+    await tx.delete(reponsesMessages).where(and(eq(reponsesMessages.messageId, messageId), eq(reponsesMessages.userId, userId)));
+    if (actuelle?.valeur !== reponse) await tx.insert(reponsesMessages).values({ organizationId, messageId, userId, valeur: reponse });
+  });
+  return actuelle?.valeur === reponse ? null : (reponse as ReponseEvenement);
 }

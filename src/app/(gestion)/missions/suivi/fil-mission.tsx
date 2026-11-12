@@ -25,6 +25,7 @@ import {
 } from "@/modules/missions/suivi";
 
 import { useRemontee, type IssueRemontee } from "./use-remontee";
+import { Fenetre } from "@/components/ui/fenetre";
 
 const TON: Record<StatutMission, TonPastille> = {
   planifiee: "neutre",
@@ -560,8 +561,8 @@ function SaisieEtape({
 function ClotureMission({ missionId }: { missionId: string }) {
   const [ouvert, setOuvert] = useState(false);
 
-  if (!ouvert) {
-    return (
+  return (
+    <>
       <div className="border-t border-[var(--filet)] p-4">
         <button
           type="button"
@@ -571,11 +572,8 @@ function ClotureMission({ missionId }: { missionId: string }) {
           Déclarer échouée ou annuler…
         </button>
       </div>
-    );
-  }
-
-  return (
-    <form action={cloreMission} className="space-y-3 border-t border-[var(--filet)] p-4">
+      <Fenetre ouverte={ouvert} titre="Déclarer échouée ou annuler" onFermer={() => setOuvert(false)}>
+    <form action={cloreMission} className="space-y-3 px-5 py-4">
       <input type="hidden" name="id" value={missionId} />
       <div className="flex flex-wrap gap-4 text-sm">
         <label className="flex items-center gap-1.5">
@@ -611,5 +609,7 @@ function ClotureMission({ missionId }: { missionId: string }) {
         </button>
       </div>
     </form>
+      </Fenetre>
+    </>
   );
 }

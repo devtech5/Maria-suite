@@ -3,6 +3,7 @@
 import { useCallback, useEffect, useRef, useState, type ReactNode } from "react";
 
 import { natureApercu, type NatureApercu } from "@/lib/apercu";
+import type { Diapo, Presentation } from "@/lib/pptx";
 
 /**
  * Aperçu d'une pièce jointe dans la plateforme, sans téléchargement.
@@ -13,7 +14,7 @@ import { natureApercu, type NatureApercu } from "@/lib/apercu";
  * vivent dans un dépôt »).
  *
  * Le fichier ne quitte jamais notre origine : PDF et images s'affichent par le
- * navigateur, Word et Excel sont décodés DANS la page (docx-preview, SheetJS),
+ * navigateur, Word, Excel et PowerPoint sont décodés DANS la page (docx-preview, SheetJS, JSZip),
  * chargés à la demande pour ne rien coûter aux écrans qui n'en ouvrent pas.
  * Aucun service de prévisualisation tiers : il faudrait lui confier l'adresse,
  * donc le fichier.
@@ -214,6 +215,8 @@ function Rendu({ nature, url, titre, telecharger }: { nature: NatureApercu; url:
       return <RenduTableur url={url} action={boutonTelecharger} />;
     case "docx":
       return <RenduDocx url={url} action={boutonTelecharger} />;
+    case "pptx":
+      return <RenduPptx url={url} action={boutonTelecharger} />;
     case "audio":
       return (
         <Message>
@@ -428,5 +431,118 @@ function RenduDocx({ url, action }: { url: string; action: ReactNode }) {
       {phase !== "lecture" && phase !== "pret" && <Message action={action}>{phase}</Message>}
       <div ref={hote} className={phase === "pret" ? "min-h-full" : "hidden"} />
     </>
+  );
+}
+
+function RenduPptx({ url, action }: { url: string; action: ReactNode }) {
+  const [etat, setEtat] = useState<{ phase: "lecture" } | { phase: "erreur"; message: string } | { phase: "pret"; presentation: Presentation }>({ phase: "lecture" });
+  const [courante, setCourante] = useState(0);
+
+  useEffect(() => {
+    let actif = true;
+    let lue: Presentation | null = null;
+    (async () => {
+      const reponse = await fetch(url);
+      if (!reponse.ok) throw new Error(reponse.status === 403 ? "Lien expiré : fermez et rouvrez l'aperçu." : "Lecture impossible.");
+      if (Number(reponse.headers.get("content-length") ?? 0) > POIDS_MAX_DECODAGE) throw new Error("Fichier trop lourd pour l'aperçu. Téléchargez-le.");
+      const { lirePresentation } = await import("@/lib/pptx");
+      lue = await lirePresentation(await reponse.arrayBuffer(), DOMParser);
+      if (actif) setEtat({ phase: "pret", presentation: lue });
+      else lue.liberer();
+    })().catch((e: unknown) => actif && setEtat({ phase: "erreur", message: e instanceof Error ? e.message : "Cette présentation n'a pas pu être lue." }));
+    return () => {
+      actif = false;
+      lue?.liberer();
+    };
+  }, [url]);
+
+  if (etat.phase === "lecture") return <Message>Lecture de la présentation…</Message>;
+  if (etat.phase === "erreur") return <Message action={action}>{etat.message}</Message>;
+
+  const { presentation } = etat;
+  const total = presentation.diapos.length;
+  const index = Math.min(courante, total - 1);
+  const aller = (i: number) => setCourante(Math.max(0, Math.min(total - 1, i)));
+  return (
+    <div className="flex h-full flex-col bg-[var(--surface-creuse)]">
+      <div className="flex items-center justify-center gap-3 border-b border-[var(--filet)] bg-[var(--surface)] px-3 py-2 text-sm">
+        <button type="button" onClick={() => aller(index - 1)} disabled={index === 0} className="h-9 rounded-lg border border-[var(--filet)] px-3 font-semibold disabled:opacity-40">
+          ‹ Précédente
+        </button>
+        <span className="chiffres min-w-20 text-center">
+          {index + 1} / {total}
+        </span>
+        <button type="button" onClick={() => aller(index + 1)} disabled={index === total - 1} className="h-9 rounded-lg border border-[var(--filet)] px-3 font-semibold disabled:opacity-40">
+          Suivante ›
+        </button>
+      </div>
+      <div
+        className="flex min-h-0 flex-1 items-start justify-center overflow-auto p-4"
+        tabIndex={0}
+        onKeyDown={(e) => {
+          if (e.key === "ArrowRight" || e.key === "PageDown") aller(index + 1);
+          if (e.key === "ArrowLeft" || e.key === "PageUp") aller(index - 1);
+        }}
+      >
+        <Diapositive diapo={presentation.diapos[index]} largeurPt={presentation.largeurPt} hauteurPt={presentation.hauteurPt} />
+      </div>
+      {total > 1 && (
+        <div className="flex gap-2 overflow-x-auto border-t border-[var(--filet)] bg-[var(--surface)] p-2">
+          {presentation.diapos.map((d, i) => (
+            <button
+              key={d.numero}
+              type="button"
+              onClick={() => aller(i)}
+              aria-label={`Diapositive ${d.numero}`}
+              aria-current={i === index}
+              className={`w-28 shrink-0 overflow-hidden rounded border-2 ${i === index ? "border-marque-600" : "border-transparent"}`}
+            >
+              <Diapositive diapo={d} largeurPt={presentation.largeurPt} hauteurPt={presentation.hauteurPt} />
+            </button>
+          ))}
+        </div>
+      )}
+    </div>
+  );
+}
+
+/** Une diapositive à l'échelle : le texte se mesure en unités de conteneur, il suit donc la largeur affichée. */
+function Diapositive({ diapo, largeurPt, hauteurPt }: { diapo: Diapo; largeurPt: number; hauteurPt: number }) {
+  return (
+    <div
+      className="relative w-full max-w-4xl overflow-hidden bg-white text-black shadow-md"
+      style={{ aspectRatio: `${largeurPt} / ${hauteurPt}`, containerType: "inline-size", background: diapo.fond ?? "#ffffff" }}
+    >
+      {diapo.elements.map((el, i) => {
+        const place = { left: `${el.x}%`, top: `${el.y}%`, width: `${el.l}%`, height: `${el.h}%` };
+        if (el.type === "image") {
+          // eslint-disable-next-line @next/next/no-img-element
+          return <img key={i} src={el.src} alt="" className="absolute object-contain" style={place} />;
+        }
+        return (
+          <div key={i} className="absolute overflow-hidden" style={place}>
+            {el.paragraphes.map((p, j) => (
+              <p key={j} style={{ textAlign: p.alignement, margin: 0 }}>
+                {p.puce && "• "}
+                {p.segments.map((s, k) => (
+                  <span
+                    key={k}
+                    style={{
+                      fontSize: `${((s.taille ?? 18) / largeurPt) * 100}cqw`,
+                      fontWeight: s.gras ? 700 : 400,
+                      fontStyle: s.italique ? "italic" : "normal",
+                      color: s.couleur ?? undefined,
+                      whiteSpace: "pre-wrap",
+                    }}
+                  >
+                    {s.texte}
+                  </span>
+                ))}
+              </p>
+            ))}
+          </div>
+        );
+      })}
+    </div>
   );
 }

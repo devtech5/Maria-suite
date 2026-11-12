@@ -16,6 +16,7 @@ import {
 } from "@/modules/projets/actions";
 import { LIBELLE_STATUT_PROJET } from "@/modules/projets/calcul";
 import type { StatutDepense, StatutProjet } from "@/modules/projets/schema";
+import { Fenetre } from "@/components/ui/fenetre";
 
 const PETIT = "h-9 rounded-lg px-2.5 text-xs font-semibold disabled:opacity-50";
 
@@ -169,18 +170,15 @@ export function AjoutPiece({
   const formulaire = useRef<HTMLFormElement>(null);
   const LIBELLES = { photo: "Photo", preuve_paiement: "Preuve de paiement", facture: "Facture / devis", autre: "Autre pièce" };
 
-  if (!ouvert) {
-    return (
+  return (
+    <>
       <div>
         <button type="button" onClick={() => setOuvert(true)} className="text-xs font-semibold text-marque-600 hover:underline">
           + {libelle}
         </button>
         {op.resultat?.ok && <Retour resultat={op.resultat} />}
       </div>
-    );
-  }
-
-  return (
+      <Fenetre ouverte={ouvert} titre={libelle} onFermer={() => setOuvert(false)}>
     <form
       ref={formulaire}
       onSubmit={(e) => {
@@ -191,7 +189,7 @@ export function AjoutPiece({
           setOuvert(false);
         });
       }}
-      className="space-y-2 rounded-lg border border-[var(--filet)] p-3"
+      className="space-y-3 px-5 py-4"
     >
       {projetId && <input type="hidden" name="projetId" value={projetId} />}
       {depenseId && <input type="hidden" name="depenseId" value={depenseId} />}
@@ -216,6 +214,8 @@ export function AjoutPiece({
       </div>
       {op.resultat && !op.resultat.ok && <Retour resultat={op.resultat} />}
     </form>
+      </Fenetre>
+    </>
   );
 }
 

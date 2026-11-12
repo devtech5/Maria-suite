@@ -7,18 +7,24 @@ import { peut, refusDroit } from "@/lib/droits/garde";
 import { urlSignee } from "@/lib/stockage";
 import { notifier } from "@/modules/communication/notifications";
 
+import { validerEvenement, validerSondage, type DonneesContact, type DonneesEvenement, type DonneesSondage } from "./genres";
+
 import {
   ajouterMembres,
   cheminPieceJointe,
   conversation,
+  contactPartageable,
   conversationsDe,
   creerGroupe,
   ecrire,
+  ecrireStructure,
   effacerMessage,
   marquerConversationLue,
   ouvrirConversationPrivee,
   renommerGroupe,
+  repondreEvenementPour,
   retirerMembre,
+  voterSondage,
   type DetailConversation,
   type ResumeConversation,
 } from "./conversations";
@@ -95,6 +101,76 @@ export async function envoyer(conversationId: string, donnees: FormData): Promis
   try {
     const { id, le } = await ecrire(session.organizationId, session.userId, conversationId, corps, piece);
     return { ok: true, message: "Envoyé.", id, le: le.toISOString() };
+  } catch (erreur) {
+    return { ok: false, message: lisible(erreur) };
+  }
+}
+
+type Structure =
+  | { genre: "sondage"; donnees: DonneesSondage }
+  | { genre: "evenement"; donnees: DonneesEvenement }
+  | { genre: "contact"; donnees: DonneesContact }
+  | { erreur: string };
+
+async function envoyerStructure(conversationId: string, fabriquer: () => Promise<Structure>): Promise<Resultat & { le?: string }> {
+  const session = await exigerEntreprise();
+  const refus = await refusDroit("messagerie.utiliser");
+  if (refus) return { ok: false, message: refus.erreur };
+  if (!UUID.test(conversationId)) return { ok: false, message: "Conversation inconnue." };
+  try {
+    const v = await fabriquer();
+    if ("erreur" in v) return { ok: false, message: v.erreur };
+    const { id, le } = await ecrireStructure(session.organizationId, session.userId, conversationId, v.genre, v.donnees);
+    return { ok: true, message: "Envoyé.", id, le: le.toISOString() };
+  } catch (erreur) {
+    return { ok: false, message: lisible(erreur) };
+  }
+}
+
+export async function envoyerSondage(conversationId: string, brut: { question: string; options: string[]; multiple: boolean }): Promise<Resultat & { le?: string }> {
+  return envoyerStructure(conversationId, async () => {
+    const v = validerSondage(brut);
+    return "erreur" in v ? v : { genre: "sondage" as const, donnees: v };
+  });
+}
+
+export async function envoyerEvenement(conversationId: string, brut: { titre: string; date: string; heure: string; lieu: string; description: string }): Promise<Resultat & { le?: string }> {
+  return envoyerStructure(conversationId, async () => {
+    const v = validerEvenement(brut);
+    return "erreur" in v ? v : { genre: "evenement" as const, donnees: v };
+  });
+}
+
+export async function envoyerContact(conversationId: string, membreId: string): Promise<Resultat & { le?: string }> {
+  const session = await exigerEntreprise();
+  return envoyerStructure(conversationId, async () => {
+    if (!UUID.test(membreId)) return { erreur: "Contact inconnu." };
+    const c = await contactPartageable(session.organizationId, membreId);
+    return c ? { genre: "contact" as const, donnees: c } : { erreur: "Contact inconnu." };
+  });
+}
+
+export async function voter(messageId: string, choix: number[]): Promise<Resultat> {
+  const session = await exigerEntreprise();
+  const refus = await refusDroit("messagerie.utiliser");
+  if (refus) return { ok: false, message: refus.erreur };
+  if (!UUID.test(messageId)) return { ok: false, message: "Message inconnu." };
+  try {
+    await voterSondage(session.organizationId, session.userId, messageId, choix);
+    return { ok: true, message: "Vote enregistré." };
+  } catch (erreur) {
+    return { ok: false, message: lisible(erreur) };
+  }
+}
+
+export async function repondreEvenement(messageId: string, reponse: string): Promise<Resultat> {
+  const session = await exigerEntreprise();
+  const refus = await refusDroit("messagerie.utiliser");
+  if (refus) return { ok: false, message: refus.erreur };
+  if (!UUID.test(messageId)) return { ok: false, message: "Message inconnu." };
+  try {
+    await repondreEvenementPour(session.organizationId, session.userId, messageId, reponse);
+    return { ok: true, message: "Réponse enregistrée." };
   } catch (erreur) {
     return { ok: false, message: lisible(erreur) };
   }

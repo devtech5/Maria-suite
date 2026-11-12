@@ -8,6 +8,7 @@ import {
   enregistrerIntervention,
   type EtatIntervention,
 } from "@/modules/actifs/actions";
+import { Fenetre } from "@/components/ui/fenetre";
 
 export interface OptionActif {
   id: string;
@@ -65,8 +66,8 @@ export function FormulaireIntervention({ actifs }: { actifs: OptionActif[] }) {
   const definition = NATURES.find((n) => n.valeur === nature) ?? NATURES[0];
   const actif = actifs.find((a) => a.id === actifId);
 
-  if (!ouvert) {
-    return (
+  return (
+    <>
       <div className="flex items-center gap-3">
         {etat.numero && (
           <span className="text-sm text-valide-600">
@@ -83,135 +84,124 @@ export function FormulaireIntervention({ actifs }: { actifs: OptionActif[] }) {
           Nouvelle intervention
         </button>
       </div>
-    );
-  }
-
-  return (
-    <form
-      action={action}
-      className="mb-5 w-full rounded-xl border border-[var(--filet)] bg-[var(--surface)] p-4"
-    >
-      <div className="mb-4 flex items-center justify-between gap-3">
-        <h2 className="text-sm font-semibold">Nouvelle intervention</h2>
-        <button
-          type="button"
-          onClick={() => setOuvert(false)}
-          className="text-sm text-[var(--encre-faible)] hover:underline"
+      <Fenetre ouverte={ouvert} titre="Nouvelle intervention" presentation="ample" onFermer={() => setOuvert(false)}>
+        <form
+          action={action}
+          className="space-y-4 px-5 py-4"
         >
-          Annuler
-        </button>
-      </div>
 
-      <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-        <Champ
-          libelle="Actif"
-          precision={
-            actif?.proprietaire
-              ? `Appartient à ${actif.proprietaire} : l'intervention se facture.`
-              : "Actif de l'entreprise : le coût est une charge d'entretien."
-          }
-        >
-          <select
-            name="actifId"
-            value={actifId}
-            onChange={(e) => setActifId(e.target.value)}
-            className={CLASSE_CHAMP}
-          >
-            {actifs.map((a) => (
-              <option key={a.id} value={a.id}>
-                {a.code} — {a.designation}
-              </option>
-            ))}
-          </select>
-        </Champ>
+          <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+            <Champ
+              libelle="Actif"
+              precision={
+                actif?.proprietaire
+                  ? `Appartient à ${actif.proprietaire} : l'intervention se facture.`
+                  : "Actif de l'entreprise : le coût est une charge d'entretien."
+              }
+            >
+              <select
+                name="actifId"
+                value={actifId}
+                onChange={(e) => setActifId(e.target.value)}
+                className={CLASSE_CHAMP}
+              >
+                {actifs.map((a) => (
+                  <option key={a.id} value={a.id}>
+                    {a.code} — {a.designation}
+                  </option>
+                ))}
+              </select>
+            </Champ>
 
-        <Champ libelle="Nature" precision={definition.precision}>
-          <select
-            name="nature"
-            value={nature}
-            onChange={(e) => setNature(e.target.value as Nature)}
-            className={CLASSE_CHAMP}
-          >
-            {NATURES.map((n) => (
-              <option key={n.valeur} value={n.valeur}>
-                {n.libelle}
-              </option>
-            ))}
-          </select>
-        </Champ>
+            <Champ libelle="Nature" precision={definition.precision}>
+              <select
+                name="nature"
+                value={nature}
+                onChange={(e) => setNature(e.target.value as Nature)}
+                className={CLASSE_CHAMP}
+              >
+                {NATURES.map((n) => (
+                  <option key={n.valeur} value={n.valeur}>
+                    {n.libelle}
+                  </option>
+                ))}
+              </select>
+            </Champ>
 
-        <Champ libelle="Travaux réalisés">
-          <input
-            name="libelle"
-            required
-            placeholder="Vidange et filtres"
-            className={CLASSE_CHAMP}
-          />
-        </Champ>
+            <Champ libelle="Travaux réalisés">
+              <input
+                name="libelle"
+                required
+                placeholder="Vidange et filtres"
+                className={CLASSE_CHAMP}
+              />
+            </Champ>
 
-        <Champ
-          libelle="Prestataire"
-          precision="Atelier interne, ou le garage extérieur."
-        >
-          <input
-            name="prestataire"
-            placeholder="Garage Adjamé Auto"
-            className={CLASSE_CHAMP}
-          />
-        </Champ>
+            <Champ
+              libelle="Prestataire"
+              precision="Atelier interne, ou le garage extérieur."
+            >
+              <input
+                name="prestataire"
+                placeholder="Garage Adjamé Auto"
+                className={CLASSE_CHAMP}
+              />
+            </Champ>
 
-        <Champ libelle="Coût" precision="En francs entiers.">
-          <input
-            name="cout"
-            inputMode="numeric"
-            required
-            defaultValue="0"
-            className={`${CLASSE_CHAMP} chiffres`}
-          />
-        </Champ>
+            <Champ libelle="Coût" precision="En francs entiers.">
+              <input
+                name="cout"
+                inputMode="numeric"
+                required
+                defaultValue="0"
+                className={`${CLASSE_CHAMP} chiffres`}
+              />
+            </Champ>
 
-        <Champ libelle="Date">
-          <input name="effectueeLe" type="date" className={`${CLASSE_CHAMP} chiffres`} />
-        </Champ>
+            <Champ libelle="Date">
+              <input name="effectueeLe" type="date" className={`${CLASSE_CHAMP} chiffres`} />
+            </Champ>
 
-        {actif?.uniteCompteur && (
-          <Champ
-            libelle={`Compteur (${actif.uniteCompteur})`}
-            precision={
-              actif.compteur === null
-                ? "Aucun relevé connu à ce jour."
-                : `Dernier relevé : ${fmtEntier(actif.compteur)} ${actif.uniteCompteur}.`
-            }
-          >
-            <input
-              key={actif.id}
-              name="compteur"
-              inputMode="numeric"
-              defaultValue={actif.compteur === null ? "" : String(actif.compteur)}
-              className={`${CLASSE_CHAMP} chiffres`}
-            />
-          </Champ>
-        )}
-      </div>
+            {actif?.uniteCompteur && (
+              <Champ
+                libelle={`Compteur (${actif.uniteCompteur})`}
+                precision={
+                  actif.compteur === null
+                    ? "Aucun relevé connu à ce jour."
+                    : `Dernier relevé : ${fmtEntier(actif.compteur)} ${actif.uniteCompteur}.`
+                }
+              >
+                <input
+                  key={actif.id}
+                  name="compteur"
+                  inputMode="numeric"
+                  defaultValue={actif.compteur === null ? "" : String(actif.compteur)}
+                  className={`${CLASSE_CHAMP} chiffres`}
+                />
+              </Champ>
+            )}
+          </div>
 
-      {etat.erreur && (
-        <p
-          role="alert"
-          className="mt-4 rounded-lg bg-danger-50 px-3 py-2.5 text-sm font-medium text-danger-600"
-        >
-          {etat.erreur}
-        </p>
-      )}
+          {etat.erreur && (
+            <p
+              role="alert"
+              className="mt-4 rounded-lg bg-danger-50 px-3 py-2.5 text-sm font-medium text-danger-600"
+            >
+              {etat.erreur}
+            </p>
+          )}
 
-      <div className="mt-4 flex justify-end">
-        <button
-          type="submit"
-          disabled={enCours}
-          className="h-cible rounded-lg bg-marque-600 px-4 text-sm font-semibold text-white hover:bg-marque-700 disabled:opacity-50"
-        >
-          {enCours ? "Enregistrement…" : "Enregistrer l'intervention"}
-        </button>
-      </div>
-    </form>
+          <div className="mt-4 flex justify-end">
+            <button
+              type="submit"
+              disabled={enCours}
+              className="h-cible rounded-lg bg-marque-600 px-4 text-sm font-semibold text-white hover:bg-marque-700 disabled:opacity-50"
+            >
+              {enCours ? "Enregistrement…" : "Enregistrer l'intervention"}
+            </button>
+          </div>
+        </form>
+      </Fenetre>
+    </>
   );
 }

@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 
+import { Fenetre } from "@/components/ui/fenetre";
 import { Retour, useOperation } from "@/components/ui/operations";
 import { CLASSE_CHAMP, CLASSE_CHAMP_COMPACT } from "@/components/ui/primitives";
 import { formaterQuantite, type CodeUnite } from "@/lib/quantite";
@@ -24,23 +25,28 @@ export function EnvoyerAnnuler({ commandeId, envoyable, annulable }: { commandeI
           </button>
         )}
       </div>
-      {motif !== null && (
+      <Fenetre ouverte={motif !== null} titre="Annuler la commande" onFermer={() => setMotif(null)}>
         <form
           onSubmit={(e) => {
             e.preventDefault();
-            op.lancer(() => annulerCommande(commandeId, motif), () => setMotif(null));
+            op.lancer(() => annulerCommande(commandeId, motif ?? ""), () => setMotif(null));
           }}
-          className="flex flex-wrap gap-2"
+          className="space-y-4 px-5 py-4"
         >
-          <input autoFocus value={motif} onChange={(e) => setMotif(e.target.value)} placeholder="Motif de l'annulation" aria-label="Motif de l'annulation" className={CLASSE_CHAMP_COMPACT} />
-          <button type="submit" disabled={op.enCours || motif.trim().length < 3} className="h-cible rounded-lg bg-danger-500 px-3 text-sm font-semibold text-white disabled:opacity-50">
-            Annuler
-          </button>
-          <button type="button" onClick={() => setMotif(null)} className="text-sm text-[var(--encre-faible)] hover:underline">
-            Retour
-          </button>
+          <label className="block">
+            <span className="mb-1 block text-xs font-semibold text-[var(--encre-faible)]">Motif de l&apos;annulation</span>
+            <input autoFocus value={motif ?? ""} onChange={(e) => setMotif(e.target.value)} className={CLASSE_CHAMP} />
+          </label>
+          <div className="flex justify-end gap-2">
+            <button type="button" onClick={() => setMotif(null)} className="h-cible rounded-lg border border-[var(--filet)] px-3.5 text-sm font-semibold hover:bg-[var(--surface-creuse)]">
+              Retour
+            </button>
+            <button type="submit" disabled={op.enCours || (motif ?? "").trim().length < 3} className="h-cible rounded-lg bg-danger-500 px-3.5 text-sm font-semibold text-white disabled:opacity-50">
+              Annuler la commande
+            </button>
+          </div>
         </form>
-      )}
+      </Fenetre>
       {op.resultat && <Retour resultat={op.resultat} />}
     </div>
   );
@@ -74,8 +80,8 @@ export function FormulaireReception({
   const [depotId, setDepotId] = useState(depotParDefaut ?? depots[0]?.id ?? "");
   const [bordereau, setBordereau] = useState("");
 
-  if (!ouvert) {
-    return (
+  return (
+    <>
       <div>
         <button
           type="button"
@@ -90,10 +96,7 @@ export function FormulaireReception({
         </button>
         {op.resultat && <Retour resultat={op.resultat} />}
       </div>
-    );
-  }
-
-  return (
+      <Fenetre ouverte={ouvert} titre="Bon de réception" presentation="ample" onFermer={() => setOuvert(false)}>
     <form
       onSubmit={(e) => {
         e.preventDefault();
@@ -102,9 +105,8 @@ export function FormulaireReception({
         );
         op.lancer(() => recevoir(commandeId, { date, depotId: depotId || null, bordereau: bordereau || null, quantites: converties }), () => setOuvert(false));
       }}
-      className="mb-5 w-full rounded-xl border border-valide-500/40 bg-[var(--surface)] p-4"
+      className="px-5 py-4"
     >
-      <h2 className="mb-3 text-sm font-semibold">Bon de réception</h2>
       <div className="mb-3 grid gap-3 sm:grid-cols-3">
         <label className="block">
           <span className="mb-1 block text-xs font-semibold text-[var(--encre-faible)]">Date</span>
@@ -152,5 +154,7 @@ export function FormulaireReception({
         </button>
       </div>
     </form>
+      </Fenetre>
+    </>
   );
 }

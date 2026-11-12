@@ -8,6 +8,7 @@ import { CLASSE_CHAMP } from "@/components/ui/primitives";
 import { enregistrerCommande } from "@/modules/achats/actions";
 
 import { EditeurLignes, ligneVide, nouvelleCle, versLignesAchat, type ArticleAchat, type LigneEditee } from "./lignes";
+import { Fenetre } from "@/components/ui/fenetre";
 
 const libelle = "mb-1 block text-xs font-semibold text-[var(--encre-faible)]";
 
@@ -61,14 +62,6 @@ export function EditeurCommande({
   const [enCours, demarrer] = useTransition();
   const routeur = useRouter();
 
-  if (!ouvert) {
-    return (
-      <button type="button" onClick={() => setOuvert(true)} className="h-cible rounded-lg bg-marque-600 px-3.5 text-sm font-semibold text-white hover:bg-marque-700">
-        Nouvelle commande
-      </button>
-    );
-  }
-
   function choisirFournisseur(id: string) {
     setFournisseurId(id);
     setContactId(contactsDe(id).find((c) => c.principal)?.id ?? "");
@@ -97,15 +90,12 @@ export function EditeurCommande({
   }
 
   return (
-    <section className="mb-5 w-full rounded-xl border border-[var(--filet)] bg-[var(--surface)] p-4 text-left">
-      <div className="mb-3 flex items-center justify-between gap-3">
-        <h2 className="text-sm font-semibold">{initiale ? "Modifier le brouillon" : "Nouvelle commande fournisseur"}</h2>
-        {!initiale && (
-          <button type="button" onClick={() => setOuvert(false)} className="text-sm text-[var(--encre-faible)] hover:underline">
-            Annuler
-          </button>
-        )}
-      </div>
+    <>
+      <button type="button" onClick={() => setOuvert(true)} className="h-cible rounded-lg bg-marque-600 px-3.5 text-sm font-semibold text-white hover:bg-marque-700">
+        {initiale ? "Modifier le brouillon" : "Nouvelle commande"}
+      </button>
+      <Fenetre ouverte={ouvert} titre={initiale ? "Modifier le brouillon" : "Nouvelle commande fournisseur"} presentation="ample" large onFermer={() => setOuvert(false)}>
+    <section className="px-5 py-4 text-left">
       <div className="mb-4 grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
         <label className="block">
           <span className={libelle}>Fournisseur</span>
@@ -164,5 +154,7 @@ export function EditeurCommande({
         </button>
       </div>
     </section>
+      </Fenetre>
+    </>
   );
 }

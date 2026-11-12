@@ -8,35 +8,33 @@ import { annulerAction, changerStatutPlan, changerStatutProspect, convertirProsp
 import { LIBELLE_STATUT_PROSPECT, STATUTS_PROSPECT, passagePermis, type StatutProspect } from "@/modules/prospection/regles";
 
 import { ChampsAction } from "./champs";
+import { Fenetre } from "@/components/ui/fenetre";
 
 const SECONDAIRE = "h-9 rounded-lg border border-[var(--filet)] bg-[var(--surface)] px-3 text-xs font-semibold hover:bg-[var(--surface-creuse)] disabled:opacity-50";
 const PRINCIPAL = "h-cible rounded-lg bg-marque-600 px-4 text-sm font-semibold text-white hover:bg-marque-700 disabled:opacity-50";
 
 /**
- * Un geste déplié sous la fiche du prospect, pas dans une fenêtre : sur un
- * téléphone, le commercial garde sous les yeux ce qu'il a déjà noté.
+ * Un geste du prospect, saisi dans une modale centrée comme tout formulaire.
  */
 function Geste({ libelle, bouton, action, children }: { libelle: string; bouton: string; action: (d: FormData) => Promise<Resultat>; children: ReactNode }) {
   const [ouvert, setOuvert] = useState(false);
   const op = useOperation();
-  if (!ouvert) {
-    return (
+  return (
+    <>
       <span className="inline-flex items-center gap-2">
         <button type="button" onClick={() => setOuvert(true)} className={SECONDAIRE}>
           {libelle}
         </button>
         {op.resultat?.ok && <span className="text-xs text-valide-600">{op.resultat.message}</span>}
       </span>
-    );
-  }
-  return (
+      <Fenetre ouverte={ouvert} titre={libelle} onFermer={() => setOuvert(false)}>
     <form
       onSubmit={(e) => {
         e.preventDefault();
         const d = new FormData(e.currentTarget);
         op.lancer(() => action(d), () => setOuvert(false));
       }}
-      className="mt-2 w-full space-y-3 rounded-xl border border-[var(--filet)] bg-[var(--surface-creuse)] p-3"
+      className="space-y-3 px-5 py-4"
     >
       {children}
       {op.resultat && !op.resultat.ok && <Retour resultat={op.resultat} />}
@@ -49,6 +47,8 @@ function Geste({ libelle, bouton, action, children }: { libelle: string; bouton:
         </button>
       </div>
     </form>
+      </Fenetre>
+    </>
   );
 }
 
