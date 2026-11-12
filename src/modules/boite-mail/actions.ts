@@ -7,10 +7,12 @@ import { z } from "zod";
 import { db } from "@/db";
 import { tracer } from "@/lib/audit";
 import { exigerEntreprise } from "@/lib/auth/dal";
+import { adresseAutorisee } from "@/lib/auth/identifiants";
 import { chiffrer, dechiffrer } from "@/lib/chiffrement";
 import { refusDroit } from "@/lib/droits/garde";
 import { newId } from "@/lib/ids";
 
+import { deviner } from "./fournisseurs";
 import * as imap from "./imap";
 import { comptesCourriel } from "./schema";
 
@@ -48,21 +50,17 @@ function echoue(r: unknown): r is Echec {
 
 const schemaConnexion = z.object({
   adresse: z.string().trim().toLowerCase().regex(/^[^@\s]+@[^@\s]+\.[^@\s]+$/, "Adresse e-mail invalide."),
-  nomAffiche: z.string().trim().max(80).nullable(),
-  identifiant: z.string().trim().min(3).max(200),
   motDePasse: z.string().min(1, "Saisissez le mot de passe de la boîte.").max(500),
-  imapHote: z.string().trim().min(3, "Serveur IMAP manquant.").max(200),
-  imapPort: z.number().int().min(1).max(65535),
-  imapSecurise: z.boolean(),
-  smtpHote: z.string().trim().min(3, "Serveur SMTP manquant.").max(200),
-  smtpPort: z.number().int().min(1).max(65535),
-  smtpSecurise: z.boolean(),
-  signature: z.string().max(1000).nullable(),
 });
 
 /**
- * Connecte la boîte : les deux sens sont ESSAYÉS avant tout enregistrement —
- * un mot de passe refusé ne se garde pas, même chiffré.
+ * Connecte la boîte à partir de l'adresse et du mot de passe, rien d'autre.
+ *
+ * Les serveurs ne viennent JAMAIS du navigateur : ils se déduisent de
+ * l'adresse (`deviner`, Hostinger pour @maria-groupe.com). Un hôte choisi par
+ * l'utilisateur ferait lancer au serveur des connexions vers n'importe quelle
+ * machine, internes comprises. Les deux sens sont ESSAYÉS avant tout
+ * enregistrement : un mot de passe refusé ne se garde pas, même chiffré.
  */
 export async function connecterBoite(d: FormData): Promise<Resultat> {
   const session = await exigerEntreprise();
@@ -72,51 +70,54 @@ export async function connecterBoite(d: FormData): Promise<Resultat> {
     const v = d.get(k);
     return typeof v === "string" && v.trim() !== "" ? v : null;
   };
-  const analyse = schemaConnexion.safeParse({
-    adresse: texte("adresse") ?? "",
-    nomAffiche: texte("nomAffiche"),
-    identifiant: texte("identifiant") ?? texte("adresse") ?? "",
-    // Gmail affiche son mot de passe d'application en quatre blocs séparés
-    // d'espaces, qu'il refuse ensuite : on les retire pour lui seul.
-    motDePasse: (texte("imapHote") ?? "").trim().toLowerCase() === "imap.gmail.com" ? (texte("motDePasse") ?? "").replace(/\s+/g, "") : (texte("motDePasse") ?? ""),
-    imapHote: texte("imapHote") ?? "",
-    imapPort: Number(texte("imapPort") ?? 993),
-    imapSecurise: d.get("imapSecurise") !== "non",
-    smtpHote: texte("smtpHote") ?? "",
-    smtpPort: Number(texte("smtpPort") ?? 465),
-    smtpSecurise: d.get("smtpSecurise") !== "non",
-    signature: texte("signature"),
-  });
+  const analyse = schemaConnexion.safeParse({ adresse: texte("adresse") ?? "", motDePasse: texte("motDePasse") ?? "" });
   if (!analyse.success) return { ok: false, message: analyse.error.issues[0].message };
-  const v = analyse.data;
+  const { adresse, motDePasse: saisi } = analyse.data;
+  if (!adresseAutorisee(adresse)) return { ok: false, message: "Seules les adresses @maria-groupe.com se connectent ici." };
+
+  const r = deviner(adresse);
+  // Gmail affiche son mot de passe d'application en quatre blocs séparés
+  // d'espaces, qu'il refuse ensuite : on les retire pour lui seul.
+  const motDePasse = r.imapHote === "imap.gmail.com" ? saisi.replace(/\s+/g, "") : saisi;
+  const connexion = {
+    adresse,
+    nomAffiche: session.nom.slice(0, 80) || null,
+    identifiant: adresse,
+    motDePasse,
+    imapHote: r.imapHote,
+    imapPort: r.imapPort,
+    imapSecurise: r.imapSecurise,
+    smtpHote: r.smtpHote,
+    smtpPort: r.smtpPort,
+    smtpSecurise: r.smtpSecurise,
+  };
 
   try {
-    await imap.verifier({ ...v, nomAffiche: v.nomAffiche });
+    await imap.verifier(connexion);
   } catch (erreur) {
     return { ok: false, message: imap.messageErreur(erreur) };
   }
 
   const ligne = {
-    adresse: v.adresse,
-    nomAffiche: v.nomAffiche,
-    identifiant: v.identifiant,
-    motDePasseChiffre: chiffrer(v.motDePasse, USAGE),
-    imapHote: v.imapHote,
-    imapPort: v.imapPort,
-    imapSecurise: v.imapSecurise,
-    smtpHote: v.smtpHote,
-    smtpPort: v.smtpPort,
-    smtpSecurise: v.smtpSecurise,
-    signature: v.signature,
+    adresse,
+    nomAffiche: connexion.nomAffiche,
+    identifiant: adresse,
+    motDePasseChiffre: chiffrer(motDePasse, USAGE),
+    imapHote: r.imapHote,
+    imapPort: r.imapPort,
+    imapSecurise: r.imapSecurise,
+    smtpHote: r.smtpHote,
+    smtpPort: r.smtpPort,
+    smtpSecurise: r.smtpSecurise,
     verifieLe: new Date(),
   };
   await db
     .insert(comptesCourriel)
     .values({ id: newId(), organizationId: session.organizationId, userId: session.userId, ...ligne })
     .onConflictDoUpdate({ target: [comptesCourriel.organizationId, comptesCourriel.userId], set: { ...ligne, updatedAt: new Date() } });
-  await tracer({ action: "boite_mail.connecter", entite: "compte", entiteId: session.userId, apres: { adresse: v.adresse, serveur: v.imapHote } });
+  await tracer({ action: "boite_mail.connecter", entite: "compte", entiteId: session.userId, apres: { adresse, serveur: r.imapHote } });
   revalidatePath("/boite-mail");
-  return { ok: true, message: `${v.adresse} connectée.` };
+  return { ok: true, message: `${adresse} connectée.` };
 }
 
 export async function deconnecterBoite(): Promise<Resultat> {
