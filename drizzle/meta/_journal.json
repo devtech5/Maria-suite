@@ -631,6 +631,13 @@
       "when": 1794503089921,
       "tag": "0089_contacts_annuaire",
       "breakpoints": true
+    },
+    {
+      "idx": 90,
+      "version": "7",
+      "when": 1794505933560,
+      "tag": "0090_entreprise_coordonnees",
+      "breakpoints": true
     }
   ]
 }
