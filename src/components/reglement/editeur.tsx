@@ -5,7 +5,7 @@ import { useRouter } from "next/navigation";
 
 import { Retour, type Resultat } from "@/components/ui/operations";
 import { CLASSE_CHAMP, Champ } from "@/components/ui/primitives";
-import { enregistrerBrouillon, publierVersion, supprimerBrouillon } from "@/modules/reglement/actions";
+import { enregistrerBrouillon, importerReglement, publierVersion, supprimerBrouillon } from "@/modules/reglement/actions";
 import {
   LONGUEUR_MAX_PREAMBULE,
   LONGUEUR_MAX_RESUME,
@@ -140,6 +140,33 @@ export function EditeurReglement({ brouillon, aujourdhui, precedente }: { brouil
     });
   };
 
+  const fichier = useRef<HTMLInputElement>(null);
+  const [lecture, setLecture] = useState<{ ok: boolean; message: string; avertissements: string[] } | null>(null);
+
+  /**
+   * Importer un règlement déposé en fichier : la plateforme en récupère le
+   * titre, le préambule et les articles ; rien ne part en base avant « Enregistrer ».
+   */
+  const importer = (choisi: File) => {
+    const contenu = Boolean(preambule.trim()) || articles.some((a) => a.titre.trim() || a.texte.trim());
+    if (contenu && !window.confirm("Remplacer le préambule et les articles actuels par ceux du fichier ?")) return;
+    const d = new FormData();
+    d.set("fichier", choisi);
+    demarrer(async () => {
+      const r = await importerReglement(brouillon.id, d);
+      if (!r.ok) {
+        setLecture({ ok: false, message: r.message, avertissements: [] });
+        return;
+      }
+      if (r.titre) setTitre(r.titre.slice(0, LONGUEUR_MAX_TITRE));
+      setPreambule(r.preambule);
+      prochaineCle.current = r.articles.length;
+      setArticles(r.articles.map((a, i) => ({ ...a, cle: i })));
+      setModifie(true);
+      setLecture({ ok: true, message: r.message, avertissements: r.avertissements });
+    });
+  };
+
   const supprimer = () => {
     if (!window.confirm("Supprimer ce brouillon ? La saisie sera perdue ; les versions publiées ne changent pas.")) return;
     demarrer(async () => {
@@ -170,8 +197,37 @@ export function EditeurReglement({ brouillon, aujourdhui, precedente }: { brouil
             </button>
           ))}
         </div>
-        <p className="text-xs text-[var(--encre-faible)]">{modifie ? "Modifications non enregistrées" : "Tout est enregistré"}</p>
+        <div className="flex flex-wrap items-center gap-3">
+          <input
+            ref={fichier}
+            type="file"
+            accept=".docx,.txt,.md,application/vnd.openxmlformats-officedocument.wordprocessingml.document,text/plain"
+            hidden
+            onChange={(e) => {
+              const f = e.target.files?.[0];
+              e.target.value = "";
+              if (f) importer(f);
+            }}
+          />
+          <button type="button" disabled={enCours} onClick={() => fichier.current?.click()} className="h-9 rounded-lg border border-[var(--filet)] bg-[var(--surface)] px-3 text-sm font-semibold hover:bg-[var(--surface-creuse)] disabled:opacity-50">
+            Importer un fichier
+          </button>
+          <p className="text-xs text-[var(--encre-faible)]">{modifie ? "Modifications non enregistrées" : "Tout est enregistré"}</p>
+        </div>
       </div>
+
+      {lecture && (
+        <div role={lecture.ok ? "status" : "alert"} className={`rounded-xl px-4 py-3 text-sm ${lecture.ok ? "bg-valide-50 text-valide-600" : "bg-danger-50 text-danger-600"}`}>
+          <p className="font-semibold">{lecture.message}</p>
+          {lecture.avertissements.length > 0 && (
+            <ul className="mt-1 list-disc pl-5 text-xs">
+              {lecture.avertissements.map((a) => (
+                <li key={a}>{a}</li>
+              ))}
+            </ul>
+          )}
+        </div>
+      )}
 
       {apercu ? (
         <TexteReglement version={{ titre: titre || "Règlement intérieur", numero: null, dateEffet: dateEffet || null, preambule: preambule || null, articles: articles.filter((a) => a.titre || a.texte) }} />
