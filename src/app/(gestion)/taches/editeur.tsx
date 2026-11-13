@@ -8,7 +8,7 @@ import { joindreFichierTache, publierMessage } from "@/modules/taches/actions";
 import { FICHIER_MAX_OCTETS, MESSAGE_MAX, TYPES_FICHIER } from "@/modules/taches/suivi-regles";
 
 import { useTaches } from "./contexte";
-import { CorpsMessage } from "./corps-message";
+import { CorpsMessage } from "@/components/ui/texte-mis-en-forme";
 import type { TacheAffichee } from "./types";
 
 const EMOJIS = ["👍", "👏", "🙏", "✅", "⚠️", "❗", "🔥", "🎉", "📌", "📎", "🚚", "🏗️", "💰", "📅", "⏳", "😊"];

@@ -76,6 +76,8 @@ export const GROUPES_MODULES: GroupeModules[] = [
       { href: "/communication", racine: "/communication", icone: "communication", libelle: "Messages groupés", description: "Envois aux clients et messages groupés.", droit: "communication.consulter" },
       { href: "/archives", racine: "/archives", icone: "archives", libelle: "Archives", description: "Votre espace d'archivage personnel, intègre et tracé.", droit: "archives.consulter" },
       { href: "/meeting", racine: "/meeting", icone: "meeting", libelle: "Meeting", description: "Réunions d'équipe à distance, en vidéo.", droit: "meeting.participer" },
+      // Ouvert à tous (`DROITS_DE_TOUS`) : chacun lit ce qui lui est diffusé et peut rédiger.
+      { href: "/pv", racine: "/pv", icone: "documents", libelle: "Procès-verbaux", description: "PV de réunion, comptes rendus et rapports diffusés au personnel.", droit: "pv.consulter" },
       // Ouvert à tous : chacun a le planning personnel, et l'anniversaire d'un collègue concerne toute l'équipe.
       { href: "/anniversaires", racine: "/anniversaires", icone: "anniversaires", libelle: "Anniversaires", description: "Les anniversaires des collègues, du jour et à venir.", droit: "planning.utiliser" },
       // Chaque rôle de personnel lit l'annuaire ; tenir les adresses et les numéros reste à `contacts.gerer`.

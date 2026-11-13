@@ -73,6 +73,12 @@ export default async function PageReunion({ params }: PageProps<"/meeting/[id]">
             )}
             <GestesReunion reunionId={reunion.id} gestes={gestesPossibles(reunion.statut, reunion, acteur)} />
             <GestesLien reunionId={reunion.id} gestes={gestesLien(reunion.statut, reunion.lienActif, reunion, acteur)} />
+            {/* Le procès-verbal reprend l'objet, les présences et le compte rendu de la réunion. */}
+            {reunion.statut !== "annulee" && (
+              <Link href={`/pv/nouveau?reunion=${reunion.id}`} className="text-sm font-semibold text-marque-600 hover:underline">
+                Rédiger le procès-verbal →
+              </Link>
+            )}
           </div>
         }
       />
