@@ -35,6 +35,14 @@ export const CHAPITRES_EQUIPE: Chapitre[] = [
         ],
       },
       {
+        ancre: "colonnes",
+        titre: "Colonnes personnalisées",
+        texte: [
+          "Le « + » au bout du tableau (ou « + Colonne ») ajoute une colonne commune à toute l'équipe : Texte, Nombre entier avec son unité (additionné au pied de chaque groupe), Date, Étiquettes de couleur, Case à cocher ou Lien. Le menu de son en-tête la renomme, règle ses étiquettes, la déplace ou la retire. Composer les colonnes demande le droit d'attribuer les tâches.",
+          "L'exécutant, le créateur et qui attribue remplissent les cellules d'un clic. Les colonnes apparaissent aussi sur les fiches, le Kanban et la fiche de chaque tâche, et la recherche les lit.",
+        ],
+      },
+      {
         ancre: "confier",
         titre: "Confier une tâche",
         texte: [
@@ -63,6 +71,13 @@ export const CHAPITRES_EQUIPE: Chapitre[] = [
         choix: ["En la supprimant puis en la recréant", "En glissant sa carte dans la colonne « En cours »", "Le Kanban ne sert qu'à regarder"],
         bonne: 1,
         explication: "Glisser une carte d'une colonne à l'autre fait le geste : commencer, terminer avec un compte rendu, annuler avec un motif, rouvrir.",
+      },
+      {
+        cle: "taches-colonne-nombre",
+        question: "Dans une colonne « Nombre », que fait la saisie « 2,5 » ?",
+        choix: ["Elle est arrondie à 3", "Elle est refusée : un nombre entier, sans virgule", "Elle est enregistrée telle quelle"],
+        bonne: 1,
+        explication: "Comme tout montant de Maria Suite, un nombre est entier : la somme au pied du groupe reste exacte.",
       },
     ],
   },
