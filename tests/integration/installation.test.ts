@@ -126,7 +126,7 @@ describe("installation de MARIA GROUP SARL", () => {
       tax_id: null,
     });
     expect(Number(o.capital_social)).toBe(10_000_000);
-    expect(o.pied_de_page).toBe("Siège social : Yamoussoukro, quartier Kami CAFOP\nBureaux : Cocody Angré 7e tranche, cour des comptes");
+    expect(o.pied_de_page).toBe("Siège social : Yamoussoukro, quartier Kami CAFOP");
   });
 
   it("la migration 0090 met à jour une entreprise déjà installée, sans toucher au NCC saisi", async () => {
@@ -136,6 +136,17 @@ describe("installation de MARIA GROUP SARL", () => {
     expect(o).toMatchObject({ phone: "+225 27 22 63 98 / 07 04 61 74 74", tax_id: "NCC-SAISI", rccm: "N° CI-TDI-01-2026-B12-00406" });
     expect(Number(o.capital_social)).toBe(10_000_000);
     expect(Number(o.version)).toBe(2);
+  });
+
+  it("la migration 0091 ne garde que le siège, et respecte un pied saisi à la main", async () => {
+    await requete(`insert into organizations (name, slug) values ('MARIA GROUP SARL', 'maria-group')`);
+    await client.exec(readFileSync(resolve("./drizzle/0090_entreprise_coordonnees.sql"), "utf8"));
+    await client.exec(readFileSync(resolve("./drizzle/0091_pied_de_page_siege.sql"), "utf8"));
+    expect((await requete(`select pied_de_page from organizations`))[0].pied_de_page).toBe("Siège social : Yamoussoukro, quartier Kami CAFOP");
+
+    await requete(`update organizations set pied_de_page = 'Compte BICICI 123'`);
+    await client.exec(readFileSync(resolve("./drizzle/0091_pied_de_page_siege.sql"), "utf8"));
+    expect((await requete(`select pied_de_page from organizations`))[0].pied_de_page).toBe("Compte BICICI 123");
   });
 
   it("refuse une base qui porte une autre entreprise", async () => {

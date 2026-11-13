@@ -638,6 +638,13 @@
       "when": 1794505933560,
       "tag": "0090_entreprise_coordonnees",
       "breakpoints": true
+    },
+    {
+      "idx": 91,
+      "version": "7",
+      "when": 1794508583912,
+      "tag": "0091_pied_de_page_siege",
+      "breakpoints": true
     }
   ]
 }
