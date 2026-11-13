@@ -64,7 +64,7 @@ export default async function PageContacts({ searchParams }: PageProps<"/contact
               <Th>Poste</Th>
               <Th>Adresses e-mail</Th>
               <Th>Téléphones</Th>
-              {a.gerer && <Th aligne="droite">Numéros</Th>}
+              <Th aligne="droite">Actions</Th>
             </tr>
           </thead>
           <tbody>
@@ -116,11 +116,14 @@ export default async function PageContacts({ searchParams }: PageProps<"/contact
                     </ul>
                   )}
                 </Td>
-                {a.gerer && (
-                  <Td aligne="droite">
-                    <NumerosCollaborateur employeeId={l.id} nom={l.nom} numeros={l.numeros} />
-                  </Td>
-                )}
+                <Td aligne="droite">
+                  <div className="flex flex-col items-end gap-1">
+                    <Link href={`/imprimer/carte-visite/${l.id}`} className="whitespace-nowrap text-sm font-semibold text-marque-600 hover:underline">
+                      Carte de visite
+                    </Link>
+                    {a.gerer && <NumerosCollaborateur employeeId={l.id} nom={l.nom} numeros={l.numeros} />}
+                  </div>
+                </Td>
               </tr>
             ))}
           </tbody>

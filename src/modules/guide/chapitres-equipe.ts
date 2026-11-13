@@ -417,7 +417,7 @@ export const CHAPITRES_EQUIPE: Chapitre[] = [
         titre: "Chercher un collègue",
         chemin: "/contacts",
         texte: [
-          "L'annuaire liste le personnel avec son service, son poste, ses adresses e-mail professionnelles et ses numéros de téléphone. La recherche accepte un nom, un service, une adresse ou un bout de numéro ; le filtre par service restreint la liste à une équipe. « Exporter en Excel » télécharge la liste affichée, recherche et filtre compris ; « Imprimer (PDF) » la met sur le papier à en-tête de l'entreprise, rangée par service, à imprimer ou à enregistrer en PDF.",
+          "L'annuaire liste le personnel avec son service, son poste, ses adresses e-mail professionnelles et ses numéros de téléphone. La recherche accepte un nom, un service, une adresse ou un bout de numéro ; le filtre par service restreint la liste à une équipe. « Exporter en Excel » télécharge la liste affichée, recherche et filtre compris ; « Imprimer (PDF) » la met sur le papier à en-tête de l'entreprise, rangée par service, à imprimer ou à enregistrer en PDF. « Carte de visite », sur chaque ligne, imprime la carte du collaborateur au format 85 × 55 mm, recto et verso : ses coordonnées professionnelles seulement, et au dos un QR qui l'ajoute aux contacts d'un téléphone.",
           "Chacun lit les adresses et les numéros professionnels. Les numéros personnels et l'adresse e-mail personnelle d'un collaborateur ne s'affichent que pour ceux qui tiennent l'annuaire : ce sont des données personnelles.",
         ],
       },
