@@ -129,6 +129,15 @@ export const CHAPITRES_EQUIPE: Chapitre[] = [
           "Si l'accusé de lecture est demandé, chaque destinataire confirme « J'ai pris connaissance » ; le rédacteur et la direction voient qui l'a fait et peuvent relancer. Chaque action décidée devient une tâche d'un clic, confiée à son responsable. Pour corriger un PV publié, on en publie une nouvelle version, sous le même numéro.",
         ],
       },
+      {
+        ancre: "signer",
+        titre: "Signature des participants",
+        texte: [
+          "Une fois le PV publié, chaque participant présent le signe, au doigt, au stylet ou à la souris, dans le cadre « Signatures des présents » : « Signer » pour soi-même. Ceux qui ont un compte sont prévenus dans la cloche et le retrouvent sous « À signer ».",
+          "Une personne extérieure, ou un collègue sans téléphone, signe sur place : le rédacteur ou la direction ouvre « Faire signer sur place » et lui tend l'écran. La signature est horodatée, la feuille imprimée la porte avec la mention « recueillie par ». Une signature ne se reprend pas ; une nouvelle version du PV se signe à nouveau.",
+        ],
+        etapes: ["Ouvrez le PV publié.", "Cliquez « Signer » en face de votre nom.", "Signez dans le cadre, puis « Signer le procès-verbal »."],
+      },
     ],
     quiz: [
       {
@@ -144,6 +153,13 @@ export const CHAPITRES_EQUIPE: Chapitre[] = [
         choix: ["Modifier le texte directement", "Le supprimer et en refaire un", "Publier une nouvelle version, sous le même numéro"],
         bonne: 2,
         explication: "Le texte publié est celui que chacun a lu : il ne se réécrit pas. « Corriger : nouvelle version » ouvre une version 2, qui remplace la première à sa publication.",
+      },
+      {
+        cle: "pv-signature-exterieur",
+        question: "Un représentant du bureau de contrôle, sans compte, était présent. Comment signe-t-il le PV ?",
+        choix: ["Il ne signe pas", "Le rédacteur ou la direction le fait signer sur place, sur son écran", "On lui envoie un lien par e-mail"],
+        bonne: 1,
+        explication: "« Faire signer sur place » ouvre le cadre de signature pour un participant présent ; la feuille imprimée indique qui a recueilli la signature.",
       },
     ],
   },

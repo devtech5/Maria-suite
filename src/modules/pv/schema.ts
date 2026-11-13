@@ -147,4 +147,43 @@ export const pvFichiers = pgTable(
   (t) => [check("pv_fichiers_taille", sql`${t.taille} > 0`), index("pv_fichiers_pv_idx").on(t.organizationId, t.pvId), index("pv_fichiers_chemin_idx").on(t.chemin)],
 );
 
+/**
+ * Signature d'un participant présent, sur un PV publié. Le tracé est un
+ * chemin SVG vérifié (`verifierTrace`), pas un fichier. Une par participant
+ * et par version : une nouvelle version, au texte changé, se signe à nouveau.
+ *
+ * Signée depuis son compte (`user_id`), ou recueillie sur place sur
+ * l'appareil du rédacteur ou de la direction (`recueillie_par_user_id`).
+ */
+export const pvSignatures = pgTable(
+  "pv_signatures",
+  {
+    id: primaryId(),
+    organizationId: uuid("organization_id")
+      .notNull()
+      .references(() => organizations.id, { onDelete: "cascade" }),
+    pvId: uuid("pv_id")
+      .notNull()
+      .references(() => procesVerbaux.id, { onDelete: "cascade" }),
+    /** Place du participant dans la liste figée du PV. */
+    rang: integer("rang").notNull(),
+    /** Nom et qualité tels qu'imprimés, recopiés au moment de signer. */
+    nom: text("nom").notNull(),
+    qualite: text("qualite"),
+    userId: uuid("user_id"),
+    recueillieParUserId: uuid("recueillie_par_user_id"),
+    trace: text("trace").notNull(),
+    signeLe: timestamp("signe_le", { withTimezone: true }).notNull().defaultNow(),
+    adresseIp: text("adresse_ip"),
+    appareil: text("appareil"),
+    ...timestamps,
+    ...rowVersion,
+  },
+  (t) => [
+    unique("pv_signatures_unique").on(t.pvId, t.rang),
+    check("pv_signatures_qui", sql`${t.userId} IS NOT NULL OR ${t.recueillieParUserId} IS NOT NULL`),
+    index("pv_signatures_pv_idx").on(t.organizationId, t.pvId),
+  ],
+);
+
 export type ProcesVerbal = typeof procesVerbaux.$inferSelect;

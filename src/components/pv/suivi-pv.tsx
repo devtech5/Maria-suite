@@ -8,8 +8,9 @@ import { Retour, type Resultat } from "@/components/ui/operations";
 import { Pastille } from "@/components/ui/primitives";
 import { dateEnLettres } from "@/modules/documents/courriers-calcul";
 import { PiecesJointesPv, type PieceAffichee } from "@/components/pv/pieces-jointes";
+import { SignaturesPv, type SignatureAffichee } from "@/components/pv/signatures-pv";
 import { accuserLecture, creerTacheAction, relancerPv, renvoyerPv, reviserPv } from "@/modules/pv/actions";
-import { suiviLectures, type GestePv, type StatutPv } from "@/modules/pv/regles";
+import { suiviLectures, type GestePv, type Signataire, type StatutPv } from "@/modules/pv/regles";
 import { LIBELLE_STATUT as LIBELLE_STATUT_TACHE, type Statut } from "@/modules/taches/calcul";
 
 const MOMENT = new Intl.DateTimeFormat("fr-FR", { day: "numeric", month: "long", year: "numeric", hour: "2-digit", minute: "2-digit", timeZone: "Africa/Abidjan" });
@@ -43,6 +44,10 @@ export function SuiviPv({
   derniereVersionPubliee,
   revision,
   pieces,
+  moi,
+  reference,
+  signataires,
+  signatures,
 }: {
   pvId: string;
   statut: StatutPv;
@@ -58,6 +63,10 @@ export function SuiviPv({
   derniereVersionPubliee: number;
   revision: number;
   pieces: PieceAffichee[];
+  moi: string;
+  reference: string;
+  signataires: Signataire[];
+  signatures: SignatureAffichee[];
 }) {
   const [resultat, setResultat] = useState<Resultat | null>(null);
   const [enCours, demarrer] = useTransition();
@@ -72,6 +81,9 @@ export function SuiviPv({
   };
   const suivi = suiviLectures(lectures.map((l) => ({ ...l, luLe: l.luLeIso ? new Date(l.luLeIso) : null })));
   const remplacee = statut === "publie" && revision < derniereVersionPubliee;
+  const signees = new Set(signatures.map((x) => x.rang));
+  // Ceux qu'une relance atteint : les signataires qui ont un compte.
+  const signaturesAttendues = signataires.filter((x) => x.userId && !signees.has(x.rang)).length;
   const carte = "rounded-xl border border-[var(--filet)] bg-[var(--surface)] p-4";
   const bouton = "h-cible w-full rounded-lg border border-[var(--filet)] px-3 text-sm font-semibold hover:bg-[var(--surface-creuse)] disabled:opacity-50";
 
@@ -135,8 +147,19 @@ export function SuiviPv({
             Corriger : nouvelle version
           </button>
         )}
+        {(redacteur || valideur) && statut === "publie" && !remplacee && ((accuseRequis && suivi.enAttente.length > 0) || signaturesAttendues > 0) && (
+          <button type="button" disabled={enCours} onClick={() => lancer(() => relancerPv(pvId))} className={bouton}>
+            Relancer : lectures et signatures en attente
+          </button>
+        )}
         <Retour resultat={resultat} />
       </div>
+
+      {statut === "publie" && signataires.length > 0 && (
+        <div className={carte}>
+          <SignaturesPv pvId={pvId} reference={reference} signataires={signataires} signatures={signatures} moi={moi} recueille={redacteur || valideur} ouverte={!remplacee} />
+        </div>
+      )}
 
       {pieces.length > 0 && (
         <div className={carte}>
@@ -216,11 +239,7 @@ export function SuiviPv({
                   </ul>
                 </details>
               )}
-              {accuseRequis && suivi.enAttente.length > 0 && (
-                <button type="button" disabled={enCours} onClick={() => lancer(() => relancerPv(pvId))} className={`${bouton} mt-3`}>
-                  Relancer ceux qui n&apos;ont pas lu
-                </button>
-              )}
+
             </>
           )}
         </div>

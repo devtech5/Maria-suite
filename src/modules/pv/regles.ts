@@ -224,3 +224,64 @@ export function piecesModifiables(statut: StatutPv, role: RolePv): boolean {
   if (statut === "a_valider") return role.valideur;
   return false;
 }
+
+// ------------------------------------------------------------------ signatures
+
+/**
+ * Le tracé d'une signature, en chemin SVG : des traits `M x y L x y …`, en
+ * coordonnées entières dans un cadre de 1000 × 400. Ce sont des données, pas
+ * un fichier : la signature s'imprime avec le PV sans URL à signer, et rien
+ * d'autre qu'un trait ne peut s'y glisser — le format est vérifié au point près.
+ */
+export const CADRE_SIGNATURE = { largeur: 1000, hauteur: 400 } as const;
+export const TRACE_MAX = 30_000;
+const TRACE = /^(?:M\d{1,4} \d{1,3}(?: L\d{1,4} \d{1,3})*)(?: M\d{1,4} \d{1,3}(?: L\d{1,4} \d{1,3})*)*$/;
+
+/** Le tracé, s'il est bien formé et assez long pour être une signature ; sinon le motif du refus. */
+export function verifierTrace(trace: unknown): { ok: true; valeur: string } | { ok: false; message: string } {
+  if (typeof trace !== "string" || trace.length === 0) return { ok: false, message: "Signez dans le cadre." };
+  const propre = trace.trim().replace(/\s+/g, " ");
+  if (propre.length > TRACE_MAX) return { ok: false, message: "Signature trop chargée : recommencez plus simplement." };
+  if (!TRACE.test(propre)) return { ok: false, message: "Signature illisible : recommencez." };
+  const points = propre.match(/\d{1,4} \d{1,3}/g) ?? [];
+  if (points.some((p) => Number(p.split(" ")[0]) > CADRE_SIGNATURE.largeur || Number(p.split(" ")[1]) > CADRE_SIGNATURE.hauteur)) {
+    return { ok: false, message: "Signature hors du cadre : recommencez." };
+  }
+  // Un point ou un trait de quelques pixels n'est pas une signature.
+  if (points.length < 8) return { ok: false, message: "Signature trop courte : signez comme sur papier." };
+  return { ok: true, valeur: propre };
+}
+
+export interface Signataire {
+  /** Place du participant dans la liste du PV : la liste est figée à la publication. */
+  rang: number;
+  nom: string;
+  qualite: string;
+  userId: string | null;
+}
+
+/** Ceux qui signent : les participants présents, et eux seuls. */
+export function signatairesDe(participants: Participant[]): Signataire[] {
+  return participants.flatMap((p, rang) => (p.presence === "present" ? [{ rang, nom: p.nom, qualite: p.qualite, userId: p.userId ?? null }] : []));
+}
+
+/** Le signataire de ce rang, s'il est bien un participant présent. */
+export function signataireDe(participants: Participant[], rang: number): Signataire | undefined {
+  return Number.isInteger(rang) ? signatairesDe(participants).find((s) => s.rang === rang) : undefined;
+}
+
+/**
+ * Qui peut apposer la signature d'un participant : lui-même depuis son
+ * compte, ou — sur place, sur l'appareil qu'on lui tend — le rédacteur ou la
+ * direction. Seulement une fois le PV publié : on signe un texte figé.
+ */
+export function signaturePermise(
+  statut: StatutPv,
+  signataire: Signataire | undefined,
+  acteur: { userId: string; redacteur: boolean; valideur: boolean },
+): "personnelle" | "sur_place" | null {
+  if (statut !== "publie" || !signataire) return null;
+  if (signataire.userId && signataire.userId === acteur.userId) return "personnelle";
+  if (acteur.redacteur || acteur.valideur) return "sur_place";
+  return null;
+}
