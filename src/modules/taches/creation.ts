@@ -70,7 +70,16 @@ export interface NouvelleTache {
   description?: string | null;
   priorite: Priorite;
   echeance?: string | null;
+  /** Premier jour prévu, `AAAA-MM-JJ`. Jamais après l'échéance. */
+  dateDebut?: string | null;
   executant?: Executant | null;
+}
+
+/** Le début prévu ne passe pas l'échéance : la base le refuserait, on le dit en clair. */
+function verifierPeriode(donnees: { dateDebut?: string | null; echeance?: string | null }) {
+  if (donnees.dateDebut && donnees.echeance && donnees.dateDebut > donnees.echeance) {
+    throw new Error("Le début prévu doit précéder l'échéance.");
+  }
 }
 
 interface ExecutantResolu {
@@ -131,6 +140,7 @@ export async function creerTacheDans(
   donnees: NouvelleTache,
   acteur: Acteur,
 ): Promise<{ id: string; numero: string; assigneeUserId: string; pourAutrui: boolean }> {
+  verifierPeriode(donnees);
   const executant = await resoudreExecutant(tx, organizationId, donnees.executant, acteur);
   if (executant.pourAutrui && !acteur.attribue) {
     throw new Error("Votre rôle ne permet pas d'attribuer une tâche à quelqu'un d'autre.");
@@ -148,6 +158,7 @@ export async function creerTacheDans(
     description: donnees.description?.trim() || null,
     priorite: donnees.priorite,
     echeance: donnees.echeance ?? null,
+    dateDebut: donnees.dateDebut ?? null,
     creeParUserId: acteur.userId,
     assigneeUserId: assignee,
     assigneeEmployeId: executant.assigneeEmployeId,
@@ -157,6 +168,7 @@ export async function creerTacheDans(
     titre: donnees.titre,
     priorite: donnees.priorite,
     echeance: donnees.echeance ?? null,
+    dateDebut: donnees.dateDebut ?? null,
     assigneeUserId: assignee,
     assigneeEmployeId: executant.assigneeEmployeId,
   });
@@ -238,6 +250,7 @@ export interface ModificationTache {
   description?: string | null;
   priorite: Priorite;
   echeance?: string | null;
+  dateDebut?: string | null;
   executant?: Executant | null;
 }
 
@@ -253,6 +266,7 @@ export async function modifierTacheDans(
   donnees: ModificationTache,
   acteur: Acteur,
 ): Promise<{ numero: string }> {
+  verifierPeriode(donnees);
   const tache = await tacheVerrouillee(tx, organizationId, tacheId);
   if (!acteur.attribue && tache.creeParUserId !== acteur.userId) {
     throw new Error("Seul le créateur de la tâche, ou qui attribue les tâches, peut la modifier.");
@@ -276,6 +290,7 @@ export async function modifierTacheDans(
       description: donnees.description?.trim() || null,
       priorite: donnees.priorite,
       echeance: donnees.echeance ?? null,
+      dateDebut: donnees.dateDebut ?? null,
       assigneeUserId: executant.assigneeUserId,
       assigneeEmployeId: executant.assigneeEmployeId,
       ...(reattribuee ? { attribueeLe: maintenant, statut: "a_faire" as const, demarreeLe: null } : {}),
@@ -288,6 +303,7 @@ export async function modifierTacheDans(
     titre: tache.titre,
     priorite: tache.priorite,
     echeance: tache.echeance,
+    dateDebut: tache.dateDebut,
     assigneeUserId: tache.assigneeUserId,
     assigneeEmployeId: tache.assigneeEmployeId,
   };
@@ -296,6 +312,7 @@ export async function modifierTacheDans(
     titre: donnees.titre,
     priorite: donnees.priorite,
     echeance: donnees.echeance ?? null,
+    dateDebut: donnees.dateDebut ?? null,
     assigneeUserId: executant.assigneeUserId,
     assigneeEmployeId: executant.assigneeEmployeId,
   };

@@ -4,7 +4,7 @@ import { useActionState, useState } from "react";
 
 import { CourrierDocument, type ContenuCourrier } from "@/components/impression/courrier-document";
 import { ApercuA4 } from "@/components/impression/feuille-a4";
-import { Champ, CLASSE_CHAMP } from "@/components/ui/primitives";
+import { Champ, CLASSE_CHAMP, CLASSE_CHAMP_COMPACT } from "@/components/ui/primitives";
 import type { IdentiteEntreprise } from "@/lib/identite";
 import { enregistrerCourrier, type EtatCourrier } from "@/modules/documents/actions-courriers";
 import {
@@ -123,7 +123,7 @@ export function FormulaireCourrier({
                 </option>
               ))}
             </select>
-            <div className="flex items-center gap-1" role="group" aria-label="Taille du texte">
+            <div className="flex items-center gap-1" role="group" aria-label="Réglage de la taille">
               <button
                 type="button"
                 onClick={() => changerTaille(tailleVoisine(taille, -1))}
@@ -138,7 +138,7 @@ export function FormulaireCourrier({
                 value={taille}
                 onChange={(e) => changerTaille(Number(e.target.value))}
                 aria-label="Taille du texte"
-                className={`${CLASSE_CHAMP} chiffres w-[6.5rem]`}
+                className={`${CLASSE_CHAMP_COMPACT} chiffres w-[6.5rem]`}
               >
                 {tailles.map((t) => (
                   <option key={t} value={t}>

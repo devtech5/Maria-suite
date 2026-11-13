@@ -14,6 +14,8 @@ export interface TacheVue {
   priorite: Priorite;
   statut: Statut;
   echeance: string | null;
+  /** Premier jour prévu, jour ISO. */
+  dateDebut: string | null;
   creeParUserId: string;
   createur: string;
   assigneeUserId: string;
@@ -30,6 +32,8 @@ export interface TacheVue {
   compteRendu: string | null;
   annuleeLe: Date | null;
   motifAnnulation: string | null;
+  /** Dernière écriture sur la tâche : geste, modification, réattribution. */
+  majLe: Date;
 }
 
 type Ligne = {
@@ -40,6 +44,7 @@ type Ligne = {
   priorite: Priorite;
   statut: Statut;
   echeance: string | Date | null;
+  date_debut: string | Date | null;
   cree_par_user_id: string;
   createur: string | null;
   assignee_user_id: string;
@@ -54,6 +59,7 @@ type Ligne = {
   compte_rendu: string | null;
   annulee_le: string | Date | null;
   motif_annulation: string | null;
+  maj_le: string | Date;
 };
 
 const enDate = (v: string | Date) => (v instanceof Date ? v : new Date(v));
@@ -81,12 +87,13 @@ export async function listerTaches(organizationId: string, userId: string, vue: 
         : sql`true`;
 
   const lignes = await db.execute<Ligne>(sql`
-    select t.id, t.numero, t.titre, t.description, t.priorite, t.statut, t.echeance,
+    select t.id, t.numero, t.titre, t.description, t.priorite, t.statut, t.echeance, t.date_debut,
            t.cree_par_user_id, c.full_name as createur,
            t.assignee_user_id, t.assignee_employe_id, coalesce(e.nom, a.full_name) as assignee,
            (e.id is not null and e.user_id is distinct from t.assignee_user_id) as sans_compte,
            t.created_at as cree_le, t.attribuee_le, t.demarree_le, t.terminee_le,
-           f.full_name as terminateur, t.compte_rendu, t.annulee_le, t.motif_annulation
+           f.full_name as terminateur, t.compte_rendu, t.annulee_le, t.motif_annulation,
+           t.updated_at as maj_le
     from taches t
     left join users c on c.id = t.cree_par_user_id
     left join users a on a.id = t.assignee_user_id
@@ -107,6 +114,7 @@ export async function listerTaches(organizationId: string, userId: string, vue: 
     priorite: l.priorite,
     statut: l.statut,
     echeance: jour(l.echeance),
+    dateDebut: jour(l.date_debut),
     creeParUserId: l.cree_par_user_id,
     createur: l.createur ?? "Ancien membre",
     assigneeUserId: l.assignee_user_id,
@@ -121,6 +129,7 @@ export async function listerTaches(organizationId: string, userId: string, vue: 
     compteRendu: l.compte_rendu,
     annuleeLe: peutEtre(l.annulee_le),
     motifAnnulation: l.motif_annulation,
+    majLe: enDate(l.maj_le),
   }));
 }
 

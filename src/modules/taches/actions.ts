@@ -46,6 +46,7 @@ const schemaTache = z.object({
   description: z.string().max(2000).optional(),
   priorite: z.enum(["basse", "normale", "haute", "urgente"]),
   echeance: z.string().regex(DATE_ISO).optional(),
+  dateDebut: z.string().regex(DATE_ISO).optional(),
   executant: z
     .string()
     .regex(/^(?:[eu]:[0-9a-f-]{36})?$/i, "Exécutant inconnu.")
@@ -64,6 +65,7 @@ function lireTache(donnees: FormData) {
     description: texte(donnees, "description"),
     priorite: donnees.get("priorite") ?? "normale",
     echeance: texte(donnees, "echeance"),
+    dateDebut: texte(donnees, "dateDebut"),
     executant: texte(donnees, "executant"),
   });
 }

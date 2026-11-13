@@ -27,6 +27,14 @@ export const CHAPITRES_EQUIPE: Chapitre[] = [
         },
       },
       {
+        ancre: "vues",
+        titre: "Six façons de voir vos tâches",
+        texte: [
+          "Les boutons au-dessus de la liste changent l'affichage des mêmes tâches. Tableur : un tableau rangé par état, échéance, responsable ou priorité, où chaque cellule se change d'un clic (état, priorité, dates, responsable). Fiches : une galerie de cartes. Calendrier : chaque tâche à son échéance ; glissez-la sur un autre jour pour la reporter. Kanban : une colonne par état ; glissez une carte pour la commencer, la terminer ou la rouvrir. Gantt : la durée de chaque tâche, du début prévu à l'échéance. Échéancier : la charge de chacun dans le temps.",
+          "Le titre d'une tâche ouvre sa fiche : tout son historique, ses gestes et le formulaire pour la modifier. « + Ajouter une tâche » en crée une d'un mot, pour vous ; le reste se règle ensuite dans les cellules.",
+        ],
+      },
+      {
         ancre: "confier",
         titre: "Confier une tâche",
         texte: [
@@ -48,6 +56,13 @@ export const CHAPITRES_EQUIPE: Chapitre[] = [
         choix: ["Il faut consulter la liste chaque matin", "Une notification arrive dans la cloche", "Par e-mail uniquement"],
         bonne: 1,
         explication: "Toute tâche attribuée prévient son exécutant dans la cloche.",
+      },
+      {
+        cle: "taches-kanban",
+        question: "Dans la vue Kanban, comment commencer une tâche ?",
+        choix: ["En la supprimant puis en la recréant", "En glissant sa carte dans la colonne « En cours »", "Le Kanban ne sert qu'à regarder"],
+        bonne: 1,
+        explication: "Glisser une carte d'une colonne à l'autre fait le geste : commencer, terminer avec un compte rendu, annuler avec un motif, rouvrir.",
       },
     ],
   },
