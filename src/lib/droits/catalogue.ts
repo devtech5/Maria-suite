@@ -718,6 +718,30 @@ export const DROITS = [
     description: "Voir les bordereaux qui vous sont adressés, en accuser réception et rendre votre retour. Accordé à tous les comptes.",
   },
 
+  // ------------------------------------------------------- procès-verbaux
+  {
+    cle: "pv.consulter",
+    moduleKey: "pv",
+    libelle: "Lire les procès-verbaux",
+    description:
+      "Lire les procès-verbaux, comptes rendus et rapports qui vous sont diffusés, et en accuser " +
+      "réception. Accordé à tous les comptes.",
+  },
+  {
+    cle: "pv.rediger",
+    moduleKey: "pv",
+    libelle: "Rédiger des procès-verbaux",
+    description: "Rédiger un procès-verbal, un compte rendu ou un rapport et le soumettre à la direction. Accordé à tous les comptes.",
+  },
+  {
+    cle: "pv.valider",
+    moduleKey: "pv",
+    libelle: "Valider et publier les procès-verbaux",
+    description:
+      "Relire les procès-verbaux soumis, les renvoyer avec une remarque ou les publier et les " +
+      "diffuser ; voir tous les procès-verbaux de l'entreprise et qui les a lus.",
+  },
+
   // ---------------------------------------------------------------- contacts
   {
     cle: "contacts.consulter",
@@ -1003,7 +1027,15 @@ const CLES = new Set<string>(TOUS_LES_DROITS);
  * un module coupé pour l'entreprise les retire comme les autres. Ils ne se
  * proposent pas à la composition d'un rôle, où une case sans effet tromperait.
  */
-export const DROITS_DE_TOUS: readonly Droit[] = ["reglement.consulter", "guide.consulter", "courrier.recevoir", "transmissions.recevoir", "projet.terrain.collecter"];
+export const DROITS_DE_TOUS: readonly Droit[] = [
+  "reglement.consulter",
+  "guide.consulter",
+  "courrier.recevoir",
+  "transmissions.recevoir",
+  "projet.terrain.collecter",
+  "pv.consulter",
+  "pv.rediger",
+];
 
 /** Les droits d'un rôle, augmentés de ceux de tout compte. */
 export function avecDroitsDeTous(droits: ReadonlySet<Droit>): Set<Droit> {

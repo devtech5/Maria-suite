@@ -105,6 +105,48 @@ export const CHAPITRES_EQUIPE: Chapitre[] = [
     ],
   },
   {
+    cle: "pv",
+    titre: "Procès-verbaux",
+    entree: "/pv",
+    resume: "PV de réunion, comptes rendus et rapports : rédigés, validés par la direction, diffusés avec accusé de lecture.",
+    sections: [
+      {
+        ancre: "rediger",
+        titre: "Rédiger un procès-verbal",
+        chemin: "/pv",
+        texte: [
+          "« Nouveau procès-verbal » ouvre un brouillon : PV de réunion, compte rendu ou rapport. Tiré d'une réunion Meeting (ou du lien « Rédiger le procès-verbal » sur la réunion), il en reprend l'objet, les présents et les absents, et le compte rendu déjà écrit.",
+          "Le brouillon se remplit par parties : participants (présents, excusés, absents, personnes extérieures), points traités avec leurs décisions, actions à mener (qui, quoi, pour quand), conclusion, et diffusion. « Voir la feuille » montre le PV tel qu'il s'imprimera, sur le papier à en-tête.",
+        ],
+        etapes: ["Ouvrez un brouillon.", "Rédigez les points, les décisions et les actions.", "Choisissez à qui le diffuser.", "Soumettez-le à la direction."],
+      },
+      {
+        ancre: "valider",
+        titre: "Validation et diffusion",
+        texte: [
+          "La direction relit le PV soumis : elle le renvoie avec une remarque, ou le publie. La publication lui donne son numéro (PV-2026-00012), fige son texte et le diffuse — à tout le personnel, à des services ou à des personnes. Chacun en est prévenu dans la cloche.",
+          "Si l'accusé de lecture est demandé, chaque destinataire confirme « J'ai pris connaissance » ; le rédacteur et la direction voient qui l'a fait et peuvent relancer. Chaque action décidée devient une tâche d'un clic, confiée à son responsable. Pour corriger un PV publié, on en publie une nouvelle version, sous le même numéro.",
+        ],
+      },
+    ],
+    quiz: [
+      {
+        cle: "pv-publication",
+        question: "Qui publie un procès-verbal et le diffuse au personnel ?",
+        choix: ["Son rédacteur, dès qu'il a fini", "La direction, après relecture", "Personne : il part automatiquement"],
+        bonne: 1,
+        explication: "Le rédacteur soumet son brouillon ; la direction le renvoie avec une remarque ou le publie, ce qui le numérote, le fige et le diffuse.",
+      },
+      {
+        cle: "pv-correction",
+        question: "Un PV publié contient une erreur. Que faire ?",
+        choix: ["Modifier le texte directement", "Le supprimer et en refaire un", "Publier une nouvelle version, sous le même numéro"],
+        bonne: 2,
+        explication: "Le texte publié est celui que chacun a lu : il ne se réécrit pas. « Corriger : nouvelle version » ouvre une version 2, qui remplace la première à sa publication.",
+      },
+    ],
+  },
+  {
     cle: "planning",
     titre: "Planning",
     entree: "/planning",

@@ -17,7 +17,7 @@ import type { SuiviTache } from "@/modules/taches/suivi";
 import { avancement, FICHIER_MAX_OCTETS, tailleLisible, TYPES_FICHIER } from "@/modules/taches/suivi-regles";
 
 import { useTaches } from "./contexte";
-import { CorpsMessage } from "./corps-message";
+import { CorpsMessage } from "@/components/ui/texte-mis-en-forme";
 import { Editeur } from "./editeur";
 import { Avatar, CellulePriorite, CelluleStatut, depuis } from "./elements";
 import { FicheTache } from "./fiche-tache";

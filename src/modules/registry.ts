@@ -336,6 +336,22 @@ export const MODULES: ModuleDefinition[] = [
   },
 
   {
+    key: "pv",
+    name: "Procès-verbaux",
+    layer: "socle",
+    // En base : procès-verbaux de réunion, comptes rendus et rapports.
+    // Brouillon rédigé par chacun, soumis à la direction qui le renvoie
+    // avec une remarque ou le publie : numéro PV-AAAA-NNNNN, texte figé,
+    // diffusion à tout le personnel, à des services ou à des personnes,
+    // accusé de lecture au choix et relance. Participants et présences
+    // repris d'une réunion Meeting, décisions par point, actions changées
+    // en tâches une à une. Nouvelle version sous le même numéro.
+    status: "en_cours",
+    requires: [],
+    description: "Procès-verbaux, comptes rendus et rapports : rédigés, validés par la direction, diffusés au personnel avec accusé de lecture.",
+  },
+
+  {
     key: "contacts",
     name: "Contacts",
     layer: "socle",

@@ -507,6 +507,24 @@ La carte de visite (`/imprimer/carte-visite/[id]`, 85 × 55 mm, recto et
 verso, QR vCard `vcardCollaborateur`) ne porte JAMAIS de donnée personnelle,
 quel que soit le droit : elle se donne à l'extérieur.
 
+## Procès-verbaux
+
+`src/modules/pv/` (règles pures dans `regles.ts`, base dans `donnees.ts`).
+PV de réunion, compte rendu ou rapport : brouillon (tout compte,
+`pv.rediger` dans `DROITS_DE_TOUS`) → à valider → publié par la direction
+(`pv.valider`), qui peut aussi renvoyer avec une remarque. La publication
+attribue `PV-AAAA-NNNNN` (`document_sequences`, clé `pv`), fige le texte et
+crée une ligne `pv_lectures` par destinataire (tous, services du
+référentiel via `employees.service`, ou comptes choisis ; jamais le
+rédacteur). Accusé de lecture au choix du rédacteur, relance une fois
+l'heure. Corriger = nouvelle version sous le même numéro (`revision`,
+`remplace_id`), jamais réécrire. Un confidentiel ne part pas à « tous ».
+Chaque action devient une tâche d'un clic (`actionEnTacheDans`) : la
+publication vaut attribution. Tiré d'une réunion Meeting, le brouillon en
+reprend objet, présences et compte rendu. Feuille A4 :
+`/imprimer/pv/[id]`. Le texte des points suit la mise en forme des
+tâches (`src/modules/taches/mise-en-forme.ts`), rendue en éléments React.
+
 ## Interrogations de fond et liens publics
 
 Tout ce qui interroge le serveur en tâche de fond — la cloche, la
