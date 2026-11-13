@@ -11,6 +11,8 @@ import type { Acteur, Geste } from "./calcul";
 import { TYPES_COLONNE } from "./colonnes";
 import { creerColonneDans, definirValeurDans, deplacerColonneDans, modifierColonneDans, supprimerColonneDans } from "./colonnes-base";
 import { appliquerGesteDans, creerTacheDans, modifierTacheDans, type Executant } from "./creation";
+import { ajouterIntervenantDans, retirerIntervenantDans } from "./intervenants";
+import { lireRef, lireRefs } from "./intervenants-regles";
 import { notifier } from "@/modules/communication/notifications";
 
 const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
@@ -81,13 +83,24 @@ export async function creerTache(donnees: FormData): Promise<Resultat> {
   if (!analyse.success) return { ok: false, message: analyse.error.issues[0].message };
 
   try {
-    const { numero, assigneeUserId, pourAutrui } = await db.transaction((tx) => creerTacheDans(tx, organizationId, analyse.data, qui));
+    const intervenants = lireRefs(donnees.getAll("intervenants"));
+    const { numero, assigneeUserId, pourAutrui, aPrevenir } = await db.transaction((tx) =>
+      creerTacheDans(tx, organizationId, { ...analyse.data, intervenants }, qui),
+    );
     rafraichir();
     // Un collaborateur sans compte n'a pas de cloche : c'est l'auteur qui suit sa tâche.
     if (assigneeUserId !== qui.userId) {
       await notifier(organizationId, [assigneeUserId], {
         categorie: "tache",
         titre: `Nouvelle tâche ${numero} : ${analyse.data.titre}`,
+        corps: analyse.data.echeance ? `À faire avant le ${analyse.data.echeance}.` : null,
+        lien: "/taches",
+      });
+    }
+    if (aPrevenir.length > 0) {
+      await notifier(organizationId, aPrevenir, {
+        categorie: "tache",
+        titre: `Vous intervenez sur ${numero} : ${analyse.data.titre}`,
         corps: analyse.data.echeance ? `À faire avant le ${analyse.data.echeance}.` : null,
         lien: "/taches",
       });
@@ -233,6 +246,47 @@ export async function definirValeur(tacheId: string, colonneId: string, valeur: 
     const { numero, libelle } = await db.transaction((tx) => definirValeurDans(tx, organizationId, tacheId, colonneId, valeur, qui));
     rafraichir();
     return { ok: true, message: `${numero} : ${libelle} enregistré.` };
+  } catch (erreur) {
+    return { ok: false, message: lisible(erreur) };
+  }
+}
+
+// ------------------------------------------------------------ intervenants
+
+/** Ajoute un collaborateur (`e:…`) ou un intervenant (`w:…`) à la tâche ; un collaborateur avec un compte est prévenu. */
+export async function ajouterIntervenant(tacheId: string, valeur: string): Promise<Resultat> {
+  const refus = await refusDroit("taches.executer");
+  if (refus) return { ok: false, message: refus.erreur };
+  const ref = lireRef(valeur);
+  if (!UUID.test(tacheId) || !ref) return { ok: false, message: "Intervenant inconnu." };
+  const { organizationId, acteur: qui } = await acteur();
+  try {
+    const r = await db.transaction((tx) => ajouterIntervenantDans(tx, organizationId, tacheId, ref, qui));
+    rafraichir();
+    if (r.aPrevenir) {
+      await notifier(organizationId, [r.aPrevenir], {
+        categorie: "tache",
+        titre: `Vous intervenez sur ${r.numero} : ${r.titre}`,
+        corps: null,
+        lien: "/taches",
+      });
+    }
+    return { ok: true, message: r.ajoute ? `${r.nom} intervient sur ${r.numero}.` : `${r.nom} intervient déjà sur ${r.numero}.` };
+  } catch (erreur) {
+    return { ok: false, message: lisible(erreur) };
+  }
+}
+
+export async function retirerIntervenant(tacheId: string, valeur: string): Promise<Resultat> {
+  const refus = await refusDroit("taches.executer");
+  if (refus) return { ok: false, message: refus.erreur };
+  const ref = lireRef(valeur);
+  if (!UUID.test(tacheId) || !ref) return { ok: false, message: "Intervenant inconnu." };
+  const { organizationId, acteur: qui } = await acteur();
+  try {
+    const { numero } = await db.transaction((tx) => retirerIntervenantDans(tx, organizationId, tacheId, ref, qui));
+    rafraichir();
+    return { ok: true, message: `Intervenant retiré de ${numero}.` };
   } catch (erreur) {
     return { ok: false, message: lisible(erreur) };
   }

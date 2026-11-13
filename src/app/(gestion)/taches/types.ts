@@ -9,6 +9,20 @@ export interface ColonneAffichee {
   options: OptionsColonne;
 }
 
+/** Une personne qu'on peut mettre sur une tâche : collaborateur (`e:…`) ou intervenant (`w:…`). */
+export interface PersonnePossible {
+  ref: string;
+  nom: string;
+  /** Poste du collaborateur, qualification de l'intervenant. */
+  detail: string;
+  nature: "collaborateur" | "intervenant";
+}
+
+export interface IntervenantAffiche extends PersonnePossible {
+  /** Compte du collaborateur, s'il en a un. */
+  userId: string | null;
+}
+
 /** Une tâche telle que l'écran la reçoit : dates en jours ISO ou en instants ISO, rien d'autre. */
 export interface TacheAffichee {
   id: string;
@@ -35,4 +49,6 @@ export interface TacheAffichee {
   motifAnnulation: string | null;
   /** Valeurs des colonnes personnalisées, par identifiant de colonne. */
   valeurs: Record<string, string>;
+  /** Ceux qui travaillent sur la tâche en plus du responsable. */
+  intervenants: IntervenantAffiche[];
 }

@@ -43,6 +43,13 @@ export const CHAPITRES_EQUIPE: Chapitre[] = [
         ],
       },
       {
+        ancre: "intervenants",
+        titre: "Plusieurs intervenants sur une tâche",
+        texte: [
+          "Le responsable fait avancer la tâche ; les intervenants y travaillent avec lui. Cochez-les à la création, ou dans la colonne « Intervenants » : collaborateurs du Personnel comme intervenants (maçon, manœuvre, chauffeur occasionnel). Un collaborateur qui a un compte en est prévenu dans la cloche, retrouve la tâche dans « Mes tâches » et peut en remplir les colonnes.",
+        ],
+      },
+      {
         ancre: "confier",
         titre: "Confier une tâche",
         texte: [

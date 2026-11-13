@@ -666,6 +666,13 @@
       "when": 1794592078515,
       "tag": "0094_taches_colonnes",
       "breakpoints": true
+    },
+    {
+      "idx": 95,
+      "version": "7",
+      "when": 1794593097822,
+      "tag": "0095_taches_intervenants",
+      "breakpoints": true
     }
   ]
 }

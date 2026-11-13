@@ -72,7 +72,7 @@ export type VueTaches = "miennes" | "confiees" | "toutes";
 /**
  * Tâches d'une vue.
  *
- *   miennes — celles que j'exécute ;
+ *   miennes — celles que j'exécute, et celles où je suis intervenant ;
  *   confiees — celles que j'ai créées pour d'autres ;
  *   toutes   — toute l'entreprise, pour qui attribue.
  *
@@ -81,7 +81,9 @@ export type VueTaches = "miennes" | "confiees" | "toutes";
 export async function listerTaches(organizationId: string, userId: string, vue: VueTaches): Promise<TacheVue[]> {
   const filtre: SQL =
     vue === "miennes"
-      ? sql`t.assignee_user_id = ${userId}`
+      ? sql`(t.assignee_user_id = ${userId} or exists (
+          select 1 from taches_intervenants ti join employees ei on ei.id = ti.employee_id
+          where ti.tache_id = t.id and ti.deleted_at is null and ei.user_id = ${userId}))`
       : vue === "confiees"
         ? sql`t.cree_par_user_id = ${userId} and (t.assignee_user_id <> ${userId} or (e.id is not null and e.user_id is distinct from ${userId}))`
         : sql`true`;

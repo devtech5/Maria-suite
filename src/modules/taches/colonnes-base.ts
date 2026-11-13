@@ -18,6 +18,7 @@ import {
   type OptionsColonne,
   type TypeColonne,
 } from "./colonnes";
+import { estIntervenant } from "./intervenants";
 import { taches, tachesColonnes, tachesValeurs } from "./schema";
 
 export interface ColonneVue {
@@ -176,7 +177,8 @@ export async function deplacerColonneDans(tx: Transaction, organizationId: strin
 
 /**
  * Pose la valeur d'une colonne sur une tâche, ou la vide. Qui la remplit :
- * l'exécutant, le créateur, ou qui attribue — ceux qui font vivre la tâche.
+ * le responsable, les intervenants, le créateur, ou qui attribue — ceux qui
+ * font vivre la tâche.
  */
 export async function definirValeurDans(
   tx: Transaction,
@@ -191,8 +193,9 @@ export async function definirValeurDans(
     .from(taches)
     .where(and(eq(taches.id, tacheId), eq(taches.organizationId, organizationId), isNull(taches.deletedAt)));
   if (!tache) throw new Error("Tâche introuvable.");
-  if (!acteur.attribue && tache.creeParUserId !== acteur.userId && tache.assigneeUserId !== acteur.userId) {
-    throw new Error("Seuls l'exécutant, le créateur ou qui attribue remplissent les colonnes de cette tâche.");
+  const partie = acteur.attribue || tache.creeParUserId === acteur.userId || tache.assigneeUserId === acteur.userId;
+  if (!partie && !(await estIntervenant(tx, tacheId, acteur.userId))) {
+    throw new Error("Seuls le responsable, les intervenants, le créateur ou qui attribue remplissent les colonnes de cette tâche.");
   }
 
   const colonne = await colonneVerrouillee(tx, organizationId, colonneId);
