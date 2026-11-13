@@ -1,5 +1,5 @@
 import { sql } from "drizzle-orm";
-import { check, index, integer, pgEnum, pgTable, text, timestamp, unique, uuid } from "drizzle-orm/pg-core";
+import { check, index, integer, jsonb, pgEnum, pgTable, text, timestamp, unique, uuid } from "drizzle-orm/pg-core";
 
 import { primaryId, rowVersion, timestamps } from "@/db/schema/_shared";
 import { users } from "@/db/schema/auth";
@@ -84,12 +84,40 @@ export const messages = pgTable(
     nomFichier: text("nom_fichier"),
     typeMime: text("type_mime"),
     tailleOctets: integer("taille_octets"),
+    /** texte | sondage | evenement | contact : règles dans `./genres.ts`. */
+    genre: text("genre").notNull().default("texte"),
+    /** Contenu d'un message structuré ; `corps` en garde le résumé lisible. */
+    donnees: jsonb("donnees").$type<Record<string, unknown>>(),
     ...timestamps,
   },
   (t) => [
+    check("messages_genre", sql`${t.genre} in ('texte', 'sondage', 'evenement', 'contact')`),
     check("messages_contenu", sql`${t.corps} IS NOT NULL OR ${t.chemin} IS NOT NULL OR ${t.deletedAt} IS NOT NULL`),
     index("messages_conversation_idx").on(t.conversationId, t.createdAt),
   ],
+);
+
+/**
+ * Réponses aux messages structurés : un vote de sondage (`valeur` = indice de
+ * la réponse) ou la réponse à un événement (`oui`, `peut_etre`, `non`).
+ */
+export const reponsesMessages = pgTable(
+  "reponses_messages",
+  {
+    id: primaryId(),
+    organizationId: uuid("organization_id")
+      .notNull()
+      .references(() => organizations.id, { onDelete: "cascade" }),
+    messageId: uuid("message_id")
+      .notNull()
+      .references(() => messages.id, { onDelete: "cascade" }),
+    userId: uuid("user_id")
+      .notNull()
+      .references(() => users.id, { onDelete: "cascade" }),
+    valeur: text("valeur").notNull(),
+    ...timestamps,
+  },
+  (t) => [unique("reponses_messages_unique").on(t.messageId, t.userId, t.valeur), index("reponses_messages_message_idx").on(t.messageId)],
 );
 
 export type Conversation = typeof conversations.$inferSelect;

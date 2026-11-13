@@ -111,7 +111,7 @@ export interface ResultatDocuments {
 /**
  * Verse les documents de démonstration dans une entreprise.
  *
- * `reperes` associe un nom à un identifiant déjà en base — salariés,
+ * `reperes` associe un nom à un identifiant déjà en base — collaborateurs,
  * intervenants, actifs. Un document dont la cible n'existe pas est versé SANS
  * rattachement plutôt que d'être ignoré : la contrainte en base exige que le
  * type et l'identifiant aillent ensemble, et une pièce sans lien reste une

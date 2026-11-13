@@ -15,7 +15,7 @@ export const metadata: Metadata = { title: "Services" };
 /**
  * Services : l'organigramme de l'entreprise, rangé par pôle — direction,
  * fonctions support, métiers. Chaque poste se range dans un service (onglet
- * Postes), et le service d'un salarié se choisit dans cette liste.
+ * Postes), et le service d'un collaborateur se choisit dans cette liste.
  */
 export default async function PageServices() {
   const session = await exigerEntreprise();
@@ -30,7 +30,7 @@ export default async function PageServices() {
         sousTitre={
           services.length === 0
             ? "Aucun service"
-            : `${actifs} service${actifs > 1 ? "s" : ""} · ${effectif} salarié${effectif > 1 ? "s" : ""} rattaché${effectif > 1 ? "s" : ""}`
+            : `${actifs} service${actifs > 1 ? "s" : ""} · ${effectif} collaborateur${effectif > 1 ? "s" : ""} rattaché${effectif > 1 ? "s" : ""}`
         }
         actions={
           gerer ? (
@@ -42,7 +42,7 @@ export default async function PageServices() {
       />
 
       {services.length === 0 ? (
-        <EtatVide titre="Aucun service" message="Ajoutez les services de l'entreprise : chaque poste s'y range, et le service d'un salarié s'y choisit." />
+        <EtatVide titre="Aucun service" message="Ajoutez les services de l'entreprise : chaque poste s'y range, et le service d'un collaborateur s'y choisit." />
       ) : (
         <div className="space-y-6">
           {LISTE_POLES.map((pole) => {

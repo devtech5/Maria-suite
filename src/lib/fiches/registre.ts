@@ -70,10 +70,10 @@ export const FICHES = {
   salarie: {
     table: "employees",
     libelle: "nom",
-    designation: "ce salarié",
+    designation: "ce collaborateur",
     gerer: "personnes.salarie.gerer",
     supprimer: "personnes.fiche.supprimer",
-    // Pour un salarié, ne plus être actif, c'est sortir des effectifs : date de
+    // Pour un collaborateur, ne plus être actif, c'est sortir des effectifs : date de
     // fin, solde de tout compte. Ce circuit-là appartient au module.
     actif: false,
     chemins: ["/rh", "/presences", "/planning"],

@@ -221,7 +221,7 @@ export const demandesSignature = pgTable(
 /**
  * Signataire d'une demande.
  *
- * `interne` distingue le salarié du tiers extérieur : le premier signe depuis
+ * `interne` distingue le collaborateur du tiers extérieur : le premier signe depuis
  * son compte, le second depuis un lien reçu. Les traiter pareil obligerait à
  * ouvrir un compte à chaque client qui signe un devis.
  */

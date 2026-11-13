@@ -9,11 +9,11 @@ import { moduleOuvert } from "@/lib/modules/garde";
  * Le module s'appelle « Personnel », pas « RH & Paie » : il couvre deux
  * régimes de rémunération, et le second ne relève pas de la paie.
  *
- *   · Salariés     — contrat, bulletin, CNPS, ITS
+ *   · Collaborateurs     — contrat, bulletin, CNPS, ITS
  *   · Intervenants — pointage, taux, bon de paiement
  */
 const SECTIONS = [
-  { href: "/rh", libelle: "Salariés" },
+  { href: "/rh", libelle: "Collaborateurs" },
   { href: "/rh/intervenants", libelle: "Intervenants" },
   { href: "/rh/paie", libelle: "Paie" },
   { href: "/rh/services", libelle: "Services" },

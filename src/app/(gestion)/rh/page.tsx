@@ -26,7 +26,7 @@ import type { TypeContrat } from "@/modules/personnes/schema";
 
 import { FormulaireSalarie } from "./formulaire-salarie";
 
-export const metadata: Metadata = { title: "Salariés" };
+export const metadata: Metadata = { title: "Collaborateurs" };
 
 const LIBELLE_CONTRAT: Record<TypeContrat, string> = {
   cdi: "CDI",
@@ -105,19 +105,19 @@ export default async function PageSalaries({ searchParams }: PageProps<"/rh">) {
   return (
     <>
       <EnTetePage
-        titre="Salariés"
+        titre="Collaborateurs"
         sousTitre={
           salaries.length === 0
-            ? "Aucun salarié inscrit"
-            : `${salaries.length} salariés · ${indetermines.length} en contrat à durée indéterminée`
+            ? "Aucun collaborateur inscrit"
+            : `${salaries.length} collaborateurs · ${indetermines.length} en contrat à durée indéterminée`
         }
         actions={<FormulaireSalarie premier={salaries.length === 0} dossier={tientLesDossiers} postes={postes} services={services} />}
       />
 
       {salaries.length === 0 ? (
         <EtatVide
-          titre="Aucun salarié"
-          message="Un salarié porte un contrat, un numéro CNPS et un bulletin — à ne pas confondre avec l'intervenant payé à la journée, qui se tient dans l'onglet voisin."
+          titre="Aucun collaborateur"
+          message="Un collaborateur porte un contrat, un numéro CNPS et un bulletin — à ne pas confondre avec l'intervenant payé à la journée, qui se tient dans l'onglet voisin."
         />
       ) : (
         <>
@@ -157,13 +157,13 @@ export default async function PageSalaries({ searchParams }: PageProps<"/rh">) {
           />
 
           {affiches.length === 0 ? (
-            <EtatVide titre="Aucun résultat" message="Aucun salarié ne répond à cette recherche. Élargissez la période ou retirez un mot." />
+            <EtatVide titre="Aucun résultat" message="Aucun collaborateur ne répond à cette recherche. Élargissez la période ou retirez un mot." />
           ) : (
             <Tableau>
               <thead>
                 <tr>
                   <Th>Matricule</Th>
-                  <Th>Salarié</Th>
+                  <Th>Collaborateur</Th>
                   <Th>Poste</Th>
                   <Th>Contrat</Th>
                   <Th>Échéance</Th>
@@ -235,7 +235,7 @@ export default async function PageSalaries({ searchParams }: PageProps<"/rh">) {
 
           {sansCnps.length > 0 && (
             <p className="mt-4 max-w-[70ch] text-xs text-[var(--encre-faible)]">
-              {sansCnps.length} salarié{sansCnps.length > 1 ? "s" : ""} sans numéro
+              {sansCnps.length} collaborateur{sansCnps.length > 1 ? "s" : ""} sans numéro
               CNPS. La déclaration sociale les laissera de côté tant que le numéro
               manque, et le retard se règle auprès de la caisse, pas dans le
               logiciel.

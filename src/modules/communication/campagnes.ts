@@ -50,7 +50,7 @@ export interface Destinataire {
 export const PLAFOND_DESTINATAIRES = 500;
 
 /**
- * Qui reçoit : le personnel en poste (salariés, et comptes de l'application
+ * Qui reçoit : le personnel en poste (collaborateurs, et comptes de l'application
  * pour la cloche) ou les clients répondant au filtre.
  */
 export async function destinataires(organizationId: string, publicVise: "personnel" | "clients", filtre: FiltreCampagne): Promise<Destinataire[]> {
@@ -67,7 +67,7 @@ export async function destinataires(organizationId: string, publicVise: "personn
         .where(and(eq(memberships.organizationId, organizationId), eq(memberships.status, "actif"))),
     ]);
     const liste: Destinataire[] = salaries.map((s) => ({ nom: s.nom, email: s.email, telephone: s.telephone, employeId: s.id, userId: s.userId ?? undefined }));
-    // Un compte sans fiche de salarié — l'associé, le comptable externe —
+    // Un compte sans fiche de collaborateur — l'associé, le comptable externe —
     // reçoit quand même la notification dans l'application.
     const relies = new Set(liste.map((d) => d.userId).filter(Boolean));
     for (const c of comptes) if (!relies.has(c.userId)) liste.push({ nom: c.nom, email: null, telephone: null, userId: c.userId });

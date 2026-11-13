@@ -10,7 +10,7 @@ const piece = (id: string, nature: PieceDatee["nature"], delivreeLe: string | nu
   creeLe: new Date(`${cree}T10:00:00Z`),
 });
 
-describe("état des pièces d'un salarié", () => {
+describe("état des pièces d'un collaborateur", () => {
   const aujourdhui = "2026-10-06";
 
   it("expirée, bientôt expirée, valide, sans échéance", () => {

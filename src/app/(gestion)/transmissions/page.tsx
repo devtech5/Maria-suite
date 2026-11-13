@@ -43,7 +43,7 @@ export default async function PageTransmissions({ searchParams }: PageProps<"/tr
         titre="Transmissions"
         sousTitre={a.superviser ? "Tous les bordereaux de l'entreprise" : "Les bordereaux que vous avez établis ou que vous suivez"}
         actions={
-          <FormulaireRepliable libelle={TITRES[sens]} titre={TITRES[sens]} action={creerTransmission.bind(null, sens)} presentation="tiroir">
+          <FormulaireRepliable libelle={TITRES[sens]} titre={TITRES[sens]} action={creerTransmission.bind(null, sens)} presentation="ample">
             <ChampsTransmission sens={sens} choix={choix} moi={a.moi} aujourdhui={aujourdhui} />
           </FormulaireRepliable>
         }

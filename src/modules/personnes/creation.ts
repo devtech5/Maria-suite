@@ -26,7 +26,7 @@ function isoDe(date: Date): string {
   return date.toISOString().slice(0, 10);
 }
 
-// ------------------------------------------------------------------ salariés
+// ------------------------------------------------------------------ collaborateurs
 
 export interface NouveauSalarie {
   nom: string;
@@ -63,7 +63,7 @@ export interface NouveauSalarie {
 }
 
 /**
- * Embauche un salarié et lui attribue son matricule, dans une transaction.
+ * Embauche un collaborateur et lui attribue son matricule, dans une transaction.
  *
  * Le terme du contrat est NORMALISÉ avant l'insertion plutôt que laissé au
  * formulaire : un CDI saisi avec une date de fin oubliée dans le champ ferait
@@ -162,7 +162,7 @@ async function matriculeLibre(tx: Transaction, organizationId: string, debut: st
 }
 
 /**
- * Prochain code d'intervenant libre. Compteur distinct de celui des salariés :
+ * Prochain code d'intervenant libre. Compteur distinct de celui des collaborateurs :
  * mélanger les deux suites ferait sauter des matricules chez les uns au profit
  * des autres, et laisserait croire à des départs qui n'ont pas eu lieu.
  */

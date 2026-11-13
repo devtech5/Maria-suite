@@ -27,7 +27,7 @@ function saisie(donnees: FormData) {
   };
 }
 
-/** Les services se tiennent avec le droit de gérer les salariés, comme les postes. */
+/** Les services se tiennent avec le droit de gérer les collaborateurs, comme les postes. */
 export async function ajouterService(donnees: FormData): Promise<Resultat> {
   const session = await exigerEntreprise();
   const refus = await refusDroit("personnes.salarie.gerer");
@@ -49,7 +49,7 @@ export async function modifierService(serviceId: string, donnees: FormData): Pro
   try {
     const { libelle, fiches } = await modifierServicePour(session.organizationId, session.userId, serviceId, saisie(donnees));
     revalidatePath("/rh", "layout");
-    const suite = fiches === 0 ? "" : fiches === 1 ? " Une fiche salarié suit." : ` ${fiches} fiches salarié suivent.`;
+    const suite = fiches === 0 ? "" : fiches === 1 ? " Une fiche collaborateur suit." : ` ${fiches} fiches collaborateur suivent.`;
     return { ok: true, message: `Service « ${libelle} » enregistré.${suite}` };
   } catch (erreur) {
     return { ok: false, message: lisible(erreur) };

@@ -1,7 +1,8 @@
 "use client";
 
-import { useState, useTransition } from "react";
+import { useState } from "react";
 
+import { BoutonApercu } from "@/components/ui/apercu";
 import { PrisePhoto } from "@/components/ui/prise-photo";
 import { Retour, useOperation, type Resultat } from "@/components/ui/operations";
 import { CLASSE_CHAMP, Champ } from "@/components/ui/primitives";
@@ -138,27 +139,18 @@ export function Annuler({ id }: { id: string }) {
 }
 
 export function PreuveJointe({ id, presente, joindre }: { id: string; presente: boolean; joindre: boolean }) {
-  const [enCours, demarrer] = useTransition();
-  const [refus, setRefus] = useState<string | null>(null);
   const [ajout, setAjout] = useState(false);
   return (
     <div className="space-y-2">
       <div className="flex flex-wrap gap-2">
         {presente && (
-          <button
-            type="button"
-            disabled={enCours}
-            onClick={() =>
-              demarrer(async () => {
-                const url = await ouvrirPreuve(id);
-                if (url) window.open(url, "_blank", "noopener");
-                else setRefus("Preuve indisponible.");
-              })
-            }
+          // Aperçu DANS la plateforme : la preuve ne quitte pas l'écran, ni notre origine.
+          <BoutonApercu
+            piece={{ titre: "Preuve du bordereau", signer: () => ouvrirPreuve(id) }}
             className="h-9 rounded-lg border border-[var(--filet)] bg-[var(--surface)] px-3 text-sm font-semibold hover:bg-[var(--surface-creuse)]"
           >
             Ouvrir la preuve
-          </button>
+          </BoutonApercu>
         )}
         {joindre && !ajout && (
           <button type="button" onClick={() => setAjout(true)} className="h-9 px-3 text-sm font-semibold text-marque-600 hover:underline">
@@ -171,7 +163,6 @@ export function PreuveJointe({ id, presente, joindre }: { id: string; presente: 
           <Preuve libelle="Par la caméra" />
         </Formulaire>
       )}
-      {refus && <p className="text-sm text-danger-600">{refus}</p>}
     </div>
   );
 }

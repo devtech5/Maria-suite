@@ -8,6 +8,7 @@ import type { ChampFormulaire } from "@/modules/missions/schema";
 import { libellePosition, versMicroDegres } from "@/modules/missions/suivi";
 
 import { useRemontee } from "../suivi/use-remontee";
+import { Fenetre } from "@/components/ui/fenetre";
 
 const LIBELLE_CHAMP: Record<ChampFormulaire["type"], string> = {
   texte: "Texte",
@@ -38,8 +39,8 @@ export function NouveauFormulaire() {
     if (etat.nom) setOuvert(false);
   }
 
-  if (!ouvert) {
-    return (
+  return (
+    <>
       <div className="flex items-center gap-3">
         {etat.nom && <span className="text-sm text-valide-600">« {etat.nom} » créé.</span>}
         <button
@@ -50,68 +51,57 @@ export function NouveauFormulaire() {
           Nouveau formulaire
         </button>
       </div>
-    );
-  }
-
-  return (
-    <form
-      action={action}
-      className="mb-5 w-full rounded-xl border border-[var(--filet)] bg-[var(--surface)] p-4"
-    >
-      <div className="mb-4 flex items-center justify-between gap-3">
-        <h2 className="text-sm font-semibold">Nouveau formulaire</h2>
-        <button
-          type="button"
-          onClick={() => setOuvert(false)}
-          className="text-sm text-[var(--encre-faible)] hover:underline"
+      <Fenetre ouverte={ouvert} titre="Nouveau formulaire" presentation="ample" onFermer={() => setOuvert(false)}>
+        <form
+          action={action}
+          className="space-y-4 px-5 py-4"
         >
-          Annuler
-        </button>
-      </div>
 
-      <div className="grid gap-4 sm:grid-cols-2">
-        <Champ libelle="Nom">
-          <input name="nom" required placeholder="Fiche point de vente" className={CLASSE_CHAMP} />
-        </Champ>
-        <Champ libelle="Usage">
-          <input name="usage" placeholder="Recensement terrain" className={CLASSE_CHAMP} />
-        </Champ>
-      </div>
+          <div className="grid gap-4 sm:grid-cols-2">
+            <Champ libelle="Nom">
+              <input name="nom" required placeholder="Fiche point de vente" className={CLASSE_CHAMP} />
+            </Champ>
+            <Champ libelle="Usage">
+              <input name="usage" placeholder="Recensement terrain" className={CLASSE_CHAMP} />
+            </Champ>
+          </div>
 
-      <div className="mt-4">
-        <Champ
-          libelle="Champs"
-          precision={`Une ligne par champ : libellé | type | * si obligatoire. Types : ${Object.keys(LIBELLE_CHAMP).join(", ")}. Une liste : « Commerce | choix | * | Boutique, Kiosque, Marché ».`}
-        >
-          <textarea
-            name="champs"
-            required
-            rows={6}
-            defaultValue={"Enseigne | texte | *\nNom du gérant | texte | *\nAccepte le mobile money | oui_non"}
-            className={`${CLASSE_CHAMP} h-auto py-2 font-mono text-sm`}
-          />
-        </Champ>
-      </div>
+          <div className="mt-4">
+            <Champ
+              libelle="Champs"
+              precision={`Une ligne par champ : libellé | type | * si obligatoire. Types : ${Object.keys(LIBELLE_CHAMP).join(", ")}. Une liste : « Commerce | choix | * | Boutique, Kiosque, Marché ».`}
+            >
+              <textarea
+                name="champs"
+                required
+                rows={6}
+                defaultValue={"Enseigne | texte | *\nNom du gérant | texte | *\nAccepte le mobile money | oui_non"}
+                className={`${CLASSE_CHAMP} h-auto py-2 font-mono text-sm`}
+              />
+            </Champ>
+          </div>
 
-      {etat.erreur && (
-        <p
-          role="alert"
-          className="mt-4 rounded-lg bg-danger-50 px-3 py-2.5 text-sm font-medium text-danger-600"
-        >
-          {etat.erreur}
-        </p>
-      )}
+          {etat.erreur && (
+            <p
+              role="alert"
+              className="mt-4 rounded-lg bg-danger-50 px-3 py-2.5 text-sm font-medium text-danger-600"
+            >
+              {etat.erreur}
+            </p>
+          )}
 
-      <div className="mt-4 flex justify-end">
-        <button
-          type="submit"
-          disabled={enCours}
-          className="h-cible rounded-lg bg-marque-600 px-4 text-sm font-semibold text-white hover:bg-marque-700 disabled:opacity-50"
-        >
-          {enCours ? "Enregistrement…" : "Créer le formulaire"}
-        </button>
-      </div>
-    </form>
+          <div className="mt-4 flex justify-end">
+            <button
+              type="submit"
+              disabled={enCours}
+              className="h-cible rounded-lg bg-marque-600 px-4 text-sm font-semibold text-white hover:bg-marque-700 disabled:opacity-50"
+            >
+              {enCours ? "Enregistrement…" : "Créer le formulaire"}
+            </button>
+          </div>
+        </form>
+      </Fenetre>
+    </>
   );
 }
 
@@ -182,8 +172,8 @@ export function RepondreFormulaire({
     );
   }
 
-  if (!ouvert) {
-    return (
+  return (
+    <>
       <div className="border-t border-[var(--filet)] p-3">
         <button
           type="button"
@@ -198,11 +188,8 @@ export function RepondreFormulaire({
           </p>
         )}
       </div>
-    );
-  }
-
-  return (
-    <form onSubmit={envoyer} className="space-y-3 border-t border-[var(--filet)] p-3">
+      <Fenetre ouverte={ouvert} titre="Saisir une réponse" presentation="ample" onFermer={() => setOuvert(false)}>
+    <form onSubmit={envoyer} className="space-y-3 px-5 py-4">
       {saisissables.map((champ) => (
         <label key={champ.cle} className="block text-sm">
           <span className="mb-1 block font-medium">
@@ -309,5 +296,7 @@ export function RepondreFormulaire({
         </button>
       </div>
     </form>
+      </Fenetre>
+    </>
   );
 }

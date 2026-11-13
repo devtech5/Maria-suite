@@ -7,6 +7,7 @@ import { Retour, useOperation } from "@/components/ui/operations";
 import { CLASSE_CHAMP_COMPACT } from "@/components/ui/primitives";
 import { creerModele } from "@/modules/catalogue/actions-modeles";
 import { combinaisons, nettoyerAxes, nombreDeVariantes, referenceVariante, refusAxes } from "@/modules/catalogue/variantes";
+import { Fenetre } from "@/components/ui/fenetre";
 
 const valeursDe = (texte: string) => texte.split(/[,;\n]/).map((v) => v.trim()).filter(Boolean);
 
@@ -30,17 +31,14 @@ export function FormulaireModele({ familles }: { familles: { id: string; nom: st
   const n = nombreDeVariantes(axes);
   const exemples = refus ? [] : combinaisons(axes).slice(0, 4).map((c) => referenceVariante((reference || "REF").toUpperCase(), c, axes));
 
-  if (!ouvert) {
-    return (
+  return (
+    <>
       <div className="mb-5">
         <button type="button" onClick={() => setOuvert(true)} className="h-cible rounded-lg bg-marque-600 px-4 text-sm font-semibold text-white">
           Nouveau modèle
         </button>
       </div>
-    );
-  }
-
-  return (
+      <Fenetre ouverte={ouvert} titre="Nouveau modèle" presentation="ample" large onFermer={() => setOuvert(false)}>
     <form
       onSubmit={(e) => {
         e.preventDefault();
@@ -57,7 +55,7 @@ export function FormulaireModele({ familles }: { familles: { id: string; nom: st
           (r) => r.ok && "id" in r && r.id && routeur.push(`/stock/modeles/${r.id}`),
         );
       }}
-      className="mb-6 space-y-4 rounded-xl border border-[var(--filet)] bg-[var(--surface)] p-4"
+      className="space-y-4 px-5 py-4"
     >
       <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-5">
         <label className="text-sm xl:col-span-2">
@@ -135,5 +133,7 @@ export function FormulaireModele({ familles }: { familles: { id: string; nom: st
         </button>
       </div>
     </form>
+      </Fenetre>
+    </>
   );
 }

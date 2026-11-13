@@ -66,7 +66,7 @@ export default async function PageProjets({ searchParams }: PageProps<"/projets"
         actions={
           gerer ? (
             <div className="flex flex-col items-end gap-2">
-              <FormulaireRepliable libelle="Nouveau projet" titre="Nouveau projet" presentation="tiroir" action={creerProjet}>
+              <FormulaireRepliable libelle="Nouveau projet" titre="Nouveau projet" presentation="ample" action={creerProjet}>
                 <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
                   <Champ libelle="Nom du projet">
                     <input name="nom" required placeholder="Ouverture boutique Yopougon" className={CLASSE_CHAMP} />

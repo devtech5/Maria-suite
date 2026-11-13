@@ -33,7 +33,7 @@ async function operer(droit: Droit, travail: (organizationId: string, userId: st
     const message = erreur instanceof Error ? erreur.message : "";
     if (/commerciaux_nom_unique/.test(message)) return { ok: false, message: "Un commercial porte déjà ce nom." };
     if (/commerciaux_user_unique/.test(message)) return { ok: false, message: "Cet utilisateur est déjà lié à un autre commercial." };
-    if (/commerciaux_employe_unique/.test(message)) return { ok: false, message: "Ce salarié est déjà lié à un autre commercial." };
+    if (/commerciaux_employe_unique/.test(message)) return { ok: false, message: "Cette personne est déjà enregistrée comme commercial." };
     const lisible = message && !message.startsWith("Failed query") && message.length < 240;
     if (!lisible) console.error("Commissions : opération refusée", erreur);
     return { ok: false, message: lisible ? message : "L'opération n'a pas abouti. Réessayez." };
@@ -41,8 +41,12 @@ async function operer(droit: Droit, travail: (organizationId: string, userId: st
 }
 
 const schemaFiche = z.object({
+  origine: z.enum(["interne", "externe"]),
   nom: z.string().trim().max(80).nullable().optional(),
   telephone: z.string().trim().max(40).nullable().optional(),
+  email: z.union([z.email("Adresse e-mail invalide."), z.literal("")]).nullable().optional(),
+  organisme: z.string().trim().max(120).nullable().optional(),
+  ville: z.string().trim().max(80).nullable().optional(),
   userId: z.string().regex(UUID).nullable().optional(),
   employeeId: z.string().regex(UUID).nullable().optional(),
   base: z.enum(["ca_ht", "marge"]),
@@ -58,8 +62,9 @@ export async function enregistrerCommercial(id: string | null, fiche: z.input<ty
     if (id && !UUID.test(id)) return { ok: false, message: "Commercial introuvable." };
     const analyse = schemaFiche.safeParse(fiche);
     if (!analyse.success) return { ok: false, message: analyse.error.issues[0].message };
-    const { employeeId, userId: compte, nom } = analyse.data;
-    if (!employeeId && !compte && (nom ?? "").length < 2) return { ok: false, message: "Choisissez le salarié ou le compte, ou saisissez le nom." };
+    const { origine, employeeId, userId: compte, nom } = analyse.data;
+    if (origine === "interne" && !employeeId && !compte) return { ok: false, message: "Choisissez la personne dans la liste du personnel." };
+    if (origine === "externe" && (nom ?? "").length < 2) return { ok: false, message: "Indiquez le nom du commercial externe." };
     const enregistre = await db.transaction((tx) => enregistrerCommercialDans(tx, organizationId, id, analyse.data, userId));
     return { ok: true, message: `${enregistre.nom} enregistré.` };
   });

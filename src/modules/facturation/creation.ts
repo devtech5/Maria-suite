@@ -9,7 +9,11 @@ import { prochainNumero, type Transaction } from "@/lib/sequences";
 import type { CodeUnite } from "@/lib/quantite";
 import { lettrerPiecesSoldees } from "@/modules/comptabilite/lettrage-auto";
 import { commerciaux } from "@/modules/commerciaux/schema";
+import { articles } from "@/modules/catalogue/schema";
+import { creerArticleDans } from "@/modules/catalogue/creation";
 import { contactPourPiece } from "@/modules/tiers/contacts";
+import { creerTiersDans } from "@/modules/tiers/creation";
+import type { NatureTiers } from "@/modules/tiers/natures";
 import { enregistrerEcritureDans } from "@/modules/comptabilite/enregistrement";
 import { enregistrerMouvementDans } from "@/modules/stock/creation";
 import { depots } from "@/modules/stock/schema";
@@ -47,11 +51,26 @@ export interface LigneDemandee {
   remise?: number;
 }
 
+/** Un client qui n'existe pas encore : enregistré avec la pièce, son type précisé. */
+export interface NouveauClientPiece {
+  nom: string;
+  nature: NatureTiers;
+  telephone?: string | null;
+  email?: string | null;
+}
+
 export interface BrouillonDemande {
   /** Pièce existante à remplacer ; absente, un brouillon est créé. */
   id?: string;
   nature: NaturePiece;
-  clientId: string;
+  /** Client du fichier ; absent, `nouveauClient` est enregistré à l'instant. */
+  clientId?: string | null;
+  nouveauClient?: NouveauClientPiece | null;
+  /**
+   * Chaque ligne est un SERVICE : une désignation sans article rattache le
+   * service du catalogue du même nom, ou l'y ajoute s'il est nouveau.
+   */
+  creerServices?: boolean;
   projetId?: string | null;
   datePiece: string;
   echeance?: string | null;
@@ -100,6 +119,71 @@ async function completerLignes(
   });
 }
 
+/**
+ * Enregistre sur-le-champ le client d'une pièce qui n'est pas au fichier.
+ *
+ * Même transaction que le brouillon : si la pièce échoue, le client n'existe
+ * pas non plus. Un client déjà au fichier sous le même nom n'est pas recréé :
+ * deux fiches pour une même personne morale, c'est deux comptes 411 et un
+ * lettrage qui ne se retrouve plus.
+ */
+async function creerClientDeLaPiece(tx: Transaction, organizationId: string, n: NouveauClientPiece, userId?: string): Promise<string> {
+  const nom = n.nom.trim();
+  if (nom.length < 2) throw new Error("Indiquez le nom du nouveau client.");
+  const [existant] = await tx
+    .select({ id: tiers.id })
+    .from(tiers)
+    .where(and(eq(tiers.organizationId, organizationId), eq(tiers.estClient, true), isNull(tiers.deletedAt), sql`lower(${tiers.nom}) = lower(${nom})`));
+  if (existant) throw new Error(`« ${nom} » est déjà au fichier clients : choisissez-le dans la liste.`);
+  const { id } = await creerTiersDans(
+    tx,
+    organizationId,
+    { nom, nature: n.nature, estClient: true, telephone: n.telephone?.trim() || null, email: n.email?.trim() || null },
+    userId,
+  );
+  return id;
+}
+
+/**
+ * Rattache chaque ligne à un service du catalogue : le service existant du
+ * même nom (casse et accents ignorés par `lower`), sinon un service créé au
+ * prix saisi. Deux lignes du même service nouveau n'en créent qu'un.
+ */
+async function rattacherServices(tx: Transaction, organizationId: string, lignes: LigneDemandee[], userId?: string): Promise<LigneDemandee[]> {
+  const connus = new Map<string, string>();
+  const resultat: LigneDemandee[] = [];
+  for (const ligne of lignes) {
+    if (ligne.articleId) {
+      resultat.push(ligne);
+      continue;
+    }
+    const designation = ligne.designation.trim();
+    const cle = designation.toLowerCase();
+    let articleId = connus.get(cle) ?? null;
+    if (!articleId) {
+      const [existant] = await tx
+        .select({ id: articles.id })
+        .from(articles)
+        .where(and(eq(articles.organizationId, organizationId), eq(articles.actif, true), isNull(articles.deletedAt), sql`lower(${articles.designation}) = lower(${designation})`))
+        .limit(1);
+      articleId =
+        existant?.id ??
+        (
+          await creerArticleDans(
+            tx,
+            organizationId,
+            // Le prix de rayon d'un article est TTC ; la ligne est saisie hors taxes.
+            { designation, type: "service", prixVente: Math.round((ligne.prixUnitaireHt * (10_000 + DEFAUTS.tauxTva)) / 10_000), tauxTva: DEFAUTS.tauxTva, compteVente: DEFAUTS.compteVente },
+            userId,
+          )
+        ).id;
+      connus.set(cle, articleId);
+    }
+    resultat.push({ ...ligne, articleId });
+  }
+  return resultat;
+}
+
 async function client(tx: Transaction, organizationId: string, clientId: string) {
   const [fiche] = await tx
     .select({
@@ -143,8 +227,14 @@ export async function enregistrerBrouillonDans(
 ): Promise<{ id: string }> {
   if (demande.lignes.length === 0) throw new Error("Ajoutez au moins une ligne.");
 
-  const fiche = await client(tx, organizationId, demande.clientId);
-  const lignes = await completerLignes(tx, organizationId, demande.lignes);
+  let clientId = demande.clientId ?? null;
+  if (!clientId) {
+    if (!demande.nouveauClient) throw new Error("Choisissez un client.");
+    clientId = await creerClientDeLaPiece(tx, organizationId, demande.nouveauClient, userId);
+  }
+  const fiche = await client(tx, organizationId, clientId);
+  const demandees = demande.creerServices ? await rattacherServices(tx, organizationId, demande.lignes, userId) : demande.lignes;
+  const lignes = await completerLignes(tx, organizationId, demandees);
   const totaux = totaliserPiece(lignes);
 
   const echeance =

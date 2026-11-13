@@ -124,7 +124,7 @@ export default async function PageDocuments({ searchParams }: PageProps<"/docume
       {pieces.length === 0 ? (
         <EtatVide
           titre="Aucun document"
-          message="Un document se range par ce à quoi il se rattache : le contrat de son client, l'assurance de son véhicule, l'attestation de son salarié. Un fichier qui ne pointe vers rien n'est qu'un fichier."
+          message="Un document se range par ce à quoi il se rattache : le contrat de son client, l'assurance de son véhicule, l'attestation de son collaborateur. Un fichier qui ne pointe vers rien n'est qu'un fichier."
         />
       ) : (
         <>

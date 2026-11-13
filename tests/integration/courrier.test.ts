@@ -4,7 +4,7 @@ import { afterAll, beforeAll, describe, expect, it } from "vitest";
 import type { db as Db } from "@/db";
 import { memberships, notifications, plis, roles, users } from "@/db/schema";
 import { newId } from "@/lib/ids";
-import { accuserPour, enregistrerPliPour, expedierPour, imputerPour, jetonEtiquette, pliParJeton, plisDe, relancerRetardsPour, remettrePour, traiterPour } from "@/modules/courrier/requetes";
+import { accuserPour, enregistrerPliPour, entitesDeLivraison, expedierPour, imputerPour, jetonEtiquette, pliParJeton, plisDe, relancerRetardsPour, remettrePour, traiterPour } from "@/modules/courrier/requetes";
 
 import { ouvrirBaseDeTest, semerEntreprise } from "./base";
 
@@ -103,4 +103,27 @@ describe("courrier sur une vraie base", () => {
     expect((await plisDe(org, { recherche: "MC/2026" })).length).toBe(4);
     expect((await plisDe(org, { imputeA: ingenieur, statuts: ["impute", "recu"] })).map((p) => p.objet)).toEqual(["Mise en demeure"]);
   });
+
+  it("ajoute l'entité qui livre au premier pli, la propose ensuite, sans doublon ; Yango est un canal", async () => {
+    expect(await entitesDeLivraison(org)).toEqual([]);
+    const a = await enregistrerPliPour(org, secretaire, "arrivee", { ...saisie("Colis Glovo"), canal: "__nouvelle__", entite: "  Glovo  Abidjan " });
+    expect(await entitesDeLivraison(org)).toEqual(["Glovo Abidjan"]);
+    const [p1] = await db.select().from(plis).where(eq(plis.id, a.id));
+    expect(p1).toMatchObject({ canal: "entite", transporteur: "Glovo Abidjan" });
+
+    // La même entité, retapée autrement, ne crée rien ; choisie dans la liste, elle non plus.
+    await enregistrerPliPour(org, secretaire, "arrivee", { ...saisie("Autre colis"), canal: "__nouvelle__", entite: "glovo abidjan" });
+    await enregistrerPliPour(org, secretaire, "arrivee", { ...saisie("Encore"), canal: "entite:Glovo Abidjan" });
+    expect(await entitesDeLivraison(org)).toEqual(["Glovo Abidjan"]);
+
+    const y = await enregistrerPliPour(org, secretaire, "arrivee", { ...saisie("Livré par Yango"), canal: "yango" });
+    const [p2] = await db.select().from(plis).where(eq(plis.id, y.id));
+    expect(p2).toMatchObject({ canal: "yango", transporteur: null });
+    // Taper « Yango » comme nouvelle entité rend le canal Yango, pas une entité en double.
+    const z = await enregistrerPliPour(org, secretaire, "arrivee", { ...saisie("Retapé"), canal: "__nouvelle__", entite: "yango" });
+    expect((await db.select().from(plis).where(eq(plis.id, z.id)))[0]).toMatchObject({ canal: "yango" });
+    expect(await entitesDeLivraison(org)).toEqual(["Glovo Abidjan"]);
+    await expect(enregistrerPliPour(org, secretaire, "arrivee", { ...saisie("Sans nom"), canal: "__nouvelle__", entite: "" })).rejects.toThrow(/entité/);
+  });
 });
+

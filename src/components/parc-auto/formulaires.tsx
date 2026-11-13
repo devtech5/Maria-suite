@@ -7,6 +7,7 @@ import { Retour, useOperation, type Resultat } from "@/components/ui/operations"
 import { CLASSE_CHAMP, Champ } from "@/components/ui/primitives";
 import { creerVehicule, enregistrerPlein, modifierVehicule, retirerPlein } from "@/modules/parc-auto/actions";
 import { ENERGIES, USAGES } from "@/modules/parc-auto/calcul";
+import { Fenetre } from "@/components/ui/fenetre";
 
 export interface OptionConducteur {
   id: string;
@@ -121,75 +122,68 @@ export function FormulaireNouveauVehicule({ conducteurs }: { conducteurs: Option
   const formulaire = useRef<HTMLFormElement>(null);
   const op = useOperation();
 
-  if (!ouvert) {
-    return (
+  return (
+    <>
       <div className="flex items-center gap-3">
         {op.resultat?.ok && <span className="text-sm text-valide-600">{op.resultat.message}</span>}
         <button type="button" onClick={() => setOuvert(true)} className="h-cible rounded-lg bg-marque-500 px-4 text-sm font-semibold text-white hover:bg-marque-600">
           Nouveau véhicule
         </button>
       </div>
-    );
-  }
-
-  return (
-    <form
-      ref={formulaire}
-      onSubmit={(e) => {
-        e.preventDefault();
-        const donnees = new FormData(e.currentTarget);
-        op.lancer(
-          () => creerVehicule(donnees),
-          () => {
-            formulaire.current?.reset();
-            setOuvert(false);
-          },
-        );
-      }}
-      className="mb-5 w-full space-y-4 rounded-xl border border-[var(--filet)] bg-[var(--surface)] p-4"
-    >
-      <div className="flex items-center justify-between">
-        <h2 className="text-sm font-semibold">Nouveau véhicule</h2>
-        <button type="button" onClick={() => setOuvert(false)} className="text-sm text-[var(--encre-faible)] hover:underline">
-          Annuler
-        </button>
-      </div>
-      <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-        <ChampsVehicule initial={VIDE} conducteurs={conducteurs} />
-        <Champ libelle="Kilométrage actuel">
-          <input name="kilometrage" inputMode="numeric" className={`${CLASSE_CHAMP} chiffres`} />
-        </Champ>
-        <Champ libelle="Date d'acquisition">
-          <input name="dateAcquisition" type="date" className={`${CLASSE_CHAMP} chiffres`} />
-        </Champ>
-        <Champ libelle="Valeur d'acquisition (FCFA)">
-          <input name="valeurAcquisition" inputMode="numeric" className={`${CLASSE_CHAMP} chiffres`} />
-        </Champ>
-        <Champ libelle="Site">
-          <input name="site" placeholder="Abidjan" className={CLASSE_CHAMP} />
-        </Champ>
-      </div>
-      <fieldset className="border-t border-[var(--filet)] pt-4">
-        <legend className="mb-3 text-sm font-semibold">Échéances <span className="font-normal text-[var(--encre-faible)]">— facultatives, une alerte prévient 30 jours avant</span></legend>
-        <div className="grid gap-4 sm:grid-cols-3">
-          <Champ libelle="Assurance valable jusqu'au">
-            <input name="assuranceLe" type="date" className={`${CLASSE_CHAMP} chiffres`} />
-          </Champ>
-          <Champ libelle="Visite technique jusqu'au">
-            <input name="visiteLe" type="date" className={`${CLASSE_CHAMP} chiffres`} />
-          </Champ>
-          <Champ libelle="Vignette jusqu'au">
-            <input name="vignetteLe" type="date" className={`${CLASSE_CHAMP} chiffres`} />
-          </Champ>
-        </div>
-      </fieldset>
-      <div className="flex items-center justify-end gap-3">
-        <Retour resultat={op.resultat && !op.resultat.ok ? op.resultat : null} />
-        <button type="submit" disabled={op.enCours} className="h-cible rounded-lg bg-marque-500 px-5 text-sm font-semibold text-white disabled:opacity-50">
-          {op.enCours ? "Enregistrement…" : "Ouvrir le véhicule"}
-        </button>
-      </div>
-    </form>
+      <Fenetre ouverte={ouvert} titre="Nouveau véhicule" presentation="ample" onFermer={() => setOuvert(false)}>
+        <form
+          ref={formulaire}
+          onSubmit={(e) => {
+            e.preventDefault();
+            const donnees = new FormData(e.currentTarget);
+            op.lancer(
+              () => creerVehicule(donnees),
+              () => {
+                formulaire.current?.reset();
+                setOuvert(false);
+              },
+            );
+          }}
+          className="space-y-4 px-5 py-4"
+        >
+          <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+            <ChampsVehicule initial={VIDE} conducteurs={conducteurs} />
+            <Champ libelle="Kilométrage actuel">
+              <input name="kilometrage" inputMode="numeric" className={`${CLASSE_CHAMP} chiffres`} />
+            </Champ>
+            <Champ libelle="Date d'acquisition">
+              <input name="dateAcquisition" type="date" className={`${CLASSE_CHAMP} chiffres`} />
+            </Champ>
+            <Champ libelle="Valeur d'acquisition (FCFA)">
+              <input name="valeurAcquisition" inputMode="numeric" className={`${CLASSE_CHAMP} chiffres`} />
+            </Champ>
+            <Champ libelle="Site">
+              <input name="site" placeholder="Abidjan" className={CLASSE_CHAMP} />
+            </Champ>
+          </div>
+          <fieldset className="border-t border-[var(--filet)] pt-4">
+            <legend className="mb-3 text-sm font-semibold">Échéances <span className="font-normal text-[var(--encre-faible)]">— facultatives, une alerte prévient 30 jours avant</span></legend>
+            <div className="grid gap-4 sm:grid-cols-3">
+              <Champ libelle="Assurance valable jusqu'au">
+                <input name="assuranceLe" type="date" className={`${CLASSE_CHAMP} chiffres`} />
+              </Champ>
+              <Champ libelle="Visite technique jusqu'au">
+                <input name="visiteLe" type="date" className={`${CLASSE_CHAMP} chiffres`} />
+              </Champ>
+              <Champ libelle="Vignette jusqu'au">
+                <input name="vignetteLe" type="date" className={`${CLASSE_CHAMP} chiffres`} />
+              </Champ>
+            </div>
+          </fieldset>
+          <div className="flex items-center justify-end gap-3">
+            <Retour resultat={op.resultat && !op.resultat.ok ? op.resultat : null} />
+            <button type="submit" disabled={op.enCours} className="h-cible rounded-lg bg-marque-500 px-5 text-sm font-semibold text-white disabled:opacity-50">
+              {op.enCours ? "Enregistrement…" : "Ouvrir le véhicule"}
+            </button>
+          </div>
+        </form>
+      </Fenetre>
+    </>
   );
 }
 
@@ -233,8 +227,8 @@ export function FormulairePlein({ vehicules, conducteurs, fixe = false }: { vehi
   const op = useOperation();
   const vehicule = vehicules.find((v) => v.id === actifId);
 
-  if (!ouvert) {
-    return (
+  return (
+    <>
       <div className="flex items-center gap-3">
         {op.resultat?.ok && <span className="text-sm text-valide-600">{op.resultat.message}</span>}
         <button
@@ -246,82 +240,75 @@ export function FormulairePlein({ vehicules, conducteurs, fixe = false }: { vehi
           Noter un plein
         </button>
       </div>
-    );
-  }
-
-  return (
-    <form
-      ref={formulaire}
-      onSubmit={(e) => {
-        e.preventDefault();
-        const donnees = new FormData(e.currentTarget);
-        op.lancer(
-          () => enregistrerPlein(donnees),
-          () => {
-            formulaire.current?.reset();
-            setOuvert(false);
-          },
-        );
-      }}
-      className="mb-5 w-full space-y-4 rounded-xl border border-[var(--filet)] bg-[var(--surface)] p-4"
-    >
-      <div className="flex items-center justify-between">
-        <h2 className="text-sm font-semibold">Plein de carburant</h2>
-        <button type="button" onClick={() => setOuvert(false)} className="text-sm text-[var(--encre-faible)] hover:underline">
-          Annuler
-        </button>
-      </div>
-      <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-        {fixe ? (
-          <input type="hidden" name="actifId" value={actifId} />
-        ) : (
-          <Champ libelle="Véhicule">
-            <select name="actifId" value={actifId} onChange={(e) => setActifId(e.target.value)} className={CLASSE_CHAMP}>
-              {vehicules.map((v) => (
-                <option key={v.id} value={v.id}>
-                  {v.libelle}
-                </option>
-              ))}
-            </select>
-          </Champ>
-        )}
-        <Champ libelle="Date">
-          <input name="faitLe" type="date" defaultValue={new Date().toISOString().slice(0, 10)} className={`${CLASSE_CHAMP} chiffres`} />
-        </Champ>
-        <Champ libelle="Volume (litres)">
-          <input name="volume" required inputMode="decimal" placeholder="42,5" className={`${CLASSE_CHAMP} chiffres`} />
-        </Champ>
-        <Champ libelle="Montant payé (FCFA)">
-          <input name="montant" required inputMode="numeric" className={`${CLASSE_CHAMP} chiffres`} />
-        </Champ>
-        <Champ libelle="Kilométrage au compteur" precision={vehicule?.kilometrage != null ? `Dernier relevé : ${vehicule.kilometrage.toLocaleString("fr-FR")} km` : undefined}>
-          <input name="kilometrage" inputMode="numeric" className={`${CLASSE_CHAMP} chiffres`} />
-        </Champ>
-        <Champ libelle="Conducteur">
-          <select key={actifId} name="conducteurId" defaultValue={vehicule?.conducteurId ?? ""} className={CLASSE_CHAMP}>
-            <option value="">—</option>
-            {conducteurs.map((c) => (
-              <option key={c.id} value={c.id}>
-                {c.nom}
-              </option>
-            ))}
-          </select>
-        </Champ>
-        <Champ libelle="Station">
-          <input name="station" placeholder="Total Plateau" className={CLASSE_CHAMP} />
-        </Champ>
-        <label className="flex items-center gap-2 self-end pb-2 text-sm">
-          <input name="complet" type="checkbox" defaultChecked className="size-4" />
-          Réservoir rempli à ras
-        </label>
-      </div>
-      <div className="flex items-center justify-end gap-3">
-        <Retour resultat={op.resultat && !op.resultat.ok ? op.resultat : null} />
-        <button type="submit" disabled={op.enCours} className="h-cible rounded-lg bg-marque-500 px-5 text-sm font-semibold text-white disabled:opacity-50">
-          {op.enCours ? "Enregistrement…" : "Enregistrer le plein"}
-        </button>
-      </div>
-    </form>
+      <Fenetre ouverte={ouvert} titre="Plein de carburant" presentation="ample" onFermer={() => setOuvert(false)}>
+        <form
+          ref={formulaire}
+          onSubmit={(e) => {
+            e.preventDefault();
+            const donnees = new FormData(e.currentTarget);
+            op.lancer(
+              () => enregistrerPlein(donnees),
+              () => {
+                formulaire.current?.reset();
+                setOuvert(false);
+              },
+            );
+          }}
+          className="space-y-4 px-5 py-4"
+        >
+          <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+            {fixe ? (
+              <input type="hidden" name="actifId" value={actifId} />
+            ) : (
+              <Champ libelle="Véhicule">
+                <select name="actifId" value={actifId} onChange={(e) => setActifId(e.target.value)} className={CLASSE_CHAMP}>
+                  {vehicules.map((v) => (
+                    <option key={v.id} value={v.id}>
+                      {v.libelle}
+                    </option>
+                  ))}
+                </select>
+              </Champ>
+            )}
+            <Champ libelle="Date">
+              <input name="faitLe" type="date" defaultValue={new Date().toISOString().slice(0, 10)} className={`${CLASSE_CHAMP} chiffres`} />
+            </Champ>
+            <Champ libelle="Volume (litres)">
+              <input name="volume" required inputMode="decimal" placeholder="42,5" className={`${CLASSE_CHAMP} chiffres`} />
+            </Champ>
+            <Champ libelle="Montant payé (FCFA)">
+              <input name="montant" required inputMode="numeric" className={`${CLASSE_CHAMP} chiffres`} />
+            </Champ>
+            <Champ libelle="Kilométrage au compteur" precision={vehicule?.kilometrage != null ? `Dernier relevé : ${vehicule.kilometrage.toLocaleString("fr-FR")} km` : undefined}>
+              <input name="kilometrage" inputMode="numeric" className={`${CLASSE_CHAMP} chiffres`} />
+            </Champ>
+            <Champ libelle="Conducteur">
+              <select key={actifId} name="conducteurId" defaultValue={vehicule?.conducteurId ?? ""} className={CLASSE_CHAMP}>
+                <option value="">—</option>
+                {conducteurs.map((c) => (
+                  <option key={c.id} value={c.id}>
+                    {c.nom}
+                  </option>
+                ))}
+              </select>
+            </Champ>
+            <Champ libelle="Station">
+              <input name="station" placeholder="Total Plateau" className={CLASSE_CHAMP} />
+            </Champ>
+            <label className="flex items-center gap-2 self-end pb-2 text-sm">
+              <input name="complet" type="checkbox" defaultChecked className="size-4" />
+              Réservoir rempli à ras
+            </label>
+          </div>
+          <div className="flex items-center justify-end gap-3">
+            <Retour resultat={op.resultat && !op.resultat.ok ? op.resultat : null} />
+            <button type="submit" disabled={op.enCours} className="h-cible rounded-lg bg-marque-500 px-5 text-sm font-semibold text-white disabled:opacity-50">
+              {op.enCours ? "Enregistrement…" : "Enregistrer le plein"}
+            </button>
+          </div>
+        </form>
+      </Fenetre>
+    </>
   );
 }
 

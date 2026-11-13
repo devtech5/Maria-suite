@@ -1,6 +1,6 @@
 import "server-only";
 
-import { EmblemeMaria } from "@/components/coque/signature";
+import { EmblemeMaria, SignatureMaria } from "@/components/coque/signature";
 import { urlAbsolue } from "@/lib/liens-publics";
 import { visiteDe } from "@/modules/visiteurs/requetes";
 
@@ -19,7 +19,7 @@ export async function RendezVousPublic({ organizationId, visiteId }: { organizat
   if (!v) return null;
   const valable = v.statut === "attendue";
   return (
-    <main className="flex min-h-dvh items-center justify-center bg-[var(--fond)] px-4 py-8">
+    <main className="flex min-h-dvh flex-col items-center justify-center gap-6 bg-[var(--fond)] px-4 py-8">
       <article className="w-full max-w-sm rounded-3xl border border-[var(--filet)] bg-[var(--surface)] p-6 text-center shadow-sm">
         <EmblemeMaria className="mx-auto size-14" />
         <p className="mt-2 text-xs font-semibold uppercase tracking-[0.2em] text-[var(--encre-faible)]">MARIA GROUP SARL</p>
@@ -39,6 +39,7 @@ export async function RendezVousPublic({ organizationId, visiteId }: { organizat
           </p>
         )}
       </article>
+      <SignatureMaria />
     </main>
   );
 }

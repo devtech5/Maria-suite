@@ -1,36 +1,35 @@
 import type { Metadata } from "next";
+import Link from "next/link";
 
-import {
-  CarteIndicateur,
-  EnTetePage,
-  EtatVide,
-  Pastille,
-  Tableau,
-  Td,
-  Th,
-} from "@/components/ui/primitives";
-import { ContactsTiers } from "@/components/tiers/contacts";
-import { ActionsFiche } from "@/components/ui/actions-fiche";
+import { CarteIndicateur, EnTetePage, EtatVide } from "@/components/ui/primitives";
 import { Recherche } from "@/components/ui/recherche";
 import { exigerEntreprise } from "@/lib/auth/dal";
 import { peut } from "@/lib/droits/garde";
-import { fmt, fmtCompact, fmtEntier, fmtTaux } from "@/lib/format";
+import { fmtCompact, fmtEntier, fmtTaux } from "@/lib/format";
 import { correspond, lireFiltresListe } from "@/lib/recherche";
-import { fichesTiers } from "@/modules/tiers/requetes";
+import { nomPays, origineDe } from "@/modules/tiers/origine";
+import { fichesTiers, paysEntreprise } from "@/modules/tiers/requetes";
 import { FormulaireTiers } from "../formulaire-tiers";
+import { TableauFournisseurs } from "./tableau-fournisseurs";
 
 export const metadata: Metadata = { title: "Fournisseurs" };
 
 export default async function PageFournisseurs({ searchParams }: PageProps<"/commercial/fournisseurs">) {
   const session = await exigerEntreprise();
-  const filtres = lireFiltresListe(await searchParams);
+  const parametres = await searchParams;
+  const filtres = lireFiltresListe(parametres);
+  // Suivi : tous, locaux, ou internationaux.
+  const origine = parametres.origine === "local" || parametres.origine === "international" ? parametres.origine : null;
   const [gerer, supprimer] = await Promise.all([peut("tiers.fiche.gerer"), peut("tiers.fiche.supprimer")]);
   // Qui peut réactiver voit aussi les fiches en off.
-  const fournisseurs = await fichesTiers(session.organizationId, "fournisseur", gerer);
+  const [fournisseurs, pays] = await Promise.all([fichesTiers(session.organizationId, "fournisseur", gerer), paysEntreprise(session.organizationId)]);
   // Le fichier entier est déjà là, sans limite : la recherche filtre le tableau en mémoire, les indicateurs restent ceux de tout le fichier.
-  const lignes = fournisseurs.filter((f) =>
-    correspond(filtres.q, [f.code, f.nom, f.identifiantFiscal, f.secteur, f.telephone, f.email, f.ville, ...f.contacts.map((c) => c.nom)]),
+  const lignes = fournisseurs.filter(
+    (f) =>
+      (origine === null || origineDe(f.paysCode, pays) === origine) &&
+      correspond(filtres.q, [f.code, f.nom, f.identifiantFiscal, f.secteur, f.telephone, f.email, f.ville, nomPays(f.paysCode ?? pays), ...f.contacts.map((c) => c.nom)]),
   );
+  const internationaux = fournisseurs.filter((f) => origineDe(f.paysCode, pays) === "international").length;
 
   const volume = fournisseurs.reduce((somme, f) => somme + f.achatsFournisseur, 0);
   const du = fournisseurs.reduce((somme, f) => somme + f.duFournisseur, 0);
@@ -54,7 +53,7 @@ export default async function PageFournisseurs({ searchParams }: PageProps<"/com
             ? "Aucun fournisseur référencé"
             : `${fournisseurs.length} fournisseurs référencés`
         }
-        actions={<FormulaireTiers role="fournisseur" />}
+        actions={<FormulaireTiers role="fournisseur" paysEntreprise={pays} />}
       />
 
       {fournisseurs.length === 0 ? (
@@ -90,93 +89,31 @@ export default async function PageFournisseurs({ searchParams }: PageProps<"/com
             />
           </section>
 
+          <div className="mb-3 flex flex-wrap gap-1.5">
+            {([[null, "Tous", fournisseurs.length], ["local", "Locaux", fournisseurs.length - internationaux], ["international", "Internationaux", internationaux]] as const).map(([valeur, libelle, n]) => (
+              <Link
+                key={libelle}
+                href={`/commercial/fournisseurs${valeur ? `?origine=${valeur}` : ""}`}
+                aria-current={origine === valeur ? "page" : undefined}
+                className={`rounded-full border px-3 py-1 text-xs font-semibold ${origine === valeur ? "border-marque-600 bg-marque-600 text-white" : "border-[var(--filet)] bg-[var(--surface)] hover:bg-[var(--surface-creuse)]"}`}
+              >
+                {libelle} <span className="chiffres opacity-80">{n}</span>
+              </Link>
+            ))}
+          </div>
+
           <Recherche
-            chemin="/commercial/fournisseurs"
+            chemin={`/commercial/fournisseurs${origine ? `?origine=${origine}` : ""}`}
             valeur={filtres.q}
-            placeholder="Nom, référence, secteur, téléphone, contact, NCC…"
+            filtres={origine ? <input type="hidden" name="origine" value={origine} /> : undefined}
+            placeholder="Nom, référence, secteur, pays, téléphone, contact, NCC…"
             resultats={filtres.actif ? `${fmtEntier(lignes.length)} sur ${fmtEntier(fournisseurs.length)}` : undefined}
           />
 
           {lignes.length === 0 ? (
             <EtatVide titre="Aucun fournisseur ne répond" message="Retirez un mot de la recherche, ou cherchez par référence ou téléphone." />
           ) : (
-            <Tableau>
-              <thead>
-                <tr>
-                  <Th>Référence</Th>
-                  <Th>Fournisseur</Th>
-                  <Th>Secteur</Th>
-                  <Th>Téléphone</Th>
-                  <Th>Contacts</Th>
-                  <Th aligne="droite">Délai</Th>
-                  <Th aligne="droite">Achats</Th>
-                  <Th aligne="droite">Solde dû</Th>
-                  {(gerer || supprimer) && <Th aligne="droite">Fiche</Th>}
-                </tr>
-              </thead>
-              <tbody>
-                {lignes.map((fournisseur) => (
-                  <tr key={fournisseur.id} className={fournisseur.actif ? "" : "opacity-60"}>
-                    <Td chiffres>{fournisseur.code}</Td>
-                    <Td fort>
-                      {fournisseur.nom}
-                      {!fournisseur.actif && (
-                        <span className="ml-1.5 align-middle">
-                          <Pastille ton="alerte">En off</Pastille>
-                        </span>
-                      )}
-                      {fournisseur.identifiantFiscal && (
-                        <span className="chiffres block text-xs font-normal text-[var(--encre-faible)]">
-                          {fournisseur.identifiantFiscal}
-                        </span>
-                      )}
-                    </Td>
-                    <Td>
-                      <span className="text-xs text-[var(--encre-douce)]">
-                        {fournisseur.secteur ?? "—"}
-                      </span>
-                    </Td>
-                    <Td chiffres>{fournisseur.telephone ?? "—"}</Td>
-                    <Td>
-                      {/* Volet repliable : le tableau reste lisible, les contacts à un clic. */}
-                      <details className="group text-xs">
-                        <summary className="cursor-pointer list-none text-marque-600 hover:underline">
-                          {fournisseur.contacts[0] ? `${fournisseur.contacts[0].nom}${fournisseur.contacts.length > 1 ? ` +${fournisseur.contacts.length - 1}` : ""}` : gerer ? "Ajouter" : "—"}
-                        </summary>
-                        <div className="mt-2 w-72">
-                          <ContactsTiers tiersId={fournisseur.id} contacts={fournisseur.contacts} modifiable={gerer} />
-                        </div>
-                      </details>
-                    </Td>
-                    <Td aligne="droite" chiffres>
-                      {fournisseur.delaiLivraisonJours > 0
-                        ? `${fmtEntier(fournisseur.delaiLivraisonJours)} j`
-                        : "—"}
-                    </Td>
-                    <Td aligne="droite" chiffres>
-                      {fmt(fournisseur.achatsFournisseur)}
-                    </Td>
-                    <Td aligne="droite" chiffres fort>
-                      <span className={fournisseur.duFournisseur > 0 ? "text-alerte-600" : ""}>
-                        {fmt(fournisseur.duFournisseur)}
-                      </span>
-                    </Td>
-                    {(gerer || supprimer) && (
-                      <Td aligne="droite">
-                        <ActionsFiche
-                          type="tiers"
-                          id={fournisseur.id}
-                          libelle={fournisseur.nom}
-                          actif={fournisseur.actif}
-                          peutGerer={gerer}
-                          peutSupprimer={supprimer}
-                        />
-                      </Td>
-                    )}
-                  </tr>
-                ))}
-              </tbody>
-            </Tableau>
+            <TableauFournisseurs fournisseurs={lignes} gerer={gerer} supprimer={supprimer} paysEntreprise={pays} />
           )}
         </>
       )}

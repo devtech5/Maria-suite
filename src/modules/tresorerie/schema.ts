@@ -133,7 +133,7 @@ export const bonsCaisse = pgTable(
     nature: natureBonCaisse("nature").notNull(),
     montant: money("montant").notNull(),
     /**
-     * Qui reçoit l'argent, quand il a une fiche : un fournisseur, un salarié du
+     * Qui reçoit l'argent, quand il a une fiche : un fournisseur, un collaborateur du
      * Personnel, un intervenant. Une seule des trois, ou aucune pour le taxi
      * de passage.
      */
@@ -191,9 +191,9 @@ export const avancesTresorerie = pgTable(
     caisseId: uuid("caisse_id")
       .notNull()
       .references(() => comptesTresorerie.id, { onDelete: "restrict" }),
-    /** Salarié du Personnel qui reçoit l'avance. */
+    /** Collaborateur du Personnel qui reçoit l'avance. */
     beneficiaireEmployeId: uuid("beneficiaire_employe_id").references(() => employees.id, { onDelete: "set null" }),
-    /** Compte du bénéficiaire : celui du salarié, ou un membre sans fiche au Personnel. */
+    /** Compte du bénéficiaire : celui du collaborateur, ou un membre sans fiche au Personnel. */
     beneficiaireUserId: uuid("beneficiaire_user_id"),
     /** Nom au jour de la remise : recopié de la fiche, ou saisi à défaut. */
     beneficiaire: text("beneficiaire").notNull(),

@@ -47,7 +47,7 @@ describe("tâches confiées au Personnel", () => {
     expect(liste.some((p) => p.id === parti)).toBe(false);
   });
 
-  it("un salarié avec un compte reçoit la tâche dans sa liste", async () => {
+  it("un collaborateur avec un compte reçoit la tâche dans sa liste", async () => {
     const awaCompte = await compte("Awa (compte)");
     const { id: awa } = await creerSalariePour(org, { nom: "Awa Koné", poste: "Comptable", debut: "2026-01-05", salaireBase: 200_000 }, chef);
     await db.update(employees).set({ userId: awaCompte }).where(eq(employees.id, awa));
@@ -61,7 +61,7 @@ describe("tâches confiées au Personnel", () => {
     expect(siennes.find((t) => t.id === tache.id)).toMatchObject({ assignee: "Awa Koné", assigneeEmployeId: awa, sansCompte: false });
   });
 
-  it("un salarié sans compte : l'auteur suit la tâche pour lui", async () => {
+  it("un collaborateur sans compte : l'auteur suit la tâche pour lui", async () => {
     const { id: kone } = await creerSalariePour(org, { nom: "Koné Yao", poste: "Manutentionnaire", debut: "2026-01-05", salaireBase: 80_000 }, chef);
 
     const tache = await db.transaction((tx) =>
@@ -73,7 +73,7 @@ describe("tâches confiées au Personnel", () => {
     expect(confiees.find((t) => t.id === tache.id)).toMatchObject({ assignee: "Koné Yao", sansCompte: true });
   });
 
-  it("réattribuer à un autre salarié remet la tâche à faire", async () => {
+  it("réattribuer à un autre collaborateur remet la tâche à faire", async () => {
     const { id: premier } = await creerSalariePour(org, { nom: "Diallo Ali", poste: "Livreur", debut: "2026-01-05", salaireBase: 80_000 }, chef);
     const { id: second } = await creerSalariePour(org, { nom: "Ouattara Ina", poste: "Livreuse", debut: "2026-01-05", salaireBase: 80_000 }, chef);
     const { id } = await db.transaction((tx) =>
@@ -86,7 +86,7 @@ describe("tâches confiées au Personnel", () => {
     expect(ligne).toMatchObject({ assigneeEmployeId: second, statut: "a_faire" });
   });
 
-  it("refuse un salarié parti, et l'attribution sans le droit", async () => {
+  it("refuse un collaborateur parti, et l'attribution sans le droit", async () => {
     const { id: parti } = await creerSalariePour(org, { nom: "Gnagne Luc", poste: "Gardien", debut: "2025-01-05", salaireBase: 70_000 }, chef);
     await db.update(employees).set({ actif: false }).where(eq(employees.id, parti));
     await expect(

@@ -118,11 +118,8 @@ export default async function PageMissions({ searchParams }: PageProps<"/mission
                 const progression = pourcentage(mission.etapesFaites, mission.etapes);
 
                 return (
-                  <li key={mission.id}>
-                    <Link
-                      href={`/missions/suivi?mission=${mission.id}`}
-                      className="block rounded-xl border border-[var(--filet)] bg-[var(--surface)] p-4 hover:border-marque-300"
-                    >
+                  <li key={mission.id} className="rounded-xl border border-[var(--filet)] bg-[var(--surface)] hover:border-marque-300">
+                    <Link href={`/missions/suivi?mission=${mission.id}`} className="block p-4">
                       <div className="flex items-start justify-between gap-2">
                         <div className="min-w-0">
                           <p className="chiffres text-xs text-[var(--encre-faible)]">
@@ -186,6 +183,11 @@ export default async function PageMissions({ searchParams }: PageProps<"/mission
                         )}
                       </div>
                     </Link>
+                    <div className="border-t border-[var(--filet)] px-4 py-2 text-xs">
+                      <Link href={`/missions/${mission.id}`} className="font-semibold text-marque-600 hover:underline">
+                        Budget et intervenants →
+                      </Link>
+                    </div>
                   </li>
                 );
               })}

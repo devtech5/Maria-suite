@@ -46,7 +46,7 @@ function TablePermissions({
       <thead>
         <tr>
           <Th>N°</Th>
-          {avecNom && <Th>Salarié</Th>}
+          {avecNom && <Th>Collaborateur</Th>}
           <Th>Motif</Th>
           <Th>Quand</Th>
           <Th aligne="droite">Durée</Th>
@@ -152,7 +152,7 @@ export default async function PagePermissions({ searchParams }: PageProps<"/pres
       )}
       {!moi && !valideur && (
         <p className="mb-6 rounded-xl border border-dashed border-[var(--filet)] bg-[var(--surface)] p-5 text-sm text-[var(--encre-douce)]">
-          Votre compte n&apos;est rattaché à aucune fiche salarié : demandez à votre responsable de vous rattacher depuis Personnel pour demander une permission.
+          Votre compte n&apos;est rattaché à aucune fiche collaborateur : demandez à votre responsable de vous rattacher depuis Personnel pour demander une permission.
         </p>
       )}
 
@@ -160,7 +160,7 @@ export default async function PagePermissions({ searchParams }: PageProps<"/pres
         <Recherche
           chemin="/presences/permissions"
           valeur={filtres.q}
-          placeholder="N°, salarié, motif, traitement…"
+          placeholder="N°, collaborateur, motif, traitement…"
           periode={{ ...filtres.periode, libelle: "Permission" }}
           resultats={filtres.actif ? `${fmtEntier(trouvees)} demande${trouvees > 1 ? "s" : ""} trouvée${trouvees > 1 ? "s" : ""}` : undefined}
         />

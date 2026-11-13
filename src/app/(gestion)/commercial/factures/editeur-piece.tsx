@@ -6,6 +6,7 @@ import { Champ, CLASSE_CHAMP } from "@/components/ui/primitives";
 import { fmt, fmtTauxBp } from "@/lib/format";
 import { ECHELLE_QUANTITE } from "@/lib/quantite";
 import { enregistrerBrouillon, type BrouillonEntrant } from "@/modules/facturation/actions";
+import { LIBELLE_NATURE_TIERS, NATURES_TIERS, type NatureTiers } from "@/modules/tiers/natures";
 import { montantHtLigne, totaliserPiece } from "@/modules/facturation/calcul";
 import type { OptionsPiece } from "@/modules/facturation/requetes";
 
@@ -51,6 +52,12 @@ function lireMontant(saisie: string): number {
   return Number.isInteger(valeur) && valeur >= 0 ? valeur : Number.NaN;
 }
 
+/** Valeur du choix « client qui n'existe pas encore ». */
+const NOUVEAU_CLIENT = "__nouveau__";
+
+/** Sans casse ni accents : « pose et montage » retrouve « Pose et Montage ». */
+const normaliser = (t: string) => t.normalize("NFD").replace(/[\u0300-\u036f]/g, "").trim().toLowerCase();
+
 let compteur = 0;
 const nouvelleCle = () => (compteur += 1);
 
@@ -75,9 +82,12 @@ export function EditeurPiece({
 }) {
   const [nature, setNature] = useState(initiale.nature);
   const [clientId, setClientId] = useState(initiale.clientId);
+  // Client absent du fichier : enregistré avec la pièce, son type précisé.
+  const [nouveau, setNouveau] = useState<{ nom: string; nature: NatureTiers; telephone: string; email: string }>({ nom: "", nature: "entreprise", telephone: "", email: "" });
+  const nouveauClient = clientId === NOUVEAU_CLIENT;
   const principalDe = (client: string) => options.contacts[client]?.find((c) => c.principal)?.id ?? "";
   const [contactId, setContactId] = useState(initiale.id ? (initiale.contactId ?? "") : (initiale.contactId ?? principalDe(initiale.clientId)));
-  const contactsDuClient = options.contacts[clientId] ?? [];
+  const contactsDuClient = nouveauClient ? [] : (options.contacts[clientId] ?? []);
   const [projetId, setProjetId] = useState(initiale.projetId ?? "");
   const [datePiece, setDatePiece] = useState(initiale.datePiece);
   const [echeance, setEcheance] = useState(initiale.echeance ?? "");
@@ -100,6 +110,8 @@ export function EditeurPiece({
   const [enCours, demarrer] = useTransition();
 
   const articles = useMemo(() => new Map(options.articles.map((a) => [a.id, a])), [options.articles]);
+  // Les services d'abord : c'est ce que la liste propose. Un article de marchandise reste choisissable, par son nom.
+  const parNom = useMemo(() => new Map(options.articles.map((a) => [normaliser(a.designation), a])), [options.articles]);
 
   const lues = lignes.map((l) => {
     const article = l.articleId ? articles.get(l.articleId) : undefined;
@@ -121,24 +133,38 @@ export function EditeurPiece({
     setLignes((actuel) => actuel.map((l) => (l.cle === cle ? { ...l, ...champ } : l)));
   }
 
-  function choisirArticle(cle: number, articleId: string) {
-    const article = articles.get(articleId);
-    modifier(cle, {
-      articleId: article?.id ?? null,
-      designation: article?.designation ?? "",
-      prix: article ? String(article.prixHt) : "0",
-    });
+  /**
+   * Le service saisi ou choisi. Un nom connu rattache le service du catalogue
+   * (et son prix, si la ligne n'en a pas encore) ; un nom nouveau reste sans
+   * article, et le serveur l'ajoute au catalogue à l'enregistrement.
+   */
+  function saisirService(cle: number, saisie: string) {
+    const connu = parNom.get(normaliser(saisie));
+    setLignes((actuel) =>
+      actuel.map((l) =>
+        l.cle !== cle
+          ? l
+          : {
+              ...l,
+              designation: saisie,
+              articleId: connu?.id ?? null,
+              prix: connu && (l.prix === "" || l.prix === "0") ? String(connu.prixHt) : l.prix,
+            },
+      ),
+    );
   }
 
   function enregistrer() {
     setErreur(null);
-    if (!clientId) return setErreur("Choisissez un client.");
+    if (!clientId) return setErreur("Choisissez un client, ou enregistrez-le sur place.");
+    if (nouveauClient && nouveau.nom.trim().length < 2) return setErreur("Indiquez le nom du nouveau client.");
     if (!lisibles) return setErreur("Une quantité ou un montant est illisible.");
 
     const brouillon: BrouillonEntrant = {
       id: initiale.id,
       nature,
-      clientId,
+      clientId: nouveauClient ? null : clientId,
+      nouveauClient: nouveauClient ? { nom: nouveau.nom, nature: nouveau.nature, telephone: nouveau.telephone || null, email: nouveau.email || null } : null,
       projetId: projetId || null,
       datePiece,
       echeance: echeance || null,
@@ -206,8 +232,33 @@ export function EditeurPiece({
                 {c.nom}
               </option>
             ))}
+            <option value={NOUVEAU_CLIENT}>+ Nouveau client…</option>
           </select>
         </Champ>
+
+        {nouveauClient && (
+          <fieldset className="grid gap-3 rounded-xl border border-marque-300 bg-[var(--surface-creuse)] p-3 sm:col-span-2 sm:grid-cols-2 lg:col-span-3 lg:grid-cols-4">
+            <legend className="px-1 text-xs font-semibold text-[var(--encre-douce)]">Nouveau client — enregistré avec la pièce</legend>
+            <Champ libelle="Nom">
+              <input value={nouveau.nom} onChange={(e) => setNouveau({ ...nouveau, nom: e.target.value })} autoFocus className={CLASSE_CHAMP} />
+            </Champ>
+            <Champ libelle="Type de client">
+              <select value={nouveau.nature} onChange={(e) => setNouveau({ ...nouveau, nature: e.target.value as NatureTiers })} className={CLASSE_CHAMP}>
+                {NATURES_TIERS.map((n) => (
+                  <option key={n} value={n}>
+                    {LIBELLE_NATURE_TIERS[n]}
+                  </option>
+                ))}
+              </select>
+            </Champ>
+            <Champ libelle="Téléphone">
+              <input value={nouveau.telephone} inputMode="tel" onChange={(e) => setNouveau({ ...nouveau, telephone: e.target.value })} className={CLASSE_CHAMP} />
+            </Champ>
+            <Champ libelle="E-mail">
+              <input type="email" value={nouveau.email} onChange={(e) => setNouveau({ ...nouveau, email: e.target.value })} className={CLASSE_CHAMP} />
+            </Champ>
+          </fieldset>
+        )}
 
         {contactsDuClient.length > 0 && (
           <Champ libelle="À l'attention de" precision="Interlocuteur chez le client, imprimé sur la pièce.">
@@ -284,12 +335,17 @@ export function EditeurPiece({
       </div>
 
       {/* --------------------------------------------------------- lignes */}
+      <datalist id="services-catalogue">
+        {options.articles.map((a) => (
+          <option key={a.id} value={a.designation} />
+        ))}
+      </datalist>
+
       <div className="mt-5 overflow-x-auto">
         <table className="w-full min-w-[720px] text-sm">
           <thead>
             <tr className="text-left text-xs text-[var(--encre-faible)]">
-              <th className="pb-2 font-medium">Article</th>
-              <th className="pb-2 font-medium">Désignation</th>
+              <th className="pb-2 font-medium">Service</th>
               <th className="w-20 pb-2 font-medium">Qté</th>
               <th className="w-28 pb-2 font-medium">PU HT</th>
               <th className="w-24 pb-2 font-medium">Remise</th>
@@ -308,28 +364,17 @@ export function EditeurPiece({
               return (
                 <tr key={ligne.cle} className="align-top">
                   <td className="py-1 pr-2">
-                    <select
-                      value={ligne.articleId ?? ""}
-                      onChange={(e) => choisirArticle(ligne.cle, e.target.value)}
-                      aria-label="Article"
-                      className={`${CLASSE_CHAMP} max-w-48`}
-                    >
-                      <option value="">Ligne libre</option>
-                      {options.articles.map((a) => (
-                        <option key={a.id} value={a.id}>
-                          {a.designation}
-                        </option>
-                      ))}
-                    </select>
-                  </td>
-                  <td className="py-1 pr-2">
                     <input
                       value={ligne.designation}
-                      onChange={(e) => modifier(ligne.cle, { designation: e.target.value })}
-                      aria-label="Désignation"
-                      placeholder="Pose et montage"
-                      className={CLASSE_CHAMP}
+                      onChange={(e) => saisirService(ligne.cle, e.target.value)}
+                      list="services-catalogue"
+                      aria-label="Service"
+                      placeholder="Choisir ou saisir un service"
+                      className={`${CLASSE_CHAMP} min-w-56`}
                     />
+                    {ligne.designation.trim() !== "" && !ligne.articleId && (
+                      <span className="mt-0.5 block text-[11px] text-valide-600">Nouveau service : ajouté au catalogue à l&apos;enregistrement.</span>
+                    )}
                   </td>
                   <td className="py-1 pr-2">
                     <input

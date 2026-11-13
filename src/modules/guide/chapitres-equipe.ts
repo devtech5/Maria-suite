@@ -338,6 +338,53 @@ export const CHAPITRES_EQUIPE: Chapitre[] = [
     ],
   },
   {
+    cle: "terrain",
+    titre: "Mon terrain",
+    entree: "/terrain",
+    resume: "Relever sur place ce qui est constaté, avec photo et position GPS, pour le superviseur et le chef de projet.",
+    sections: [
+      {
+        ancre: "equipe",
+        titre: "Confier un projet à une équipe",
+        texte: [
+          "Le chef de projet — le responsable du projet — ouvre la fiche du projet et choisit « Confier du personnel » : une personne INTERNE, prise dans la liste complète du personnel, ou EXTERNE, enregistrée sur place (nom, téléphone, structure). Il lui donne un rôle : agent, ou superviseur. Il n'y a qu'un superviseur par projet ; en nommer un autre fait passer l'ancien agent.",
+          "Le superviseur a un compte pour examiner les relevés. Un externe n'en a pas : un agent relève à sa place, et le relevé garde les deux noms.",
+        ],
+      },
+      {
+        ancre: "releve",
+        titre: "Faire un relevé",
+        chemin: "/terrain",
+        texte: [
+          "« Mon terrain » liste les projets où vous êtes en poste. Sur un projet, « Nouveau relevé » : un titre, ce qui a été constaté ou fait, l'avancement, puis les PREUVES — une ou deux photos prises par la caméra, des captures d'écran — et la position GPS relevée par l'appareil.",
+          "Sans position GPS ni photo, le relevé est refusé : c'est ce qui le rend traçable. Le superviseur et le chef de projet sont prévenus dans la cloche ; vous suivez l'état de vos relevés : à examiner, validé, ou à refaire avec le motif.",
+        ],
+        etapes: ["Ouvrir le projet dans « Mon terrain ».", "Nouveau relevé : titre, constat, avancement.", "Relever la position, prendre la photo.", "Enregistrer : le superviseur est prévenu."],
+      },
+      {
+        ancre: "examen",
+        titre: "Examiner les relevés",
+        texte: ["Le superviseur et le chef de projet voient les relevés de toute l'équipe, avec leurs photos et leur position sur la carte. « Valider » clôt le relevé ; « À refaire » le renvoie à son auteur, avec un commentaire obligatoire."],
+      },
+    ],
+    quiz: [
+      {
+        cle: "terrain-preuves",
+        question: "Que faut-il pour qu'un relevé de terrain soit accepté ?",
+        choix: ["Un titre suffit", "Une position GPS relevée par l'appareil et au moins une photo ou capture", "La signature du chef de projet"],
+        bonne: 1,
+        explication: "Position GPS et preuve photo sont exigées : sans elles, le relevé ne serait pas traçable.",
+      },
+      {
+        cle: "terrain-externe",
+        question: "Un sous-traitant externe n'a pas de compte. Comment ses relevés arrivent-ils ?",
+        choix: ["Il ne peut pas en faire", "Un agent du projet relève à sa place, et les deux noms sont gardés", "Le chef de projet les ressaisit à la fin"],
+        bonne: 1,
+        explication: "L'auteur du relevé est l'externe ; le compte qui l'a saisi est conservé pour la traçabilité.",
+      },
+    ],
+  },
+  {
     cle: "anniversaires",
     titre: "Anniversaires",
     entree: "/anniversaires",
@@ -360,23 +407,66 @@ export const CHAPITRES_EQUIPE: Chapitre[] = [
     ],
   },
   {
+    cle: "contacts",
+    titre: "Contacts",
+    entree: "/contacts",
+    resume: "L'annuaire de l'entreprise : qui est qui, ses adresses e-mail professionnelles et ses numéros.",
+    sections: [
+      {
+        ancre: "annuaire",
+        titre: "Chercher un collègue",
+        chemin: "/contacts",
+        texte: [
+          "L'annuaire liste le personnel avec son service, son poste, ses adresses e-mail professionnelles et ses numéros de téléphone. La recherche accepte un nom, un service, une adresse ou un bout de numéro ; le filtre par service restreint la liste à une équipe. « Exporter en Excel » télécharge la liste affichée, recherche et filtre compris ; « Imprimer (PDF) » la met sur le papier à en-tête de l'entreprise, rangée par service, à imprimer ou à enregistrer en PDF. « Carte de visite », sur chaque ligne, imprime la carte du collaborateur au format 85 × 55 mm, recto et verso : ses coordonnées professionnelles seulement, et au dos un QR qui l'ajoute aux contacts d'un téléphone.",
+          "Chacun lit les adresses et les numéros professionnels. Les numéros personnels et l'adresse e-mail personnelle d'un collaborateur ne s'affichent que pour ceux qui tiennent l'annuaire : ce sont des données personnelles.",
+        ],
+      },
+      {
+        ancre: "adresses",
+        titre: "Les adresses e-mail professionnelles",
+        chemin: "/contacts/adresses",
+        texte: [
+          "Qui tient l'annuaire liste ici les adresses de l'entreprise (celles du domaine maria-groupe.com, aucune autre). Chaque adresse s'affecte en deux temps : d'abord à un service, puis, si elle est nominative, à une personne de ce service. Une adresse commune, comme celle d'un service, reste au service.",
+          "Si un collaborateur change de service, ses adresses passent « à revoir » : affectez-les de nouveau. « Reprendre les fiches » inscrit d'un coup les adresses déjà saisies sur les dossiers du personnel.",
+        ],
+        etapes: ["Ajoutez l'adresse avec « Nouvelle adresse ».", "Choisissez son service.", "Choisissez, si besoin, la personne de ce service qui la détient."],
+      },
+    ],
+    quiz: [
+      {
+        cle: "contacts-affectation",
+        question: "Dans quel ordre affecte-t-on une adresse e-mail professionnelle ?",
+        choix: ["À la personne, puis à son service", "Au service, puis à une personne de ce service", "Elle n'est jamais affectée"],
+        bonne: 1,
+        explication: "On choisit le service d'abord ; la personne se choisit ensuite parmi le personnel de ce service.",
+      },
+      {
+        cle: "contacts-personnels",
+        question: "Qui voit les numéros de téléphone et l'e-mail personnels des collaborateurs ?",
+        choix: ["Tout le monde", "Seulement ceux qui tiennent l'annuaire", "Personne, même pas les RH"],
+        bonne: 1,
+        explication: "Un numéro personnel est une donnée personnelle : il ne s'affiche qu'avec le droit de tenir l'annuaire.",
+      },
+    ],
+  },
+  {
     cle: "personnel",
     titre: "Personnel",
     entree: "/rh",
-    resume: "Salariés, dossiers, services et postes, paie.",
+    resume: "Collaborateurs, dossiers, services et postes, paie.",
     sections: [
       {
         ancre: "salaries",
-        titre: "Salariés et dossiers",
+        titre: "Collaborateurs et dossiers",
         chemin: "/rh",
         texte: [
-          "La liste des salariés ouvre chaque dossier : état civil, contrat, poste et service, pièces jointes, paiement du salaire. L'embauche se saisit dans une grande fenêtre, étape par étape.",
-          "Un salarié a un bulletin de paie ; un maçon payé à la journée n'en a pas : c'est un intervenant, tenu à part.",
+          "La liste des collaborateurs ouvre chaque dossier : état civil, contrat, poste et service, pièces jointes, paiement du salaire. L'embauche se saisit dans une grande fenêtre, étape par étape.",
+          "Un collaborateur a un bulletin de paie ; un maçon payé à la journée n'en a pas : c'est un intervenant, tenu à part.",
         ],
         capture: {
           fichier: "personnel",
           page: "/rh",
-          alt: "La liste des salariés.",
+          alt: "La liste des collaborateurs.",
           reperes: [
             { cible: "role=link[name='Services']", texte: "Les services de l'entreprise." },
             { cible: "role=link[name='Paie']", texte: "La paie du mois." },
@@ -387,7 +477,7 @@ export const CHAPITRES_EQUIPE: Chapitre[] = [
         ancre: "services",
         titre: "Services et postes",
         chemin: "/rh/services",
-        texte: ["Chaque poste se range dans un service (Direction générale, Ressources humaines, Travaux…). Changer le service d'un poste met à jour les fiches des salariés qui l'occupent."],
+        texte: ["Chaque poste se range dans un service (Direction générale, Ressources humaines, Travaux…). Changer le service d'un poste met à jour les fiches des collaborateurs qui l'occupent."],
       },
       {
         ancre: "paie",
@@ -403,9 +493,9 @@ export const CHAPITRES_EQUIPE: Chapitre[] = [
       {
         cle: "rh-intervenant",
         question: "Un manœuvre payé à la journée sur un chantier, c'est :",
-        choix: ["Un salarié avec un bulletin", "Un intervenant, payé par bon de paiement", "Un utilisateur du logiciel"],
+        choix: ["Un collaborateur avec un bulletin", "Un intervenant, payé par bon de paiement", "Un utilisateur du logiciel"],
         bonne: 1,
-        explication: "Intervenants et salariés sont deux natures distinctes : l'intervenant est pointé et payé par bon.",
+        explication: "Intervenants et collaborateurs sont deux natures distinctes : l'intervenant est pointé et payé par bon.",
       },
       {
         cle: "rh-bulletin",
@@ -445,7 +535,7 @@ export const CHAPITRES_EQUIPE: Chapitre[] = [
     cle: "contrats",
     titre: "Contrats",
     entree: "/contrats",
-    resume: "Contrats des salariés et des fournisseurs, avec leurs échéances.",
+    resume: "Contrats des collaborateurs et des fournisseurs, avec leurs échéances.",
     sections: [
       {
         ancre: "contrats",

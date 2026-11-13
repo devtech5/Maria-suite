@@ -5,6 +5,7 @@ import { useState } from "react";
 import { Retour, useOperation } from "@/components/ui/operations";
 import { CLASSE_CHAMP_COMPACT } from "@/components/ui/primitives";
 import { assombrir, FILIGRANE_MARQUE, LOGO_MARQUE } from "@/components/impression/entete-document";
+import { lignesPied } from "@/lib/pied-document";
 import { montantSaisi } from "@/lib/saisie-montant";
 import { modifierIdentite } from "@/lib/identite-actions";
 
@@ -153,7 +154,7 @@ export function FormulaireIdentite({ initial, libelles }: { initial: Identite; l
           <input {...champ("slogan")} />
         </Champ>
 
-        <Champ libelle="Mentions de pied de page" aide="Coordonnées bancaires, numéro Orange Money ou Wave, conditions de vente, capital social. Imprimées sur les factures et les tickets.">
+        <Champ libelle="Mentions de pied de page" aide="Siège social, coordonnées bancaires, conditions de vente : une mention par ligne, imprimées sous le filet doré, à la suite du registre et du capital.">
           <textarea {...champ("piedDePage")} rows={3} className={`${CLASSE_CHAMP_COMPACT} w-full py-2`} />
         </Champ>
 
@@ -227,22 +228,32 @@ export function FormulaireIdentite({ initial, libelles }: { initial: Identite; l
             <p className="font-mono">FAC-2026-00001</p>
           </div>
           <div className="mt-10 flex flex-col items-center gap-1.5 text-center">
-            {v.piedDePage && <p className="whitespace-pre-line text-[10px] text-black/60">{v.piedDePage}</p>}
             {v.slogan && (
               <p className="text-[11px] font-semibold italic" style={{ color: assombrir(v.couleurSecondaire) }}>
                 {v.slogan}
               </p>
             )}
             <div className="h-0.5 w-full" style={{ background: v.couleurSecondaire }} />
-            <p className="text-[9px] text-[#5b6b7c]">
-              {[
-                v.rccm && `${libelles.registre} ${v.rccm}`,
-                v.identifiantFiscal && `${libelles.sigle} ${v.identifiantFiscal}`,
-                v.capitalSocial.trim() && `Capital ${v.capitalSocial.trim()} FCFA`,
-              ]
-                .filter(Boolean)
-                .join(" · ") || "Registre · identifiant fiscal · capital"}
-            </p>
+            <div className="text-[8px] leading-3 text-[#5b6b7c]">
+              {lignesPied({
+                nom: v.nom,
+                formeJuridique: v.formeJuridique.trim() || null,
+                rccm: v.rccm.trim() || null,
+                registre: libelles.registre,
+                identifiantFiscal: v.identifiantFiscal.trim() || null,
+                sigleFiscal: libelles.sigle,
+                capital: v.capitalSocial.trim() ? `${v.capitalSocial.trim()} FCFA` : null,
+                regimeFiscal: v.regimeFiscal.trim() || null,
+                mentions: v.piedDePage,
+                adresse: v.adresse.trim() || null,
+                ville: v.ville.trim() || null,
+                telephone: v.telephone.trim() || null,
+                email: v.email.trim() || null,
+                siteWeb: v.siteWeb.trim() || null,
+              }).map((l) => (
+                <p key={l}>{l}</p>
+              ))}
+            </div>
           </div>
         </div>
       </section>

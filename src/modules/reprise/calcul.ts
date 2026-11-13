@@ -1,5 +1,6 @@
 import type { Ecriture } from "@/lib/comptabilite/ecritures";
 import { ECHELLE_QUANTITE, type CodeUnite } from "@/lib/quantite";
+import { natureDepuisSaisie, type NatureTiers } from "@/modules/tiers/natures";
 
 /**
  * Reprise de l'existant : ce que l'entreprise apporte en arrivant sur Maria Suite.
@@ -197,7 +198,7 @@ export interface TiersImporte {
   nom: string;
   estClient: boolean;
   estFournisseur: boolean;
-  nature: "entreprise" | "particulier";
+  nature: NatureTiers;
   telephone: string | null;
   email: string | null;
   ville: string | null;
@@ -235,7 +236,7 @@ export function lireTiers(texte: string): { tiers: (TiersImporte & { ligne: numb
         nom,
         estClient,
         estFournisseur,
-        nature: natureSaisie.startsWith("part") || natureSaisie.startsWith("pers") ? "particulier" : "entreprise",
+        nature: natureDepuisSaisie(natureSaisie),
         telephone: premier(v, "telephone", "tel", "contact") || null,
         email: email?.toLowerCase() ?? null,
         ville: premier(v, "ville", "commune") || null,

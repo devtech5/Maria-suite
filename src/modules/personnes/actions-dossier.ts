@@ -32,7 +32,7 @@ function texte(donnees: FormData, champ: string): string | null {
 function lisible(erreur: unknown): string {
   const message = erreur instanceof Error ? erreur.message : "";
   if (message && !message.startsWith("Failed query") && message.length < 240) return message;
-  console.error("Dossier salarié", erreur);
+  console.error("Dossier collaborateur", erreur);
   return "L'opération n'a pas abouti. Réessayez.";
 }
 
@@ -50,7 +50,7 @@ export async function ajouterPiece(employeeId: string, donnees: FormData): Promi
   const session = await exigerEntreprise();
   const refus = await refusDroit("personnes.dossier.gerer");
   if (refus) return { ok: false, message: refus.erreur };
-  if (!UUID.test(employeeId)) return { ok: false, message: "Salarié inconnu." };
+  if (!UUID.test(employeeId)) return { ok: false, message: "Collaborateur inconnu." };
 
   const analyse = schemaPiece.safeParse({
     nature: texte(donnees, "nature"),
@@ -111,7 +111,7 @@ const schemaEtatCivil = z.object({
   situationFamiliale: z.enum(["celibataire", "marie", "divorce", "veuf", "union_libre"]).nullable(),
   enfantsACharge: z.coerce.number().int().min(0).max(30).nullable(),
   contactUrgence: facultatif(200),
-  contactUrgenceLien: z.string().refine(lienUrgenceConnu, "Lien avec le salarié inconnu.").nullable(),
+  contactUrgenceLien: z.string().refine(lienUrgenceConnu, "Lien avec le collaborateur inconnu.").nullable(),
   contactUrgenceTelephone: facultatif(30),
   telephone: facultatif(30),
   email: z
@@ -129,7 +129,7 @@ export async function modifierEtatCivil(employeeId: string, donnees: FormData): 
   const session = await exigerEntreprise();
   const refus = await refusDroit("personnes.dossier.gerer");
   if (refus) return { ok: false, message: refus.erreur };
-  if (!UUID.test(employeeId)) return { ok: false, message: "Salarié inconnu." };
+  if (!UUID.test(employeeId)) return { ok: false, message: "Collaborateur inconnu." };
 
   const analyse = schemaEtatCivil.safeParse({
     civilite: texte(donnees, "civilite"),
@@ -181,7 +181,7 @@ export async function modifierEtatProfessionnel(employeeId: string, donnees: For
   const session = await exigerEntreprise();
   const refus = await refusDroit("personnes.dossier.gerer");
   if (refus) return { ok: false, message: refus.erreur };
-  if (!UUID.test(employeeId)) return { ok: false, message: "Salarié inconnu." };
+  if (!UUID.test(employeeId)) return { ok: false, message: "Collaborateur inconnu." };
 
   const analyse = schemaEtatProfessionnel.safeParse({
     postesAutres: donnees.getAll("postesAutres").filter((v) => typeof v === "string" && v.trim() !== ""),
@@ -209,7 +209,7 @@ export async function changerPhoto(employeeId: string, photo: string | null): Pr
   const session = await exigerEntreprise();
   const refus = await refusDroit("personnes.dossier.gerer");
   if (refus) return { ok: false, message: refus.erreur };
-  if (!UUID.test(employeeId)) return { ok: false, message: "Salarié inconnu." };
+  if (!UUID.test(employeeId)) return { ok: false, message: "Collaborateur inconnu." };
   if (photo !== null && !photoValide(photo)) {
     return { ok: false, message: "Photo illisible ou trop lourde, même réduite." };
   }

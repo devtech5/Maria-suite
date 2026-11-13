@@ -26,6 +26,7 @@ import {
   type EtatPiece,
   type NaturePiece,
 } from "@/modules/personnes/pieces";
+import { Fenetre } from "@/components/ui/fenetre";
 
 export interface PieceAffichee {
   id: string;
@@ -173,8 +174,8 @@ export function FormulairePiece({
   const op = useOperation();
   const def = PIECES[nature];
 
-  if (!ouvert) {
-    return (
+  return (
+    <>
       <button
         type="button"
         onClick={() => setOuvert(true)}
@@ -186,94 +187,87 @@ export function FormulairePiece({
       >
         {libelle}
       </button>
-    );
-  }
-
-  return (
-    <form
-      ref={formulaire}
-      onSubmit={(e) => {
-        e.preventDefault();
-        const donnees = new FormData(e.currentTarget);
-        op.lancer(
-          () => ajouterPiece(employeeId, donnees),
-          () => {
-            formulaire.current?.reset();
-            setOuvert(false);
-          },
-        );
-      }}
-      className="space-y-4 rounded-xl border border-[var(--filet)] bg-[var(--surface)] p-4"
-    >
-      <div className="flex items-center justify-between">
-        <h3 className="text-sm font-semibold">Nouvelle pièce</h3>
-        <button type="button" onClick={() => setOuvert(false)} className="text-sm text-[var(--encre-faible)] hover:underline">
-          Annuler
-        </button>
-      </div>
-      <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-        <Champ libelle="Pièce">
-          <select name="nature" value={nature} onChange={(e) => setNature(e.target.value as NaturePiece)} className={CLASSE_CHAMP}>
-            {GROUPES_PIECE.map((g) => (
-              <optgroup key={g.cle} label={g.libelle}>
-                {NATURES_PIECE.filter((n) => PIECES[n].groupe === g.cle).map((n) => (
-                  <option key={n} value={n}>
-                    {PIECES[n].libelle}
-                  </option>
-                ))}
-              </optgroup>
-            ))}
-          </select>
-        </Champ>
-        {def.precision && (
-          <Champ libelle={def.precision}>
-            <input name="precision" required={nature === "autre"} className={CLASSE_CHAMP} />
-          </Champ>
-        )}
-        {def.numero && (
-          <Champ libelle={def.numero}>
-            <input name="numero" className={`${CLASSE_CHAMP} chiffres`} autoComplete="off" />
-          </Champ>
-        )}
-        {def.organisme && (
-          <Champ libelle={def.organisme}>
-            <input name="organisme" className={CLASSE_CHAMP} />
-          </Champ>
-        )}
-        {def.delivrance && (
-          <Champ libelle={def.libelleDelivrance ?? "Délivrée le"}>
-            <input name="delivreeLe" type="date" className={`${CLASSE_CHAMP} chiffres`} />
-          </Champ>
-        )}
-        {def.expiration && (
-          <Champ libelle={def.libelleExpiration ?? "Valable jusqu'au"} precision="Une alerte prévient 30 jours avant.">
-            <input name="expireLe" type="date" className={`${CLASSE_CHAMP} chiffres`} />
-          </Champ>
-        )}
-        <Champ
-          libelle={def.fichierRequis ? "Document" : "Scan ou photo (facultatif)"}
-          precision={depotActif ? "PDF, photo ou Word, 10 Mo au plus." : "Dépôt de fichiers inactif : la pièce s'enregistre sans fichier."}
+      <Fenetre ouverte={ouvert} titre="Nouvelle pièce" presentation="ample" onFermer={() => setOuvert(false)}>
+        <form
+          ref={formulaire}
+          onSubmit={(e) => {
+            e.preventDefault();
+            const donnees = new FormData(e.currentTarget);
+            op.lancer(
+              () => ajouterPiece(employeeId, donnees),
+              () => {
+                formulaire.current?.reset();
+                setOuvert(false);
+              },
+            );
+          }}
+          className="space-y-4 px-5 py-4"
         >
-          <input
-            name="fichier"
-            type="file"
-            disabled={!depotActif}
-            required={def.fichierRequis && depotActif}
-            accept="application/pdf,image/jpeg,image/png,image/webp,.doc,.docx"
-            className="block w-full text-sm file:mr-3 file:h-9 file:rounded-lg file:border file:border-[var(--filet)] file:bg-[var(--surface)] file:px-3"
-          />
-        </Champ>
-        <Champ libelle="Remarque">
-          <input name="notes" className={CLASSE_CHAMP} />
-        </Champ>
-      </div>
-      <div className="flex items-center justify-end gap-3">
-        <Retour resultat={op.resultat} />
-        <button type="submit" disabled={op.enCours} className="h-cible rounded-lg bg-marque-500 px-5 text-sm font-semibold text-white disabled:opacity-50">
-          {op.enCours ? "Envoi…" : "Enregistrer la pièce"}
-        </button>
-      </div>
-    </form>
+          <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+            <Champ libelle="Pièce">
+              <select name="nature" value={nature} onChange={(e) => setNature(e.target.value as NaturePiece)} className={CLASSE_CHAMP}>
+                {GROUPES_PIECE.map((g) => (
+                  <optgroup key={g.cle} label={g.libelle}>
+                    {NATURES_PIECE.filter((n) => PIECES[n].groupe === g.cle).map((n) => (
+                      <option key={n} value={n}>
+                        {PIECES[n].libelle}
+                      </option>
+                    ))}
+                  </optgroup>
+                ))}
+              </select>
+            </Champ>
+            {def.precision && (
+              <Champ libelle={def.precision}>
+                <input name="precision" required={nature === "autre"} className={CLASSE_CHAMP} />
+              </Champ>
+            )}
+            {def.numero && (
+              <Champ libelle={def.numero}>
+                <input name="numero" className={`${CLASSE_CHAMP} chiffres`} autoComplete="off" />
+              </Champ>
+            )}
+            {def.organisme && (
+              <Champ libelle={def.organisme}>
+                <input name="organisme" className={CLASSE_CHAMP} />
+              </Champ>
+            )}
+            {def.delivrance && (
+              <Champ libelle={def.libelleDelivrance ?? "Délivrée le"}>
+                <input name="delivreeLe" type="date" className={`${CLASSE_CHAMP} chiffres`} />
+              </Champ>
+            )}
+            {def.expiration && (
+              <Champ libelle={def.libelleExpiration ?? "Valable jusqu'au"} precision="Une alerte prévient 30 jours avant.">
+                <input name="expireLe" type="date" className={`${CLASSE_CHAMP} chiffres`} />
+              </Champ>
+            )}
+            <Champ
+              libelle={def.fichierRequis ? "Document" : "Scan ou photo (facultatif)"}
+              precision={depotActif ? "PDF, photo ou Word, 10 Mo au plus." : "Dépôt de fichiers inactif : la pièce s'enregistre sans fichier."}
+            >
+              <input
+                name="fichier"
+                type="file"
+                disabled={!depotActif}
+                required={def.fichierRequis && depotActif}
+                accept="application/pdf,image/jpeg,image/png,image/webp,.doc,.docx"
+                className="block w-full text-sm file:mr-3 file:h-9 file:rounded-lg file:border file:border-[var(--filet)] file:bg-[var(--surface)] file:px-3"
+              />
+            </Champ>
+            <Champ libelle="Remarque">
+              <input name="notes" className={CLASSE_CHAMP} />
+            </Champ>
+          </div>
+          <div className="flex items-center justify-end gap-3">
+            <Retour resultat={op.resultat} />
+            <button type="submit" disabled={op.enCours} className="h-cible rounded-lg bg-marque-500 px-5 text-sm font-semibold text-white disabled:opacity-50">
+              {op.enCours ? "Envoi…" : "Enregistrer la pièce"}
+            </button>
+          </div>
+        </form>
+      </Fenetre>
+    </>
   );
 }
 
@@ -378,7 +372,7 @@ export function FormulaireEtatCivil({ employeeId, initial }: { employeeId: strin
         <Champ libelle="Personne à prévenir" precision="En cas d'urgence : nom et prénoms.">
           <input name="contactUrgence" defaultValue={v("contactUrgence")} className={CLASSE_CHAMP} />
         </Champ>
-        <Champ libelle="Lien avec le salarié">
+        <Champ libelle="Lien avec le collaborateur">
           <select name="contactUrgenceLien" defaultValue={v("contactUrgenceLien")} className={CLASSE_CHAMP}>
             <option value="">—</option>
             {Object.entries(LIENS_URGENCE).map(([cle, libelle]) => (

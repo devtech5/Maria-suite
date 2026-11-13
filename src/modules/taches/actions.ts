@@ -79,7 +79,7 @@ export async function creerTache(donnees: FormData): Promise<Resultat> {
   try {
     const { numero, assigneeUserId, pourAutrui } = await db.transaction((tx) => creerTacheDans(tx, organizationId, analyse.data, qui));
     rafraichir();
-    // Un salarié sans compte n'a pas de cloche : c'est l'auteur qui suit sa tâche.
+    // Un collaborateur sans compte n'a pas de cloche : c'est l'auteur qui suit sa tâche.
     if (assigneeUserId !== qui.userId) {
       await notifier(organizationId, [assigneeUserId], {
         categorie: "tache",

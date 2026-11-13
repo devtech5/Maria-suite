@@ -308,10 +308,10 @@ export async function installerJeuDemonstration(
     const personnel = await amorcerPersonnel(tx, organizationId, userId);
 
     // Le parc vient après le personnel : un fourgon se confie à un chauffeur
-    // salarié, une bétonnière à un maçon, et les deux doivent exister.
+    // collaborateur, une bétonnière à un maçon, et les deux doivent exister.
     const parc = await amorcerParc(tx, organizationId, personnel.reperes, userId);
 
-    // Les documents viennent en dernier : ils se rattachent aux salariés, aux
+    // Les documents viennent en dernier : ils se rattachent aux collaborateurs, aux
     // intervenants et aux actifs, qui doivent tous exister.
     const pieces = await amorcerDocuments(
       tx,
@@ -321,7 +321,7 @@ export async function installerJeuDemonstration(
     );
 
     // Les missions viennent après tout le reste : elles se confient à des
-    // salariés et des intervenants, et se facturent à des clients.
+    // collaborateurs et des intervenants, et se facturent à des clients.
     const terrain = await amorcerMissions(
       tx,
       organizationId,
@@ -545,7 +545,7 @@ async function completerParc(
 
 /**
  * Rassemble en une seule table de correspondance ce à quoi un document peut se
- * rattacher : salariés et intervenants par leur nom, actifs par leur code.
+ * rattacher : collaborateurs et intervenants par leur nom, actifs par leur code.
  */
 function reperesDocuments(
   personnel: { employes: Map<string, string>; intervenants: Map<string, string> },

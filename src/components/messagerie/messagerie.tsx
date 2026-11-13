@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 
 import { BoutonApercu } from "@/components/ui/apercu";
 import { Avatar } from "@/components/ui/courrier";
+import { BlocContact, BlocEvenement, BlocSondage, FenetreContact, FenetreEvenement, FenetreSondage, MenuJoindre, type GenreAJoindre } from "./joindre";
 import {
   actualiser,
   ajouterAuGroupe,
@@ -23,7 +24,8 @@ const PAS_OUVERTE_MS = 3_000;
 const PAS_LISTE_MS = 15_000;
 /** Même plafond que le serveur : refuser tôt évite d'envoyer 30 Mo pour rien. */
 const TAILLE_MAX = 10 * 1024 * 1024;
-const TYPES_ACCEPTES = "image/jpeg,image/png,image/webp,application/pdf,.doc,.docx,.xls,.xlsx";
+const TYPES_DOCUMENTS = "application/pdf,.doc,.docx,.xls,.xlsx";
+const TYPES_MEDIAS = "image/jpeg,image/png,image/webp,video/mp4,video/webm,video/quicktime";
 
 const HEURE = new Intl.DateTimeFormat("fr-FR", { hour: "2-digit", minute: "2-digit" });
 const JOUR = new Intl.DateTimeFormat("fr-FR", { weekday: "long", day: "numeric", month: "long" });
@@ -407,6 +409,13 @@ export function Messagerie({
             fermer={fermerFil}
             apresEnvoi={() => rafraichir()}
             recharger={() => void rafraichir(true)}
+            ecrireAContact={(userId) =>
+              demarrer(async () => {
+                const r = await ecrireA(userId);
+                if (r.ok && r.id) await ouvrir(r.id);
+                else setErreur(r.message);
+              })
+            }
           />
         )}
       </section>
@@ -589,6 +598,7 @@ function Fil({
   fermer,
   apresEnvoi,
   recharger,
+  ecrireAContact,
 }: {
   moi: string;
   conversation: DetailConversation;
@@ -597,10 +607,14 @@ function Fil({
   fermer: () => void;
   apresEnvoi: () => Promise<void>;
   recharger: () => void;
+  ecrireAContact: (userId: string) => void;
 }) {
   const fond = useRef<HTMLDivElement>(null);
   const champ = useRef<HTMLTextAreaElement>(null);
   const entreeFichier = useRef<HTMLInputElement>(null);
+  const entreeMedia = useRef<HTMLInputElement>(null);
+  const [menuJoindre, setMenuJoindre] = useState(false);
+  const [fenetre, setFenetre] = useState<"sondage" | "evenement" | "contact" | null>(null);
   const [texte, setTexte] = useState("");
   const [fichier, setFichier] = useState<File | null>(null);
   const [apercuFichier, setApercuFichier] = useState<string | null>(null);
@@ -792,7 +806,7 @@ function Fil({
               {g.messages.map((m, i) => {
                 const precedent = g.messages[i - 1];
                 const suite = Boolean(precedent && precedent.auteurId === m.auteurId && new Date(m.le).getTime() - new Date(precedent.le).getTime() < 5 * 60_000);
-                return <Bulle key={m.id} message={m} mien={m.auteurId === moi} groupe={conversation.type === "groupe"} suite={suite} />;
+                return <Bulle key={m.id} message={m} mien={m.auteurId === moi} groupe={conversation.type === "groupe"} suite={suite} recharger={recharger} ecrireAContact={ecrireAContact} />;
               })}
             </div>
           ))}
@@ -876,10 +890,22 @@ function Fil({
               <BoutonIcone libelle="Émojis" actif={emojis} onClick={() => setEmojis((v) => !v)}>
                 <Svg nom="emoji" className="size-6" />
               </BoutonIcone>
-              <input ref={entreeFichier} type="file" className="sr-only" aria-label="Joindre un fichier" accept={TYPES_ACCEPTES} onChange={(e) => choisirFichier(e.target.files?.[0])} />
-              <BoutonIcone libelle="Joindre un fichier" onClick={() => entreeFichier.current?.click()}>
-                <Svg nom="trombone" className="size-6" />
-              </BoutonIcone>
+              <input ref={entreeFichier} type="file" className="sr-only" aria-label="Fichier" accept={TYPES_DOCUMENTS} onChange={(e) => choisirFichier(e.target.files?.[0])} />
+              <input ref={entreeMedia} type="file" className="sr-only" aria-label="Photos et vidéos" accept={TYPES_MEDIAS} onChange={(e) => choisirFichier(e.target.files?.[0])} />
+              <div className="relative">
+                <BoutonIcone libelle="Joindre" actif={menuJoindre} onClick={() => setMenuJoindre((v) => !v)}>
+                  <Svg nom="trombone" className="size-6" />
+                </BoutonIcone>
+                <MenuJoindre
+                  ouvert={menuJoindre}
+                  onFermer={() => setMenuJoindre(false)}
+                  onChoix={(g: GenreAJoindre) => {
+                    if (g === "fichier") entreeFichier.current?.click();
+                    else if (g === "media") entreeMedia.current?.click();
+                    else setFenetre(g);
+                  }}
+                />
+              </div>
               <textarea
                 ref={champ}
                 value={texte}
@@ -922,6 +948,10 @@ function Fil({
           </div>
         )}
       </div>
+
+      {fenetre === "sondage" && <FenetreSondage conversationId={conversation.id} onFermer={() => setFenetre(null)} apresEnvoi={apresEnvoi} />}
+      {fenetre === "evenement" && <FenetreEvenement conversationId={conversation.id} aujourdhui={new Date().toLocaleDateString("sv-SE")} onFermer={() => setFenetre(null)} apresEnvoi={apresEnvoi} />}
+      {fenetre === "contact" && <FenetreContact conversationId={conversation.id} membres={membres.filter((m) => m.userId !== moi)} onFermer={() => setFenetre(null)} apresEnvoi={apresEnvoi} />}
 
       {infos && (
         <aside className="flex w-full shrink-0 flex-col border-l border-[var(--filet)] bg-[var(--surface)] max-lg:absolute max-lg:inset-y-0 max-lg:right-0 max-lg:z-30 max-lg:max-w-sm sm:w-80">
@@ -1046,7 +1076,7 @@ function CarteFichier({ nom, typeMime, octets, children }: { nom: string; typeMi
   );
 }
 
-function Bulle({ message, mien, groupe, suite }: { message: MessageAffiche; mien: boolean; groupe: boolean; suite: boolean }) {
+function Bulle({ message, mien, groupe, suite, recharger, ecrireAContact }: { message: MessageAffiche; mien: boolean; groupe: boolean; suite: boolean; recharger: () => void; ecrireAContact: (userId: string) => void }) {
   const [, demarrer] = useTransition();
   const [efface, setEfface] = useState(message.efface);
   const [menu, setMenu] = useState(false);
@@ -1078,8 +1108,11 @@ function Bulle({ message, mien, groupe, suite }: { message: MessageAffiche; mien
               <CarteFichier nom={message.piece.nom} typeMime={message.piece.typeMime} octets={message.piece.taille} />
             </BoutonApercu>
           ))}
+        {message.sondage && <BlocSondage message={message} recharger={recharger} />}
+        {message.evenement && <BlocEvenement message={message} recharger={recharger} />}
+        {message.contact && <BlocContact message={message} mien={mien} onEcrire={ecrireAContact} />}
         <div className="px-1">
-          {message.corps && <span className="whitespace-pre-wrap break-words text-[14.5px] leading-5">{message.corps}</span>}
+          {message.corps && message.genre === "texte" && <span className="whitespace-pre-wrap break-words text-[14.5px] leading-5">{message.corps}</span>}
           {/* L'heure flotte en bas à droite ; l'espace réservé évite qu'elle chevauche la dernière ligne. */}
           <span aria-hidden className="inline-block w-16" />
           <span className="float-right -mb-0.5 ml-2 mt-1 flex items-center gap-1 text-[11px] leading-none text-[var(--bulle-faible)]">

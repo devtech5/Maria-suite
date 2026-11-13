@@ -33,7 +33,7 @@ const ORIGINE: Record<string, string> = {
 
 /**
  * Journal des envois : chaque e-mail et chaque WhatsApp parti vers un client
- * ou un salarié, échecs et retenues compris. « Le client dit n'avoir rien
+ * ou un collaborateur, échecs et retenues compris. « Le client dit n'avoir rien
  * reçu » se vérifie ici.
  */
 export default async function PageCommunication({ searchParams }: PageProps<"/communication">) {

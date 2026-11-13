@@ -3,22 +3,32 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 
+import { Fenetre } from "@/components/ui/fenetre";
 import { Retour, useOperation } from "@/components/ui/operations";
 import { CLASSE_CHAMP_COMPACT } from "@/components/ui/primitives";
 import { fmt } from "@/lib/format";
 import { enregistrerCommercial, payerCommission, reporterEnPaie, validerCommission } from "@/modules/commerciaux/actions";
 
-interface Option {
-  id: string;
+/** Une personne du personnel : le collaborateur (`e:`), ou le compte sans fiche de collaborateur (`u:`). */
+export interface Personnel {
+  cle: string;
   nom: string;
+  detail: string | null;
+  /** Déjà enregistrée comme commercial : on ne la propose pas deux fois. */
+  pris: boolean;
 }
 
 export interface FicheInitiale {
   id?: string;
+  origine: "interne" | "externe";
+  /** Clé du personnel choisi (interne) : `e:<collaborateur>` ou `u:<compte>`. */
+  personne: string;
+  /** Apporteur externe : sa propre fiche. */
   nom: string;
   telephone: string;
-  userId: string;
-  employeeId: string;
+  email: string;
+  organisme: string;
+  ville: string;
   base: "ca_ht" | "marge";
   tauxBp: number;
   paliers: { seuil: number; tauxBp: number }[];
@@ -27,7 +37,7 @@ export interface FicheInitiale {
   actif: boolean;
 }
 
-const VIDE: FicheInitiale = { nom: "", telephone: "", userId: "", employeeId: "", base: "ca_ht", tauxBp: 0, paliers: [], fixeMensuel: 0, objectifMensuel: 0, actif: true };
+const VIDE: FicheInitiale = { origine: "interne", personne: "", nom: "", telephone: "", email: "", organisme: "", ville: "", base: "ca_ht", tauxBp: 0, paliers: [], fixeMensuel: 0, objectifMensuel: 0, actif: true };
 
 /** « 2,5 » → 250 points de base. NaN si illisible. */
 const pourcentEnBp = (s: string) => {
@@ -51,7 +61,7 @@ export function ChoixMois({ mois, max }: { mois: string; max: string }) {
   );
 }
 
-function FormulaireFiche({ initiale, membres, salaries, onFerme }: { initiale: FicheInitiale; membres: Option[]; salaries: Option[]; onFerme: () => void }) {
+function FormulaireFiche({ initiale, personnel, onFerme }: { initiale: FicheInitiale; personnel: Personnel[]; onFerme: () => void }) {
   const op = useOperation();
   const [f, setF] = useState({
     ...initiale,
@@ -62,8 +72,7 @@ function FormulaireFiche({ initiale, membres, salaries, onFerme }: { initiale: F
   });
   const [mode, setMode] = useState<"unique" | "paliers">(initiale.paliers.length ? "paliers" : "unique");
   const maj = (champ: Partial<typeof f>) => setF((p) => ({ ...p, ...champ }));
-  // Lié à un salarié ou à un compte, le commercial prend le nom de sa fiche.
-  const sansFiche = !f.employeeId && !f.userId;
+  const externe = f.origine === "externe";
 
   return (
     <form
@@ -73,10 +82,15 @@ function FormulaireFiche({ initiale, membres, salaries, onFerme }: { initiale: F
         op.lancer(
           () =>
             enregistrerCommercial(initiale.id ?? null, {
-              nom: sansFiche ? f.nom : null,
-              telephone: sansFiche ? f.telephone || null : null,
-              userId: f.userId || null,
-              employeeId: f.employeeId || null,
+              origine: f.origine,
+              nom: externe ? f.nom : null,
+              telephone: externe ? f.telephone || null : null,
+              email: externe ? f.email || null : null,
+              organisme: externe ? f.organisme || null : null,
+              ville: externe ? f.ville || null : null,
+              // Interne : le collaborateur choisi ; son compte de caisse se déduit de sa fiche.
+              employeeId: !externe && f.personne.startsWith("e:") ? f.personne.slice(2) : null,
+              userId: !externe && f.personne.startsWith("u:") ? f.personne.slice(2) : null,
               base: f.base,
               tauxBp: mode === "unique" ? pourcentEnBp(f.taux) : 0,
               paliers,
@@ -87,47 +101,71 @@ function FormulaireFiche({ initiale, membres, salaries, onFerme }: { initiale: F
           onFerme,
         );
       }}
-      className="space-y-3 rounded-xl border border-[var(--filet)] bg-[var(--surface-creuse)] p-4 text-left text-sm"
+      className="space-y-4 text-left text-sm"
     >
-      <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
-        {sansFiche ? (
+      <fieldset>
+        <legend className="mb-1.5 font-medium">Le commercial est</legend>
+        <div className="grid gap-2 sm:grid-cols-2">
+          {([
+            ["interne", "Interne", "Il fait partie du personnel : on le choisit dans la liste."],
+            ["externe", "Externe", "Un apporteur d'affaires : on l'enregistre ici, il se paie depuis la trésorerie."],
+          ] as const).map(([valeur, titre, aide]) => (
+            <label key={valeur} className={`flex cursor-pointer items-start gap-2.5 rounded-xl border p-3 ${f.origine === valeur ? "border-marque-600 bg-[var(--surface-creuse)]" : "border-[var(--filet)]"}`}>
+              <input type="radio" name="origine" checked={f.origine === valeur} onChange={() => maj({ origine: valeur })} className="mt-1 accent-marque-600" />
+              <span>
+                <span className="block font-semibold">{titre}</span>
+                <span className="block text-xs text-[var(--encre-faible)]">{aide}</span>
+              </span>
+            </label>
+          ))}
+        </div>
+      </fieldset>
+
+      <div className="grid gap-3 sm:grid-cols-2">
+        {externe ? (
           <>
             <label>
-              <span className="mb-1 block font-medium">Nom</span>
+              <span className="mb-1 block font-medium">Nom et prénom</span>
               <input required value={f.nom} onChange={(e) => maj({ nom: e.target.value })} className={`${CLASSE_CHAMP_COMPACT} h-9 w-full`} />
             </label>
             <label>
               <span className="mb-1 block font-medium">Téléphone</span>
-              <input value={f.telephone} onChange={(e) => maj({ telephone: e.target.value })} className={`${CLASSE_CHAMP_COMPACT} h-9 w-full`} />
+              <input value={f.telephone} inputMode="tel" onChange={(e) => maj({ telephone: e.target.value })} className={`${CLASSE_CHAMP_COMPACT} h-9 w-full`} />
+            </label>
+            <label>
+              <span className="mb-1 block font-medium">E-mail</span>
+              <input type="email" value={f.email} onChange={(e) => maj({ email: e.target.value })} className={`${CLASSE_CHAMP_COMPACT} h-9 w-full`} />
+            </label>
+            <label>
+              <span className="mb-1 block font-medium">Structure</span>
+              <input value={f.organisme} onChange={(e) => maj({ organisme: e.target.value })} placeholder="Cabinet, société, indépendant…" className={`${CLASSE_CHAMP_COMPACT} h-9 w-full`} />
+            </label>
+            <label>
+              <span className="mb-1 block font-medium">Ville</span>
+              <input value={f.ville} onChange={(e) => maj({ ville: e.target.value })} className={`${CLASSE_CHAMP_COMPACT} h-9 w-full`} />
             </label>
           </>
         ) : (
-          <p className="self-end pb-2 text-xs text-[var(--encre-faible)] sm:col-span-2">
-            Nom et téléphone repris de la fiche {f.employeeId ? "du salarié" : "du compte"} : rien à ressaisir.
-          </p>
+          <label className="sm:col-span-2">
+            <span className="mb-1 block font-medium">Personnel</span>
+            <select required value={f.personne} onChange={(e) => maj({ personne: e.target.value })} className={`${CLASSE_CHAMP_COMPACT} h-9 w-full`}>
+              <option value="" disabled>
+                — Choisir dans le personnel —
+              </option>
+              {personnel.map((p) => (
+                <option key={p.cle} value={p.cle} disabled={p.pris && p.cle !== initiale.personne}>
+                  {p.nom}
+                  {p.detail ? ` — ${p.detail}` : ""}
+                  {p.pris && p.cle !== initiale.personne ? " (déjà commercial)" : ""}
+                </option>
+              ))}
+            </select>
+            <span className="mt-1 block text-xs text-[var(--encre-faible)]">Nom et téléphone viennent de sa fiche ; son compte, s&apos;il en a un, reçoit ses tickets de caisse.</span>
+          </label>
         )}
-        <label>
-          <span className="mb-1 block font-medium">Utilisateur (caisse)</span>
-          <select value={f.userId} onChange={(e) => maj({ userId: e.target.value })} className={`${CLASSE_CHAMP_COMPACT} h-9 w-full`}>
-            <option value="">— aucun —</option>
-            {membres.map((m) => (
-              <option key={m.id} value={m.id}>
-                {m.nom}
-              </option>
-            ))}
-          </select>
-        </label>
-        <label>
-          <span className="mb-1 block font-medium">Salarié (paie)</span>
-          <select value={f.employeeId} onChange={(e) => maj({ employeeId: e.target.value })} className={`${CLASSE_CHAMP_COMPACT} h-9 w-full`}>
-            <option value="">— externe —</option>
-            {salaries.map((s) => (
-              <option key={s.id} value={s.id}>
-                {s.nom}
-              </option>
-            ))}
-          </select>
-        </label>
+      </div>
+
+      <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
         <label>
           <span className="mb-1 block font-medium">Calculée sur</span>
           <select value={f.base} onChange={(e) => maj({ base: e.target.value as "ca_ht" | "marge" })} className={`${CLASSE_CHAMP_COMPACT} h-9 w-full`}>
@@ -218,16 +256,19 @@ function FormulaireFiche({ initiale, membres, salaries, onFerme }: { initiale: F
   );
 }
 
-export function FicheCommercial({ membres, salaries }: { membres: Option[]; salaries: Option[] }) {
+export function FicheCommercial({ personnel }: { personnel: Personnel[] }) {
   const [ouvert, setOuvert] = useState(false);
   return (
     <div className="mb-5">
-      {ouvert ? (
-        <FormulaireFiche initiale={VIDE} membres={membres} salaries={salaries} onFerme={() => setOuvert(false)} />
-      ) : (
-        <button type="button" onClick={() => setOuvert(true)} className="h-cible rounded-lg bg-marque-600 px-4 text-sm font-semibold text-white">
-          Nouveau commercial
-        </button>
+      <button type="button" onClick={() => setOuvert(true)} className="h-cible rounded-lg bg-marque-600 px-4 text-sm font-semibold text-white">
+        Nouveau commercial
+      </button>
+      {ouvert && (
+        <Fenetre ouverte titre="Nouveau commercial" presentation="ample" onFermer={() => setOuvert(false)}>
+          <div className="px-5 py-4">
+            <FormulaireFiche initiale={VIDE} personnel={personnel} onFerme={() => setOuvert(false)} />
+          </div>
+        </Fenetre>
       )}
     </div>
   );
@@ -243,8 +284,7 @@ export function ActionsCommission({
   comptes,
   aujourdhui,
   fiche,
-  membres,
-  salaries,
+  personnel,
 }: {
   commercialId: string;
   mois: string;
@@ -255,8 +295,7 @@ export function ActionsCommission({
   comptes: { id: string; nom: string; nature: string; solde: number }[];
   aujourdhui: string;
   fiche: FicheInitiale;
-  membres: Option[];
-  salaries: Option[];
+  personnel: Personnel[];
 }) {
   const op = useOperation();
   const [panneau, setPanneau] = useState<"fiche" | "paiement" | "paie" | null>(null);
@@ -283,9 +322,11 @@ export function ActionsCommission({
       </div>
 
       {panneau === "fiche" && (
-        <div className="w-[min(90vw,52rem)]">
-          <FormulaireFiche initiale={fiche} membres={membres} salaries={salaries} onFerme={() => setPanneau(null)} />
-        </div>
+        <Fenetre ouverte titre={`Règle et fiche — ${fiche.nom}`} presentation="ample" onFermer={() => setPanneau(null)}>
+          <div className="px-5 py-4">
+            <FormulaireFiche initiale={fiche} personnel={personnel} onFerme={() => setPanneau(null)} />
+          </div>
+        </Fenetre>
       )}
       {panneau === "paiement" && validee && (
         <form

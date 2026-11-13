@@ -94,7 +94,7 @@ describe("permissions et absences en base", () => {
     expect(awa.jours.map((j) => j.etat)).toEqual(["absent", "absent", "permission", "permission", "permission"]);
     expect(awa.permissions).toBe(3);
 
-    // Le salarié ne retire pas une permission entamée ; le responsable, si, et le solde revient.
+    // Le collaborateur ne retire pas une permission entamée ; le responsable, si, et le solde revient.
     const autre = "00000000-0000-7000-8000-000000000001";
     await expect(annulerPermissionPour(org, autre, p.id, false, "2026-10-07")).rejects.toThrow(/vos propres/);
     await annulerPermissionPour(org, user, p.id, true, "2026-10-07");

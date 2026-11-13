@@ -62,7 +62,7 @@ export function coutMoyenUnitaire(mouvements: readonly Mouvement[]): number | nu
   return unites > 0 ? Math.round(total / unites) : null;
 }
 
-/** Sorties par service (ou par salarié, à défaut de service) : qui consomme quoi. */
+/** Sorties par service (ou par collaborateur, à défaut de service) : qui consomme quoi. */
 export function consommationParService(
   sorties: readonly { quantite: number; service: string | null; beneficiaire: string | null }[],
 ): { service: string; quantite: number }[] {

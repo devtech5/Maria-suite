@@ -167,6 +167,7 @@ const schemaDossier = z.object({
   visibilite: z.enum(["tous", "selection"]),
   depotOuvert: z.boolean(),
   membres: z.array(z.string().regex(UUID)).max(500),
+  deposants: z.array(z.string().regex(UUID)).max(500),
 });
 
 function lireDossier(donnees: FormData) {
@@ -174,8 +175,10 @@ function lireDossier(donnees: FormData) {
     nom: donnees.get("nom") ?? "",
     description: texte(donnees, "description"),
     visibilite: donnees.get("visibilite") === "tous" ? "tous" : "selection",
-    depotOuvert: donnees.get("depotOuvert") === "on",
+    // « admins » : les administrateurs seuls ; « tous » : tous ceux qui voient ; « certains » : les membres cochés.
+    depotOuvert: donnees.get("depot") === "tous",
     membres: donnees.getAll("membres").map(String),
+    deposants: donnees.get("depot") === "certains" ? donnees.getAll("deposants").map(String) : [],
   });
 }
 

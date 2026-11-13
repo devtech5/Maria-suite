@@ -14,7 +14,7 @@ export const CLES_ICONE = [
   "commercial", "stock", "achats", "prestataires", "marches",
   "projets", "missions", "actifs", "parc-auto", "parc-informatique",
   "comptabilite", "tresorerie",
-  "personnel", "presences", "planning", "anniversaires", "reglement", "guide", "visiteurs", "courrier", "transmissions", "taches", "meeting", "messagerie", "boite-mail", "documents", "archives",
+  "personnel", "presences", "planning", "anniversaires", "contacts", "reglement", "guide", "visiteurs", "courrier", "transmissions", "taches", "meeting", "messagerie", "boite-mail", "documents", "archives",
   "utilisateurs", "entreprise", "demarrage", "communication", "rapports", "journal",
 ] as const;
 export type CleIcone = (typeof CLES_ICONE)[number];
@@ -63,7 +63,6 @@ export const GROUPES_MODULES: GroupeModules[] = [
     icone: "tableau-de-bord",
     modules: [
       { href: "/rapports", racine: "/rapports", icone: "rapports", libelle: "Rapports", description: "Ventes, stock, trésorerie, paie : chaque module en chiffres, imprimable et exportable vers Excel.", droit: "rapports.consulter" },
-      { href: "/journal", racine: "/journal", icone: "journal", libelle: "Journal d'activité", description: "Qui a fait quoi, et quand.", droit: "organisation.journal.consulter" },
     ],
   },
   {
@@ -79,12 +78,15 @@ export const GROUPES_MODULES: GroupeModules[] = [
       { href: "/meeting", racine: "/meeting", icone: "meeting", libelle: "Meeting", description: "Réunions d'équipe à distance, en vidéo.", droit: "meeting.participer" },
       // Ouvert à tous : chacun a le planning personnel, et l'anniversaire d'un collègue concerne toute l'équipe.
       { href: "/anniversaires", racine: "/anniversaires", icone: "anniversaires", libelle: "Anniversaires", description: "Les anniversaires des collègues, du jour et à venir.", droit: "planning.utiliser" },
+      // Chaque rôle de personnel lit l'annuaire ; tenir les adresses et les numéros reste à `contacts.gerer`.
+      { href: "/contacts", racine: "/contacts", icone: "contacts", libelle: "Contacts", description: "L'annuaire de l'entreprise : adresses e-mail professionnelles, services, personnel et numéros.", droit: "contacts.consulter" },
       // Ouvert à tous (`DROITS_DE_TOUS`) : le règlement s'impose à chacun.
       { href: "/reglement", racine: "/reglement", icone: "reglement", libelle: "Règlement intérieur", description: "Le règlement de l'entreprise, à relire à tout moment.", droit: "reglement.consulter" },
       // Ouvert à tous : il n'explique que les modules de chacun.
       { href: "/transmissions/recues", racine: "/transmissions/recues", icone: "transmissions", libelle: "Mes transmissions", description: "Les bordereaux qui vous sont adressés : accuser réception, rendre votre retour.", droit: "transmissions.recevoir" },
       { href: "/courrier/mon-courrier", racine: "/courrier/mon-courrier", icone: "courrier", libelle: "Mon courrier", description: "Le courrier qui vous est imputé : accuser réception, répondre.", droit: "courrier.recevoir" },
-      { href: "/visiteurs/rendez-vous", racine: "/visiteurs/rendez-vous", icone: "visiteurs", libelle: "Mes visiteurs", description: "Annoncer un visiteur à l'accueil et lui envoyer son QR d'entrée.", droit: "visiteurs.annoncer" },
+      // Ouvert à tous : n'apparaissent que les projets où l'on est en poste (agent, superviseur) ou chef de projet.
+      { href: "/terrain", racine: "/terrain", icone: "projets", libelle: "Mon terrain", description: "Les projets qui vous sont confiés : relevez sur place, avec photo et position GPS.", droit: "projet.terrain.collecter" },
       { href: "/guide", racine: "/guide", icone: "guide", libelle: "Guide d'utilisation", description: "Apprendre Maria Suite module par module, avec un parcours et un quiz.", droit: "guide.consulter" },
     ],
   },
@@ -95,7 +97,8 @@ export const GROUPES_MODULES: GroupeModules[] = [
     icone: "commercial",
     modules: [
       { href: "/commercial", racine: "/commercial", icone: "commercial", libelle: "Clients", description: "Clients, devis, factures et encaissements.", droit: "tiers.fiche.consulter" },
-      { href: "/commercial/commerciaux", racine: "/commercial/commerciaux", icone: "commercial", libelle: "Commerciaux", description: "Commerciaux, objectifs et commissions.", droit: "commercial.commission.gerer" },
+      { href: "/commercial/prospection", racine: "/commercial/prospection", icone: "commercial", libelle: "Prospection", description: "Plans de prospection : zone, objectifs, prospects par type, visites et appels jusqu'au client.", droit: "commercial.prospection.planifier" },
+      { href: "/commercial/commerciaux", racine: "/commercial/commerciaux", icone: "commercial", libelle: "Commercial", description: "L'équipe commerciale : objectifs et commissions.", droit: "commercial.commission.gerer" },
       { href: "/commercial/fournisseurs", racine: "/commercial/fournisseurs", icone: "achats", libelle: "Fournisseurs", description: "Fiches fournisseurs, leurs factures et ce qui leur est dû.", droit: "tiers.fiche.consulter" },
       { href: "/commercial/factures", racine: "/commercial/factures", icone: "commercial", libelle: "Devis et factures", description: "Devis, factures et avoirs clients.", droit: "tiers.fiche.consulter" },
       { href: "/achats", racine: "/achats", icone: "achats", libelle: "Achats", description: "Commandes et factures fournisseurs.", droit: "achats.consulter" },
@@ -133,7 +136,7 @@ export const GROUPES_MODULES: GroupeModules[] = [
     court: "RH",
     icone: "personnel",
     modules: [
-      { href: "/rh", racine: "/rh", icone: "personnel", libelle: "Personnel", description: "Salariés, intervenants, dossiers et paie.", droit: "personnes.consulter" },
+      { href: "/rh", racine: "/rh", icone: "personnel", libelle: "Personnel", description: "Collaborateurs, intervenants, dossiers et paie.", droit: "personnes.consulter" },
       { href: "/presences", racine: "/presences", icone: "presences", libelle: "Présences et congés", description: "Pointage à la connexion, retards, congés et soldes.", droit: "conges.demander" },
       { href: "/planning", racine: "/planning", icone: "planning", libelle: "Planning", description: "Qui est disponible, occupé, en mission ou sur le terrain.", droit: "planning.utiliser" },
       { href: "/taches", racine: "/taches", icone: "taches", libelle: "Tâches", description: "Ce qui est à faire, par qui et pour quand.", droit: "taches.consulter" },
@@ -147,6 +150,7 @@ export const GROUPES_MODULES: GroupeModules[] = [
     modules: [
       { href: "/comptabilite", racine: "/comptabilite", icone: "comptabilite", libelle: "Comptabilité", description: "Écritures SYSCOHADA, balance et déclarations.", droit: "comptabilite.ecriture.consulter" },
       { href: "/tresorerie", racine: "/tresorerie", icone: "tresorerie", libelle: "Trésorerie", description: "Caisses, banques, bons et plan de trésorerie.", droit: "tresorerie.bon.demander" },
+      { href: "/perdiem", racine: "/perdiem", icone: "tresorerie", libelle: "Perdiem", description: "Barème des montants par jour, perdiem des collaborateurs en mission : attribution et paiement.", droit: "perdiem.consulter" },
       { href: "/tresorerie/caisse", racine: "/tresorerie/caisse", icone: "tresorerie", libelle: "Bons", description: "Bons de caisse : demande, validation et décaissement.", droit: "tresorerie.bon.demander" },
     ],
   },
@@ -169,7 +173,10 @@ export const GROUPES_MODULES: GroupeModules[] = [
     icone: "securite",
     modules: [
       { href: "/securite", racine: "/securite", icone: "securite", libelle: "Caméras", description: "Caméras des magasins, entrepôts et bureaux en direct.", droit: "securite.consulter" },
-      { href: "/visiteurs", racine: "/visiteurs", icone: "visiteurs", libelle: "Visiteurs", description: "Entrées et sorties des visiteurs, pièce d'identité, badge, présents à l'instant.", droit: "visiteurs.accueillir" },
+      // Une seule entrée pour l'accueil et pour qui annonce un rendez-vous : le
+      // module ouvre à chacun ses onglets (`visiteurs/layout.tsx`), et qui
+      // n'accueille pas arrive directement sur ses rendez-vous.
+      { href: "/visiteurs", racine: "/visiteurs", icone: "visiteurs", libelle: "Visiteurs", description: "Rendez-vous annoncés, entrées et sorties, pièce d'identité, badge, présents à l'instant.", droit: "visiteurs.annoncer" },
     ],
   },
   {
@@ -180,8 +187,10 @@ export const GROUPES_MODULES: GroupeModules[] = [
     modules: [
       { href: "/entreprise", racine: "/entreprise", icone: "entreprise", libelle: "Entreprise", description: "Identité, numérotation et sécurité.", droit: "organisation.parametres.gerer" },
       { href: "/marches", racine: "/marches", icone: "marches", libelle: "Marchés et conventions", description: "Appels d'offres, consultations et conventions.", droit: "marches.consulter" },
-      { href: "/contrats", racine: "/contrats", icone: "documents", libelle: "Contrats", description: "Contrats des salariés et des fournisseurs, échéances en tête.", droit: "personnes.consulter" },
+      { href: "/contrats", racine: "/contrats", icone: "documents", libelle: "Contrats", description: "Contrats des collaborateurs et des fournisseurs, échéances en tête.", droit: "personnes.consulter" },
       { href: "/membres", racine: "/membres", icone: "utilisateurs", libelle: "Utilisateurs", description: "Comptes, rôles et accès.", droit: "organisation.membre.gerer" },
+      // Le journal suit les utilisateurs : qui a fait quoi se lit à côté de qui a accès à quoi.
+      { href: "/journal", racine: "/journal", icone: "journal", libelle: "Journal d'activité", description: "Qui a fait quoi, et quand.", droit: "organisation.journal.consulter" },
       ...(REPRISE_OUVERTE
         ? [{ href: "/demarrage", racine: "/demarrage", icone: "demarrage", libelle: "Démarrage", description: "Reprise de l'existant : articles, tiers, soldes.", droit: "organisation.reprise.importer" } satisfies EntreeModule]
         : []),

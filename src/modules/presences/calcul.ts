@@ -295,7 +295,7 @@ export interface ContexteJour {
 }
 
 /**
- * État d'un salarié pour un jour donné. Une présence pointée l'emporte sur
+ * État d'un collaborateur pour un jour donné. Une présence pointée l'emporte sur
  * tout — quelqu'un venu un jour férié est venu.
  */
 export function etatDuJour(c: ContexteJour): EtatJour {

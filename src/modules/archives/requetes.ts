@@ -124,6 +124,8 @@ export interface DossierVue {
   visibilite: "tous" | "selection";
   depotOuvert: boolean;
   designes: { userId: string; nom: string }[];
+  /** Membres à qui le dépôt est accordé nommément. */
+  deposants: { userId: string; nom: string }[];
   archives: number;
   octets: number;
   derniereArchiveLe: Date | null;
@@ -145,6 +147,7 @@ export async function dossiersVisibles(
     visibilite: "tous" | "selection";
     depot_ouvert: boolean;
     designes: { userId: string; nom: string }[] | null;
+    deposants: { userId: string; nom: string }[] | null;
     archives: string | number;
     octets: string | number;
     derniere: string | Date | null;
@@ -153,6 +156,9 @@ export async function dossiersVisibles(
            (select coalesce(json_agg(json_build_object('userId', x.user_id, 'nom', coalesce(u.full_name, 'Ancien membre')) order by u.full_name), '[]'::json)
               from acces_dossiers_archives x left join users u on u.id = x.user_id
              where x.dossier_id = d.id and x.organization_id = d.organization_id) as designes,
+           (select coalesce(json_agg(json_build_object('userId', x.user_id, 'nom', coalesce(u.full_name, 'Ancien membre')) order by u.full_name), '[]'::json)
+              from acces_dossiers_archives x left join users u on u.id = x.user_id
+             where x.dossier_id = d.id and x.organization_id = d.organization_id and x.peut_deposer) as deposants,
            (select count(*) from archives a where a.dossier_id = d.id and a.retiree_le is null) as archives,
            (select coalesce(sum(a.taille_octets), 0) from archives a where a.dossier_id = d.id and a.retiree_le is null) as octets,
            (select max(a.created_at) from archives a where a.dossier_id = d.id and a.retiree_le is null) as derniere
@@ -171,6 +177,7 @@ export async function dossiersVisibles(
     visibilite: l.visibilite,
     depotOuvert: Boolean(l.depot_ouvert),
     designes: typeof l.designes === "string" ? JSON.parse(l.designes) : (l.designes ?? []),
+    deposants: typeof l.deposants === "string" ? JSON.parse(l.deposants) : (l.deposants ?? []),
     archives: Number(l.archives),
     octets: Number(l.octets),
     derniereArchiveLe: l.derniere ? enDate(l.derniere) : null,

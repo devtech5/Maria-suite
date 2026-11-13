@@ -301,10 +301,10 @@ export async function regleDossier(
     );
   if (!dossier) return null;
   const designes = await db
-    .select({ userId: accesDossiersArchives.userId })
+    .select({ userId: accesDossiersArchives.userId, peutDeposer: accesDossiersArchives.peutDeposer })
     .from(accesDossiersArchives)
     .where(and(eq(accesDossiersArchives.dossierId, dossierId), eq(accesDossiersArchives.organizationId, organizationId)));
-  return { ...dossier, designes: designes.map((d) => d.userId) };
+  return { ...dossier, designes: designes.map((d) => d.userId), deposants: designes.filter((d) => d.peutDeposer).map((d) => d.userId) };
 }
 
 export interface DefinitionDossier {
@@ -314,6 +314,21 @@ export interface DefinitionDossier {
   depotOuvert: boolean;
   /** Membres désignés. Ignorés quand le dossier est visible de tous. */
   membres: string[];
+  /**
+   * Membres à qui le dépôt est accordé un par un, quelle que soit la visibilité.
+   * Ignorés quand le dépôt est ouvert à tous ceux qui voient le dossier.
+   */
+  deposants?: string[];
+}
+
+/**
+ * Les lignes d'accès d'un dossier : qui voit, qui dépose. Un déposant voit
+ * toujours — « sélection » l'ajoute aux désignés ; « tous » ne garde que lui.
+ */
+function lignesAcces(definition: DefinitionDossier, voyants: string[], deposants: string[]): { userId: string; peutDeposer: boolean }[] {
+  const aDeposer = definition.depotOuvert ? new Set<string>() : new Set(deposants);
+  const ids = definition.visibilite === "selection" ? new Set([...voyants, ...aDeposer]) : new Set(aDeposer);
+  return [...ids].map((userId) => ({ userId, peutDeposer: aDeposer.has(userId) }));
 }
 
 /** Ne garde que les membres actifs de l'entreprise : un identifiant inventé ne désigne personne. */
@@ -332,7 +347,10 @@ export async function creerDossierPour(
   userId: string,
   definition: DefinitionDossier,
 ): Promise<{ id: string }> {
-  const membres = definition.visibilite === "selection" ? await membresValides(organizationId, definition.membres) : [];
+  const voyants = await membresValides(organizationId, definition.membres);
+  const deposants = await membresValides(organizationId, definition.deposants ?? []);
+  const acces = lignesAcces(definition, voyants, deposants);
+  const membres = acces.map((a) => a.userId);
   const id = newId();
   try {
     await db.transaction(async (tx) => {
@@ -345,8 +363,8 @@ export async function creerDossierPour(
         depotOuvert: definition.depotOuvert,
         creeParUserId: userId,
       });
-      if (membres.length) {
-        await tx.insert(accesDossiersArchives).values(membres.map((m) => ({ dossierId: id, organizationId, userId: m })));
+      if (acces.length) {
+        await tx.insert(accesDossiersArchives).values(acces.map((a) => ({ dossierId: id, organizationId, userId: a.userId, peutDeposer: a.peutDeposer })));
       }
       await tx.insert(auditLogs).values({
         id: newId(),
@@ -355,7 +373,7 @@ export async function creerDossierPour(
         action: "archive_dossier.creer",
         entityType: "archive_dossier",
         entityId: id,
-        after: { nom: definition.nom, visibilite: definition.visibilite, depotOuvert: definition.depotOuvert, membres },
+        after: { nom: definition.nom, visibilite: definition.visibilite, depotOuvert: definition.depotOuvert, membres, deposants: acces.filter((a) => a.peutDeposer).map((a) => a.userId) },
       });
     });
   } catch (erreur) {
@@ -380,7 +398,10 @@ export async function modifierDossierPour(
 ): Promise<void> {
   const avant = await regleDossier(organizationId, dossierId);
   if (!avant) throw new Error("Dossier introuvable.");
-  const membres = definition.visibilite === "selection" ? await membresValides(organizationId, definition.membres) : [];
+  const voyants = await membresValides(organizationId, definition.membres);
+  const deposants = await membresValides(organizationId, definition.deposants ?? []);
+  const acces = lignesAcces(definition, voyants, deposants);
+  const membres = acces.map((a) => a.userId);
 
   try {
     await db.transaction(async (tx) => {
@@ -398,8 +419,8 @@ export async function modifierDossierPour(
       await tx
         .delete(accesDossiersArchives)
         .where(and(eq(accesDossiersArchives.dossierId, dossierId), eq(accesDossiersArchives.organizationId, organizationId)));
-      if (membres.length) {
-        await tx.insert(accesDossiersArchives).values(membres.map((m) => ({ dossierId, organizationId, userId: m })));
+      if (acces.length) {
+        await tx.insert(accesDossiersArchives).values(acces.map((a) => ({ dossierId, organizationId, userId: a.userId, peutDeposer: a.peutDeposer })));
       }
       await tx.insert(auditLogs).values({
         id: newId(),
@@ -408,8 +429,8 @@ export async function modifierDossierPour(
         action: "archive_dossier.modifier",
         entityType: "archive_dossier",
         entityId: dossierId,
-        before: { nom: avant.nom, visibilite: avant.visibilite, depotOuvert: avant.depotOuvert, membres: avant.designes },
-        after: { nom: definition.nom, visibilite: definition.visibilite, depotOuvert: definition.depotOuvert, membres },
+        before: { nom: avant.nom, visibilite: avant.visibilite, depotOuvert: avant.depotOuvert, membres: avant.designes, deposants: avant.deposants ?? [] },
+        after: { nom: definition.nom, visibilite: definition.visibilite, depotOuvert: definition.depotOuvert, membres, deposants: acces.filter((a) => a.peutDeposer).map((a) => a.userId) },
       });
     });
   } catch (erreur) {

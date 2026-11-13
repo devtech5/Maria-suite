@@ -24,7 +24,7 @@ export interface Membre {
  * Les personnes qui ouvrent le logiciel dans cette entreprise.
  *
  * À ne pas confondre avec le personnel : un membre est un compte de connexion.
- * Le salarié déclaré vit dans `employees`, l'intervenant payé à la tâche dans
+ * Le collaborateur déclaré vit dans `employees`, l'intervenant payé à la tâche dans
  * `workers`, et ni l'un ni l'autre n'a besoin d'un accès pour être payé.
  *
  * Le propriétaire vient en tête : c'est lui qui répond de l'entreprise, et

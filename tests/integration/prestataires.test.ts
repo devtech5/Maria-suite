@@ -74,4 +74,16 @@ describe("prestataires en base", () => {
     await changerStatutPour(org, user, id, "annulee", { motif: "Fait par le propriétaire" });
     await expect(changerStatutPour(org, user, id, "realisee")).rejects.toThrow();
   });
+
+  it("enregistre le type du prestataire et son origine : local par défaut, international avec son pays", async () => {
+    const local = await creerPrestatairePour(org, user, { nom: "Mutuelle Santé Plus", nature: "mutuelle", metiers: ["Assurance santé"] });
+    const etranger = await creerPrestatairePour(org, user, { nom: "Studio Lumière Paris", nature: "entreprise", paysCode: "FR", ville: "Paris", metiers: ["Photographe"] });
+    const liste = await listerPrestataires(org);
+    expect(liste.find((p) => p.tiersId === local.tiersId)).toMatchObject({ nature: "mutuelle", paysCode: null });
+    expect(liste.find((p) => p.tiersId === etranger.tiersId)).toMatchObject({ nature: "entreprise", paysCode: "FR", ville: "Paris" });
+    // Sans type, un prestataire reste un particulier, comme avant.
+    const simple = await creerPrestatairePour(org, user, { nom: "Yao Électricité", metiers: ["Électricien"] });
+    expect(liste.length).toBeGreaterThan(0);
+    expect((await listerPrestataires(org)).find((p) => p.tiersId === simple.tiersId)).toMatchObject({ nature: "particulier", paysCode: null });
+  });
 });

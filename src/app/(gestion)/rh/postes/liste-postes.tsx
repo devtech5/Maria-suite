@@ -3,11 +3,12 @@
 import { useState } from "react";
 
 import { Retour, useOperation } from "@/components/ui/operations";
-import { CLASSE_CHAMP_COMPACT, Pastille, Tableau, Td, Th } from "@/components/ui/primitives";
+import { CLASSE_CHAMP, CLASSE_CHAMP_COMPACT, Pastille, Tableau, Td, Th } from "@/components/ui/primitives";
 import { basculerPoste, renommerPoste } from "@/modules/personnes/actions-postes";
 import { rangerPoste } from "@/modules/personnes/actions-services";
 import type { LignePoste } from "@/modules/personnes/referentiel-postes";
 import { LONGUEUR_MAX_POSTE } from "@/modules/personnes/postes";
+import { Fenetre } from "@/components/ui/fenetre";
 
 type ServiceChoix = { id: string; code: string; libelle: string };
 
@@ -20,14 +21,17 @@ function LignePosteEditable({ poste, gerer, services }: { poste: LignePoste; ger
   return (
     <tr className={poste.actif ? "" : "opacity-60"}>
       <Td fort>
-        {enEdition ? (
+        {poste.libelle}
+        <Fenetre ouverte={enEdition} titre="Renommer le poste" onFermer={() => { setEnEdition(false); setLibelle(poste.libelle); }}>
           <form
             onSubmit={(e) => {
               e.preventDefault();
               op.lancer(() => renommerPoste(poste.id, libelle), () => setEnEdition(false));
             }}
-            className="flex flex-wrap items-center gap-2"
+            className="space-y-4 px-5 py-4"
           >
+            <label className="block">
+              <span className="mb-1 block text-xs font-semibold text-[var(--encre-faible)]">Nouveau nom du poste</span>
             <input
               value={libelle}
               onChange={(e) => setLibelle(e.target.value)}
@@ -35,9 +39,11 @@ function LignePosteEditable({ poste, gerer, services }: { poste: LignePoste; ger
               autoFocus
               maxLength={LONGUEUR_MAX_POSTE}
               aria-label="Nouveau nom du poste"
-              className={`${CLASSE_CHAMP_COMPACT} min-w-48`}
+              className={CLASSE_CHAMP}
             />
-            <button type="submit" disabled={op.enCours} className="text-sm font-semibold text-marque-600 hover:underline disabled:opacity-50">
+            </label>
+            <div className="flex justify-end gap-2">
+<button type="submit" disabled={op.enCours} className="text-sm font-semibold text-marque-600 hover:underline disabled:opacity-50">
               Enregistrer
             </button>
             <button
@@ -50,10 +56,9 @@ function LignePosteEditable({ poste, gerer, services }: { poste: LignePoste; ger
             >
               Annuler
             </button>
+            </div>
           </form>
-        ) : (
-          poste.libelle
-        )}
+        </Fenetre>
         <Retour resultat={op.resultat} />
       </Td>
       <Td>
@@ -110,7 +115,7 @@ export function ListePostes({ postes, gerer, services }: { postes: LignePoste[];
         <tr>
           <Th>Poste</Th>
           <Th>Service</Th>
-          <Th aligne="droite">Salariés</Th>
+          <Th aligne="droite">Collaborateurs</Th>
           <Th>État</Th>
           {gerer && <Th aligne="droite">Actions</Th>}
         </tr>

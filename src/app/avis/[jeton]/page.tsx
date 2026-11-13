@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 
+import { SignatureMaria } from "@/components/coque/signature";
 import { FormulaireReponse } from "@/components/enquetes/formulaire-reponse";
 import { cibleDuLien, enquetePublique } from "@/modules/enquetes/requetes";
 
@@ -41,7 +42,7 @@ export default async function PageAvis({ params }: { params: Promise<{ jeton: st
           <p className="rounded-xl border border-[var(--filet)] bg-[var(--surface)] p-4 text-sm">Cette enquête est close. Merci de votre intérêt.</p>
         )}
       </div>
-      <p className="mt-8 text-center text-xs text-[var(--encre-faible)]">Réponses recueillies avec Maria Suite</p>
+      <SignatureMaria className="mt-8" />
     </Cadre>
   );
 }

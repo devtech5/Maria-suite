@@ -43,7 +43,7 @@ export const CHAPITRES_TOUS: Chapitre[] = [
         titre: "La cloche et la recherche",
         texte: [
           "La cloche, en haut à droite, rassemble ce qui vous concerne : une tâche attribuée, un bon à approuver, une réunion, un anniversaire, une nouvelle version du règlement. Un clic sur une notification ouvre l'écran concerné.",
-          "La barre de recherche (Ctrl K) trouve un client, une facture, un salarié ou un module sans passer par le menu.",
+          "La barre de recherche (Ctrl K) trouve un client, une facture, un collaborateur ou un module sans passer par le menu.",
         ],
       },
       {
@@ -99,6 +99,15 @@ export const CHAPITRES_TOUS: Chapitre[] = [
         texte: [
           "À votre première connexion, puis à chaque nouvelle version publiée par les ressources humaines, Maria Suite ouvre d'abord le règlement intérieur. La case « J'ai lu et j'accepte » se coche une fois le texte parcouru jusqu'au dernier article ; votre acceptation est enregistrée avec la date et l'heure.",
           "Une version publiée à l'avance peut se lire et s'accepter avant sa date d'effet : vous n'aurez pas à le faire le jour venu.",
+        ],
+      },
+      {
+        ancre: "rediger",
+        titre: "Le rédiger, ou l'importer (ressources humaines)",
+        chemin: "/reglement/versions",
+        texte: [
+          "Les ressources humaines rédigent le règlement article par article, ou IMPORTENT un fichier Word (.docx) ou texte (.txt) : la plateforme en récupère le titre, le préambule et les articles (titres du type « Article 1 : Objet », ou numérotation « 1. Objet »), les montre dans l'éditeur, et signale ce qu'elle n'a pas pu garder tel quel.",
+          "Rien n'est enregistré avant « Enregistrer » ou « Publier » : on relit, on corrige, puis on publie comme pour un règlement rédigé à la main. Le fichier lui-même n'est pas conservé. Un PDF ne s'importe pas : enregistrez-le d'abord en Word.",
         ],
       },
       {

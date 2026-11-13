@@ -30,7 +30,7 @@ export default async function PageRendezVous() {
         sousTitre="Les visiteurs annoncés à l'accueil"
         actions={
           accueils.length > 0 && (
-            <FormulaireRepliable libelle="Annoncer un visiteur" titre="Annoncer un visiteur" action={annoncerVisite} presentation="tiroir">
+            <FormulaireRepliable libelle="Annoncer un visiteur" titre="Annoncer un visiteur" action={annoncerVisite} presentation="ample">
               <div className="space-y-3">
                 <div className="grid gap-3 sm:grid-cols-3">
                   <Champ libelle="Point d'accueil">

@@ -190,6 +190,17 @@ const DESSINS: Record<CleIcone, ReactNode> = {
       ))}
     </>
   ),
+  /** Un carnet d'adresses : couverture, onglets et une silhouette. */
+  contacts: (
+    <>
+      <rect x="9" y="4" width="32" height="40" rx="5" fill={SARCELLE} />
+      <rect x="5" y="11" width="8" height="5" rx="2.5" fill={JAUNE} />
+      <rect x="5" y="21" width="8" height="5" rx="2.5" fill={CORAIL} />
+      <rect x="5" y="31" width="8" height="5" rx="2.5" fill={VIOLET} />
+      <circle cx="27" cy="19" r="5" fill={BLANC} />
+      <path d="M17 35c1-5 5-7 10-7s9 2 10 7Z" fill={BLANC} opacity=".9" />
+    </>
+  ),
   taches: (
     <>
       <rect x="8" y="6" width="32" height="38" rx="5" fill={SARCELLE} />

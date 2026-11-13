@@ -8,6 +8,7 @@ import { exigerEntreprise } from "@/lib/auth/dal";
 import { refusDroit } from "@/lib/droits/garde";
 import type { Droit } from "@/lib/droits/catalogue";
 import { tracer } from "@/lib/audit";
+import { NATURES_TIERS } from "@/modules/tiers/natures";
 
 import {
   annulerFactureDans,
@@ -70,7 +71,17 @@ async function operer(
 const schemaBrouillon = z.object({
   id: z.string().regex(UUID).optional(),
   nature: z.enum(["devis", "facture"]),
-  clientId: z.string().regex(UUID, "Choisissez un client."),
+  clientId: z.string().regex(UUID).nullable().optional(),
+  // Un client qui n'existe pas encore : enregistré avec la pièce, son type précisé.
+  nouveauClient: z
+    .object({
+      nom: z.string().trim().min(2, "Indiquez le nom du nouveau client.").max(160),
+      nature: z.enum(NATURES_TIERS, "Précisez le type du nouveau client."),
+      telephone: z.string().trim().max(40).nullable().optional(),
+      email: z.union([z.email("Adresse e-mail invalide."), z.literal("")]).nullable().optional(),
+    })
+    .nullable()
+    .optional(),
   projetId: z.string().regex(UUID).nullable().optional(),
   datePiece: z.string().regex(DATE_ISO, "Date invalide."),
   echeance: z.string().regex(DATE_ISO).nullable().optional(),
@@ -94,14 +105,20 @@ const schemaBrouillon = z.object({
 
 export type BrouillonEntrant = z.input<typeof schemaBrouillon>;
 
+/** Une pièce a son client : un client du fichier, ou un nouveau décrit sur place. */
+const aSonClient = (b: z.infer<typeof schemaBrouillon>) => Boolean(b.clientId || b.nouveauClient);
+
 /** Crée ou met à jour un brouillon de devis ou de facture. */
 export async function enregistrerBrouillon(brouillon: BrouillonEntrant): Promise<Resultat> {
   return operer("commercial.piece.gerer", async (organizationId, userId) => {
     const analyse = schemaBrouillon.safeParse(brouillon);
     if (!analyse.success) return { ok: false, message: analyse.error.issues[0].message };
 
+    if (!aSonClient(analyse.data)) return { ok: false, message: "Choisissez un client, ou enregistrez-le sur place." };
+
+    // Chaque ligne est un service : un nouveau se range au catalogue de lui-même.
     const { id } = await db.transaction((tx) =>
-      enregistrerBrouillonDans(tx, organizationId, analyse.data, userId),
+      enregistrerBrouillonDans(tx, organizationId, { ...analyse.data, creerServices: true }, userId),
     );
     await tracer({
       action: analyse.data.id ? "brouillon.modifier" : "brouillon.creer",

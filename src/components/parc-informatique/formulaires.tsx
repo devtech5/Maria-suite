@@ -14,6 +14,7 @@ import {
   retirerLicence,
 } from "@/modules/parc-informatique/actions";
 import { CATEGORIES_EQUIPEMENT, masquerCle } from "@/modules/parc-informatique/calcul";
+import { Fenetre } from "@/components/ui/fenetre";
 
 export interface OptionUtilisateur {
   id: string;
@@ -118,64 +119,57 @@ export function FormulaireNouvelEquipement({ utilisateurs }: { utilisateurs: Opt
   const formulaire = useRef<HTMLFormElement>(null);
   const op = useOperation();
 
-  if (!ouvert) {
-    return (
+  return (
+    <>
       <div className="flex items-center gap-3">
         {op.resultat?.ok && <span className="text-sm text-valide-600">{op.resultat.message}</span>}
         <button type="button" onClick={() => setOuvert(true)} className="h-cible rounded-lg bg-marque-500 px-4 text-sm font-semibold text-white hover:bg-marque-600">
           Nouvel équipement
         </button>
       </div>
-    );
-  }
-
-  return (
-    <form
-      ref={formulaire}
-      onSubmit={(e) => {
-        e.preventDefault();
-        const donnees = new FormData(e.currentTarget);
-        op.lancer(
-          () => creerEquipement(donnees),
-          () => {
-            formulaire.current?.reset();
-            setOuvert(false);
-          },
-        );
-      }}
-      className="mb-5 w-full space-y-4 rounded-xl border border-[var(--filet)] bg-[var(--surface)] p-4"
-    >
-      <div className="flex items-center justify-between">
-        <h2 className="text-sm font-semibold">Nouvel équipement</h2>
-        <button type="button" onClick={() => setOuvert(false)} className="text-sm text-[var(--encre-faible)] hover:underline">
-          Annuler
-        </button>
-      </div>
-      <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-        <Champ libelle="Désignation" precision="Par défaut : marque et modèle.">
-          <input name="designation" placeholder="Portable de la comptabilité" className={CLASSE_CHAMP} />
-        </Champ>
-        <ChampsEquipement initial={VIDE} utilisateurs={utilisateurs} />
-        <Champ libelle="Date d'achat">
-          <input name="dateAcquisition" type="date" className={`${CLASSE_CHAMP} chiffres`} />
-        </Champ>
-        <Champ libelle="Valeur d'achat (FCFA)">
-          <input name="valeurAcquisition" inputMode="numeric" className={`${CLASSE_CHAMP} chiffres`} />
-        </Champ>
-        <Champ libelle="Fin de garantie" precision="Une alerte prévient avant d'en sortir.">
-          <input name="garantieFin" type="date" className={`${CLASSE_CHAMP} chiffres`} />
-        </Champ>
-        <Champ libelle="Site">
-          <input name="site" placeholder="Siège" className={CLASSE_CHAMP} />
-        </Champ>
-      </div>
-      <div className="flex items-center justify-end gap-3">
-        <Retour resultat={op.resultat && !op.resultat.ok ? op.resultat : null} />
-        <button type="submit" disabled={op.enCours} className="h-cible rounded-lg bg-marque-500 px-5 text-sm font-semibold text-white disabled:opacity-50">
-          {op.enCours ? "Enregistrement…" : "Ouvrir l'équipement"}
-        </button>
-      </div>
-    </form>
+      <Fenetre ouverte={ouvert} titre="Nouvel équipement" presentation="ample" onFermer={() => setOuvert(false)}>
+        <form
+          ref={formulaire}
+          onSubmit={(e) => {
+            e.preventDefault();
+            const donnees = new FormData(e.currentTarget);
+            op.lancer(
+              () => creerEquipement(donnees),
+              () => {
+                formulaire.current?.reset();
+                setOuvert(false);
+              },
+            );
+          }}
+          className="space-y-4 px-5 py-4"
+        >
+          <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+            <Champ libelle="Désignation" precision="Par défaut : marque et modèle.">
+              <input name="designation" placeholder="Portable de la comptabilité" className={CLASSE_CHAMP} />
+            </Champ>
+            <ChampsEquipement initial={VIDE} utilisateurs={utilisateurs} />
+            <Champ libelle="Date d'achat">
+              <input name="dateAcquisition" type="date" className={`${CLASSE_CHAMP} chiffres`} />
+            </Champ>
+            <Champ libelle="Valeur d'achat (FCFA)">
+              <input name="valeurAcquisition" inputMode="numeric" className={`${CLASSE_CHAMP} chiffres`} />
+            </Champ>
+            <Champ libelle="Fin de garantie" precision="Une alerte prévient avant d'en sortir.">
+              <input name="garantieFin" type="date" className={`${CLASSE_CHAMP} chiffres`} />
+            </Champ>
+            <Champ libelle="Site">
+              <input name="site" placeholder="Siège" className={CLASSE_CHAMP} />
+            </Champ>
+          </div>
+          <div className="flex items-center justify-end gap-3">
+            <Retour resultat={op.resultat && !op.resultat.ok ? op.resultat : null} />
+            <button type="submit" disabled={op.enCours} className="h-cible rounded-lg bg-marque-500 px-5 text-sm font-semibold text-white disabled:opacity-50">
+              {op.enCours ? "Enregistrement…" : "Ouvrir l'équipement"}
+            </button>
+          </div>
+        </form>
+      </Fenetre>
+    </>
   );
 }
 
@@ -211,88 +205,81 @@ export function FormulaireLicence({ fournisseurs }: { fournisseurs: { id: string
   const formulaire = useRef<HTMLFormElement>(null);
   const op = useOperation();
 
-  if (!ouvert) {
-    return (
+  return (
+    <>
       <div className="flex items-center gap-3">
         {op.resultat?.ok && <span className="text-sm text-valide-600">{op.resultat.message}</span>}
         <button type="button" onClick={() => setOuvert(true)} className="h-cible rounded-lg bg-marque-500 px-4 text-sm font-semibold text-white hover:bg-marque-600">
           Nouvelle licence
         </button>
       </div>
-    );
-  }
-
-  return (
-    <form
-      ref={formulaire}
-      onSubmit={(e) => {
-        e.preventDefault();
-        const donnees = new FormData(e.currentTarget);
-        op.lancer(
-          () => creerLicence(donnees),
-          () => {
-            formulaire.current?.reset();
-            setFournisseurId("");
-            setOuvert(false);
-          },
-        );
-      }}
-      className="mb-5 w-full space-y-4 rounded-xl border border-[var(--filet)] bg-[var(--surface)] p-4"
-    >
-      <div className="flex items-center justify-between">
-        <h2 className="text-sm font-semibold">Nouvelle licence</h2>
-        <button type="button" onClick={() => setOuvert(false)} className="text-sm text-[var(--encre-faible)] hover:underline">
-          Annuler
-        </button>
-      </div>
-      <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-        <Champ libelle="Logiciel">
-          <input name="logiciel" required placeholder="Microsoft 365 Business" className={CLASSE_CHAMP} />
-        </Champ>
-        <Champ libelle="Éditeur">
-          <input name="editeur" placeholder="Microsoft" className={CLASSE_CHAMP} />
-        </Champ>
-        <Champ libelle="Type">
-          <select name="type" value={type} onChange={(e) => setType(e.target.value as typeof type)} className={CLASSE_CHAMP}>
-            <option value="abonnement">Abonnement</option>
-            <option value="perpetuelle">Perpétuelle</option>
-          </select>
-        </Champ>
-        <Champ libelle="Postes couverts">
-          <input name="postes" required inputMode="numeric" defaultValue="1" className={`${CLASSE_CHAMP} chiffres`} />
-        </Champ>
-        <Champ libelle={type === "abonnement" ? "Fin d'abonnement" : "Fin du support (facultatif)"}>
-          <input name="expireLe" type="date" required={type === "abonnement"} className={`${CLASSE_CHAMP} chiffres`} />
-        </Champ>
-        <Champ libelle="Coût (FCFA)">
-          <input name="cout" inputMode="numeric" className={`${CLASSE_CHAMP} chiffres`} />
-        </Champ>
-        <Champ libelle="Fournisseur">
-          <select name="fournisseurId" value={fournisseurId} onChange={(e) => setFournisseurId(e.target.value)} className={CLASSE_CHAMP}>
-            <option value="">{fournisseurs.length ? "Sans fiche : saisir le nom" : "Aucun fournisseur en fiche"}</option>
-            {fournisseurs.map((f) => (
-              <option key={f.id} value={f.id}>
-                {f.nom}
-              </option>
-            ))}
-          </select>
-        </Champ>
-        {fournisseurId === "" && (
-          <Champ libelle="Nom du fournisseur">
-            <input name="fournisseur" placeholder="Revendeur en ligne…" className={CLASSE_CHAMP} />
-          </Champ>
-        )}
-        <Champ libelle="Clé d'activation">
-          <input name="cle" autoComplete="off" spellCheck={false} className={`${CLASSE_CHAMP} chiffres`} />
-        </Champ>
-      </div>
-      <div className="flex items-center justify-end gap-3">
-        <Retour resultat={op.resultat && !op.resultat.ok ? op.resultat : null} />
-        <button type="submit" disabled={op.enCours} className="h-cible rounded-lg bg-marque-500 px-5 text-sm font-semibold text-white disabled:opacity-50">
-          {op.enCours ? "Enregistrement…" : "Enregistrer la licence"}
-        </button>
-      </div>
-    </form>
+      <Fenetre ouverte={ouvert} titre="Nouvelle licence" presentation="ample" onFermer={() => setOuvert(false)}>
+        <form
+          ref={formulaire}
+          onSubmit={(e) => {
+            e.preventDefault();
+            const donnees = new FormData(e.currentTarget);
+            op.lancer(
+              () => creerLicence(donnees),
+              () => {
+                formulaire.current?.reset();
+                setFournisseurId("");
+                setOuvert(false);
+              },
+            );
+          }}
+          className="space-y-4 px-5 py-4"
+        >
+          <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+            <Champ libelle="Logiciel">
+              <input name="logiciel" required placeholder="Microsoft 365 Business" className={CLASSE_CHAMP} />
+            </Champ>
+            <Champ libelle="Éditeur">
+              <input name="editeur" placeholder="Microsoft" className={CLASSE_CHAMP} />
+            </Champ>
+            <Champ libelle="Type">
+              <select name="type" value={type} onChange={(e) => setType(e.target.value as typeof type)} className={CLASSE_CHAMP}>
+                <option value="abonnement">Abonnement</option>
+                <option value="perpetuelle">Perpétuelle</option>
+              </select>
+            </Champ>
+            <Champ libelle="Postes couverts">
+              <input name="postes" required inputMode="numeric" defaultValue="1" className={`${CLASSE_CHAMP} chiffres`} />
+            </Champ>
+            <Champ libelle={type === "abonnement" ? "Fin d'abonnement" : "Fin du support (facultatif)"}>
+              <input name="expireLe" type="date" required={type === "abonnement"} className={`${CLASSE_CHAMP} chiffres`} />
+            </Champ>
+            <Champ libelle="Coût (FCFA)">
+              <input name="cout" inputMode="numeric" className={`${CLASSE_CHAMP} chiffres`} />
+            </Champ>
+            <Champ libelle="Fournisseur">
+              <select name="fournisseurId" value={fournisseurId} onChange={(e) => setFournisseurId(e.target.value)} className={CLASSE_CHAMP}>
+                <option value="">{fournisseurs.length ? "Sans fiche : saisir le nom" : "Aucun fournisseur en fiche"}</option>
+                {fournisseurs.map((f) => (
+                  <option key={f.id} value={f.id}>
+                    {f.nom}
+                  </option>
+                ))}
+              </select>
+            </Champ>
+            {fournisseurId === "" && (
+              <Champ libelle="Nom du fournisseur">
+                <input name="fournisseur" placeholder="Revendeur en ligne…" className={CLASSE_CHAMP} />
+              </Champ>
+            )}
+            <Champ libelle="Clé d'activation">
+              <input name="cle" autoComplete="off" spellCheck={false} className={`${CLASSE_CHAMP} chiffres`} />
+            </Champ>
+          </div>
+          <div className="flex items-center justify-end gap-3">
+            <Retour resultat={op.resultat && !op.resultat.ok ? op.resultat : null} />
+            <button type="submit" disabled={op.enCours} className="h-cible rounded-lg bg-marque-500 px-5 text-sm font-semibold text-white disabled:opacity-50">
+              {op.enCours ? "Enregistrement…" : "Enregistrer la licence"}
+            </button>
+          </div>
+        </form>
+      </Fenetre>
+    </>
   );
 }
 

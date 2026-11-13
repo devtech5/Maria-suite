@@ -105,24 +105,24 @@ export default async function PageRegistre({ searchParams }: PageProps<"/presenc
         }
       />
       {lignes.length === 0 ? (
-        <p className="rounded-xl border border-dashed border-[var(--filet)] bg-[var(--surface)] p-6 text-sm text-[var(--encre-douce)]">Aucun salarié en poste sur ce mois.</p>
+        <p className="rounded-xl border border-dashed border-[var(--filet)] bg-[var(--surface)] p-6 text-sm text-[var(--encre-douce)]">Aucun collaborateur en poste sur ce mois.</p>
       ) : (
         <>
           <Recherche
             chemin={`/presences/registre?mois=${mois}`}
             valeur={filtres.q}
-            placeholder="Salarié, matricule, poste…"
+            placeholder="Collaborateur, matricule, poste…"
             filtres={<input type="hidden" name="mois" value={mois} />}
             resultats={filtres.q ? `${fmtEntier(affichees.length)} sur ${fmtEntier(lignes.length)}` : undefined}
           />
           {affichees.length === 0 ? (
-            <EtatVide titre="Aucun résultat" message="Aucun salarié en poste sur ce mois ne répond à cette recherche." />
+            <EtatVide titre="Aucun résultat" message="Aucun collaborateur en poste sur ce mois ne répond à cette recherche." />
           ) : (
             <div className="overflow-x-auto rounded-xl border border-[var(--filet)] bg-[var(--surface)]">
               <table className="border-collapse text-xs">
                 <thead>
                   <tr>
-                    <th className="sticky left-0 z-10 bg-[var(--surface-creuse)] px-3 py-2 text-left font-semibold">Salarié</th>
+                    <th className="sticky left-0 z-10 bg-[var(--surface-creuse)] px-3 py-2 text-left font-semibold">Collaborateur</th>
                     {jours.map((j) => (
                       <th key={j} title={feries.get(j)} className={`px-0.5 py-2 text-center font-medium ${jourSemaine(j) >= 6 ? "text-[var(--encre-faible)]" : ""} ${j === aujourdhui ? "text-marque-600" : ""}`}>
                         {Number(j.slice(8))}

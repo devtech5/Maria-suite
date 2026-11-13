@@ -15,7 +15,7 @@ import { bulletinsPaie, periodesPaie } from "@/modules/paie/schema";
 export const metadata: Metadata = { title: "État des cotisations" };
 
 /**
- * État mensuel des cotisations CNPS et de l'impôt retenu, salarié par salarié :
+ * État mensuel des cotisations CNPS et de l'impôt retenu, collaborateur par collaborateur :
  * la pièce qui accompagne la déclaration et que l'on recoupe avec le versement.
  */
 export default async function ImpressionDeclarations({ params }: { params: Promise<{ id: string }> }) {
@@ -42,7 +42,7 @@ export default async function ImpressionDeclarations({ params }: { params: Promi
           <thead>
             <tr className="border-y border-black/40 text-left text-[8pt] uppercase">
               <th className="py-1">Matricule</th>
-              <th className="py-1">Salarié</th>
+              <th className="py-1">Collaborateur</th>
               <th className="py-1">N° CNPS</th>
               <th className="py-1 text-right">Brut</th>
               <th className="py-1 text-right">Retraite sal.</th>
@@ -69,7 +69,7 @@ export default async function ImpressionDeclarations({ params }: { params: Promi
               </tr>
             ))}
             <tr className="border-t-2 border-black font-bold">
-              <td className="py-1.5" colSpan={3}>Totaux — {bulletins.length} salarié{bulletins.length > 1 ? "s" : ""}</td>
+              <td className="py-1.5" colSpan={3}>Totaux — {bulletins.length} collaborateur{bulletins.length > 1 ? "s" : ""}</td>
               <td className="py-1.5 text-right">{fmt(s((b) => b.brut))}</td>
               <td className="py-1.5 text-right">{fmt(s((b) => b.cnpsSalarie))}</td>
               <td className="py-1.5 text-right">{fmt(s((b) => b.cnpsPatronal))}</td>

@@ -7,6 +7,7 @@ import { Retour, type Resultat } from "@/components/ui/operations";
 import { CLASSE_CHAMP } from "@/components/ui/primitives";
 import { programmerReunion } from "@/modules/meeting/actions";
 import { DUREES } from "@/modules/meeting/calcul";
+import { Fenetre } from "@/components/ui/fenetre";
 
 interface Membre {
   userId: string;
@@ -39,8 +40,16 @@ export function FormulaireReunion({ membres, moi, aujourdhui }: { membres: Membr
   const autres = useMemo(() => membres.filter((m) => m.userId !== moi), [membres, moi]);
   const visibles = autres.filter((m) => m.nom.toLowerCase().includes(filtre.trim().toLowerCase()));
 
-  if (!ouvert) {
-    return (
+  const basculer = (userId: string) =>
+    setChoisis((actuels) => {
+      const suivants = new Set(actuels);
+      if (suivants.has(userId)) suivants.delete(userId);
+      else suivants.add(userId);
+      return suivants;
+    });
+
+  return (
+    <>
       <div className="flex gap-2">
         <button
           type="button"
@@ -63,18 +72,7 @@ export function FormulaireReunion({ membres, moi, aujourdhui }: { membres: Membr
           Programmer une réunion
         </button>
       </div>
-    );
-  }
-
-  const basculer = (userId: string) =>
-    setChoisis((actuels) => {
-      const suivants = new Set(actuels);
-      if (suivants.has(userId)) suivants.delete(userId);
-      else suivants.add(userId);
-      return suivants;
-    });
-
-  return (
+      <Fenetre ouverte={ouvert} titre={quand === "maintenant" ? "Réunion immédiate" : "Programmer une réunion"} presentation="ample" onFermer={() => setOuvert(false)}>
     <form
       onSubmit={(e) => {
         e.preventDefault();
@@ -88,7 +86,7 @@ export function FormulaireReunion({ membres, moi, aujourdhui }: { membres: Membr
           if (r.ok && r.id) routeur.push(quand === "maintenant" ? `/meeting/${r.id}/salle` : `/meeting/${r.id}`);
         });
       }}
-      className="mb-5 w-full space-y-4 rounded-xl border border-[var(--filet)] bg-[var(--surface)] p-4 text-left"
+      className="space-y-4 px-5 py-4 text-left"
     >
       <div className="flex items-center justify-between gap-3">
         <div role="radiogroup" aria-label="Quand" className="inline-flex rounded-lg border border-[var(--filet)] p-0.5">
@@ -110,9 +108,6 @@ export function FormulaireReunion({ membres, moi, aujourdhui }: { membres: Membr
             </button>
           ))}
         </div>
-        <button type="button" onClick={() => setOuvert(false)} className="text-sm text-[var(--encre-faible)] hover:underline">
-          Annuler
-        </button>
       </div>
 
       <label className="block">
@@ -189,5 +184,7 @@ export function FormulaireReunion({ membres, moi, aujourdhui }: { membres: Membr
         </button>
       </div>
     </form>
+      </Fenetre>
+    </>
   );
 }

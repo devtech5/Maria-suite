@@ -1,6 +1,6 @@
 import "server-only";
 
-import { ImapFlow, type MessageStructureObject } from "imapflow";
+import { ImapFlow, type FetchMessageObject, type MessageStructureObject } from "imapflow";
 import { simpleParser, type AddressObject } from "mailparser";
 import nodemailer from "nodemailer";
 import MailComposer from "nodemailer/lib/mail-composer";
@@ -133,6 +133,44 @@ function aDesPieces(n: MessageStructureObject | undefined): boolean {
   return nomme && !n.type.startsWith("text/") && !(n.id && n.type.startsWith("image/"));
 }
 
+const CHAMPS_APERCU = { uid: true, envelope: true, flags: true, internalDate: true, size: true, bodyStructure: true } as const;
+
+function apercu(m: FetchMessageObject): ApercuMessage {
+  const de = m.envelope?.from?.[0];
+  const date = m.envelope?.date ?? m.internalDate;
+  return {
+    uid: m.uid,
+    de: de?.name || de?.address || "(expéditeur inconnu)",
+    adresse: de?.address ?? null,
+    objet: m.envelope?.subject || "(sans objet)",
+    date: date ? new Date(date).toISOString() : null,
+    lu: m.flags?.has("\\Seen") ?? false,
+    suivi: m.flags?.has("\\Flagged") ?? false,
+    taille: m.size ?? 0,
+    pieces: aDesPieces(m.bodyStructure),
+  };
+}
+
+/**
+ * Recherche dans TOUT le dossier, chez le fournisseur : expéditeur, objet ou
+ * texte. Les plus récents d'abord, `limite` au plus.
+ */
+export async function rechercher(c: Connexion, dossier: string, texte: string, limite = 60): Promise<{ messages: ApercuMessage[]; tronque: boolean }> {
+  return avecImap(c, async (client) => {
+    const verrou = await client.getMailboxLock(dossier);
+    try {
+      const trouves = await client.search({ or: [{ from: texte }, { subject: texte }, { body: texte }] }, { uid: true });
+      if (!trouves || trouves.length === 0) return { messages: [], tronque: false };
+      const gardes = trouves.slice(-limite);
+      const liste: ApercuMessage[] = [];
+      for await (const m of client.fetch(gardes.join(","), CHAMPS_APERCU, { uid: true })) liste.push(apercu(m));
+      return { messages: liste.sort((a, b) => b.uid - a.uid), tronque: trouves.length > gardes.length };
+    } finally {
+      verrou.release();
+    }
+  });
+}
+
 /** Une page de messages, du plus récent au plus ancien. */
 export async function messages(c: Connexion, dossier: string, page: number, parPage = 30): Promise<{ total: number; messages: ApercuMessage[] }> {
   return avecImap(c, async (client) => {
@@ -145,21 +183,7 @@ export async function messages(c: Connexion, dossier: string, page: number, parP
       if (fin === 0) return { total, messages: [] };
       const debut = Math.max(1, fin - parPage + 1);
       const liste: ApercuMessage[] = [];
-      for await (const m of client.fetch(`${debut}:${fin}`, { uid: true, envelope: true, flags: true, internalDate: true, size: true, bodyStructure: true })) {
-        const de = m.envelope?.from?.[0];
-        const date = m.envelope?.date ?? m.internalDate;
-        liste.push({
-          uid: m.uid,
-          de: de?.name || de?.address || "(expéditeur inconnu)",
-          adresse: de?.address ?? null,
-          objet: m.envelope?.subject || "(sans objet)",
-          date: date ? new Date(date).toISOString() : null,
-          lu: m.flags?.has("\\Seen") ?? false,
-          suivi: m.flags?.has("\\Flagged") ?? false,
-          taille: m.size ?? 0,
-          pieces: aDesPieces(m.bodyStructure),
-        });
-      }
+      for await (const m of client.fetch(`${debut}:${fin}`, CHAMPS_APERCU)) liste.push(apercu(m));
       return { total, messages: liste.reverse() };
     } finally {
       verrou.release();

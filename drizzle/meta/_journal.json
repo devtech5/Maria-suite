@@ -575,6 +575,76 @@
       "when": 1794375023538,
       "tag": "0081_demandes_permission",
       "breakpoints": true
+    },
+    {
+      "idx": 82,
+      "version": "7",
+      "when": 1794474206214,
+      "tag": "0082_prospection",
+      "breakpoints": true
+    },
+    {
+      "idx": 83,
+      "version": "7",
+      "when": 1794475548952,
+      "tag": "0083_commerciaux_origine",
+      "breakpoints": true
+    },
+    {
+      "idx": 84,
+      "version": "7",
+      "when": 1794476426671,
+      "tag": "0084_projets_equipe_terrain",
+      "breakpoints": true
+    },
+    {
+      "idx": 85,
+      "version": "7",
+      "when": 1794477451877,
+      "tag": "0085_perdiem",
+      "breakpoints": true
+    },
+    {
+      "idx": 86,
+      "version": "7",
+      "when": 1794478931960,
+      "tag": "0086_missions_budget_intervenants",
+      "breakpoints": true
+    },
+    {
+      "idx": 87,
+      "version": "7",
+      "when": 1794480274335,
+      "tag": "0087_archives_depot_par_membre",
+      "breakpoints": true
+    },
+    {
+      "idx": 88,
+      "version": "7",
+      "when": 1794501516828,
+      "tag": "0088_messagerie_genres",
+      "breakpoints": true
+    },
+    {
+      "idx": 89,
+      "version": "7",
+      "when": 1794503089921,
+      "tag": "0089_contacts_annuaire",
+      "breakpoints": true
+    },
+    {
+      "idx": 90,
+      "version": "7",
+      "when": 1794505933560,
+      "tag": "0090_entreprise_coordonnees",
+      "breakpoints": true
+    },
+    {
+      "idx": 91,
+      "version": "7",
+      "when": 1794508583912,
+      "tag": "0091_pied_de_page_siege",
+      "breakpoints": true
     }
   ]
 }

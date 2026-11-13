@@ -9,10 +9,13 @@ import { exigerEntreprise } from "@/lib/auth/dal";
 import { peut } from "@/lib/droits/garde";
 import { fmt, fmtCompact, fmtTauxBp } from "@/lib/format";
 import { moduleOuvert } from "@/lib/modules/garde";
+import { EquipeProjet } from "@/components/terrain/equipe-projet";
 import { listerEnquetes } from "@/modules/enquetes/requetes";
 import { ouvrirPieceProjet, signerPiecesProjet } from "@/modules/projets/actions";
 import { LIBELLE_STATUT_PROJET } from "@/modules/projets/calcul";
 import { ficheProjet, membresActifs, type PieceVue } from "@/modules/projets/requetes";
+import { equipeDuProjet, personnelPourProjet } from "@/modules/projets/terrain";
+import { estChef, peutExaminer } from "@/modules/projets/terrain-regles";
 import { listerTiers } from "@/modules/tiers/requetes";
 
 import { FormulaireDepense } from "../formulaire-depense";
@@ -54,6 +57,12 @@ export default async function PageProjet({ params }: { params: Promise<{ id: str
   ]);
   if (!fiche) notFound();
   const { projet, depenses, pieces, factures } = fiche;
+  // L'équipe : le chef de projet (le responsable) et l'encadrement la règlent.
+  const equipe = await equipeDuProjet(session.organizationId, id);
+  const acteurTerrain = { userId: session.userId, gestionnaire: gerer };
+  const peutGererEquipe = gerer || estChef(acteurTerrain, projet);
+  const personnel = peutGererEquipe ? await personnelPourProjet(session.organizationId, equipe) : [];
+  const voitLesReleves = peutExaminer(acteurTerrain, projet, equipe);
   // Les enquêtes du projet, si le module est ouvert et la session les voit.
   const enquetes =
     moduleOuvert("enquetes") && (await peut("enquetes.consulter")) ? await listerEnquetes(session.organizationId, id) : null;
@@ -254,6 +263,20 @@ export default async function PageProjet({ params }: { params: Promise<{ id: str
       )}
       {!gerer && (
         <p className="mb-6 text-sm text-[var(--encre-douce)]">Responsable : {projet.responsable ?? "non affecté"}</p>
+      )}
+
+      <EquipeProjet
+        projetId={projet.id}
+        peutGerer={peutGererEquipe}
+        personnel={personnel}
+        membres={equipe.map((m) => ({ id: m.id, nom: m.nom, role: m.role, origine: m.origine, detail: m.detail, telephone: m.telephone, organisme: m.organisme, avecCompte: m.userId !== null }))}
+      />
+      {voitLesReleves && (
+        <p className="-mt-3 mb-6 text-sm">
+          <Link href={`/terrain/${projet.id}`} className="font-semibold text-marque-600 hover:underline">
+            Voir les relevés de terrain →
+          </Link>
+        </p>
       )}
 
       <section className="mb-6">

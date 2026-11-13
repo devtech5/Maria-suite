@@ -82,7 +82,7 @@ export async function pointerSalarie(d: FormData): Promise<Resultat> {
   const jour = texte(d, "jour") ?? "";
   const arrivee = texte(d, "arrivee") ?? "";
   const depart = texte(d, "depart");
-  if (!UUID.test(employeeId)) return { ok: false, message: "Choisissez le salarié." };
+  if (!UUID.test(employeeId)) return { ok: false, message: "Choisissez le collaborateur." };
   if (!DATE_ISO.test(jour)) return { ok: false, message: "Date invalide." };
   if (!heureValide(arrivee)) return { ok: false, message: "Heure d'arrivée au format HH:MM." };
   try {
@@ -183,7 +183,7 @@ export async function proposerFeries(annee: number): Promise<Resultat> {
 const NATURES = Object.keys(NATURES_CONGE) as [NatureConge, ...NatureConge[]];
 
 /**
- * Demande pour soi (droit « demander »), ou saisie pour un salarié par un
+ * Demande pour soi (droit « demander »), ou saisie pour un collaborateur par un
  * responsable (droit « accorder »), qui vaut accord immédiat.
  */
 export async function demanderConge(d: FormData): Promise<Resultat> {
@@ -200,7 +200,7 @@ export async function demanderConge(d: FormData): Promise<Resultat> {
   const refus = await refusDroit(pourAutrui ? "conges.valider" : "conges.demander");
   if (refus) return { ok: false, message: refus.erreur };
   const employeeId = pourAutrui ? cible! : moi?.id;
-  if (!employeeId || !UUID.test(employeeId)) return { ok: false, message: "Votre compte n'est rattaché à aucune fiche salarié : demandez à votre responsable de le faire." };
+  if (!employeeId || !UUID.test(employeeId)) return { ok: false, message: "Votre compte n'est rattaché à aucune fiche collaborateur : demandez à votre responsable de le faire." };
 
   const aujourdhui = await aujourdhuiDe(s.organizationId);
   if (!pourAutrui && debut < aujourdhui && nature === "paye") return { ok: false, message: "Un congé payé se demande à l'avance. Pour une absence passée, voyez votre responsable." };
@@ -278,7 +278,7 @@ export async function annulerConge(id: string): Promise<Resultat> {
   }
 }
 
-/** URL signée du justificatif, demandée au clic : le salarié concerné ou un responsable. */
+/** URL signée du justificatif, demandée au clic : le collaborateur concerné ou un responsable. */
 export async function ouvrirJustificatif(id: string): Promise<{ ok: true; url: string } | { ok: false; message: string }> {
   const s = await exigerEntreprise();
   if (!UUID.test(id)) return { ok: false, message: "Congé introuvable." };
@@ -301,7 +301,7 @@ export async function ajusterSolde(d: FormData): Promise<Resultat> {
   const jour = texte(d, "jour") ?? "";
   const motif = d.get("motif");
   const jours = Number(String(d.get("jours") ?? "").replace(",", "."));
-  if (!UUID.test(employeeId)) return { ok: false, message: "Choisissez le salarié." };
+  if (!UUID.test(employeeId)) return { ok: false, message: "Choisissez le collaborateur." };
   if (!DATE_ISO.test(jour)) return { ok: false, message: "Date invalide." };
   if (motif !== "reprise" && motif !== "majoration" && motif !== "correction") return { ok: false, message: "Choisissez le type d'ajustement." };
   if (!Number.isFinite(jours) || Math.abs(jours) > 1000) return { ok: false, message: "Nombre de jours invalide." };
@@ -327,7 +327,7 @@ async function deposerJustificatif(organizationId: string, d: FormData): Promise
 }
 
 /**
- * Demande pour soi (droit « conges.demander »), ou saisie pour un salarié par
+ * Demande pour soi (droit « conges.demander »), ou saisie pour un collaborateur par
  * un responsable (droit « conges.valider »), accordée d'office avec son traitement.
  */
 export async function demanderPermission(d: FormData): Promise<Resultat> {
@@ -348,7 +348,7 @@ export async function demanderPermission(d: FormData): Promise<Resultat> {
   const refus = await refusDroit(pourAutrui ? "conges.valider" : "conges.demander");
   if (refus) return { ok: false, message: refus.erreur };
   const employeeId = pourAutrui ? cible! : moi?.id;
-  if (!employeeId || !UUID.test(employeeId)) return { ok: false, message: "Votre compte n'est rattaché à aucune fiche salarié : demandez à votre responsable de le faire." };
+  if (!employeeId || !UUID.test(employeeId)) return { ok: false, message: "Votre compte n'est rattaché à aucune fiche collaborateur : demandez à votre responsable de le faire." };
 
   const traitement = d.get("traitement");
   if (pourAutrui && !dansListe(TRAITEMENTS_PERMISSION, traitement)) return { ok: false, message: "Choisissez comment ce temps est traité." };
@@ -418,7 +418,7 @@ export async function annulerPermission(id: string): Promise<Resultat> {
   }
 }
 
-/** URL signée du justificatif d'une permission : le salarié concerné ou un responsable. */
+/** URL signée du justificatif d'une permission : le collaborateur concerné ou un responsable. */
 export async function ouvrirJustificatifPermission(id: string): Promise<{ ok: true; url: string } | { ok: false; message: string }> {
   const s = await exigerEntreprise();
   if (!UUID.test(id)) return { ok: false, message: "Demande introuvable." };

@@ -74,7 +74,7 @@ export async function pointerPresence(organizationId: string, userId: string): P
     const suite = { derniereActivite: sql`greatest(${presences.derniereActivite}, ${maintenant.toISOString()}::timestamptz)`, updatedAt: maintenant };
 
     if (salarie) {
-      // Le salarié a pu être pointé à la main ce matin, par sa fiche : on
+      // Le collaborateur a pu être pointé à la main ce matin, par sa fiche : on
       // reprend cette ligne plutôt que d'en créer une seconde.
       await db
         .insert(presences)

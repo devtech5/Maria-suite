@@ -10,7 +10,7 @@ import { exigerEntreprise } from "@/lib/auth/dal";
 import { peut } from "@/lib/droits/garde";
 import { stockageConfigure } from "@/lib/stockage";
 import { archiver, modifierDossier } from "@/modules/archives/actions";
-import { ACCEPT_ARCHIVES, depotDossierPermis, resumeVisibilite } from "@/modules/archives/calcul";
+import { ACCEPT_ARCHIVES, depotDossierPermis, resumeDepot, resumeVisibilite } from "@/modules/archives/calcul";
 import { archivesDuDossier, dossiersVisibles, membresEntreprise } from "@/modules/archives/requetes";
 
 import { affichee } from "../../affichage";
@@ -38,7 +38,7 @@ export default async function PageDossier({ params }: PageProps<"/archives/dossi
     gestionnaire ? membresEntreprise(session.organizationId) : Promise.resolve([]),
   ]);
 
-  const regle = { visibilite: dossier.visibilite, depotOuvert: dossier.depotOuvert, designes: dossier.designes.map((m) => m.userId) };
+  const regle = { visibilite: dossier.visibilite, depotOuvert: dossier.depotOuvert, designes: dossier.designes.map((m) => m.userId), deposants: dossier.deposants.map((m) => m.userId) };
   const depotPermis = (deposer || gestionnaire) && depotDossierPermis(regle, session.userId, gestionnaire) && stockageConfigure();
   const masque = dossier.visibilite === "selection" && dossier.designes.length === 0;
 
@@ -85,6 +85,7 @@ export default async function PageDossier({ params }: PageProps<"/archives/dossi
                     visibilite: dossier.visibilite,
                     depotOuvert: dossier.depotOuvert,
                     designes: regle.designes,
+                    deposants: regle.deposants,
                   }}
                 />
               </FormulaireRepliable>
@@ -100,9 +101,12 @@ export default async function PageDossier({ params }: PageProps<"/archives/dossi
             {resumeVisibilite(regle)}
           </Pastille>
         )}
-        <Pastille ton={dossier.depotOuvert ? "marque" : "neutre"}>
-          {dossier.depotOuvert ? "Les membres qui le voient peuvent y déposer" : "Lecture seule pour les membres"}
-        </Pastille>
+        <Pastille ton={dossier.depotOuvert || dossier.deposants.length > 0 ? "marque" : "neutre"}>{resumeDepot(regle)}</Pastille>
+        {depotPermis && !gestionnaire && <Pastille ton="valide">Vous pouvez y déposer</Pastille>}
+        {!depotPermis && !gestionnaire && <Pastille>Lecture seule pour vous</Pastille>}
+        {gestionnaire && dossier.deposants.length > 0 && !dossier.depotOuvert && (
+          <span className="text-xs text-[var(--encre-douce)]">Déposent : {dossier.deposants.map((m) => m.nom).join(", ")}</span>
+        )}
         {gestionnaire && dossier.visibilite === "selection" && dossier.designes.length > 0 && (
           <span className="text-xs text-[var(--encre-douce)]">Ouvert à : {dossier.designes.map((m) => m.nom).join(", ")}</span>
         )}

@@ -34,6 +34,13 @@ export const ENTREPRISE = {
   /** Papier à en-tête, comme la migration 0060. */
   slogan: "Ouvrir les horizons, bâtir avec puissance et détermination",
   siteWeb: "www.maria-groupe.com",
+  /** Papier à en-tête et pied de page de la fiche MG-SI-01 ; le NCC n'y figure pas encore. */
+  adresse: "Cocody Angré 7e tranche, cour des comptes",
+  telephone: "+225 27 22 63 98 / 07 04 61 74 74",
+  email: "hello@maria-groupe.com",
+  rccm: "N° CI-TDI-01-2026-B12-00406",
+  capitalSocial: 10_000_000,
+  piedDePage: "Siège social : Yamoussoukro, quartier Kami CAFOP",
 };
 
 /**
@@ -88,8 +95,8 @@ export async function installerEntreprise(
   }
 
   const [entreprise] = await requete(
-    `insert into organizations (name, slug, legal_form, country_code, currency, timezone, couleur_documents, couleur_secondaire, slogan, site_web, status)
-    values ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, 'actif')
+    `insert into organizations (name, slug, legal_form, country_code, currency, timezone, couleur_documents, couleur_secondaire, slogan, site_web, address, phone, email, rccm, capital_social, pied_de_page, status)
+    values ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, 'actif')
     on conflict (slug) do update set status = 'actif'
     returning id`,
     [
@@ -103,6 +110,12 @@ export async function installerEntreprise(
       ENTREPRISE.couleurSecondaire,
       ENTREPRISE.slogan,
       ENTREPRISE.siteWeb,
+      ENTREPRISE.adresse,
+      ENTREPRISE.telephone,
+      ENTREPRISE.email,
+      ENTREPRISE.rccm,
+      ENTREPRISE.capitalSocial,
+      ENTREPRISE.piedDePage,
     ],
   );
 

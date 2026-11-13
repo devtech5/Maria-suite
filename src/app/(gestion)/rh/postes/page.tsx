@@ -15,7 +15,7 @@ export const metadata: Metadata = { title: "Postes" };
 
 /**
  * Postes de travail : la liste dans laquelle se choisit le poste d'un
- * salarié, à l'embauche comme sur son dossier.
+ * collaborateur, à l'embauche comme sur son dossier.
  *
  * Elle évolue avec l'entreprise : un poste s'ajoute, se renomme — les fiches
  * qui le portent suivent — ou se retire de la liste sans être retiré à qui
@@ -49,7 +49,7 @@ export default async function PagePostes() {
       />
 
       {postes.length === 0 ? (
-        <EtatVide titre="Aucun poste" message="Ajoutez les postes de l'entreprise : le poste d'un salarié se choisit dans cette liste." />
+        <EtatVide titre="Aucun poste" message="Ajoutez les postes de l'entreprise : le poste d'un collaborateur se choisit dans cette liste." />
       ) : (
         <ListePostes postes={postes} gerer={gerer} services={services.filter((s) => s.actif).map(({ id, code, libelle }) => ({ id, code, libelle }))} />
       )}

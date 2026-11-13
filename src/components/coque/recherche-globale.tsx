@@ -37,14 +37,14 @@ export function RechercheGlobale() {
 
   return (
     <>
-      <form role="search" method="get" action="/recherche" className="relative hidden w-full max-w-md lg:block">
+      <form role="search" method="get" action="/recherche" className="relative hidden w-full max-w-md xl:block">
         <Loupe className="pointer-events-none absolute left-2.5 top-1/2 size-4 -translate-y-1/2 text-[var(--encre-faible)]" />
         <input
           ref={champ}
           type="search"
           name="q"
           maxLength={80}
-          placeholder="Rechercher un client, une facture, un salarié…"
+          placeholder="Rechercher un client, une facture, un collaborateur…"
           aria-label="Rechercher dans Maria Suite (Ctrl+K)"
           title="Rechercher dans Maria Suite (Ctrl+K)"
           className="h-9 w-full rounded-lg border border-[var(--filet)] bg-[var(--surface)] pl-8 pr-16 text-sm text-[var(--encre)] outline-none placeholder:text-[var(--encre-faible)] focus:border-marque-500"
@@ -56,7 +56,7 @@ export function RechercheGlobale() {
       <Link
         href="/recherche"
         aria-label="Rechercher"
-        className="flex size-9 items-center justify-center rounded-lg text-[var(--encre-douce)] hover:bg-[var(--surface-creuse)] hover:text-[var(--encre)] lg:hidden"
+        className="flex size-9 items-center justify-center rounded-lg text-[var(--encre-douce)] hover:bg-[var(--surface-creuse)] hover:text-[var(--encre)] xl:hidden"
       >
         <Loupe className="size-5" />
       </Link>

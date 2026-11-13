@@ -81,7 +81,7 @@ export function impotSurSalaire(baseImposable: number): number {
   return 0;
 }
 
-/** Ce qu'il faut savoir d'un salarié pour établir son bulletin. */
+/** Ce qu'il faut savoir d'un collaborateur pour établir son bulletin. */
 export interface BaseBulletin {
   id: string;
   matricule: string;

@@ -53,7 +53,7 @@ export const sourcePresence = pgEnum("source_presence", ["automatique", "manuel"
  * dernière fois quand.
  *
  * Le pointage automatique porte le COMPTE (`user_id`) et, quand ce compte est
- * celui d'un salarié, sa fiche (`employee_id`). Un magasinier sans compte se
+ * celui d'un collaborateur, sa fiche (`employee_id`). Un magasinier sans compte se
  * pointe à la main, par sa fiche seule. D'où deux colonnes facultatives et
  * une contrainte : au moins l'une des deux.
  */
@@ -157,7 +157,7 @@ export const motifAjustement = pgEnum("motif_ajustement_conge", ["reprise", "maj
 
 /**
  * Mouvement manuel de solde. Une REPRISE fixe le solde à une date et fait
- * repartir le décompte de là — c'est ainsi qu'un salarié embauché il y a dix
+ * repartir le décompte de là — c'est ainsi qu'un collaborateur embauché il y a dix
  * ans arrive avec son vrai solde, et non dix ans d'acquis jamais pris.
  */
 export const ajustementsConge = pgTable(

@@ -30,6 +30,7 @@
     "docx-preview": "0.4.1",
     "drizzle-orm": "^0.45.2",
     "imapflow": "^2.2.5",
+    "jszip": "3.10.2",
     "mailparser": "^3.9.35",
     "next": "16.3.2",
     "nodemailer": "^10.0.14",

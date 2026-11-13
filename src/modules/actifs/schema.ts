@@ -81,9 +81,9 @@ export const actifs = pgTable(
     statut: statutActif("statut").notNull().default("actif"),
 
     /**
-     * À qui l'actif est confié. Deux colonnes et non une, parce qu'un salarié
+     * À qui l'actif est confié. Deux colonnes et non une, parce qu'un collaborateur
      * et un intervenant sont deux natures de personnes qui ne se fusionnent
-     * jamais : un fourgon confié à un chauffeur salarié n'engage pas les mêmes
+     * jamais : un fourgon confié à un chauffeur collaborateur n'engage pas les mêmes
      * responsabilités qu'une bétonnière laissée à un tâcheron.
      */
     employeId: uuid("employe_id").references(() => employees.id, {

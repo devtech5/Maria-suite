@@ -2,6 +2,7 @@ import type { ReactNode } from "react";
 
 import type { IdentiteEntreprise } from "@/lib/identite";
 import { fmt } from "@/lib/format";
+import { lignesPied } from "@/lib/pied-document";
 
 /**
  * Papier à en-tête de l'entreprise, commun à tous les documents A4 (modèle
@@ -59,27 +60,39 @@ export function EnTeteDocument({ identite, children }: { identite: IdentiteEntre
   );
 }
 
-/** Pied de page : mentions libres, devise de l'entreprise, filet, identifiants légaux. */
+/** Pied de page : la devise, le filet, puis deux lignes — identifiants légaux, coordonnées. */
 export function PiedDocument({ identite }: { identite: IdentiteEntreprise }) {
   const i = identite;
-  // Comme le modèle : registre, identifiant fiscal, capital. La raison sociale est déjà en tête.
-  const legal = [
-    i.rccm ? `${i.referentiel.registre} ${i.rccm}` : null,
-    i.identifiantFiscal ? `${i.referentiel.identifiantFiscal} ${i.identifiantFiscal}` : null,
-    i.capitalSocial !== null ? `Capital ${fmt(i.capitalSocial)} ${i.devise === "XOF" ? "FCFA" : i.devise}` : null,
-    i.regimeFiscal,
-  ].filter(Boolean);
-  if (!i.piedDePage && !i.slogan && legal.length === 0) return null;
+  const lignes = lignesPied({
+    nom: i.nom,
+    formeJuridique: i.formeJuridique,
+    rccm: i.rccm,
+    registre: i.referentiel.registre,
+    identifiantFiscal: i.identifiantFiscal,
+    sigleFiscal: i.referentiel.identifiantFiscal,
+    capital: i.capitalSocial !== null ? `${fmt(i.capitalSocial)} ${i.devise === "XOF" ? "FCFA" : i.devise}` : null,
+    regimeFiscal: i.regimeFiscal,
+    mentions: i.piedDePage,
+    adresse: i.adresse,
+    ville: i.ville,
+    telephone: i.telephone,
+    email: i.email,
+    siteWeb: i.siteWeb,
+  });
+  if (!i.slogan && lignes.length === 0) return null;
   return (
     <footer className="relative mt-8 flex flex-col items-center gap-[2mm] text-center">
-      {i.piedDePage && <p className="whitespace-pre-line text-[8pt] text-black/60">{i.piedDePage}</p>}
       {i.slogan && (
         <p className="text-[9pt] font-semibold italic tracking-[0.04em]" style={{ color: assombrir(i.couleurSecondaire) }}>
           {i.slogan}
         </p>
       )}
       <div className="h-[2px] w-full" style={{ background: i.couleurSecondaire }} />
-      {legal.length > 0 && <p className="text-[7.5pt] font-medium text-[#5b6b7c]">{legal.join(" · ")}</p>}
+      <div className="text-[7pt] font-medium leading-[10pt] text-[#5b6b7c]">
+        {lignes.map((l) => (
+          <p key={l}>{l}</p>
+        ))}
+      </div>
     </footer>
   );
 }

@@ -82,7 +82,7 @@ const fr = (n: number) => n.toLocaleString("fr-FR");
 
 /**
  * Fiche du bénéficiaire, telle que l'envoie le sélecteur : « t: » tiers,
- * « e: » salarié, « w: » intervenant, « u: » compte. Vide : nom saisi.
+ * « e: » collaborateur, « w: » intervenant, « u: » compte. Vide : nom saisi.
  * `undefined` si la valeur est vide, `null` si elle est illisible.
  */
 function lireFiche(d: FormData, admis: string): FicheBeneficiaire | null | undefined {

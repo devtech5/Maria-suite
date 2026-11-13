@@ -1,7 +1,7 @@
 /**
  * Prestataires externes : règles pures, sans dépendance.
  *
- * Un prestataire n'est ni un salarié ni un intervenant. L'intervenant est de
+ * Un prestataire n'est ni un collaborateur ni un intervenant. L'intervenant est de
  * la main-d'œuvre que l'on pointe et paie à la journée ; le prestataire est un
  * indépendant ou une petite entreprise qui annonce un prix, réalise une
  * prestation et se fait payer pour elle : plombier, électricien, photographe,

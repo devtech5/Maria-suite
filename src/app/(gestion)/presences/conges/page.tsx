@@ -27,7 +27,7 @@ function TableConges({ lignes, avecNom, peutDecider, userId, aujourdhui }: { lig
       <thead>
         <tr>
           <Th>N°</Th>
-          {avecNom && <Th>Salarié</Th>}
+          {avecNom && <Th>Collaborateur</Th>}
           <Th>Nature</Th>
           <Th>Période</Th>
           <Th aligne="droite">Jours</Th>
@@ -116,7 +116,7 @@ export default async function PageConges({ searchParams }: PageProps<"/presences
       )}
       {!moi && !valideur && (
         <p className="mb-6 rounded-xl border border-dashed border-[var(--filet)] bg-[var(--surface)] p-5 text-sm text-[var(--encre-douce)]">
-          Votre compte n&apos;est rattaché à aucune fiche salarié : demandez à votre responsable de vous rattacher depuis Personnel pour demander vos congés.
+          Votre compte n&apos;est rattaché à aucune fiche collaborateur : demandez à votre responsable de vous rattacher depuis Personnel pour demander vos congés.
         </p>
       )}
 
@@ -124,7 +124,7 @@ export default async function PageConges({ searchParams }: PageProps<"/presences
         <Recherche
           chemin="/presences/conges"
           valeur={filtres.q}
-          placeholder="N°, salarié, nature, motif…"
+          placeholder="N°, collaborateur, nature, motif…"
           periode={{ ...filtres.periode, libelle: "Congé" }}
           resultats={filtres.actif ? `${fmtEntier(trouvees)} demande${trouvees > 1 ? "s" : ""} trouvée${trouvees > 1 ? "s" : ""}` : undefined}
         />

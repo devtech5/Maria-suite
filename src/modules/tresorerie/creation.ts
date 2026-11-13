@@ -351,7 +351,7 @@ export async function annulerVirementDans(tx: Transaction, organizationId: strin
 // ------------------------------------------------------------ bénéficiaires
 
 /**
- * Fiche de celui qui reçoit l'argent : un fournisseur (tiers), un salarié du
+ * Fiche de celui qui reçoit l'argent : un fournisseur (tiers), un collaborateur du
  * Personnel, un intervenant, ou un compte sans fiche au Personnel. Absente,
  * le nom saisi en tient lieu — le taxi de passage n'a pas de fiche.
  */
@@ -401,7 +401,7 @@ export async function resoudreBeneficiaire(
           isNull(employees.deletedAt),
         ),
       );
-    if (!e) throw new Error("Ce salarié ne figure pas, ou plus, au Personnel.");
+    if (!e) throw new Error("Ce collaborateur ne figure pas, ou plus, au Personnel.");
     return { ...vide, nom: e.nom, employeId: e.id, userId: e.userId };
   }
   if ("workerId" in fiche) {
@@ -429,7 +429,7 @@ export interface NouveauBon {
   caisseId: string;
   nature: NatureBon;
   montant: number;
-  /** Tiers, salarié ou intervenant. Un compte seul n'est pas un bénéficiaire de bon. */
+  /** Tiers, collaborateur ou intervenant. Un compte seul n'est pas un bénéficiaire de bon. */
   fiche?: Exclude<FicheBeneficiaire, { userId: string }> | null;
   /** Nom saisi, quand le bénéficiaire n'a pas de fiche. */
   beneficiaire?: string | null;
@@ -591,7 +591,7 @@ export async function annulerBonDans(
 
 export interface NouvelleAvance {
   caisseId: string;
-  /** Salarié du Personnel, ou membre sans fiche. Absent : le nom saisi. */
+  /** Collaborateur du Personnel, ou membre sans fiche. Absent : le nom saisi. */
   fiche?: Extract<FicheBeneficiaire, { employeId: string } | { userId: string }> | null;
   beneficiaire?: string | null;
   montant: number;

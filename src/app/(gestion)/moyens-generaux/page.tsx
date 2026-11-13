@@ -70,7 +70,7 @@ export default async function PageFournitures({ searchParams }: PageProps<"/moye
                           ))}
                         </select>
                       </Champ>
-                      <Champ libelle="Service" precision="À défaut de salarié, ou en plus.">
+                      <Champ libelle="Service" precision="À défaut de collaborateur, ou en plus.">
                         <input name="service" placeholder="Comptabilité, Accueil…" className={CLASSE_CHAMP} />
                       </Champ>
                       <Champ libelle="Note">
