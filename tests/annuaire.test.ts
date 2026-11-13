@@ -8,6 +8,8 @@ import {
   adressesAReprendre,
   appartientAuService,
   correspond,
+  numerosDeCarte,
+  vcardCollaborateur,
   emailPersonnelVisible,
   filtrerAdresses,
   filtrerAnnuaire,
@@ -308,5 +310,51 @@ describe("impression de l'annuaire par service", () => {
 
   it("rend une liste vide sans collaborateur", () => {
     expect(annuaireParService([], ["Ressources humaines"])).toEqual([]);
+  });
+});
+
+describe("carte de visite", () => {
+  const carte = {
+    nom: "Koné Awa",
+    poste: "Comptable",
+    service: "Administration et finances",
+    entreprise: "MARIA GROUP SARL",
+    emails: ["awa.kone@maria-groupe.com"],
+    numeros: [
+      { numero: "2250707123456", nature: "mobile" as const, usage: "professionnel" as const },
+      { numero: "2250102030405", nature: "fixe" as const, usage: "professionnel" as const },
+      { numero: "2250505000002", nature: "whatsapp" as const, usage: "personnel" as const },
+    ],
+    adresse: "Cocody, Abidjan",
+    siteWeb: "www.maria-groupe.com",
+  };
+
+  it("ne garde que les numéros professionnels", () => {
+    expect(numerosDeCarte(carte.numeros).map((n) => n.numero)).toEqual(["2250707123456", "2250102030405"]);
+  });
+
+  it("produit une vCard 3.0 avec les seules coordonnées professionnelles", () => {
+    const v = vcardCollaborateur(carte);
+    const lignes = v.split("\r\n");
+    expect(lignes[0]).toBe("BEGIN:VCARD");
+    expect(lignes.at(-1)).toBe("END:VCARD");
+    expect(lignes).toContain("FN:Koné Awa");
+    expect(lignes).toContain("ORG:MARIA GROUP SARL;Administration et finances");
+    expect(lignes).toContain("TITLE:Comptable");
+    expect(lignes).toContain("TEL;TYPE=WORK,CELL:+2250707123456");
+    expect(lignes).toContain("TEL;TYPE=WORK,VOICE:+2250102030405");
+    expect(lignes).toContain("EMAIL;TYPE=INTERNET,WORK:awa.kone@maria-groupe.com");
+    expect(lignes).toContain("ADR;TYPE=WORK:;;Cocody\\, Abidjan;;;;");
+    expect(lignes).toContain("URL:https://www.maria-groupe.com");
+    expect(v).not.toContain("2250505000002");
+  });
+
+  it("échappe les caractères réservés et se passe des champs absents", () => {
+    const v = vcardCollaborateur({ ...carte, nom: "Yao; Marc", poste: "Chef, projet", service: null, emails: [], numeros: [], adresse: null, siteWeb: null });
+    expect(v).toContain("FN:Yao\\; Marc");
+    expect(v).toContain("TITLE:Chef\\, projet");
+    expect(v).toContain("ORG:MARIA GROUP SARL\r\n");
+    expect(v).not.toContain("TEL");
+    expect(v).not.toContain("URL");
   });
 });

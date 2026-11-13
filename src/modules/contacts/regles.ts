@@ -346,3 +346,50 @@ export function annuaireParService<T extends LigneAnnuaire>(lignes: readonly T[]
     .sort(([a, ga], [b, gb]) => rang(a) - rang(b) || (ga.service ?? "").localeCompare(gb.service ?? "", "fr"))
     .map(([, g]) => ({ service: g.service, lignes: [...g.lignes].sort((x, y) => x.nom.localeCompare(y.nom, "fr")) }));
 }
+
+// ---------------------------------------------------------- carte de visite
+
+/** Échappement vCard 3.0 : barre oblique, point-virgule, virgule, retour à la ligne. */
+function echapperVcard(texte: string): string {
+  return texte.replace(/\\/g, "\\\\").replace(/;/g, "\\;").replace(/,/g, "\\,").replace(/\r?\n/g, "\\n");
+}
+
+export interface CarteVisite {
+  nom: string;
+  poste: string;
+  service: string | null;
+  entreprise: string;
+  emails: readonly string[];
+  /** Numéros PROFESSIONNELS seulement : une carte se donne à l'extérieur. */
+  numeros: readonly { numero: string; nature: NatureNumero; usage: UsageNumero }[];
+  adresse: string | null;
+  siteWeb: string | null;
+}
+
+/** Les numéros qu'une carte peut porter : les professionnels, jamais les personnels. */
+export function numerosDeCarte<T extends { usage: UsageNumero }>(numeros: readonly T[]): T[] {
+  return numeros.filter((n) => n.usage === "professionnel");
+}
+
+/**
+ * La vCard (3.0) du QR au dos de la carte : scannée, elle ajoute le
+ * collaborateur aux contacts du téléphone. Elle ne porte que des coordonnées
+ * professionnelles.
+ */
+export function vcardCollaborateur(c: CarteVisite): string {
+  const types: Record<NatureNumero, string> = { mobile: "WORK,CELL", fixe: "WORK,VOICE", whatsapp: "WORK,CELL" };
+  const lignes = [
+    "BEGIN:VCARD",
+    "VERSION:3.0",
+    `N:${echapperVcard(c.nom)};;;;`,
+    `FN:${echapperVcard(c.nom)}`,
+    `ORG:${echapperVcard(c.entreprise)}${c.service ? `;${echapperVcard(c.service)}` : ""}`,
+    `TITLE:${echapperVcard(c.poste)}`,
+    ...numerosDeCarte(c.numeros).map((n) => `TEL;TYPE=${types[n.nature]}:+${chiffresDe(n.numero)}`),
+    ...c.emails.map((e) => `EMAIL;TYPE=INTERNET,WORK:${e}`),
+    ...(c.adresse ? [`ADR;TYPE=WORK:;;${echapperVcard(c.adresse)};;;;`] : []),
+    ...(c.siteWeb ? [`URL:${c.siteWeb.startsWith("http") ? c.siteWeb : `https://${c.siteWeb}`}`] : []),
+    "END:VCARD",
+  ];
+  return lignes.join("\r\n");
+}

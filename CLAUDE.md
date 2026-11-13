@@ -503,6 +503,9 @@ L'export Excel (`/contacts/export`, SheetJS, `.xlsx`) suit la même règle :
 « Adresses e-mail », que pour `contacts.gerer` ; chaque export se trace.
 Même règle pour l'impression (`/imprimer/annuaire`, papier à en-tête, par
 service, « Imprimer ou enregistrer en PDF »), tracée aussi.
+La carte de visite (`/imprimer/carte-visite/[id]`, 85 × 55 mm, recto et
+verso, QR vCard `vcardCollaborateur`) ne porte JAMAIS de donnée personnelle,
+quel que soit le droit : elle se donne à l'extérieur.
 
 ## Interrogations de fond et liens publics
 
