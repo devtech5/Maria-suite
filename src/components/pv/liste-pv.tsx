@@ -23,6 +23,8 @@ export interface LignePvAffichee {
   destinataire: boolean;
   luLeIso: string | null;
   remplace: boolean;
+  aSigner: boolean;
+  participant: boolean;
 }
 
 type Onglet = "recus" | "redaction" | "a_valider" | "tous";
@@ -40,7 +42,7 @@ export function ListePv({ liste, moi, valideur, ongletInitial }: { liste: LigneP
   const ongletParDefaut = (): Onglet => {
     if (onglets.some((o) => o.cle === ongletInitial)) return ongletInitial as Onglet;
     if (valideur && liste.some((l) => l.statut === "a_valider")) return "a_valider";
-    if (liste.some((l) => l.statut === "publie" && l.destinataire)) return "recus";
+    if (liste.some((l) => l.statut === "publie" && (l.destinataire || l.participant))) return "recus";
     if (liste.some((l) => l.redigeParUserId === moi)) return "redaction";
     return valideur ? "tous" : "recus";
   };
@@ -48,7 +50,7 @@ export function ListePv({ liste, moi, valideur, ongletInitial }: { liste: LigneP
   const [recherche, setRecherche] = useState("");
 
   const dans = (l: LignePvAffichee, o: Onglet) =>
-    o === "recus" ? l.statut === "publie" && l.destinataire : o === "redaction" ? l.redigeParUserId === moi : o === "a_valider" ? l.statut === "a_valider" : true;
+    o === "recus" ? l.statut === "publie" && (l.destinataire || l.participant) : o === "redaction" ? l.redigeParUserId === moi : o === "a_valider" ? l.statut === "a_valider" : true;
   const visibles = liste.filter((l) => dans(l, onglet) && correspond(recherche, [l.objet, l.numero, l.redacteur, LIBELLE_TYPE_COURT[l.type]]));
 
   return (
@@ -97,6 +99,7 @@ export function ListePv({ liste, moi, valideur, ongletInitial }: { liste: LigneP
                   </span>
                   {l.confidentiel && <Pastille ton="danger">Confidentiel</Pastille>}
                   {l.remplace && <Pastille ton="neutre">Remplacé</Pastille>}
+                  {l.aSigner && !l.remplace && <Pastille ton="alerte">À signer</Pastille>}
                   {aLire && <Pastille ton="alerte">À lire</Pastille>}
                   {l.statut === "publie" && l.destinataire && l.luLeIso && <Pastille ton="valide">Lu</Pastille>}
                   {l.statut !== "publie" && <Pastille ton={TON_STATUT[l.statut]}>{LIBELLE_STATUT[l.statut]}</Pastille>}

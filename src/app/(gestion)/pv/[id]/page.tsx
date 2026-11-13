@@ -11,7 +11,7 @@ import { exigerEntreprise } from "@/lib/auth/dal";
 import { peut } from "@/lib/droits/garde";
 import { identiteEntreprise } from "@/lib/identite";
 import { comptesDiffusion, pvComplet, servicesActifs } from "@/modules/pv/donnees";
-import { gestesPv, LIBELLE_STATUT, piecesModifiables, LIBELLE_TYPE_COURT, normaliserDiffusion, referencePv, type StatutPv, type TypePv } from "@/modules/pv/regles";
+import { gestesPv, LIBELLE_STATUT, piecesModifiables, signatairesDe, LIBELLE_TYPE_COURT, normaliserDiffusion, referencePv, type StatutPv, type TypePv } from "@/modules/pv/regles";
 import { personnelActif } from "@/modules/taches/requetes";
 import { db } from "@/db";
 
@@ -56,6 +56,8 @@ export default async function PagePvDetail({ params }: PageProps<"/pv/[id]">) {
     publieLe: pv.publieLe,
     actions: complet.actions.map((a) => ({ libelle: a.libelle, responsable: a.responsable, echeance: a.echeance })),
     pieces: complet.fichiers.map((f) => f.nom),
+    signataires: signatairesDe(pv.participants),
+    signatures: complet.signatures.map((x) => ({ rang: x.rang, trace: x.trace, signeLe: x.signeLe, recueilliePar: x.recueilliePar })),
   };
   const pieces = complet.fichiers.map((f) => ({ id: f.id, nom: f.nom, typeMime: f.typeMime, taille: f.taille, deposePar: f.deposePar }));
 
@@ -140,6 +142,10 @@ export default async function PagePvDetail({ params }: PageProps<"/pv/[id]">) {
           derniereVersionPubliee={Math.max(0, ...complet.versions.filter((v) => v.statut === "publie").map((v) => v.revision))}
           revision={pv.revision}
           pieces={pieces}
+          moi={session.userId}
+          reference={referencePv(pv.numero, pv.revision)}
+          signataires={signatairesDe(pv.participants)}
+          signatures={complet.signatures.map((x) => ({ rang: x.rang, trace: x.trace, signeLeIso: x.signeLe.toISOString(), personnelle: x.personnelle, recueilliePar: x.recueilliePar }))}
         />
       </div>
     </>

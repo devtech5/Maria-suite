@@ -526,7 +526,17 @@ modifiables tant qu'il s'écrit (`piecesModifiables`), figées à la
 publication ; une nouvelle version les reprend en pointant le même
 fichier, qui ne quitte le dépôt que si plus aucune ligne ne le désigne. Tiré d'une réunion Meeting, le brouillon en
 reprend objet, présences et compte rendu. Feuille A4 :
-`/imprimer/pv/[id]`. Le texte des points suit la mise en forme des
+`/imprimer/pv/[id]`.
+
+**Signatures** (`pv_signatures`, une par participant PRÉSENT, clé
+`(pv_id, rang)` = rang dans `participants`) : seulement sur un PV publié.
+Le participant qui a un compte signe pour lui ; le rédacteur ou la direction
+recueille sur place la signature d'un extérieur ou d'un collègue
+(`signaturePermise`, `recueillie_par_user_id`). Le tracé est un chemin SVG
+en entiers dans un cadre 1000 × 400 (`verifierTrace`), stocké en base et
+jamais un fichier ; horodaté avec IP et appareil, il ne se reprend pas.
+Une nouvelle version se signe à nouveau. La relance couvre lectures et
+signatures en attente. Le texte des points suit la mise en forme des
 tâches (`src/modules/taches/mise-en-forme.ts`), rendue en éléments React.
 
 ## Interrogations de fond et liens publics

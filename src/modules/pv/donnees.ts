@@ -27,6 +27,10 @@ import {
   PIECES_MAX,
   piecesModifiables,
   refusSoumission,
+  signataireDe,
+  signatairesDe,
+  signaturePermise,
+  verifierTrace,
   type Diffusion,
   type GestePv,
   type Participant,
@@ -34,7 +38,7 @@ import {
   type StatutPv,
   type TypePv,
 } from "./regles";
-import { procesVerbaux, pvActions, pvFichiers, pvLectures, type ProcesVerbal } from "./schema";
+import { procesVerbaux, pvActions, pvFichiers, pvLectures, pvSignatures, type ProcesVerbal } from "./schema";
 
 /** Qui agit : son compte, et s'il porte `pv.valider` (la direction). */
 export interface ActeurPv {
@@ -292,7 +296,7 @@ export async function publierPvDans(
   organizationId: string,
   pvId: string,
   acteur: ActeurPv,
-): Promise<{ numero: string; revision: number; objet: string; destinataires: string[]; redacteur: string; accuseRequis: boolean }> {
+): Promise<{ numero: string; revision: number; objet: string; destinataires: string[]; signataires: string[]; redacteur: string; accuseRequis: boolean }> {
   const pv = await pvVerrouille(tx, organizationId, pvId);
   exigerGeste(pv, "publier", acteur);
   verifierContenu(pv);
@@ -318,7 +322,9 @@ export async function publierPvDans(
       .onConflictDoNothing();
   }
   await tracer(tx, organizationId, acteur.userId, "pv.publier", pvId, { numero, revision: pv.revision, destinataires: liste.length });
-  return { numero, revision: pv.revision, objet: pv.objet, destinataires: liste, redacteur: pv.redigeParUserId, accuseRequis: pv.accuseRequis };
+  // Les participants présents qui ont un compte sont appelés à signer, depuis leur compte.
+  const signataires = [...new Set(signatairesDe(pv.participants).flatMap((p) => (p.userId ? [p.userId] : [])))];
+  return { numero, revision: pv.revision, objet: pv.objet, destinataires: liste, signataires, redacteur: pv.redigeParUserId, accuseRequis: pv.accuseRequis };
 }
 
 /**
@@ -397,19 +403,75 @@ export async function accuserLectureDans(tx: Transaction, organizationId: string
   return { deja: false };
 }
 
-/** Relance ceux qui n'ont pas accusé lecture : une fois l'heure au plus. Rend les comptes à prévenir. */
+/** Signataires internes qui n'ont pas encore signé ce PV. */
+async function signatairesEnAttente(tx: Executant, pv: ProcesVerbal): Promise<string[]> {
+  const signees = await tx.select({ rang: pvSignatures.rang }).from(pvSignatures).where(eq(pvSignatures.pvId, pv.id));
+  const faits = new Set(signees.map((x) => x.rang));
+  return [...new Set(signatairesDe(pv.participants).flatMap((p) => (p.userId && !faits.has(p.rang) ? [p.userId] : [])))];
+}
+
+/**
+ * Relance, une fois l'heure au plus, ceux qui doivent encore quelque chose :
+ * la lecture quand l'accusé est demandé, la signature pour les participants
+ * présents qui ont un compte. Rend les comptes à prévenir.
+ */
 export async function relancerPvDans(tx: Transaction, organizationId: string, pvId: string, acteur: ActeurPv, maintenant = new Date()): Promise<{ numero: string; objet: string; aRelancer: string[] }> {
   const pv = await pvVerrouille(tx, organizationId, pvId);
-  if (pv.statut !== "publie" || !pv.accuseRequis) throw new Error("Seul un PV publié avec accusé de lecture se relance.");
+  if (pv.statut !== "publie") throw new Error("Seul un PV publié se relance.");
   if (!acteur.valideur && pv.redigeParUserId !== acteur.userId) throw new Error("Seuls le rédacteur et la direction relancent.");
   if (!relancePermise(pv.derniereRelanceLe, maintenant)) throw new Error("Une relance est déjà partie il y a moins d'une heure.");
-  const enAttente = await tx
-    .select({ userId: pvLectures.userId })
-    .from(pvLectures)
-    .where(and(eq(pvLectures.pvId, pvId), isNull(pvLectures.luLe)));
+  const lecteurs = pv.accuseRequis
+    ? (await tx.select({ userId: pvLectures.userId }).from(pvLectures).where(and(eq(pvLectures.pvId, pvId), isNull(pvLectures.luLe)))).map((e) => e.userId)
+    : [];
+  const aRelancer = [...new Set([...lecteurs, ...(await signatairesEnAttente(tx, pv))])].filter((u) => u !== acteur.userId);
   await tx.update(procesVerbaux).set({ derniereRelanceLe: maintenant, updatedAt: maintenant, version: sql`${procesVerbaux.version} + 1` }).where(eq(procesVerbaux.id, pvId));
-  await tracer(tx, organizationId, acteur.userId, "pv.relancer", pvId, { relances: enAttente.length });
-  return { numero: pv.numero!, objet: pv.objet, aRelancer: enAttente.map((e) => e.userId) };
+  await tracer(tx, organizationId, acteur.userId, "pv.relancer", pvId, { relances: aRelancer.length });
+  return { numero: pv.numero!, objet: pv.objet, aRelancer };
+}
+
+/**
+ * Appose la signature d'un participant présent sur un PV publié : depuis son
+ * propre compte, ou sur place, sur l'appareil du rédacteur ou de la direction.
+ * Une seule fois par participant et par version ; l'adresse et l'appareil
+ * situent le geste.
+ */
+export async function signerPvDans(
+  tx: Transaction,
+  organizationId: string,
+  pvId: string,
+  rang: number,
+  trace: string,
+  acteur: ActeurPv,
+  contexte: { adresseIp?: string | null; appareil?: string | null } = {},
+): Promise<{ nom: string; mode: "personnelle" | "sur_place"; restantes: number }> {
+  const pv = await pvVerrouille(tx, organizationId, pvId);
+  const signataire = signataireDe(pv.participants, rang);
+  const mode = signaturePermise(pv.statut as StatutPv, signataire, { userId: acteur.userId, redacteur: pv.redigeParUserId === acteur.userId, valideur: acteur.valideur });
+  if (pv.statut !== "publie") throw new Error("On signe un procès-verbal publié : son texte ne bougera plus.");
+  if (!signataire) throw new Error("Seuls les participants présents signent le procès-verbal.");
+  if (!mode) throw new Error("Vous ne pouvez signer que pour vous-même.");
+  const verdict = verifierTrace(trace);
+  if (!verdict.ok) throw new Error(verdict.message);
+
+  const [deja] = await tx.select({ id: pvSignatures.id }).from(pvSignatures).where(and(eq(pvSignatures.pvId, pvId), eq(pvSignatures.rang, rang)));
+  if (deja) throw new Error(`${signataire.nom} a déjà signé ce procès-verbal.`);
+  await tx.insert(pvSignatures).values({
+    id: newId(),
+    organizationId,
+    pvId,
+    rang,
+    nom: signataire.nom,
+    qualite: signataire.qualite || null,
+    userId: mode === "personnelle" ? acteur.userId : null,
+    recueillieParUserId: mode === "sur_place" ? acteur.userId : null,
+    trace: verdict.valeur,
+    adresseIp: contexte.adresseIp?.slice(0, 100) || null,
+    appareil: contexte.appareil?.slice(0, 300) || null,
+  });
+  await tracer(tx, organizationId, acteur.userId, "pv.signer", pvId, { rang, nom: signataire.nom, mode });
+  const total = signatairesDe(pv.participants).length;
+  const [{ faites }] = await tx.select({ faites: sql<number>`count(*)::int` }).from(pvSignatures).where(eq(pvSignatures.pvId, pvId));
+  return { nom: signataire.nom, mode, restantes: total - Number(faites) };
 }
 
 /**
@@ -471,6 +533,10 @@ export interface LignePv {
   luLe: Date | null;
   /** Une version plus récente est publiée. */
   remplace: boolean;
+  /** Je suis participant présent. */
+  participant: boolean;
+  /** Je dois encore signer. */
+  aSigner: boolean;
 }
 
 const jourIso = (v: string | Date) => (v instanceof Date ? v.toISOString().slice(0, 10) : v.slice(0, 10));
@@ -498,6 +564,8 @@ export async function listerPv(organizationId: string, acteur: ActeurPv): Promis
       lectureId: pvLectures.id,
       luLe: pvLectures.luLe,
       remplace: sql<boolean>`exists (select 1 from proces_verbaux s where s.organization_id = ${procesVerbaux.organizationId} and s.numero = ${procesVerbaux.numero} and s.revision > ${procesVerbaux.revision} and s.statut = 'publie' and s.deleted_at is null)`,
+      participant: sql<boolean>`exists (select 1 from jsonb_array_elements(${procesVerbaux.participants}) p where p->>'userId' = ${moi} and p->>'presence' = 'present')`,
+      aSigner: sql<boolean>`${procesVerbaux.statut} = 'publie' and exists (select 1 from jsonb_array_elements(${procesVerbaux.participants}) with ordinality as p(v, n) where p.v->>'userId' = ${moi} and p.v->>'presence' = 'present' and not exists (select 1 from pv_signatures s where s.pv_id = ${procesVerbaux.id} and s.rang = p.n - 1))`,
     })
     .from(procesVerbaux)
     .leftJoin(users, eq(users.id, procesVerbaux.redigeParUserId))
@@ -509,7 +577,17 @@ export async function listerPv(organizationId: string, acteur: ActeurPv): Promis
         acteur.valideur
           ? // La direction voit tout ; les brouillons des autres seulement une fois soumis.
             or(ne(procesVerbaux.statut, "brouillon"), eq(procesVerbaux.redigeParUserId, moi))
-          : or(eq(procesVerbaux.redigeParUserId, moi), and(eq(procesVerbaux.statut, "publie"), sql`${pvLectures.id} is not null`)),
+          : or(
+              eq(procesVerbaux.redigeParUserId, moi),
+              and(
+                eq(procesVerbaux.statut, "publie"),
+                // Destinataire, ou participant présent appelé à signer.
+                or(
+                  sql`${pvLectures.id} is not null`,
+                  sql`exists (select 1 from jsonb_array_elements(${procesVerbaux.participants}) p where p->>'userId' = ${moi} and p->>'presence' = 'present')`,
+                ),
+              ),
+            ),
       ),
     )
     .orderBy(desc(procesVerbaux.dateSeance), desc(procesVerbaux.createdAt))
@@ -522,6 +600,8 @@ export async function listerPv(organizationId: string, acteur: ActeurPv): Promis
     redacteur: l.redacteur ?? "Ancien membre",
     destinataire: l.lectureId !== null,
     remplace: Boolean(l.remplace),
+    participant: Boolean(l.participant),
+    aSigner: Boolean(l.aSigner),
   }));
 }
 
@@ -535,6 +615,7 @@ export interface PvComplet {
   versions: { id: string; revision: number; statut: StatutPv; publieLe: Date | null }[];
   maLecture: { luLe: Date | null } | null;
   fichiers: { id: string; nom: string; typeMime: string; taille: number; deposePar: string | null; leIso: string }[];
+  signatures: { rang: number; nom: string; qualite: string | null; trace: string; signeLe: Date; personnelle: boolean; recueilliePar: string | null }[];
 }
 
 /** Un PV en entier, si ce compte peut l'ouvrir ; sinon `null`. */
@@ -549,10 +630,11 @@ export async function pvComplet(organizationId: string, pvId: string, acteur: Ac
     .from(pvLectures)
     .where(and(eq(pvLectures.pvId, pvId), eq(pvLectures.userId, acteur.userId)));
   const redacteur = pv.redigeParUserId === acteur.userId;
-  const voit = redacteur || (acteur.valideur && pv.statut !== "brouillon") || (pv.statut === "publie" && maLecture !== undefined);
+  const participant = signatairesDe(pv.participants).some((p) => p.userId === acteur.userId);
+  const voit = redacteur || (acteur.valideur && pv.statut !== "brouillon") || (pv.statut === "publie" && (maLecture !== undefined || participant));
   if (!voit) return null;
 
-  const [noms, reunion, actions, lectures, versions, fichiers] = await Promise.all([
+  const [noms, reunion, actions, lectures, versions, fichiers, signatures] = await Promise.all([
     db.select({ id: users.id, nom: users.fullName }).from(users).where(inArray(users.id, [pv.redigeParUserId, ...(pv.publieParUserId ? [pv.publieParUserId] : [])])),
     pv.reunionId
       ? db.select({ id: reunions.id, numero: reunions.numero, titre: reunions.titre }).from(reunions).where(eq(reunions.id, pv.reunionId)).then((r) => r[0] ?? null)
@@ -594,6 +676,20 @@ export async function pvComplet(organizationId: string, pvId: string, acteur: Ac
       .leftJoin(users, eq(users.id, pvFichiers.deposeParUserId))
       .where(and(eq(pvFichiers.pvId, pvId), isNull(pvFichiers.deletedAt)))
       .orderBy(asc(pvFichiers.createdAt)),
+    db
+      .select({
+        rang: pvSignatures.rang,
+        nom: pvSignatures.nom,
+        qualite: pvSignatures.qualite,
+        trace: pvSignatures.trace,
+        signeLe: pvSignatures.signeLe,
+        userId: pvSignatures.userId,
+        recueilliePar: users.fullName,
+      })
+      .from(pvSignatures)
+      .leftJoin(users, eq(users.id, pvSignatures.recueillieParUserId))
+      .where(eq(pvSignatures.pvId, pvId))
+      .orderBy(asc(pvSignatures.rang)),
   ]);
   const nom = (id: string | null) => noms.find((n) => n.id === id)?.nom ?? null;
   return {
@@ -606,6 +702,7 @@ export async function pvComplet(organizationId: string, pvId: string, acteur: Ac
     versions: versions.map((v) => ({ ...v, statut: v.statut as StatutPv })).filter((v) => v.statut === "publie" || v.id === pv.id),
     maLecture: maLecture ?? null,
     fichiers: fichiers.map((f) => ({ id: f.id, nom: f.nom, typeMime: f.typeMime, taille: f.taille, deposePar: f.deposePar, leIso: f.le.toISOString() })),
+    signatures: signatures.map((x) => ({ rang: x.rang, nom: x.nom, qualite: x.qualite, trace: x.trace, signeLe: x.signeLe, personnelle: x.userId !== null, recueilliePar: x.userId ? null : x.recueilliePar })),
   };
 }
 

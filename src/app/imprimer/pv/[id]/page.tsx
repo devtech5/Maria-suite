@@ -10,7 +10,7 @@ import { peut } from "@/lib/droits/garde";
 import { identiteEntreprise } from "@/lib/identite";
 import { moduleOuvert } from "@/lib/modules/garde";
 import { pvComplet } from "@/modules/pv/donnees";
-import { referencePv, type TypePv } from "@/modules/pv/regles";
+import { referencePv, signatairesDe, type TypePv } from "@/modules/pv/regles";
 
 export const metadata: Metadata = { title: "Procès-verbal" };
 
@@ -57,6 +57,8 @@ export default async function ImpressionPv({ params }: { params: Promise<{ id: s
             publieLe: pv.publieLe,
             actions: complet.actions.map((a) => ({ libelle: a.libelle, responsable: a.responsable, echeance: a.echeance })),
             pieces: complet.fichiers.map((f) => f.nom),
+            signataires: signatairesDe(pv.participants),
+            signatures: complet.signatures.map((x) => ({ rang: x.rang, trace: x.trace, signeLe: x.signeLe, recueilliePar: x.recueilliePar })),
           }}
         />
       </ApercuA4>

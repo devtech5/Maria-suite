@@ -3,7 +3,9 @@ import { FeuilleA4 } from "@/components/impression/feuille-a4";
 import { CorpsMessage } from "@/components/ui/texte-mis-en-forme";
 import type { IdentiteEntreprise } from "@/lib/identite";
 import { dateEnLettres } from "@/modules/documents/courriers-calcul";
-import { LIBELLE_PRESENCE, LIBELLE_TYPE, referencePv, type Participant, type Point, type TypePv } from "@/modules/pv/regles";
+import { LIBELLE_PRESENCE, LIBELLE_TYPE, referencePv, type Participant, type Point, type Signataire, type TypePv } from "@/modules/pv/regles";
+
+import { TraceSignature } from "./signature";
 
 export interface ContenuPv {
   numero: string | null;
@@ -22,6 +24,9 @@ export interface ContenuPv {
   actions: { libelle: string; responsable: string | null; echeance: string | null }[];
   /** Noms des pièces jointes, listées en annexe. */
   pieces?: string[];
+  /** Participants présents, appelés à signer — une fois le PV publié. */
+  signataires?: Signataire[];
+  signatures?: { rang: number; trace: string; signeLe: Date; recueilliePar: string | null }[];
 }
 
 const MOMENT = new Intl.DateTimeFormat("fr-FR", { dateStyle: "long", timeStyle: "short", timeZone: "Africa/Abidjan" });
@@ -118,6 +123,30 @@ export function DocumentPv({ pv, identite }: { pv: ContenuPv; identite: Identite
           <section className="mt-[5mm]">
             <h2 className="mb-[1.5mm] border-b border-[#c9a96e] pb-[0.5mm] text-[9.5pt] font-bold uppercase">Conclusion</h2>
             <p className="whitespace-pre-line text-justify">{pv.conclusion}</p>
+          </section>
+        )}
+
+        {pv.publieLe && pv.signataires && pv.signataires.length > 0 && (
+          <section className="mt-[5mm] [break-inside:avoid]">
+            <h2 className="mb-[1.5mm] border-b border-[#c9a96e] pb-[0.5mm] text-[9.5pt] font-bold uppercase">Signatures des participants</h2>
+            <div className="grid grid-cols-3 gap-[3mm]">
+              {pv.signataires.map((s) => {
+                const sig = pv.signatures?.find((x) => x.rang === s.rang);
+                return (
+                  <div key={s.rang} className="rounded-[1.5mm] border border-[#e3e7ec] px-[2.5mm] py-[1.5mm] [break-inside:avoid]">
+                    <p className="truncate text-[8pt] font-semibold">{s.nom}</p>
+                    {s.qualite && <p className="truncate text-[7pt] text-[#5b6b7c]">{s.qualite}</p>}
+                    <div className="mt-[1mm] h-[12mm]">{sig ? <TraceSignature trace={sig.trace} className="h-full w-full" /> : <p className="pt-[4mm] text-[7.5pt] italic text-[#9aa5b1]">Non signé</p>}</div>
+                    {sig && (
+                      <p className="text-[6.5pt] text-[#5b6b7c]">
+                        Le {MOMENT.format(sig.signeLe)}
+                        {sig.recueilliePar ? ` · recueillie par ${sig.recueilliePar}` : ""}
+                      </p>
+                    )}
+                  </div>
+                );
+              })}
+            </div>
           </section>
         )}
 

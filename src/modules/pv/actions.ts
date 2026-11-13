@@ -1,6 +1,7 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
+import { headers } from "next/headers";
 import { redirect } from "next/navigation";
 import { z } from "zod";
 
@@ -23,6 +24,7 @@ import {
   renvoyerPvDans,
   retirerFichierPv,
   reviserPvDans,
+  signerPvDans,
   soumettrePvDans,
   supprimerPvDans,
   urlFichierPv,
@@ -190,6 +192,11 @@ export async function publierPv(pvId: string, saisie?: SaisiePv): Promise<Result
     if (r.redacteur !== qui.userId) {
       await notifier(organizationId, [r.redacteur], { categorie: "pv", titre: `Votre procès-verbal est publié : ${reference}`, corps: r.objet, lien: `/pv/${pvId}` });
     }
+    // Les participants présents qui ont un compte signent depuis le leur.
+    const aSigner = r.signataires.filter((u) => u !== qui.userId);
+    if (aSigner.length) {
+      await notifier(organizationId, aSigner, { categorie: "pv", titre: `À signer : ${reference}`, corps: `${r.objet} — vous étiez présent, signez le procès-verbal.`, lien: `/pv/${pvId}` });
+    }
     return { ok: true, message: `${reference} publié et diffusé à ${r.destinataires.length} personne${r.destinataires.length > 1 ? "s" : ""}.` };
   } catch (erreur) {
     return { ok: false, message: lisible(erreur) };
@@ -242,12 +249,12 @@ export async function relancerPv(pvId: string): Promise<Resultat> {
     const r = await db.transaction((tx) => relancerPvDans(tx, organizationId, pvId, qui));
     await notifier(organizationId, r.aRelancer, {
       categorie: "pv",
-      titre: `Rappel : ${r.numero} à lire`,
-      corps: `${r.objet} — confirmez « J'ai pris connaissance ».`,
+      titre: `Rappel : ${r.numero} vous attend`,
+      corps: `${r.objet} — à lire ou à signer.`,
       lien: `/pv/${pvId}`,
     });
     rafraichir(pvId);
-    return { ok: true, message: r.aRelancer.length ? `${r.aRelancer.length} relancé${r.aRelancer.length > 1 ? "s" : ""}.` : "Tout le monde a pris connaissance." };
+    return { ok: true, message: r.aRelancer.length ? `${r.aRelancer.length} relancé${r.aRelancer.length > 1 ? "s" : ""}.` : "Personne n'est en retard." };
   } catch (erreur) {
     return { ok: false, message: lisible(erreur) };
   }
@@ -308,4 +315,28 @@ export async function ouvrirPiece(fichierId: string): Promise<string | null> {
   if (await refusDroit("pv.consulter")) return null;
   const { organizationId, acteur: qui } = await acteur();
   return urlFichierPv(organizationId, fichierId, qui);
+}
+
+// ------------------------------------------------------------ signatures
+
+/** Appose une signature : la sienne, ou celle d'un participant sur place (rédacteur, direction). */
+export async function signerPv(pvId: string, rang: number, trace: string): Promise<Resultat> {
+  const refus = await refusDroit("pv.consulter");
+  if (refus) return { ok: false, message: refus.erreur };
+  if (!UUID.test(pvId) || !Number.isInteger(rang) || rang < 0 || rang > 500 || typeof trace !== "string") return { ok: false, message: "Signature invalide." };
+  const { organizationId, acteur: qui } = await acteur();
+  const entetes = await headers();
+  try {
+    const r = await db.transaction((tx) =>
+      signerPvDans(tx, organizationId, pvId, rang, trace, qui, {
+        adresseIp: entetes.get("x-forwarded-for")?.split(",")[0]?.trim() || entetes.get("x-real-ip"),
+        appareil: entetes.get("user-agent"),
+      }),
+    );
+    rafraichir(pvId);
+    const fin = r.restantes > 0 ? ` Reste ${r.restantes} signature${r.restantes > 1 ? "s" : ""}.` : " Tous les présents ont signé.";
+    return { ok: true, message: `${r.mode === "personnelle" ? "Votre signature est enregistrée." : `Signature de ${r.nom} recueillie.`}${fin}` };
+  } catch (erreur) {
+    return { ok: false, message: lisible(erreur) };
+  }
 }

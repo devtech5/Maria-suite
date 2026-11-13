@@ -113,3 +113,40 @@ describe("diffusion et lectures", () => {
     expect(s.enAttente.map((l) => l.nom)).toEqual(["Bakayoko", "Yao"]);
   });
 });
+
+describe("signatures", () => {
+  // Une signature plausible : deux traits, une quinzaine de points.
+  const signature = "M100 300 L150 250 L200 220 L260 240 L300 300 L340 260 L380 200 M420 310 L470 280 L520 260 L600 250 L700 270";
+
+  it("n'accepte qu'un tracé de traits, dans le cadre, assez long", async () => {
+    const { verifierTrace } = await import("@/modules/pv/regles");
+    expect(verifierTrace(signature)).toEqual({ ok: true, valeur: signature });
+    expect(verifierTrace("  " + signature.replace(/ /g, "  ") + " ")).toEqual({ ok: true, valeur: signature });
+    expect(verifierTrace("M10 10 L12 12").ok).toBe(false);
+    expect(verifierTrace("").ok).toBe(false);
+    expect(verifierTrace(signature + " L1200 50").ok).toBe(false);
+    expect(verifierTrace(`${signature}"/><script>alert(1)</script>`).ok).toBe(false);
+    expect(verifierTrace("M10 10 C20 20 30 30 40 40").ok).toBe(false);
+  });
+
+  it("ne fait signer que les présents, depuis leur compte ou sur place", async () => {
+    const { signatairesDe, signaturePermise } = await import("@/modules/pv/regles");
+    const participants = [
+      { nom: "Awa", qualite: "Ingénieure", presence: "present" as const, userId: A },
+      { nom: "Yao", qualite: "", presence: "excuse" as const, userId: B },
+      { nom: "Kouadio", qualite: "Bureau de contrôle", presence: "present" as const, userId: null },
+    ];
+    const signataires = signatairesDe(participants);
+    expect(signataires.map((s) => [s.rang, s.nom])).toEqual([
+      [0, "Awa"],
+      [2, "Kouadio"],
+    ]);
+    const [awa, kouadio] = signataires;
+    expect(signaturePermise("publie", awa, { userId: A, redacteur: false, valideur: false })).toBe("personnelle");
+    expect(signaturePermise("publie", kouadio, { userId: A, redacteur: false, valideur: false })).toBeNull();
+    expect(signaturePermise("publie", kouadio, { userId: C, redacteur: true, valideur: false })).toBe("sur_place");
+    // Un texte qui peut encore bouger ne se signe pas.
+    expect(signaturePermise("a_valider", awa, { userId: A, redacteur: false, valideur: false })).toBeNull();
+    expect(signaturePermise("publie", undefined, { userId: A, redacteur: true, valideur: true })).toBeNull();
+  });
+});
