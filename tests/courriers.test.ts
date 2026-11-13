@@ -1,6 +1,19 @@
 import { describe, expect, it } from "vitest";
 
-import { dateEnLettres, lieuEtDate, lignesDe, paragraphesDe } from "@/modules/documents/courriers-calcul";
+import {
+  bornerTaille,
+  dateEnLettres,
+  estPoliceCourrier,
+  lieuEtDate,
+  lignesDe,
+  paragraphesDe,
+  POLICES_COURRIER,
+  TAILLE_MAX,
+  TAILLE_MIN,
+  tailleLisible,
+  taillesCourrier,
+  tailleVoisine,
+} from "@/modules/documents/courriers-calcul";
 
 describe("corps d'un courrier", () => {
   it("fait d'une ligne non vide un paragraphe, quel que soit le nombre de sauts", () => {
@@ -52,5 +65,46 @@ describe("date d'une lettre", () => {
   it("compose la ligne de lieu et de date", () => {
     expect(lieuEtDate("Abidjan", "2026-10-16")).toBe("Abidjan, le 16 octobre 2026");
     expect(lieuEtDate(" ", "2026-10-16")).toBe("Le 16 octobre 2026");
+  });
+});
+
+describe("police et taille d'un courrier", () => {
+  it("ne reconnaît que les polices proposées", () => {
+    expect(estPoliceCourrier("times")).toBe(true);
+    expect(estPoliceCourrier("comic")).toBe(false);
+    expect(estPoliceCourrier("toString")).toBe(false);
+    expect(estPoliceCourrier(null)).toBe(false);
+  });
+
+  it("garde chaque taille conseillée dans les bornes", () => {
+    for (const p of Object.values(POLICES_COURRIER)) {
+      expect(p.tailleConseillee).toBeGreaterThanOrEqual(TAILLE_MIN);
+      expect(p.tailleConseillee).toBeLessThanOrEqual(TAILLE_MAX);
+    }
+  });
+
+  it("avance d'un demi-point, en se calant d'abord sur la grille", () => {
+    expect(tailleVoisine(865, 1)).toBe(900);
+    expect(tailleVoisine(865, -1)).toBe(850);
+    expect(tailleVoisine(1000, 1)).toBe(1050);
+    expect(tailleVoisine(1000, -1)).toBe(950);
+  });
+
+  it("ne sort jamais des bornes", () => {
+    expect(tailleVoisine(TAILLE_MAX, 1)).toBe(TAILLE_MAX);
+    expect(tailleVoisine(TAILLE_MIN, -1)).toBe(TAILLE_MIN);
+    expect(bornerTaille(99_999)).toBe(TAILLE_MAX);
+    expect(bornerTaille(Number.NaN)).toBe(865);
+  });
+
+  it("écrit la taille à la française", () => {
+    expect(tailleLisible(865)).toBe("8,65 pt");
+    expect(tailleLisible(850)).toBe("8,5 pt");
+    expect(tailleLisible(1100)).toBe("11 pt");
+  });
+
+  it("dérive les tailles du modèle de celle du corps", () => {
+    expect(taillesCourrier(865)).toEqual({ corps: "8.65pt", titre: "9pt", reference: "8pt" });
+    expect(taillesCourrier(1100).corps).toBe("11pt");
   });
 });

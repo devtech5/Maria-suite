@@ -5,6 +5,7 @@ import {
   check,
   date,
   index,
+  integer,
   pgEnum,
   pgTable,
   text,
@@ -307,6 +308,11 @@ export const courriers = pgTable(
     signataire: text("signataire").notNull(),
     fonction: text("fonction"),
 
+    /** Police du texte (`POLICES_COURRIER`). En-tête et pied restent ceux de la charte. */
+    police: text("police").notNull().default("montserrat"),
+    /** Taille du corps en centièmes de point : 8,65 pt = 865. */
+    taillePolice: integer("taille_police").notNull().default(865),
+
     redigeParUserId: uuid("redige_par_user_id"),
 
     ...timestamps,
@@ -315,6 +321,11 @@ export const courriers = pgTable(
   (t) => [
     unique("courriers_numero_unique").on(t.organizationId, t.numero),
     index("courriers_date_idx").on(t.organizationId, t.dateCourrier),
+    check(
+      "courriers_police",
+      sql`${t.police} IN ('montserrat', 'arial', 'calibri', 'times', 'georgia', 'garamond')`,
+    ),
+    check("courriers_taille_police", sql`${t.taillePolice} BETWEEN 700 AND 1400`),
   ],
 );
 

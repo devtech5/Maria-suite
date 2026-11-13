@@ -8,7 +8,17 @@ import { db } from "@/db";
 import { exigerEntreprise } from "@/lib/auth/dal";
 import { refusDroit } from "@/lib/droits/garde";
 
-import { LONGUEUR_MAX_CORPS, LONGUEUR_MAX_OBJET, paragraphesDe } from "./courriers-calcul";
+import {
+  LONGUEUR_MAX_CORPS,
+  LONGUEUR_MAX_OBJET,
+  paragraphesDe,
+  POLICE_PAR_DEFAUT,
+  POLICES_COURRIER,
+  TAILLE_MAX,
+  TAILLE_MIN,
+  TAILLE_PAR_DEFAUT,
+  type PoliceCourrier,
+} from "./courriers-calcul";
 import { creerCourrierDans, modifierCourrierDans, supprimerCourrierDans } from "./courriers";
 
 const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
@@ -40,6 +50,12 @@ const schemaCourrier = z.object({
     .refine((v) => paragraphesDe(v).length > 0, "Le courrier n'a pas de corps."),
   signataire: z.string().trim().min(2, "Indiquez le signataire.").max(120),
   fonction: facultatif(120),
+  police: z.enum(Object.keys(POLICES_COURRIER) as [PoliceCourrier, ...PoliceCourrier[]], "Police inconnue."),
+  taillePolice: z.coerce
+    .number()
+    .int("Taille de police invalide.")
+    .min(TAILLE_MIN, "Taille de police trop petite.")
+    .max(TAILLE_MAX, "Taille de police trop grande."),
 });
 
 function lire(donnees: FormData, champ: string): string {
@@ -65,6 +81,8 @@ export async function enregistrerCourrier(_precedent: EtatCourrier, donnees: For
     corps: lire(donnees, "corps"),
     signataire: lire(donnees, "signataire"),
     fonction: lire(donnees, "fonction"),
+    police: lire(donnees, "police") || POLICE_PAR_DEFAUT,
+    taillePolice: lire(donnees, "taillePolice") || TAILLE_PAR_DEFAUT,
   });
   if (!analyse.success) return { erreur: analyse.error.issues[0].message };
 
