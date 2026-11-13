@@ -115,4 +115,36 @@ export const pvLectures = pgTable(
   (t) => [unique("pv_lectures_unique").on(t.pvId, t.userId), index("pv_lectures_user_idx").on(t.organizationId, t.userId)],
 );
 
+/**
+ * Pièces jointes d'un PV : plans, photos, feuille de présence signée,
+ * annexes. Le fichier vit dans le dépôt (`src/lib/stockage`), seule sa clé
+ * est ici ; il s'ouvre par URL signée, demandée au clic.
+ *
+ * Elles font partie du document : jointes au brouillon, figées avec lui à la
+ * publication. Une nouvelle version reprend celles de la précédente en
+ * pointant le même fichier — d'où la règle de retrait : le fichier ne quitte
+ * le dépôt que si plus aucune ligne ne le désigne.
+ */
+export const pvFichiers = pgTable(
+  "pv_fichiers",
+  {
+    id: primaryId(),
+    organizationId: uuid("organization_id")
+      .notNull()
+      .references(() => organizations.id, { onDelete: "cascade" }),
+    pvId: uuid("pv_id")
+      .notNull()
+      .references(() => procesVerbaux.id, { onDelete: "cascade" }),
+    nomFichier: text("nom_fichier").notNull(),
+    typeMime: text("type_mime").notNull(),
+    /** Octets : un entier. */
+    taille: integer("taille").notNull(),
+    chemin: text("chemin").notNull(),
+    deposeParUserId: uuid("depose_par_user_id").notNull(),
+    ...timestamps,
+    ...rowVersion,
+  },
+  (t) => [check("pv_fichiers_taille", sql`${t.taille} > 0`), index("pv_fichiers_pv_idx").on(t.organizationId, t.pvId), index("pv_fichiers_chemin_idx").on(t.chemin)],
+);
+
 export type ProcesVerbal = typeof procesVerbaux.$inferSelect;

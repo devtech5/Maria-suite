@@ -6,12 +6,14 @@ import { db } from "@/db";
 import { auditLogs, memberships, organizations, users } from "@/db/schema";
 import { newId } from "@/lib/ids";
 import { prochainNumero, type Transaction } from "@/lib/sequences";
+import { cheminDe, deposer, supprimer, urlSignee } from "@/lib/stockage";
 import { reunionParticipants, reunions } from "@/modules/meeting/schema";
 import { employees, services } from "@/modules/personnes/schema";
 import { jourLocal } from "@/modules/presences/calcul";
 import { relancePermise } from "@/modules/reglement/regles";
 import { creerTacheDans } from "@/modules/taches/creation";
 import { taches } from "@/modules/taches/schema";
+import { verifierFichier } from "@/modules/taches/suivi-regles";
 
 import {
   ACTIONS_MAX,
@@ -22,6 +24,8 @@ import {
   normaliserParticipants,
   normaliserPoints,
   OBJET_MAX,
+  PIECES_MAX,
+  piecesModifiables,
   refusSoumission,
   type Diffusion,
   type GestePv,
@@ -30,7 +34,7 @@ import {
   type StatutPv,
   type TypePv,
 } from "./regles";
-import { procesVerbaux, pvActions, pvLectures, type ProcesVerbal } from "./schema";
+import { procesVerbaux, pvActions, pvFichiers, pvLectures, type ProcesVerbal } from "./schema";
 
 /** Qui agit : son compte, et s'il porte `pv.valider` (la direction). */
 export interface ActeurPv {
@@ -361,6 +365,13 @@ export async function reviserPvDans(tx: Transaction, organizationId: string, pvI
       actions.map((a) => ({ id: newId(), organizationId, pvId: id, rang: a.rang, libelle: a.libelle, responsableEmployeId: a.responsableEmployeId, echeance: a.echeance, tacheId: a.tacheId })),
     );
   }
+  // Les pièces jointes suivent la nouvelle version : mêmes fichiers du dépôt, nouvelles lignes.
+  const pieces = await tx.select().from(pvFichiers).where(and(eq(pvFichiers.pvId, pv.id), isNull(pvFichiers.deletedAt)));
+  if (pieces.length) {
+    await tx.insert(pvFichiers).values(
+      pieces.map((f) => ({ id: newId(), organizationId, pvId: id, nomFichier: f.nomFichier, typeMime: f.typeMime, taille: f.taille, chemin: f.chemin, deposeParUserId: f.deposeParUserId })),
+    );
+  }
   await tracer(tx, organizationId, acteur.userId, "pv.reviser", id, { numero: pv.numero, depuis: pv.revision });
   return { id };
 }
@@ -523,6 +534,7 @@ export interface PvComplet {
   lectures: { userId: string; nom: string; luLe: Date | null }[];
   versions: { id: string; revision: number; statut: StatutPv; publieLe: Date | null }[];
   maLecture: { luLe: Date | null } | null;
+  fichiers: { id: string; nom: string; typeMime: string; taille: number; deposePar: string | null; leIso: string }[];
 }
 
 /** Un PV en entier, si ce compte peut l'ouvrir ; sinon `null`. */
@@ -540,7 +552,7 @@ export async function pvComplet(organizationId: string, pvId: string, acteur: Ac
   const voit = redacteur || (acteur.valideur && pv.statut !== "brouillon") || (pv.statut === "publie" && maLecture !== undefined);
   if (!voit) return null;
 
-  const [noms, reunion, actions, lectures, versions] = await Promise.all([
+  const [noms, reunion, actions, lectures, versions, fichiers] = await Promise.all([
     db.select({ id: users.id, nom: users.fullName }).from(users).where(inArray(users.id, [pv.redigeParUserId, ...(pv.publieParUserId ? [pv.publieParUserId] : [])])),
     pv.reunionId
       ? db.select({ id: reunions.id, numero: reunions.numero, titre: reunions.titre }).from(reunions).where(eq(reunions.id, pv.reunionId)).then((r) => r[0] ?? null)
@@ -576,6 +588,12 @@ export async function pvComplet(organizationId: string, pvId: string, acteur: Ac
           .where(and(eq(procesVerbaux.organizationId, organizationId), eq(procesVerbaux.numero, pv.numero), isNull(procesVerbaux.deletedAt)))
           .orderBy(desc(procesVerbaux.revision))
       : Promise.resolve([]),
+    db
+      .select({ id: pvFichiers.id, nom: pvFichiers.nomFichier, typeMime: pvFichiers.typeMime, taille: pvFichiers.taille, deposePar: users.fullName, le: pvFichiers.createdAt })
+      .from(pvFichiers)
+      .leftJoin(users, eq(users.id, pvFichiers.deposeParUserId))
+      .where(and(eq(pvFichiers.pvId, pvId), isNull(pvFichiers.deletedAt)))
+      .orderBy(asc(pvFichiers.createdAt)),
   ]);
   const nom = (id: string | null) => noms.find((n) => n.id === id)?.nom ?? null;
   return {
@@ -587,7 +605,100 @@ export async function pvComplet(organizationId: string, pvId: string, acteur: Ac
     lectures: lectures.map((l) => ({ ...l, nom: l.nom })),
     versions: versions.map((v) => ({ ...v, statut: v.statut as StatutPv })).filter((v) => v.statut === "publie" || v.id === pv.id),
     maLecture: maLecture ?? null,
+    fichiers: fichiers.map((f) => ({ id: f.id, nom: f.nom, typeMime: f.typeMime, taille: f.taille, deposePar: f.deposePar, leIso: f.le.toISOString() })),
   };
+}
+
+// ------------------------------------------------------------------ pièces jointes
+
+/** Le PV, s'il accepte encore des pièces de cet acteur. */
+async function pvPourPieces(tx: Executant, organizationId: string, pvId: string, acteur: ActeurPv) {
+  const [pv] = await tx
+    .select({ id: procesVerbaux.id, statut: procesVerbaux.statut, redigeParUserId: procesVerbaux.redigeParUserId, objet: procesVerbaux.objet })
+    .from(procesVerbaux)
+    .where(and(eq(procesVerbaux.id, pvId), eq(procesVerbaux.organizationId, organizationId), isNull(procesVerbaux.deletedAt)));
+  if (!pv) throw new Error("Procès-verbal introuvable.");
+  if (!piecesModifiables(pv.statut as StatutPv, { redacteur: pv.redigeParUserId === acteur.userId, valideur: acteur.valideur })) {
+    throw new Error(pv.statut === "publie" ? "Un PV publié est figé, pièces jointes comprises : ouvrez une nouvelle version." : "Seuls le rédacteur et la direction joignent des pièces à ce PV.");
+  }
+  return pv;
+}
+
+/**
+ * Joint un fichier : d'abord au dépôt, puis la ligne. Si la ligne ne s'écrit
+ * pas, le fichier repart du dépôt : rien d'orphelin.
+ */
+export async function joindreFichierPv(
+  organizationId: string,
+  pvId: string,
+  fichier: { nom: string; typeMime: string; contenu: ArrayBuffer },
+  acteur: ActeurPv,
+): Promise<{ nom: string }> {
+  await pvPourPieces(db, organizationId, pvId, acteur);
+  const verdict = verifierFichier({ taille: fichier.contenu.byteLength, typeMime: fichier.typeMime });
+  if (!verdict.ok) throw new Error(verdict.message);
+
+  const id = newId();
+  const depot = await deposer({ chemin: cheminDe(organizationId, id, verdict.valeur), contenu: fichier.contenu, typeMime: fichier.typeMime });
+  if (!depot.ok) throw new Error(depot.raison);
+  const nom = fichier.nom.trim().slice(0, 200) || `piece.${verdict.valeur}`;
+  try {
+    await db.transaction(async (tx) => {
+      // Le verrou sur le PV sérialise deux dépôts simultanés : le plafond tient.
+      await pvVerrouille(tx, organizationId, pvId);
+      const [{ nombre }] = await tx
+        .select({ nombre: sql<number>`count(*)::int` })
+        .from(pvFichiers)
+        .where(and(eq(pvFichiers.pvId, pvId), isNull(pvFichiers.deletedAt)));
+      if (Number(nombre) >= PIECES_MAX) throw new Error(`${PIECES_MAX} pièces jointes au plus par procès-verbal.`);
+      await tx.insert(pvFichiers).values({ id, organizationId, pvId, nomFichier: nom, typeMime: fichier.typeMime, taille: fichier.contenu.byteLength, chemin: depot.chemin, deposeParUserId: acteur.userId });
+      await tracer(tx, organizationId, acteur.userId, "pv.piece.joindre", pvId, { nom, taille: fichier.contenu.byteLength });
+    });
+  } catch (erreur) {
+    await supprimer(depot.chemin);
+    throw erreur;
+  }
+  return { nom };
+}
+
+/**
+ * Retire une pièce jointe. La ligne d'abord (logique) ; le fichier ne quitte
+ * le dépôt que si plus aucune ligne ne le désigne — une version publiée qui
+ * le partage doit pouvoir l'ouvrir encore.
+ */
+export async function retirerFichierPv(organizationId: string, fichierId: string, acteur: ActeurPv): Promise<{ nom: string }> {
+  const { chemin, nom, partage } = await db.transaction(async (tx) => {
+    const [f] = await tx
+      .select()
+      .from(pvFichiers)
+      .where(and(eq(pvFichiers.id, fichierId), eq(pvFichiers.organizationId, organizationId), isNull(pvFichiers.deletedAt)))
+      .for("update");
+    if (!f) throw new Error("Pièce jointe introuvable.");
+    await pvPourPieces(tx, organizationId, f.pvId, acteur);
+    const maintenant = new Date();
+    await tx.update(pvFichiers).set({ deletedAt: maintenant, updatedAt: maintenant, version: sql`${pvFichiers.version} + 1` }).where(eq(pvFichiers.id, fichierId));
+    const [autre] = await tx
+      .select({ id: pvFichiers.id })
+      .from(pvFichiers)
+      .where(and(eq(pvFichiers.chemin, f.chemin), ne(pvFichiers.id, fichierId)))
+      .limit(1);
+    await tracer(tx, organizationId, acteur.userId, "pv.piece.retirer", f.pvId, null, { nom: f.nomFichier });
+    return { chemin: f.chemin, nom: f.nomFichier, partage: Boolean(autre) };
+  });
+  if (!partage) await supprimer(chemin);
+  return { nom };
+}
+
+/** URL signée de deux minutes, pour qui peut ouvrir le PV. */
+export async function urlFichierPv(organizationId: string, fichierId: string, acteur: ActeurPv): Promise<string | null> {
+  const [f] = await db
+    .select({ chemin: pvFichiers.chemin, pvId: pvFichiers.pvId })
+    .from(pvFichiers)
+    .where(and(eq(pvFichiers.id, fichierId), eq(pvFichiers.organizationId, organizationId), isNull(pvFichiers.deletedAt)));
+  if (!f) return null;
+  // Mêmes droits que le PV lui-même : qui ne peut pas l'ouvrir n'ouvre pas ses pièces.
+  if (!(await pvComplet(organizationId, f.pvId, acteur))) return null;
+  return urlSignee(f.chemin, 120);
 }
 
 /** Réunions récentes dont ce compte peut tirer un PV : organisées ou suivies, des 90 derniers jours. */

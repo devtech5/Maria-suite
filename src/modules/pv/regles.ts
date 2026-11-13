@@ -209,3 +209,18 @@ export function destinataires(
   choisis.delete(redacteur);
   return [...choisis];
 }
+
+// ------------------------------------------------------------------ pièces jointes
+
+export const PIECES_MAX = 20;
+
+/**
+ * Les pièces jointes font partie du document : elles se joignent et se
+ * retirent tant qu'il s'écrit — par le rédacteur au brouillon, par la
+ * direction jusqu'à la publication — puis se figent avec lui.
+ */
+export function piecesModifiables(statut: StatutPv, role: RolePv): boolean {
+  if (statut === "brouillon") return role.redacteur || role.valideur;
+  if (statut === "a_valider") return role.valideur;
+  return false;
+}

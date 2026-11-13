@@ -11,7 +11,7 @@ import { exigerEntreprise } from "@/lib/auth/dal";
 import { peut } from "@/lib/droits/garde";
 import { identiteEntreprise } from "@/lib/identite";
 import { comptesDiffusion, pvComplet, servicesActifs } from "@/modules/pv/donnees";
-import { gestesPv, LIBELLE_STATUT, LIBELLE_TYPE_COURT, normaliserDiffusion, referencePv, type StatutPv, type TypePv } from "@/modules/pv/regles";
+import { gestesPv, LIBELLE_STATUT, piecesModifiables, LIBELLE_TYPE_COURT, normaliserDiffusion, referencePv, type StatutPv, type TypePv } from "@/modules/pv/regles";
 import { personnelActif } from "@/modules/taches/requetes";
 import { db } from "@/db";
 
@@ -55,7 +55,9 @@ export default async function PagePvDetail({ params }: PageProps<"/pv/[id]">) {
     publiePar: complet.publiePar,
     publieLe: pv.publieLe,
     actions: complet.actions.map((a) => ({ libelle: a.libelle, responsable: a.responsable, echeance: a.echeance })),
+    pieces: complet.fichiers.map((f) => f.nom),
   };
+  const pieces = complet.fichiers.map((f) => ({ id: f.id, nom: f.nom, typeMime: f.typeMime, taille: f.taille, deposePar: f.deposePar }));
 
   const enTete = (
     <div className="mb-4">
@@ -107,6 +109,8 @@ export default async function PagePvDetail({ params }: PageProps<"/pv/[id]">) {
           comptes={comptes.map((c) => ({ userId: c.userId, nom: c.nom, service: c.service }))}
           services={services}
           personnel={personnel.map((p) => ({ id: p.id, nom: p.nom, poste: p.poste }))}
+          pieces={pieces}
+          piecesModifiables={piecesModifiables(statut, { redacteur, valideur })}
         />
       </>
     );
@@ -135,6 +139,7 @@ export default async function PagePvDetail({ params }: PageProps<"/pv/[id]">) {
           versions={complet.versions.map((v) => ({ id: v.id, revision: v.revision, statut: v.statut, courante: v.id === pv.id }))}
           derniereVersionPubliee={Math.max(0, ...complet.versions.filter((v) => v.statut === "publie").map((v) => v.revision))}
           revision={pv.revision}
+          pieces={pieces}
         />
       </div>
     </>

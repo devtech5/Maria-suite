@@ -7,6 +7,7 @@ import { useRouter } from "next/navigation";
 import { Retour, type Resultat } from "@/components/ui/operations";
 import { Pastille } from "@/components/ui/primitives";
 import { dateEnLettres } from "@/modules/documents/courriers-calcul";
+import { PiecesJointesPv, type PieceAffichee } from "@/components/pv/pieces-jointes";
 import { accuserLecture, creerTacheAction, relancerPv, renvoyerPv, reviserPv } from "@/modules/pv/actions";
 import { suiviLectures, type GestePv, type StatutPv } from "@/modules/pv/regles";
 import { LIBELLE_STATUT as LIBELLE_STATUT_TACHE, type Statut } from "@/modules/taches/calcul";
@@ -41,6 +42,7 @@ export function SuiviPv({
   versions,
   derniereVersionPubliee,
   revision,
+  pieces,
 }: {
   pvId: string;
   statut: StatutPv;
@@ -55,6 +57,7 @@ export function SuiviPv({
   versions: { id: string; revision: number; statut: StatutPv; courante: boolean }[];
   derniereVersionPubliee: number;
   revision: number;
+  pieces: PieceAffichee[];
 }) {
   const [resultat, setResultat] = useState<Resultat | null>(null);
   const [enCours, demarrer] = useTransition();
@@ -134,6 +137,13 @@ export function SuiviPv({
         )}
         <Retour resultat={resultat} />
       </div>
+
+      {pieces.length > 0 && (
+        <div className={carte}>
+          <h2 className="mb-2 text-sm font-bold">Pièces jointes ({pieces.length})</h2>
+          <PiecesJointesPv pvId={pvId} pieces={pieces} modifiables={false} />
+        </div>
+      )}
 
       {actions.length > 0 && (
         <div className={carte}>

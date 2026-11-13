@@ -520,7 +520,11 @@ rédacteur). Accusé de lecture au choix du rédacteur, relance une fois
 l'heure. Corriger = nouvelle version sous le même numéro (`revision`,
 `remplace_id`), jamais réécrire. Un confidentiel ne part pas à « tous ».
 Chaque action devient une tâche d'un clic (`actionEnTacheDans`) : la
-publication vaut attribution. Tiré d'une réunion Meeting, le brouillon en
+publication vaut attribution. Pièces jointes (`pv_fichiers`, dépôt
+`src/lib/stockage`, URL signée de deux minutes, mêmes droits que le PV) :
+modifiables tant qu'il s'écrit (`piecesModifiables`), figées à la
+publication ; une nouvelle version les reprend en pointant le même
+fichier, qui ne quitte le dépôt que si plus aucune ligne ne le désigne. Tiré d'une réunion Meeting, le brouillon en
 reprend objet, présences et compte rendu. Feuille A4 :
 `/imprimer/pv/[id]`. Le texte des points suit la mise en forme des
 tâches (`src/modules/taches/mise-en-forme.ts`), rendue en éléments React.
