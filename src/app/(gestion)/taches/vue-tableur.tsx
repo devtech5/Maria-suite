@@ -8,6 +8,7 @@ import { COULEUR_STATUT, estClose, regrouper, repartitionStatuts, type Regroupem
 import { CelluleChamp, EnTeteColonne, PiedColonne } from "./colonnes-ui";
 import { useTaches } from "./contexte";
 import { CelluleIntervenants } from "./intervenants-ui";
+import { Avancement, ListeSousTaches } from "./sous-taches";
 import { CelluleDate, CellulePriorite, CelluleResponsable, CelluleStatut, depuis, jourCourt, TexteEcheance, titreBarre } from "./elements";
 import type { TacheAffichee } from "./types";
 
@@ -105,7 +106,7 @@ export function VueTableur({ taches, regroupement }: { taches: TacheAffichee[]; 
                       </td>
                     </tr>
                   ) : (
-                    g.taches.map((t) => <Ligne key={t.id} t={t} couleur={g.couleur} />)
+                    g.taches.map((t) => <Ligne key={t.id} t={t} couleur={g.couleur} nbColonnes={COLONNES.length + colonnes.length + (gererColonnes ? 1 : 0)} />)
                   )}
                 </tbody>
                 {g.taches.length > 0 && (
@@ -139,15 +140,51 @@ export function VueTableur({ taches, regroupement }: { taches: TacheAffichee[]; 
   );
 }
 
-function Ligne({ t, couleur }: { t: TacheAffichee; couleur: string }) {
+function Ligne({ t, couleur, nbColonnes }: { t: TacheAffichee; couleur: string; nbColonnes: number }) {
   const { ouvrir, aujourdhui, maintenantIso, colonnes, gererColonnes } = useTaches();
+  const [deplie, setDeplie] = useState(false);
   const cellule = "h-10 border-l border-b border-[var(--filet)] p-0";
   return (
+    <>
     <tr className="group hover:bg-[var(--surface-creuse)]/60">
-      <td className={`${FIGEE} h-10 border-b border-l-[6px] border-[var(--filet)] px-3`} style={{ borderLeftColor: couleur }}>
-        <button type="button" onClick={() => ouvrir(t.id)} className={`block w-full truncate text-left font-medium hover:text-marque-600 hover:underline ${titreBarre(t)}`} title={t.titre}>
-          {t.titre}
-        </button>
+      <td className={`${FIGEE} h-10 border-b border-l-[6px] border-[var(--filet)] pl-1 pr-2`} style={{ borderLeftColor: couleur }}>
+        <span className="flex items-center gap-1">
+          <button
+            type="button"
+            onClick={() => setDeplie((d) => !d)}
+            aria-expanded={deplie}
+            aria-label={`${deplie ? "Replier" : "Déplier"} les sous-tâches de ${t.titre}`}
+            title="Sous-tâches"
+            className={`grid size-6 shrink-0 place-items-center rounded text-[10px] text-[var(--encre-faible)] hover:bg-[var(--surface-creuse)] ${
+              t.sousTaches.length === 0 && !deplie ? "opacity-0 focus:opacity-100 group-hover:opacity-100" : ""
+            }`}
+          >
+            <span className={`inline-block transition-transform ${deplie ? "rotate-90" : ""}`}>▶</span>
+          </button>
+          <button type="button" onClick={() => ouvrir(t.id)} className={`min-w-0 flex-1 truncate text-left font-medium hover:text-marque-600 hover:underline ${titreBarre(t)}`} title={t.titre}>
+            {t.titre}
+          </button>
+          <Avancement t={t} />
+          <button
+            type="button"
+            onClick={() => ouvrir(t.id, "mises-a-jour")}
+            title={t.nbMessages ? `${t.nbMessages} mise${t.nbMessages > 1 ? "s" : ""} à jour` : "Ouvrir les mises à jour"}
+            aria-label={`Mises à jour de ${t.titre} : ${t.nbMessages}`}
+            className={`relative grid size-7 shrink-0 place-items-center rounded text-[var(--encre-faible)] hover:bg-[var(--surface-creuse)] hover:text-[#1f76f0] ${
+              t.nbMessages ? "text-[#1f76f0]" : "opacity-60 group-hover:opacity-100"
+            }`}
+          >
+            <svg viewBox="0 0 16 16" className="size-[18px]" fill="none" stroke="currentColor" strokeWidth="1.3" strokeLinecap="round" strokeLinejoin="round" aria-hidden>
+              <path d="M2.5 7.5a5.5 4.5 0 1 1 2.6 3.8L2.5 13l.7-2.6a4.2 4.2 0 0 1-.7-2.9Z" />
+              {!t.nbMessages && <path d="M8 5.5v4M6 7.5h4" />}
+            </svg>
+            {t.nbMessages > 0 && (
+              <span className="chiffres absolute -right-0.5 -top-0.5 grid min-w-4 place-items-center rounded-full bg-[#1f76f0] px-1 text-[9px] font-bold leading-4 text-white">
+                {t.nbMessages}
+              </span>
+            )}
+          </button>
+        </span>
       </td>
       <td className={cellule}>
         <CelluleResponsable t={t} />
@@ -180,6 +217,17 @@ function Ligne({ t, couleur }: { t: TacheAffichee; couleur: string }) {
       ))}
       {gererColonnes && <td className={cellule} />}
     </tr>
+    {deplie && (
+      <tr>
+        <td colSpan={nbColonnes} className="border-b border-l-[6px] border-[var(--filet)] bg-[var(--surface-creuse)]/40 py-1.5" style={{ borderLeftColor: `${couleur}80` }}>
+          {/* Collée à gauche : la liste reste lisible quand le tableau défile vers les colonnes ajoutées. */}
+          <div className="sticky left-0 max-w-[46rem] pl-8 pr-2">
+            <ListeSousTaches t={t} compacte />
+          </div>
+        </td>
+      </tr>
+    )}
+    </>
   );
 }
 

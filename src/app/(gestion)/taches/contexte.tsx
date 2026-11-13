@@ -16,13 +16,14 @@ import {
   retirerIntervenant,
   supprimerColonne,
 } from "@/modules/taches/actions";
+import type { Resultat as ResultatAction } from "@/modules/taches/actions";
 import { gestesPossibles, type Geste, type Priorite } from "@/modules/taches/calcul";
 import { estClose } from "@/modules/taches/vues";
 
 import { valeurExecutant, type Salarie } from "./champs-tache";
 import { FormulaireColonne } from "./colonnes-ui";
-import { FicheTache } from "./fiche-tache";
-import type { ColonneAffichee, PersonnePossible, TacheAffichee } from "./types";
+import { PanneauTache, type Onglet } from "./panneau-tache";
+import type { ColonneAffichee, Mentionnable, PersonnePossible, TacheAffichee } from "./types";
 
 /** Ce qui se change d'un clic dans une cellule, sans ouvrir le formulaire. */
 export interface Retouche {
@@ -44,7 +45,8 @@ interface Contexte {
   /** Instant du rendu serveur : « il y a 2 h » se calcule pareil des deux côtés. */
   maintenantIso: string;
   enCours: boolean;
-  ouvrir: (id: string) => void;
+  /** Ouvre le panneau de la tâche, sur un onglet au besoin. */
+  ouvrir: (id: string, onglet?: Onglet) => void;
   geste: (t: TacheAffichee, g: Geste) => void;
   retoucher: (t: TacheAffichee, r: Retouche) => void;
   creerRapide: (titre: string) => void;
@@ -64,6 +66,9 @@ interface Contexte {
   /** Collaborateurs et intervenants qu'on peut mettre sur une tâche. */
   personnesPossibles: PersonnePossible[];
   basculerIntervenant: (t: TacheAffichee, ref: string) => void;
+  mentionnables: Mentionnable[];
+  /** Lance une action serveur : retour affiché, page rafraîchie. */
+  lancer: (action: () => Promise<ResultatAction>, apres?: () => void) => void;
 }
 
 const ContexteTaches = createContext<Contexte | null>(null);
@@ -90,11 +95,13 @@ export function FournisseurTaches({
   maintenantIso,
   colonnes,
   personnesPossibles,
+  mentionnables,
   children,
 }: {
   taches: TacheAffichee[];
   colonnes: ColonneAffichee[];
   personnesPossibles: PersonnePossible[];
+  mentionnables: Mentionnable[];
   moi: string;
   attribue: boolean;
   executer: boolean;
@@ -103,7 +110,7 @@ export function FournisseurTaches({
   maintenantIso: string;
   children: ReactNode;
 }) {
-  const [ouverteId, setOuverteId] = useState<string | null>(null);
+  const [ouverte, setOuverte] = useState<{ id: string; onglet: Onglet } | null>(null);
   const [saisie, setSaisie] = useState<{ tache: TacheAffichee; geste: "terminer" | "annuler"; texte: string } | null>(null);
   const [resultat, setResultat] = useState<Resultat | null>(null);
   // `null` : pas de fenêtre ; « nouvelle » : création ; sinon la colonne qu'on règle.
@@ -131,7 +138,9 @@ export function FournisseurTaches({
     aujourdhui,
     maintenantIso,
     enCours,
-    ouvrir: setOuverteId,
+    ouvrir: (id, onglet = "mises-a-jour") => setOuverte({ id, onglet }),
+    mentionnables,
+    lancer,
     modifiable,
     gestes: (t) => (executer ? gestesPossibles(t.statut, t, { userId: moi, attribue }) : []),
     geste(t, g) {
@@ -177,7 +186,7 @@ export function FournisseurTaches({
     },
   };
 
-  const ouverte = ouverteId ? taches.find((t) => t.id === ouverteId) ?? null : null;
+  const tacheOuverte = ouverte ? (taches.find((t) => t.id === ouverte.id) ?? null) : null;
 
   return (
     <ContexteTaches.Provider value={contexte}>
@@ -188,9 +197,9 @@ export function FournisseurTaches({
       )}
       {children}
 
-      <Fenetre ouverte={ouverte !== null} titre={ouverte ? ouverte.titre : "Tâche"} sousTitre={ouverte?.numero} presentation="ample" onFermer={() => setOuverteId(null)}>
-        {ouverte && <FicheTache key={ouverte.id} tache={ouverte} lancer={lancer} />}
-      </Fenetre>
+      {tacheOuverte && ouverte && (
+        <PanneauTache key={tacheOuverte.id} tache={tacheOuverte} ongletInitial={ouverte.onglet} fermer={() => setOuverte(null)} />
+      )}
 
       <Fenetre
         ouverte={composee !== null}

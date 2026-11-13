@@ -43,6 +43,15 @@ export const CHAPITRES_EQUIPE: Chapitre[] = [
         ],
       },
       {
+        ancre: "panneau",
+        titre: "Ouvrir une tâche : mises à jour, sous-tâches, fichiers",
+        texte: [
+          "Le titre d'une tâche ouvre son panneau, à droite du tableau qui reste visible. « Mises à jour » est le fil de l'équipe : la barre d'outils met en gras, en italique, souligne, barre, fait des listes, une check-list dont chacun coche les cases, un lien ou un filet ; @ mentionne un collaborateur, qui est prévenu, et le trombone joint un fichier. Le responsable, les intervenants et le créateur sont prévenus de chaque mise à jour.",
+          "« Sous-tâches » découpe la tâche en étapes précises : chacune se coche, reçoit son responsable et son échéance. La flèche devant le titre, dans le tableur, les déplie sous la tâche, et l'avancement s'affiche à côté. « Fichiers » garde les pièces jointes (10 Mo au plus), « Activités » tout ce qui s'est passé, et « Détails » la fiche complète.",
+        ],
+        etapes: ["Cliquez le titre de la tâche.", "Écrivez une mise à jour, ou ajoutez des sous-tâches.", "Cochez chaque étape quand elle est faite."],
+      },
+      {
         ancre: "intervenants",
         titre: "Plusieurs intervenants sur une tâche",
         texte: [
@@ -85,6 +94,13 @@ export const CHAPITRES_EQUIPE: Chapitre[] = [
         choix: ["Elle est arrondie à 3", "Elle est refusée : un nombre entier, sans virgule", "Elle est enregistrée telle quelle"],
         bonne: 1,
         explication: "Comme tout montant de Maria Suite, un nombre est entier : la somme au pied du groupe reste exacte.",
+      },
+      {
+        cle: "taches-sous-taches",
+        question: "Comment découper une tâche en étapes précises ?",
+        choix: ["En créant une tâche par étape", "Avec les sous-tâches de son panneau, qui se cochent une à une", "En l'écrivant dans le titre"],
+        bonne: 1,
+        explication: "Les sous-tâches se cochent quand elles sont faites ; l'avancement se lit dans le tableur.",
       },
     ],
   },

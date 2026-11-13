@@ -1,5 +1,5 @@
 import { sql } from "drizzle-orm";
-import { check, date, index, integer, jsonb, pgEnum, pgTable, text, timestamp, unique, uniqueIndex, uuid } from "drizzle-orm/pg-core";
+import { boolean, check, date, index, integer, jsonb, pgEnum, pgTable, text, timestamp, unique, uniqueIndex, uuid } from "drizzle-orm/pg-core";
 
 import { primaryId, rowVersion, timestamps } from "@/db/schema/_shared";
 import { organizations } from "@/db/schema/tenancy";
@@ -173,4 +173,88 @@ export const tachesIntervenants = pgTable(
     uniqueIndex("taches_intervenants_intervenant").on(t.tacheId, t.workerId).where(sql`${t.workerId} IS NOT NULL`),
     index("taches_intervenants_tache").on(t.organizationId, t.tacheId),
   ],
+);
+
+/**
+ * Sous-tâches : ce qu'il faut faire, précisément, pour mener la tâche à bien.
+ * Chacune se coche, peut porter son responsable (collaborateur OU
+ * intervenant) et son échéance. Retrait logique.
+ */
+export const tachesSousTaches = pgTable(
+  "taches_sous_taches",
+  {
+    id: primaryId(),
+    organizationId: uuid("organization_id")
+      .notNull()
+      .references(() => organizations.id, { onDelete: "cascade" }),
+    tacheId: uuid("tache_id")
+      .notNull()
+      .references(() => taches.id, { onDelete: "cascade" }),
+    titre: text("titre").notNull(),
+    faite: boolean("faite").notNull().default(false),
+    faiteLe: timestamp("faite_le", { withTimezone: true }),
+    faiteParUserId: uuid("faite_par_user_id"),
+    responsableEmployeId: uuid("responsable_employe_id").references(() => employees.id, { onDelete: "set null" }),
+    responsableWorkerId: uuid("responsable_worker_id").references(() => workers.id, { onDelete: "set null" }),
+    echeance: date("echeance"),
+    rang: integer("rang").notNull().default(0),
+    creeParUserId: uuid("cree_par_user_id"),
+    ...timestamps,
+    ...rowVersion,
+  },
+  (t) => [
+    check("taches_sous_taches_un_responsable", sql`${t.responsableEmployeId} IS NULL OR ${t.responsableWorkerId} IS NULL`),
+    check("taches_sous_taches_faite_datee", sql`NOT ${t.faite} OR ${t.faiteLe} IS NOT NULL`),
+    index("taches_sous_taches_tache").on(t.organizationId, t.tacheId, t.rang),
+  ],
+);
+
+/**
+ * Mises à jour d'une tâche : le fil où l'équipe dit où elle en est. Texte
+ * brut — React l'échappe, rien de saisi n'est interprété. Retrait logique,
+ * par son auteur seulement.
+ */
+export const tachesMessages = pgTable(
+  "taches_messages",
+  {
+    id: primaryId(),
+    organizationId: uuid("organization_id")
+      .notNull()
+      .references(() => organizations.id, { onDelete: "cascade" }),
+    tacheId: uuid("tache_id")
+      .notNull()
+      .references(() => taches.id, { onDelete: "cascade" }),
+    auteurUserId: uuid("auteur_user_id").notNull(),
+    corps: text("corps").notNull(),
+    ...timestamps,
+    ...rowVersion,
+  },
+  (t) => [index("taches_messages_tache").on(t.organizationId, t.tacheId, t.createdAt)],
+);
+
+/**
+ * Fichiers d'une tâche. Le fichier vit dans le dépôt (`src/lib/stockage`),
+ * sous `<entreprise>/<id>.<ext>` ; seule sa clé est ici. Ouvert par URL
+ * signée, jamais par un lien direct.
+ */
+export const tachesFichiers = pgTable(
+  "taches_fichiers",
+  {
+    id: primaryId(),
+    organizationId: uuid("organization_id")
+      .notNull()
+      .references(() => organizations.id, { onDelete: "cascade" }),
+    tacheId: uuid("tache_id")
+      .notNull()
+      .references(() => taches.id, { onDelete: "cascade" }),
+    nomFichier: text("nom_fichier").notNull(),
+    typeMime: text("type_mime").notNull(),
+    /** Octets : un entier. */
+    taille: integer("taille").notNull(),
+    chemin: text("chemin").notNull(),
+    deposeParUserId: uuid("depose_par_user_id").notNull(),
+    ...timestamps,
+    ...rowVersion,
+  },
+  (t) => [check("taches_fichiers_taille", sql`${t.taille} > 0`), index("taches_fichiers_tache").on(t.organizationId, t.tacheId)],
 );
