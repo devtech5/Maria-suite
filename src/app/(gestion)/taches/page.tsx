@@ -10,6 +10,7 @@ import { creerTache } from "@/modules/taches/actions";
 import { enRetard } from "@/modules/taches/calcul";
 import { listerColonnes, valeursDe } from "@/modules/taches/colonnes-base";
 import { intervenantsActifs, intervenantsDe } from "@/modules/taches/intervenants";
+import { compteMessagesDe, sousTachesDe } from "@/modules/taches/suivi";
 import { listerTaches, personnelActif, type VueTaches } from "@/modules/taches/requetes";
 import { lireAffichage } from "@/modules/taches/vues";
 
@@ -46,7 +47,14 @@ export default async function PageTaches({ searchParams }: PageProps<"/taches">)
     listerColonnes(session.organizationId),
   ]);
   const ids = taches.map((t) => t.id);
-  const [valeurs, intervenants] = await Promise.all([valeursDe(session.organizationId, ids), intervenantsDe(session.organizationId, ids)]);
+  const [valeurs, intervenants, sousTaches, nbMessages] = await Promise.all([
+    valeursDe(session.organizationId, ids),
+    intervenantsDe(session.organizationId, ids),
+    sousTachesDe(session.organizationId, ids),
+    compteMessagesDe(session.organizationId, ids),
+  ]);
+  // On mentionne un compte : les collaborateurs du Personnel qui en ont un.
+  const mentionnables = personnel.flatMap((p) => (p.userId && p.userId !== session.userId ? [{ userId: p.userId, nom: p.nom }] : []));
   const personnesPossibles: PersonnePossible[] = [
     ...personnel.map((p) => ({ ref: `e:${p.id}`, nom: p.nom, detail: p.poste, nature: "collaborateur" as const })),
     ...ouvriers.map((w) => ({ ref: `w:${w.id}`, nom: w.nom, detail: w.qualification, nature: "intervenant" as const })),
@@ -82,6 +90,8 @@ export default async function PageTaches({ searchParams }: PageProps<"/taches">)
     motifAnnulation: t.motifAnnulation,
     valeurs: valeurs.get(t.id) ?? {},
     intervenants: intervenants.get(t.id) ?? [],
+    sousTaches: sousTaches.get(t.id) ?? [],
+    nbMessages: nbMessages.get(t.id) ?? 0,
   }));
 
   return (
@@ -124,6 +134,7 @@ export default async function PageTaches({ searchParams }: PageProps<"/taches">)
         taches={affichees}
         colonnes={colonnes}
         personnesPossibles={personnesPossibles}
+        mentionnables={mentionnables}
         perimetre={vue}
         perimetres={attribue ? ["miennes", "confiees", "toutes"] : ["miennes", "confiees"]}
         affichageInitial={lireAffichage(affichage)}

@@ -23,6 +23,23 @@ export interface IntervenantAffiche extends PersonnePossible {
   userId: string | null;
 }
 
+/** Une sous-tâche : ce qu'il faut faire, précisément, pour mener la tâche à bien. */
+export interface SousTacheAffichee {
+  id: string;
+  titre: string;
+  faite: boolean;
+  /** `e:<collaborateur>` ou `w:<intervenant>`. */
+  responsable: string | null;
+  responsableNom: string | null;
+  echeance: string | null;
+}
+
+/** Un compte qu'on peut mentionner dans une mise à jour. */
+export interface Mentionnable {
+  userId: string;
+  nom: string;
+}
+
 /** Une tâche telle que l'écran la reçoit : dates en jours ISO ou en instants ISO, rien d'autre. */
 export interface TacheAffichee {
   id: string;
@@ -51,4 +68,7 @@ export interface TacheAffichee {
   valeurs: Record<string, string>;
   /** Ceux qui travaillent sur la tâche en plus du responsable. */
   intervenants: IntervenantAffiche[];
+  sousTaches: SousTacheAffichee[];
+  /** Nombre de mises à jour, pour la bulle du tableur. */
+  nbMessages: number;
 }

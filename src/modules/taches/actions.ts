@@ -6,6 +6,7 @@ import { z } from "zod";
 import { db } from "@/db";
 import { exigerEntreprise } from "@/lib/auth/dal";
 import { peut, refusDroit } from "@/lib/droits/garde";
+import { stockageConfigure } from "@/lib/stockage";
 
 import type { Acteur, Geste } from "./calcul";
 import { TYPES_COLONNE } from "./colonnes";
@@ -13,6 +14,22 @@ import { creerColonneDans, definirValeurDans, deplacerColonneDans, modifierColon
 import { appliquerGesteDans, creerTacheDans, modifierTacheDans, type Executant } from "./creation";
 import { ajouterIntervenantDans, retirerIntervenantDans } from "./intervenants";
 import { lireRef, lireRefs } from "./intervenants-regles";
+import { texteSimple } from "./mise-en-forme";
+import {
+  ajouterSousTacheDans,
+  cocherDansMessageDans,
+  cocherSousTacheDans,
+  joindreFichier,
+  modifierSousTacheDans,
+  publierMessageDans,
+  retirerFichier,
+  retirerMessageDans,
+  suiviDe,
+  supprimerSousTacheDans,
+  urlFichierTache,
+  type SuiviTache,
+} from "./suivi";
+import { FICHIER_MAX_OCTETS } from "./suivi-regles";
 import { notifier } from "@/modules/communication/notifications";
 
 const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
@@ -289,5 +306,141 @@ export async function retirerIntervenant(tacheId: string, valeur: string): Promi
     return { ok: true, message: `Intervenant retiré de ${numero}.` };
   } catch (erreur) {
     return { ok: false, message: lisible(erreur) };
+  }
+}
+
+// ------------------------------------------------------------ suivi : sous-tâches, mises à jour, fichiers
+
+async function enSuivi<T>(travail: (organizationId: string, qui: Acteur) => Promise<T>, message: (r: T) => string): Promise<Resultat> {
+  const refus = await refusDroit("taches.executer");
+  if (refus) return { ok: false, message: refus.erreur };
+  const { organizationId, acteur: qui } = await acteur();
+  try {
+    const r = await travail(organizationId, qui);
+    rafraichir();
+    return { ok: true, message: message(r) };
+  } catch (erreur) {
+    return { ok: false, message: lisible(erreur) };
+  }
+}
+
+export async function ajouterSousTache(tacheId: string, titre: string): Promise<Resultat> {
+  if (!UUID.test(tacheId) || typeof titre !== "string") return { ok: false, message: "Sous-tâche invalide." };
+  return enSuivi(
+    (org, qui) => db.transaction((tx) => ajouterSousTacheDans(tx, org, tacheId, titre, qui)),
+    (r) => `Sous-tâche ajoutée à ${r.numero}.`,
+  );
+}
+
+export async function cocherSousTache(sousTacheId: string, faite: boolean): Promise<Resultat> {
+  if (!UUID.test(sousTacheId)) return { ok: false, message: "Sous-tâche invalide." };
+  return enSuivi(
+    (org, qui) => db.transaction((tx) => cocherSousTacheDans(tx, org, sousTacheId, faite === true, qui)),
+    (r) => (faite ? `Sous-tâche de ${r.numero} faite.` : `Sous-tâche de ${r.numero} rouverte.`),
+  );
+}
+
+export async function modifierSousTache(sousTacheId: string, r: { titre?: string; responsable?: string | null; echeance?: string | null }): Promise<Resultat> {
+  if (!UUID.test(sousTacheId) || typeof r !== "object" || r === null) return { ok: false, message: "Sous-tâche invalide." };
+  const responsable = r.responsable === undefined ? undefined : r.responsable === null || r.responsable === "" ? null : lireRef(r.responsable);
+  if (responsable === null && r.responsable) return { ok: false, message: "Responsable inconnu." };
+  if (r.echeance != null && (typeof r.echeance !== "string" || !DATE_ISO.test(r.echeance))) return { ok: false, message: "Date invalide." };
+  return enSuivi(
+    (org, qui) =>
+      db.transaction((tx) =>
+        modifierSousTacheDans(tx, org, sousTacheId, { titre: typeof r.titre === "string" ? r.titre : undefined, responsable, echeance: r.echeance === undefined ? undefined : r.echeance || null }, qui),
+      ),
+    (x) => `Sous-tâche de ${x.numero} mise à jour.`,
+  );
+}
+
+export async function supprimerSousTache(sousTacheId: string): Promise<Resultat> {
+  if (!UUID.test(sousTacheId)) return { ok: false, message: "Sous-tâche invalide." };
+  return enSuivi(
+    (org, qui) => db.transaction((tx) => supprimerSousTacheDans(tx, org, sousTacheId, qui)),
+    (r) => `Sous-tâche retirée de ${r.numero}.`,
+  );
+}
+
+export async function publierMessage(tacheId: string, corps: string): Promise<Resultat> {
+  if (!UUID.test(tacheId) || typeof corps !== "string" || corps.length > 20_000) return { ok: false, message: "Mise à jour invalide." };
+  const refus = await refusDroit("taches.executer");
+  if (refus) return { ok: false, message: refus.erreur };
+  const { organizationId, acteur: qui } = await acteur();
+  try {
+    const r = await db.transaction((tx) => publierMessageDans(tx, organizationId, tacheId, corps, qui));
+    rafraichir();
+    if (r.aPrevenir.length > 0) {
+      await notifier(organizationId, r.aPrevenir, {
+        categorie: "tache",
+        titre: `Mise à jour de ${r.numero} : ${r.titre}`,
+        corps: texteSimple(corps),
+        lien: "/taches",
+      });
+    }
+    return { ok: true, message: "Mise à jour publiée." };
+  } catch (erreur) {
+    return { ok: false, message: lisible(erreur) };
+  }
+}
+
+export async function retirerMessage(messageId: string): Promise<Resultat> {
+  if (!UUID.test(messageId)) return { ok: false, message: "Mise à jour invalide." };
+  return enSuivi(
+    (org, qui) => db.transaction((tx) => retirerMessageDans(tx, org, messageId, qui)),
+    () => "Mise à jour retirée.",
+  );
+}
+
+export async function cocherDansMessage(messageId: string, rang: number): Promise<Resultat> {
+  if (!UUID.test(messageId) || !Number.isInteger(rang) || rang < 0 || rang > 500) return { ok: false, message: "Case invalide." };
+  return enSuivi(
+    (org, qui) => db.transaction((tx) => cocherDansMessageDans(tx, org, messageId, rang, qui)),
+    () => "Case mise à jour.",
+  );
+}
+
+export async function joindreFichierTache(donnees: FormData): Promise<Resultat> {
+  const tacheId = donnees.get("tacheId");
+  const brut = donnees.get("fichier");
+  if (typeof tacheId !== "string" || !UUID.test(tacheId) || !(brut instanceof File) || brut.size === 0) return { ok: false, message: "Choisissez un fichier." };
+  if (!stockageConfigure()) return { ok: false, message: "Le dépôt de fichiers n'est pas configuré (STOCKAGE_LOCAL) : la pièce ne peut pas être jointe." };
+  if (brut.size > FICHIER_MAX_OCTETS) return { ok: false, message: "Fichier trop lourd : 10 Mo au plus." };
+  const fichier = { nom: brut.name, typeMime: brut.type, contenu: await brut.arrayBuffer() };
+  return enSuivi(
+    (org, qui) => joindreFichier(org, tacheId, fichier, qui),
+    (r) => `« ${brut.name} » joint à ${r.numero}.`,
+  );
+}
+
+export async function retirerFichierTache(fichierId: string): Promise<Resultat> {
+  if (!UUID.test(fichierId)) return { ok: false, message: "Fichier invalide." };
+  return enSuivi(
+    (org, qui) => retirerFichier(org, fichierId, qui),
+    (r) => `Fichier retiré de ${r.numero}.`,
+  );
+}
+
+/** URL signée de deux minutes, demandée au clic, jamais posée dans la page. */
+export async function ouvrirFichierTache(fichierId: string): Promise<string | null> {
+  if (!UUID.test(fichierId)) return null;
+  if (await refusDroit("taches.consulter")) return null;
+  const { organizationId, acteur: qui } = await acteur();
+  try {
+    return await urlFichierTache(organizationId, fichierId, qui);
+  } catch {
+    return null;
+  }
+}
+
+/** Mises à jour, fichiers et activités d'une tâche, lus à l'ouverture de son panneau. */
+export async function chargerSuivi(tacheId: string): Promise<SuiviTache | null> {
+  if (!UUID.test(tacheId)) return null;
+  if (await refusDroit("taches.consulter")) return null;
+  const { organizationId, acteur: qui } = await acteur();
+  try {
+    return await suiviDe(organizationId, tacheId, qui);
+  } catch {
+    return null;
   }
 }

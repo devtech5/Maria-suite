@@ -2,7 +2,6 @@
 
 import { useState, type ReactNode } from "react";
 
-import type { Resultat } from "@/components/ui/operations";
 import { modifierTache } from "@/modules/taches/actions";
 import { LIBELLE_PRIORITE, LIBELLE_STATUT } from "@/modules/taches/calcul";
 import { COULEUR_PRIORITE, COULEUR_STATUT } from "@/modules/taches/vues";
@@ -20,8 +19,8 @@ const MOMENT = new Intl.DateTimeFormat("fr-FR", { day: "numeric", month: "long",
  * La fiche d'une tâche, ouverte depuis n'importe quelle vue : tout ce qu'on
  * sait d'elle, ses gestes, et le formulaire pour la modifier ou la réattribuer.
  */
-export function FicheTache({ tache: t, lancer }: { tache: TacheAffichee; lancer: (action: () => Promise<Resultat>, apres?: () => void) => void }) {
-  const { moi, attribue, personnel, aujourdhui, maintenantIso, enCours, gestes, geste, modifiable, colonnes } = useTaches();
+export function FicheTache({ tache: t, sansEnTete = false }: { tache: TacheAffichee; sansEnTete?: boolean }) {
+  const { moi, attribue, personnel, aujourdhui, maintenantIso, enCours, gestes, geste, modifiable, colonnes, lancer } = useTaches();
   const [edition, setEdition] = useState(false);
   const possibles = gestes(t);
 
@@ -71,12 +70,17 @@ export function FicheTache({ tache: t, lancer }: { tache: TacheAffichee; lancer:
   return (
     <div className="space-y-4 px-5 py-4">
       <div className="flex flex-wrap items-center gap-2">
-        <span className="rounded-md px-3 py-1.5 text-sm font-semibold text-white" style={{ background: COULEUR_STATUT[t.statut] }}>
-          {LIBELLE_STATUT[t.statut]}
-        </span>
-        <span className="rounded-md px-3 py-1.5 text-sm font-semibold text-white" style={{ background: COULEUR_PRIORITE[t.priorite] }}>
-          Priorité {LIBELLE_PRIORITE[t.priorite].toLowerCase()}
-        </span>
+        {/* Dans le panneau, l'en-tête montre déjà état et priorité. */}
+        {!sansEnTete && (
+          <>
+            <span className="rounded-md px-3 py-1.5 text-sm font-semibold text-white" style={{ background: COULEUR_STATUT[t.statut] }}>
+              {LIBELLE_STATUT[t.statut]}
+            </span>
+            <span className="rounded-md px-3 py-1.5 text-sm font-semibold text-white" style={{ background: COULEUR_PRIORITE[t.priorite] }}>
+              Priorité {LIBELLE_PRIORITE[t.priorite].toLowerCase()}
+            </span>
+          </>
+        )}
         <span className="ml-auto flex flex-wrap gap-1.5">
           {possibles.map((g) => (
             <button

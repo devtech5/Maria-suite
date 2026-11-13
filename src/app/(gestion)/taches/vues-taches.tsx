@@ -17,7 +17,7 @@ import {
 
 import type { Salarie } from "./champs-tache";
 import { FournisseurTaches, useTaches } from "./contexte";
-import type { ColonneAffichee, PersonnePossible, TacheAffichee } from "./types";
+import type { ColonneAffichee, Mentionnable, PersonnePossible, TacheAffichee } from "./types";
 import { VueCalendrier } from "./vue-calendrier";
 import { VueFiches, VueKanban } from "./vue-cartes";
 import { VueFrise } from "./vue-frise";
@@ -74,6 +74,7 @@ export function VuesTaches({
   /** Colonnes personnalisées du tableau. */
   colonnes: ColonneAffichee[];
   personnesPossibles: PersonnePossible[];
+  mentionnables: Mentionnable[];
   perimetre: Perimetre;
   /** Les périmètres permis : « Toute l'équipe » demande le droit d'attribuer. */
   perimetres: Perimetre[];
@@ -98,7 +99,7 @@ export function VuesTaches({
   const filtre = recherche.trim() !== "" || !!periode.du || !!periode.au || masquerCloses;
   const visibles = taches.filter(
     (t) =>
-      correspond(recherche, [t.titre, t.numero, t.description, t.assignee, t.createur, ...t.intervenants.map((i) => i.nom), ...texteDesColonnes(t, partage.colonnes)]) &&
+      correspond(recherche, [t.titre, t.numero, t.description, t.assignee, t.createur, ...t.intervenants.map((i) => i.nom), ...t.sousTaches.map((st) => st.titre), ...texteDesColonnes(t, partage.colonnes)]) &&
       dansPeriode(t.echeance, periode) &&
       !(masquerCloses && estClose(t.statut)),
   );

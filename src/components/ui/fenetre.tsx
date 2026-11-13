@@ -6,8 +6,9 @@ import { createPortal } from "react-dom";
 /**
  * Toujours une modale centrée, sa hauteur suit son contenu. « modale » pour
  * un formulaire court, « ample » pour un long (lignes, fiche complète) : seule
- * la largeur change. Il n'y a plus de tiroir latéral : une seule forme de
- * fenêtre dans toute l'application.
+ * la largeur change. Une seule forme de fenêtre dans toute l'application,
+ * à une exception demandée : le panneau d'une tâche, ouvert à droite du
+ * tableau des tâches (`src/app/(gestion)/taches/panneau-tache.tsx`).
  */
 export type Presentation = "modale" | "ample";
 

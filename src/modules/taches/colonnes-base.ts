@@ -14,6 +14,7 @@ import {
   estTypeColonne,
   normaliserLibelle,
   normaliserOptions,
+  nombreLisible,
   normaliserValeur,
   type OptionsColonne,
   type TypeColonne,
@@ -39,6 +40,15 @@ async function tracer(
   avant?: Record<string, unknown> | null,
 ) {
   await tx.insert(auditLogs).values({ id: newId(), organizationId, userId, action, entityType, entityId, before: avant ?? null, after: apres });
+}
+
+/** La valeur telle qu'on la lit, pour le journal : le nom de l'étiquette, le nombre avec son unité. */
+function valeurLisible(colonne: { type: TypeColonne; options: OptionsColonne | null }, valeur: string | null): string | null {
+  if (valeur === null) return null;
+  if (colonne.type === "etiquette") return colonne.options?.etiquettes?.find((e) => e.cle === valeur)?.libelle ?? valeur;
+  if (colonne.type === "nombre") return nombreLisible(valeur, colonne.options?.unite);
+  if (colonne.type === "case") return "oui";
+  return valeur;
 }
 
 /** Colonnes en service, de gauche à droite. Le filtre sur l'entreprise est posé ici. */
@@ -231,7 +241,7 @@ export async function definirValeurDans(
     "tache.champ",
     "tache",
     tacheId,
-    { numero: tache.numero, colonne: colonne.libelle, valeur: verdict.valeur },
+    { numero: tache.numero, colonne: colonne.libelle, valeur: verdict.valeur, affiche: valeurLisible(colonne, verdict.valeur) },
     { valeur: avant?.valeur ?? null },
   );
   return { numero: tache.numero, libelle: colonne.libelle };

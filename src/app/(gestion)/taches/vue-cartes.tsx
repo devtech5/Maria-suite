@@ -7,6 +7,7 @@ import { COULEUR_STATUT, gesteVers, ORDRE_STATUTS } from "@/modules/taches/vues"
 
 import { useTaches } from "./contexte";
 import { CorpsCarte, titreBarre } from "./elements";
+import { Avancement } from "./sous-taches";
 import type { TacheAffichee } from "./types";
 
 const trier = (liste: TacheAffichee[]) =>
@@ -20,6 +21,14 @@ function EnTeteCarte({ t }: { t: TacheAffichee }) {
         <span className={`block text-[15px] font-bold leading-snug hover:text-marque-600 ${titreBarre(t)}`}>{t.titre}</span>
         <span className="chiffres mt-0.5 block text-xs text-[var(--encre-faible)]">{t.numero}</span>
       </button>
+      <span className="flex shrink-0 flex-col items-end gap-1">
+        <Avancement t={t} />
+        {t.nbMessages > 0 && (
+          <button type="button" onClick={() => ouvrir(t.id, "mises-a-jour")} className="text-[11px] font-semibold text-[#1f76f0] hover:underline">
+            {t.nbMessages} mise{t.nbMessages > 1 ? "s" : ""} à jour
+          </button>
+        )}
+      </span>
       <button
         type="button"
         onClick={() => ouvrir(t.id)}
