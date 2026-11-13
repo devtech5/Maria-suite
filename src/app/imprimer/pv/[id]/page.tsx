@@ -56,6 +56,7 @@ export default async function ImpressionPv({ params }: { params: Promise<{ id: s
             publiePar: complet.publiePar,
             publieLe: pv.publieLe,
             actions: complet.actions.map((a) => ({ libelle: a.libelle, responsable: a.responsable, echeance: a.echeance })),
+            pieces: complet.fichiers.map((f) => f.nom),
           }}
         />
       </ApercuA4>

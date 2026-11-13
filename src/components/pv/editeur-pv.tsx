@@ -25,6 +25,7 @@ import {
 } from "@/modules/pv/regles";
 
 import { DocumentPv } from "./document-pv";
+import { PiecesJointesPv, type PieceAffichee } from "./pieces-jointes";
 
 interface ActionSaisie {
   id: string | null;
@@ -83,6 +84,8 @@ export function EditeurPv({
   comptes,
   services,
   personnel,
+  pieces,
+  piecesModifiables,
 }: {
   pvId: string;
   statut: StatutPv;
@@ -95,6 +98,8 @@ export function EditeurPv({
   comptes: { userId: string; nom: string; service: string | null }[];
   services: { id: string; libelle: string }[];
   personnel: { id: string; nom: string; poste: string }[];
+  pieces: PieceAffichee[];
+  piecesModifiables: boolean;
 }) {
   const [type, setType] = useState<TypePv>(initial.type);
   const [objet, setObjet] = useState(initial.objet);
@@ -342,6 +347,10 @@ export function EditeurPv({
         </button>
       </Section>
 
+      <Section titre="Pièces jointes" aide="Plans, photos, feuille de présence signée, annexes. Elles partent avec le PV et se figent à sa publication.">
+        <PiecesJointesPv pvId={pvId} pieces={pieces} modifiables={piecesModifiables} />
+      </Section>
+
       <Section titre="Conclusion (facultative)">
         <textarea value={conclusion} onChange={(e) => changer(setConclusion)(e.target.value)} rows={3} maxLength={5000} placeholder="Prochaine réunion, synthèse…" className={`${CLASSE_CHAMP} h-auto py-2`} />
       </Section>
@@ -446,6 +455,7 @@ export function EditeurPv({
                   redacteur: meta.redacteur,
                   publiePar: null,
                   publieLe: null,
+                  pieces: pieces.map((p) => p.nom),
                   actions: actions.filter((a) => a.libelle.trim()).map((a) => ({ libelle: a.libelle, responsable: a.responsableEmployeId ? (parId.get(a.responsableEmployeId)?.nom ?? null) : null, echeance: a.echeance })),
                 }}
               />

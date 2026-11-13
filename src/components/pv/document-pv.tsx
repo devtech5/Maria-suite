@@ -20,6 +20,8 @@ export interface ContenuPv {
   publiePar: string | null;
   publieLe: Date | null;
   actions: { libelle: string; responsable: string | null; echeance: string | null }[];
+  /** Noms des pièces jointes, listées en annexe. */
+  pieces?: string[];
 }
 
 const MOMENT = new Intl.DateTimeFormat("fr-FR", { dateStyle: "long", timeStyle: "short", timeZone: "Africa/Abidjan" });
@@ -116,6 +118,17 @@ export function DocumentPv({ pv, identite }: { pv: ContenuPv; identite: Identite
           <section className="mt-[5mm]">
             <h2 className="mb-[1.5mm] border-b border-[#c9a96e] pb-[0.5mm] text-[9.5pt] font-bold uppercase">Conclusion</h2>
             <p className="whitespace-pre-line text-justify">{pv.conclusion}</p>
+          </section>
+        )}
+
+        {pv.pieces && pv.pieces.length > 0 && (
+          <section className="mt-[5mm] [break-inside:avoid]">
+            <h2 className="mb-[1.5mm] border-b border-[#c9a96e] pb-[0.5mm] text-[9.5pt] font-bold uppercase">Pièces jointes</h2>
+            <ol className="list-decimal pl-[5mm] text-[8.5pt]">
+              {pv.pieces.map((nom, i) => (
+                <li key={i}>{nom}</li>
+              ))}
+            </ol>
           </section>
         )}
 

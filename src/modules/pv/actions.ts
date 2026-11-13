@@ -8,6 +8,8 @@ import { db } from "@/db";
 import { exigerEntreprise } from "@/lib/auth/dal";
 import { peut, refusDroit } from "@/lib/droits/garde";
 import { utilisateursAyantDroit } from "@/lib/droits/destinataires";
+import { stockageConfigure } from "@/lib/stockage";
+import { FICHIER_MAX_OCTETS } from "@/modules/taches/suivi-regles";
 import { notifier } from "@/modules/communication/notifications";
 
 import {
@@ -15,12 +17,15 @@ import {
   actionEnTacheDans,
   creerPvDans,
   enregistrerPvDans,
+  joindreFichierPv,
   publierPvDans,
   relancerPvDans,
   renvoyerPvDans,
+  retirerFichierPv,
   reviserPvDans,
   soumettrePvDans,
   supprimerPvDans,
+  urlFichierPv,
   type ActeurPv,
 } from "./donnees";
 import { referencePv, TYPES_PV } from "./regles";
@@ -266,3 +271,41 @@ export async function creerTacheAction(actionId: string): Promise<Resultat> {
   }
 }
 
+
+// ------------------------------------------------------------ pièces jointes
+
+export async function joindrePiece(donnees: FormData): Promise<Resultat> {
+  const pvId = donnees.get("pvId");
+  const brut = donnees.get("fichier");
+  if (typeof pvId !== "string" || !UUID.test(pvId) || !(brut instanceof File) || brut.size === 0) return { ok: false, message: "Choisissez un fichier." };
+  if (!stockageConfigure()) return { ok: false, message: "Le dépôt de fichiers n'est pas configuré (STOCKAGE_LOCAL) : la pièce ne peut pas être jointe." };
+  if (brut.size > FICHIER_MAX_OCTETS) return { ok: false, message: "Fichier trop lourd : 10 Mo au plus." };
+  const { organizationId, acteur: qui } = await acteur();
+  try {
+    const { nom } = await joindreFichierPv(organizationId, pvId, { nom: brut.name, typeMime: brut.type, contenu: await brut.arrayBuffer() }, qui);
+    rafraichir(pvId);
+    return { ok: true, message: `« ${nom} » joint.` };
+  } catch (erreur) {
+    return { ok: false, message: lisible(erreur) };
+  }
+}
+
+export async function retirerPiece(fichierId: string): Promise<Resultat> {
+  if (!UUID.test(fichierId)) return { ok: false, message: "Pièce jointe introuvable." };
+  const { organizationId, acteur: qui } = await acteur();
+  try {
+    const { nom } = await retirerFichierPv(organizationId, fichierId, qui);
+    rafraichir();
+    return { ok: true, message: `« ${nom} » retiré.` };
+  } catch (erreur) {
+    return { ok: false, message: lisible(erreur) };
+  }
+}
+
+/** URL signée de deux minutes, demandée au clic, jamais posée dans la page. */
+export async function ouvrirPiece(fichierId: string): Promise<string | null> {
+  if (!UUID.test(fichierId)) return null;
+  if (await refusDroit("pv.consulter")) return null;
+  const { organizationId, acteur: qui } = await acteur();
+  return urlFichierPv(organizationId, fichierId, qui);
+}

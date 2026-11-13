@@ -117,6 +117,7 @@ export const CHAPITRES_EQUIPE: Chapitre[] = [
         texte: [
           "« Nouveau procès-verbal » ouvre un brouillon : PV de réunion, compte rendu ou rapport. Tiré d'une réunion Meeting (ou du lien « Rédiger le procès-verbal » sur la réunion), il en reprend l'objet, les présents et les absents, et le compte rendu déjà écrit.",
           "Le brouillon se remplit par parties : participants (présents, excusés, absents, personnes extérieures), points traités avec leurs décisions, actions à mener (qui, quoi, pour quand), conclusion, et diffusion. « Voir la feuille » montre le PV tel qu'il s'imprimera, sur le papier à en-tête.",
+          "« Pièces jointes » reçoit plans, photos, feuille de présence signée ou annexes (glissez-les, 10 Mo par fichier) : elles partent avec le PV, s'ouvrent pour chaque destinataire et se listent en annexe de la feuille imprimée. À la publication, elles se figent avec le texte.",
         ],
         etapes: ["Ouvrez un brouillon.", "Rédigez les points, les décisions et les actions.", "Choisissez à qui le diffuser.", "Soumettez-le à la direction."],
       },
