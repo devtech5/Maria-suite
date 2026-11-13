@@ -1,9 +1,9 @@
 import { sql } from "drizzle-orm";
-import { check, date, index, integer, jsonb, pgEnum, pgTable, text, timestamp, unique, uuid } from "drizzle-orm/pg-core";
+import { check, date, index, integer, jsonb, pgEnum, pgTable, text, timestamp, unique, uniqueIndex, uuid } from "drizzle-orm/pg-core";
 
 import { primaryId, rowVersion, timestamps } from "@/db/schema/_shared";
 import { organizations } from "@/db/schema/tenancy";
-import { employees } from "@/modules/personnes/schema";
+import { employees, workers } from "@/modules/personnes/schema";
 
 import type { OptionsColonne } from "./colonnes";
 
@@ -140,3 +140,37 @@ export const tachesValeurs = pgTable(
 );
 
 export type ColonneTache = typeof tachesColonnes.$inferSelect;
+
+/**
+ * Intervenants d'une tâche : ceux qui y travaillent, en plus du responsable
+ * qui la fait avancer. Un collaborateur du Personnel OU un intervenant
+ * (manœuvre, tâcheron, chauffeur occasionnel), jamais les deux sur la même
+ * ligne — même règle que les missions. Un collaborateur qui a un compte voit
+ * la tâche dans sa liste.
+ *
+ * Retirer quelqu'un est logique : la ligne garde qui l'avait ajouté, et le
+ * réajouter la ranime.
+ */
+export const tachesIntervenants = pgTable(
+  "taches_intervenants",
+  {
+    id: primaryId(),
+    organizationId: uuid("organization_id")
+      .notNull()
+      .references(() => organizations.id, { onDelete: "cascade" }),
+    tacheId: uuid("tache_id")
+      .notNull()
+      .references(() => taches.id, { onDelete: "cascade" }),
+    employeeId: uuid("employee_id").references(() => employees.id, { onDelete: "cascade" }),
+    workerId: uuid("worker_id").references(() => workers.id, { onDelete: "cascade" }),
+    ajouteParUserId: uuid("ajoute_par_user_id"),
+    ...timestamps,
+    ...rowVersion,
+  },
+  (t) => [
+    check("taches_intervenants_un_seul", sql`(${t.employeeId} IS NULL) <> (${t.workerId} IS NULL)`),
+    uniqueIndex("taches_intervenants_collaborateur").on(t.tacheId, t.employeeId).where(sql`${t.employeeId} IS NOT NULL`),
+    uniqueIndex("taches_intervenants_intervenant").on(t.tacheId, t.workerId).where(sql`${t.workerId} IS NOT NULL`),
+    index("taches_intervenants_tache").on(t.organizationId, t.tacheId),
+  ],
+);

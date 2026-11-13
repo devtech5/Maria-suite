@@ -105,7 +105,7 @@ describe("colonnes personnalisées des tâches", () => {
     const { id: livre } = await db.transaction((tx) => creerColonneDans(tx, org, { libelle: "Livré", type: "case" }, chef));
     await db.transaction((tx) => definirValeurDans(tx, org, tache, livre, "1", { userId: agent, attribue: false }));
     await expect(db.transaction((tx) => definirValeurDans(tx, org, tache, livre, null, { userId: tiers, attribue: false }))).rejects.toThrow(
-      "Seuls l'exécutant",
+      "Seuls le responsable",
     );
     expect((await valeursDe(org, [tache])).get(tache)).toEqual({ [livre]: "1" });
   });

@@ -8,6 +8,7 @@ import { COULEUR_PRIORITE, COULEUR_STATUT, couleurPersonne, estClose, gesteVers,
 
 import { valeurExecutant } from "./champs-tache";
 import { CelluleChamp } from "./colonnes-ui";
+import { CelluleIntervenants } from "./intervenants-ui";
 import { useTaches } from "./contexte";
 import type { TacheAffichee } from "./types";
 
@@ -96,12 +97,30 @@ export function TexteEcheance({ t, aujourdhui }: { t: { echeance: string | null;
  * quand la page défile, et se ferme au clic à côté, à Échap, ou quand la
  * cellule sort de l'écran.
  */
-/** Place du menu sous son bouton, ou `null` si le bouton n'est plus à l'écran. */
-function positionSous(el: HTMLElement | null): { x: number; y: number; largeur: number } | null {
+interface Position {
+  x: number;
+  largeur: number;
+  /** Ouvert vers le bas : son haut ; vers le haut : la distance de son bas au bas de la fenêtre. */
+  haut?: number;
+  bas?: number;
+  hauteurMax: number;
+}
+
+const HAUTEUR_MENU = 288;
+
+/**
+ * Place du menu sous son bouton — ou au-dessus quand la place manque en bas
+ * de l'écran —, `null` si le bouton n'est plus à l'écran.
+ */
+function positionSous(el: HTMLElement | null, largeurMin = 176): Position | null {
   const r = el?.getBoundingClientRect();
   if (!r || r.bottom < 0 || r.top > window.innerHeight) return null;
-  const largeur = Math.max(r.width, 176);
-  return { x: Math.max(8, Math.min(r.left, window.innerWidth - largeur - 8)), y: r.bottom + 4, largeur };
+  const largeur = Math.max(r.width, largeurMin);
+  const x = Math.max(8, Math.min(r.left, window.innerWidth - largeur - 8));
+  const dessous = window.innerHeight - r.bottom - 12;
+  const dessus = r.top - 12;
+  if (dessous >= Math.min(HAUTEUR_MENU, 200) || dessous >= dessus) return { x, largeur, haut: r.bottom + 4, hauteurMax: Math.min(HAUTEUR_MENU, dessous) };
+  return { x, largeur, bas: window.innerHeight - r.top + 4, hauteurMax: Math.min(HAUTEUR_MENU, dessus) };
 }
 
 export function Deroulant({
@@ -110,14 +129,17 @@ export function Deroulant({
   desactive,
   children,
   className = "",
+  largeurMin = 176,
 }: {
   declencheur: ReactNode;
   libelle: string;
   desactive?: boolean;
   children: (fermer: () => void) => ReactNode;
   className?: string;
+  /** Largeur du menu au moins, en pixels. */
+  largeurMin?: number;
 }) {
-  const [position, setPosition] = useState<{ x: number; y: number; largeur: number } | null>(null);
+  const [position, setPosition] = useState<Position | null>(null);
   const bouton = useRef<HTMLButtonElement>(null);
   const menu = useRef<HTMLDivElement>(null);
   const fermer = () => setPosition(null);
@@ -129,7 +151,7 @@ export function Deroulant({
       if (!menu.current?.contains(e.target as Node) && !bouton.current?.contains(e.target as Node)) setPosition(null);
     };
     const clavier = (e: KeyboardEvent) => e.key === "Escape" && setPosition(null);
-    const suivre = () => setPosition(positionSous(bouton.current));
+    const suivre = () => setPosition(positionSous(bouton.current, largeurMin));
     document.addEventListener("mousedown", dehors);
     document.addEventListener("keydown", clavier);
     window.addEventListener("scroll", suivre, true);
@@ -140,7 +162,7 @@ export function Deroulant({
       window.removeEventListener("scroll", suivre, true);
       window.removeEventListener("resize", suivre);
     };
-  }, [ouvert]);
+  }, [ouvert, largeurMin]);
 
   return (
     <>
@@ -151,7 +173,7 @@ export function Deroulant({
         aria-label={libelle}
         aria-haspopup="menu"
         aria-expanded={ouvert}
-        onClick={() => (ouvert ? fermer() : setPosition(positionSous(bouton.current)))}
+        onClick={() => (ouvert ? fermer() : setPosition(positionSous(bouton.current, largeurMin)))}
         className={`block h-full w-full disabled:cursor-default ${className}`}
       >
         {declencheur}
@@ -161,8 +183,8 @@ export function Deroulant({
           <div
             ref={menu}
             role="menu"
-            className="fixed z-[55] max-h-72 overflow-y-auto rounded-xl border border-[var(--filet)] bg-[var(--surface)] p-1.5 shadow-xl"
-            style={{ left: position.x, top: position.y, width: position.largeur }}
+            className="fixed z-[55] overflow-y-auto rounded-xl border border-[var(--filet)] bg-[var(--surface)] p-1.5 shadow-xl"
+            style={{ left: position.x, top: position.haut, bottom: position.bas, width: position.largeur, maxHeight: position.hauteurMax }}
           >
             {children(fermer)}
           </div>,
@@ -346,6 +368,7 @@ const DESSINS = {
   case: <path d="M3 3h10v10H3zM5.5 8l2 2 3-4" />,
   lien: <path d="M7 9a2.5 2.5 0 0 0 3.5 0l2-2a2.5 2.5 0 0 0-3.5-3.5L8 4.5M9 7a2.5 2.5 0 0 0-3.5 0l-2 2A2.5 2.5 0 0 0 7 12.5l1-1" />,
   date: <path d="M3 5h10v8H3zM3 7.5h10M6 3v3M10 3v3" />,
+  personnes: <path d="M6 7.5a2 2 0 1 0 0-4 2 2 0 0 0 0 4ZM2.5 12.5c.5-1.8 1.8-2.8 3.5-2.8s3 1 3.5 2.8M11 7a1.7 1.7 0 1 0 0-3.4M11.5 9.7c1.2.2 2 1.1 2.3 2.6" />,
 };
 
 export type Dessin = keyof typeof DESSINS;
@@ -372,6 +395,9 @@ export function CorpsCarte({ t, compacte = false }: { t: TacheAffichee; compacte
     <div className="space-y-1">
       <LigneFiche icone="personne" libelle="Responsable">
         <CelluleResponsable t={t} />
+      </LigneFiche>
+      <LigneFiche icone="personnes" libelle="Intervenants">
+        <CelluleIntervenants t={t} />
       </LigneFiche>
       {!compacte && (
         <LigneFiche icone="etat" libelle="État">

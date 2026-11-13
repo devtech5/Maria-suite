@@ -9,11 +9,12 @@ import { lireFiltresListe } from "@/lib/recherche";
 import { creerTache } from "@/modules/taches/actions";
 import { enRetard } from "@/modules/taches/calcul";
 import { listerColonnes, valeursDe } from "@/modules/taches/colonnes-base";
+import { intervenantsActifs, intervenantsDe } from "@/modules/taches/intervenants";
 import { listerTaches, personnelActif, type VueTaches } from "@/modules/taches/requetes";
 import { lireAffichage } from "@/modules/taches/vues";
 
 import { ChampsTache } from "./champs-tache";
-import type { TacheAffichee } from "./types";
+import type { PersonnePossible, TacheAffichee } from "./types";
 import { VuesTaches } from "./vues-taches";
 
 export const metadata: Metadata = { title: "Tâches" };
@@ -37,15 +38,19 @@ export default async function PageTaches({ searchParams }: PageProps<"/taches">)
   const vue: VueTaches =
     demandee === "confiees" ? "confiees" : demandee === "toutes" && attribue ? "toutes" : "miennes";
 
-  const [taches, personnel, colonnes] = await Promise.all([
+  // Le Personnel sert au choix du responsable (qui attribue) et des intervenants (qui crée une tâche).
+  const [taches, personnel, ouvriers, colonnes] = await Promise.all([
     listerTaches(session.organizationId, session.userId, vue),
-    attribue ? personnelActif(session.organizationId) : Promise.resolve([]),
+    executer ? personnelActif(session.organizationId) : Promise.resolve([]),
+    executer ? intervenantsActifs(session.organizationId) : Promise.resolve([]),
     listerColonnes(session.organizationId),
   ]);
-  const valeurs = await valeursDe(
-    session.organizationId,
-    taches.map((t) => t.id),
-  );
+  const ids = taches.map((t) => t.id);
+  const [valeurs, intervenants] = await Promise.all([valeursDe(session.organizationId, ids), intervenantsDe(session.organizationId, ids)]);
+  const personnesPossibles: PersonnePossible[] = [
+    ...personnel.map((p) => ({ ref: `e:${p.id}`, nom: p.nom, detail: p.poste, nature: "collaborateur" as const })),
+    ...ouvriers.map((w) => ({ ref: `w:${w.id}`, nom: w.nom, detail: w.qualification, nature: "intervenant" as const })),
+  ];
 
   // Le jour se juge à Abidjan, en UTC : une échéance n'a pas d'heure.
   const maintenant = new Date();
@@ -76,6 +81,7 @@ export default async function PageTaches({ searchParams }: PageProps<"/taches">)
     compteRendu: t.compteRendu,
     motifAnnulation: t.motifAnnulation,
     valeurs: valeurs.get(t.id) ?? {},
+    intervenants: intervenants.get(t.id) ?? [],
   }));
 
   return (
@@ -86,7 +92,7 @@ export default async function PageTaches({ searchParams }: PageProps<"/taches">)
         actions={
           executer ? (
             <FormulaireRepliable libelle="Nouvelle tâche" titre={attribue ? "Nouvelle tâche, pour vous ou un membre du personnel" : "Nouvelle tâche"} action={creerTache}>
-              <ChampsTache personnel={personnel} moi={session.userId} attribue={attribue} />
+              <ChampsTache personnel={personnel} moi={session.userId} attribue={attribue} personnesPossibles={personnesPossibles} />
             </FormulaireRepliable>
           ) : undefined
         }
@@ -117,6 +123,7 @@ export default async function PageTaches({ searchParams }: PageProps<"/taches">)
         }
         taches={affichees}
         colonnes={colonnes}
+        personnesPossibles={personnesPossibles}
         perimetre={vue}
         perimetres={attribue ? ["miennes", "confiees", "toutes"] : ["miennes", "confiees"]}
         affichageInitial={lireAffichage(affichage)}

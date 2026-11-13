@@ -9,6 +9,7 @@ import { COULEUR_PRIORITE, COULEUR_STATUT } from "@/modules/taches/vues";
 
 import { ChampsTache, valeurExecutant } from "./champs-tache";
 import { CelluleChamp } from "./colonnes-ui";
+import { CelluleIntervenants } from "./intervenants-ui";
 import { useTaches } from "./contexte";
 import { Avatar, depuis, jourLong, LIBELLE_GESTE, TexteEcheance } from "./elements";
 import type { TacheAffichee } from "./types";
@@ -117,6 +118,25 @@ export function FicheTache({ tache: t, lancer }: { tache: TacheAffichee; lancer:
             <Avatar nom={t.assignee} taille={24} sansCompte={t.sansCompte} />
             {t.assigneeUserId === moi && !t.sansCompte ? "Moi" : t.assignee}
             {t.sansCompte && <span className="text-xs text-[var(--encre-faible)]">(sans compte, suivie par son auteur)</span>}
+          </span>,
+        )}
+        {ligne(
+          "Intervenants",
+          <span className="flex flex-wrap items-center gap-2">
+            {t.intervenants.map((i) => (
+              <span key={i.ref} className="inline-flex items-center gap-1.5 rounded-full bg-[var(--surface-creuse)] py-0.5 pl-0.5 pr-2.5 text-xs">
+                <Avatar nom={i.nom} taille={20} />
+                {i.nom}
+                {i.detail && <span className="text-[var(--encre-faible)]">· {i.detail}</span>}
+              </span>
+            ))}
+            {modifiable(t) ? (
+              <span className="inline-block h-8 rounded-full border border-dashed border-[var(--filet)]">
+                <CelluleIntervenants t={t} />
+              </span>
+            ) : (
+              t.intervenants.length === 0 && "—"
+            )}
           </span>,
         )}
         {t.creeParUserId !== t.assigneeUserId && ligne("Confiée par", t.creeParUserId === moi ? "Moi" : t.createur)}

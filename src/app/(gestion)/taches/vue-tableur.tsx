@@ -7,6 +7,7 @@ import { COULEUR_STATUT, estClose, regrouper, repartitionStatuts, type Regroupem
 
 import { CelluleChamp, EnTeteColonne, PiedColonne } from "./colonnes-ui";
 import { useTaches } from "./contexte";
+import { CelluleIntervenants } from "./intervenants-ui";
 import { CelluleDate, CellulePriorite, CelluleResponsable, CelluleStatut, depuis, jourCourt, TexteEcheance, titreBarre } from "./elements";
 import type { TacheAffichee } from "./types";
 
@@ -16,6 +17,7 @@ const FIGEE = "sticky left-0 z-[1] bg-[var(--surface)] shadow-[1px_0_0_var(--fil
 const COLONNES = [
   { cle: "titre", libelle: "Tâche", largeur: "min-w-[18rem]" },
   { cle: "responsable", libelle: "Responsable", largeur: "w-[8rem]" },
+  { cle: "intervenants", libelle: "Intervenants", largeur: "w-[8.5rem]" },
   { cle: "statut", libelle: "État", largeur: "w-[9.5rem]" },
   { cle: "echeance", libelle: "Échéance", largeur: "w-[8.5rem]" },
   { cle: "priorite", libelle: "Priorité", largeur: "w-[8rem]" },
@@ -62,7 +64,7 @@ export function VueTableur({ taches, regroupement }: { taches: TacheAffichee[]; 
 
           {!replie(g.cle) && (
             <div className="overflow-x-auto rounded-lg border border-[var(--filet)] bg-[var(--surface)]">
-              <table className="w-full border-collapse text-sm" style={{ minWidth: `${69 + colonnes.length * 10 + (gererColonnes ? 3 : 0)}rem` }}>
+              <table className="w-full border-collapse text-sm" style={{ minWidth: `${77.5 + colonnes.length * 10 + (gererColonnes ? 3 : 0)}rem` }}>
                 <thead>
                   <tr className="text-xs font-medium text-[var(--encre-douce)]">
                     {COLONNES.map((c, i) => (
@@ -111,6 +113,7 @@ export function VueTableur({ taches, regroupement }: { taches: TacheAffichee[]; 
                     <tr>
                       <td className="border-l-[6px] border-t border-[var(--filet)]" style={{ borderLeftColor: "transparent" }} />
                       <td className="border-t border-[var(--filet)]" />
+                      <td className="border-t border-[var(--filet)]" />
                       <td className="border-l border-t border-[var(--filet)] p-1.5">
                         <BarreRepartition taches={g.taches} />
                       </td>
@@ -148,6 +151,9 @@ function Ligne({ t, couleur }: { t: TacheAffichee; couleur: string }) {
       </td>
       <td className={cellule}>
         <CelluleResponsable t={t} />
+      </td>
+      <td className={cellule}>
+        <CelluleIntervenants t={t} />
       </td>
       <td className={cellule}>
         <CelluleStatut t={t} />

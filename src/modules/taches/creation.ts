@@ -7,6 +7,8 @@ import { newId } from "@/lib/ids";
 import { prochainNumero, type Transaction } from "@/lib/sequences";
 
 import { gestePermis, statutApres, type Acteur, type Geste, type Priorite } from "./calcul";
+import { ajouterIntervenantDans } from "./intervenants";
+import type { RefIntervenant } from "./intervenants-regles";
 import { taches } from "./schema";
 
 async function journaliser(
@@ -73,6 +75,8 @@ export interface NouvelleTache {
   /** Premier jour prévu, `AAAA-MM-JJ`. Jamais après l'échéance. */
   dateDebut?: string | null;
   executant?: Executant | null;
+  /** Ceux qui y travaillent en plus du responsable. */
+  intervenants?: RefIntervenant[];
 }
 
 /** Le début prévu ne passe pas l'échéance : la base le refuserait, on le dit en clair. */
@@ -139,7 +143,7 @@ export async function creerTacheDans(
   organizationId: string,
   donnees: NouvelleTache,
   acteur: Acteur,
-): Promise<{ id: string; numero: string; assigneeUserId: string; pourAutrui: boolean }> {
+): Promise<{ id: string; numero: string; assigneeUserId: string; pourAutrui: boolean; aPrevenir: string[] }> {
   verifierPeriode(donnees);
   const executant = await resoudreExecutant(tx, organizationId, donnees.executant, acteur);
   if (executant.pourAutrui && !acteur.attribue) {
@@ -179,7 +183,13 @@ export async function creerTacheDans(
       assigneeEmployeId: executant.assigneeEmployeId,
     });
   }
-  return { id, numero, assigneeUserId: assignee, pourAutrui: executant.pourAutrui };
+  // Les intervenants s'ajoutent dans la même transaction : une personne inconnue annule toute la création.
+  const aPrevenir: string[] = [];
+  for (const ref of donnees.intervenants ?? []) {
+    const r = await ajouterIntervenantDans(tx, organizationId, id, ref, acteur, true);
+    if (r.aPrevenir && r.aPrevenir !== assignee && !aPrevenir.includes(r.aPrevenir)) aPrevenir.push(r.aPrevenir);
+  }
+  return { id, numero, assigneeUserId: assignee, pourAutrui: executant.pourAutrui, aPrevenir };
 }
 
 async function tacheVerrouillee(tx: Transaction, organizationId: string, tacheId: string) {

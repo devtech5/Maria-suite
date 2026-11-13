@@ -1,6 +1,8 @@
 import { CLASSE_CHAMP } from "@/components/ui/primitives";
 import { LIBELLE_PRIORITE, type Priorite } from "@/modules/taches/calcul";
 
+import type { PersonnePossible } from "./types";
+
 /** Un collaborateur du Personnel, avec sa fonction. */
 export interface Salarie {
   id: string;
@@ -29,10 +31,13 @@ export function ChampsTache({
   moi,
   attribue,
   initial,
+  personnesPossibles,
 }: {
   personnel: Salarie[];
   moi: string;
   attribue: boolean;
+  /** À la création seulement : les intervenants se cochent d'emblée. Ensuite, ils se gèrent dans la cellule. */
+  personnesPossibles?: PersonnePossible[];
   initial?: {
     titre: string;
     description: string | null;
@@ -111,6 +116,31 @@ export function ChampsTache({
           <input type="hidden" name="executant" value={initial?.executant ?? ""} />
         )}
       </div>
+      {personnesPossibles && personnesPossibles.length > 0 && (
+        <fieldset>
+          <legend className={libelle}>Intervenants (facultatif) — ceux qui y travaillent avec le responsable</legend>
+          <div className="max-h-48 space-y-0.5 overflow-y-auto rounded-lg border border-[var(--filet)] p-1.5">
+            {(["collaborateur", "intervenant"] as const).map((nature) => {
+              const liste = personnesPossibles.filter((p) => p.nature === nature);
+              if (liste.length === 0) return null;
+              return (
+                <div key={nature}>
+                  <p className="px-1.5 pb-0.5 pt-1 text-[11px] font-semibold uppercase tracking-wide text-[var(--encre-faible)]">
+                    {nature === "collaborateur" ? "Collaborateurs" : "Intervenants"}
+                  </p>
+                  {liste.map((p) => (
+                    <label key={p.ref} className="flex cursor-pointer items-center gap-2 rounded-md px-1.5 py-1 text-sm hover:bg-[var(--surface-creuse)]">
+                      <input type="checkbox" name="intervenants" value={p.ref} className="size-4" />
+                      <span className="font-medium">{p.nom}</span>
+                      {p.detail && <span className="text-xs text-[var(--encre-faible)]">{p.detail}</span>}
+                    </label>
+                  ))}
+                </div>
+              );
+            })}
+          </div>
+        </fieldset>
+      )}
     </div>
   );
 }

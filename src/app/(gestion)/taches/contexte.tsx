@@ -6,14 +6,23 @@ import { useRouter } from "next/navigation";
 import { Retour, type Resultat } from "@/components/ui/operations";
 import { Fenetre } from "@/components/ui/fenetre";
 import { CLASSE_CHAMP } from "@/components/ui/primitives";
-import { agirSurTache, creerTache, definirValeur, deplacerColonne, modifierTache, supprimerColonne } from "@/modules/taches/actions";
+import {
+  agirSurTache,
+  ajouterIntervenant,
+  creerTache,
+  definirValeur,
+  deplacerColonne,
+  modifierTache,
+  retirerIntervenant,
+  supprimerColonne,
+} from "@/modules/taches/actions";
 import { gestesPossibles, type Geste, type Priorite } from "@/modules/taches/calcul";
 import { estClose } from "@/modules/taches/vues";
 
 import { valeurExecutant, type Salarie } from "./champs-tache";
 import { FormulaireColonne } from "./colonnes-ui";
 import { FicheTache } from "./fiche-tache";
-import type { ColonneAffichee, TacheAffichee } from "./types";
+import type { ColonneAffichee, PersonnePossible, TacheAffichee } from "./types";
 
 /** Ce qui se change d'un clic dans une cellule, sans ouvrir le formulaire. */
 export interface Retouche {
@@ -52,6 +61,9 @@ interface Contexte {
   composerColonne: (colonne: ColonneAffichee | null) => void;
   deplacerColonne: (colonne: ColonneAffichee, sens: -1 | 1) => void;
   retirerColonne: (colonne: ColonneAffichee) => void;
+  /** Collaborateurs et intervenants qu'on peut mettre sur une tâche. */
+  personnesPossibles: PersonnePossible[];
+  basculerIntervenant: (t: TacheAffichee, ref: string) => void;
 }
 
 const ContexteTaches = createContext<Contexte | null>(null);
@@ -77,10 +89,12 @@ export function FournisseurTaches({
   aujourdhui,
   maintenantIso,
   colonnes,
+  personnesPossibles,
   children,
 }: {
   taches: TacheAffichee[];
   colonnes: ColonneAffichee[];
+  personnesPossibles: PersonnePossible[];
   moi: string;
   attribue: boolean;
   executer: boolean;
@@ -136,7 +150,14 @@ export function FournisseurTaches({
       lancer(() => modifierTache(t.id, donnees));
     },
     colonnes,
-    peutRemplir: (t) => executer && (attribue || t.creeParUserId === moi || t.assigneeUserId === moi),
+    peutRemplir: (t) =>
+      executer && (attribue || t.creeParUserId === moi || t.assigneeUserId === moi || t.intervenants.some((i) => i.userId === moi)),
+    personnesPossibles,
+    basculerIntervenant(t, ref) {
+      if (!modifiable(t)) return;
+      const present = t.intervenants.some((i) => i.ref === ref);
+      lancer(() => (present ? retirerIntervenant(t.id, ref) : ajouterIntervenant(t.id, ref)));
+    },
     definir(t, colonne, valeur) {
       if ((t.valeurs[colonne.id] ?? null) === valeur) return;
       lancer(() => definirValeur(t.id, colonne.id, valeur));
