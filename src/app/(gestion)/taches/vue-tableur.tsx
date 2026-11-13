@@ -5,9 +5,13 @@ import { useState } from "react";
 import { LIBELLE_STATUT } from "@/modules/taches/calcul";
 import { COULEUR_STATUT, estClose, regrouper, repartitionStatuts, type Regroupement } from "@/modules/taches/vues";
 
+import { CelluleChamp, EnTeteColonne, PiedColonne } from "./colonnes-ui";
 import { useTaches } from "./contexte";
 import { CelluleDate, CellulePriorite, CelluleResponsable, CelluleStatut, depuis, jourCourt, TexteEcheance, titreBarre } from "./elements";
 import type { TacheAffichee } from "./types";
+
+/** La colonne du titre reste à gauche quand le tableau défile vers les colonnes ajoutées. */
+const FIGEE = "sticky left-0 z-[1] bg-[var(--surface)] shadow-[1px_0_0_var(--filet)]";
 
 const COLONNES = [
   { cle: "titre", libelle: "Tâche", largeur: "min-w-[18rem]" },
@@ -25,9 +29,10 @@ const COLONNES = [
  * par priorité, chacun sous son filet de couleur. Chaque cellule se change sur
  * place — l'état par ses gestes, la priorité, les dates, le responsable — et
  * le titre ouvre la fiche. Le pied de groupe montre la part de chaque état.
+ * Les colonnes personnalisées suivent, et « + » en ajoute une.
  */
 export function VueTableur({ taches, regroupement }: { taches: TacheAffichee[]; regroupement: Regroupement }) {
-  const { aujourdhui } = useTaches();
+  const { aujourdhui, colonnes, gererColonnes, composerColonne } = useTaches();
   const groupes = regrouper(taches, regroupement, aujourdhui);
   // Les groupes clos se replient d'eux-mêmes : on les ouvre quand on les cherche.
   const [replies, setReplies] = useState<Record<string, boolean>>({});
@@ -57,25 +62,43 @@ export function VueTableur({ taches, regroupement }: { taches: TacheAffichee[]; 
 
           {!replie(g.cle) && (
             <div className="overflow-x-auto rounded-lg border border-[var(--filet)] bg-[var(--surface)]">
-              <table className="w-full min-w-[69rem] border-collapse text-sm">
+              <table className="w-full border-collapse text-sm" style={{ minWidth: `${69 + colonnes.length * 10 + (gererColonnes ? 3 : 0)}rem` }}>
                 <thead>
                   <tr className="text-xs font-medium text-[var(--encre-douce)]">
                     {COLONNES.map((c, i) => (
                       <th
                         key={c.cle}
                         scope="col"
-                        className={`${c.largeur} h-9 border-b border-[var(--filet)] px-2 font-medium ${i === 0 ? "border-l-[6px] text-left" : "border-l text-center"}`}
+                        className={`${c.largeur} h-9 border-b border-[var(--filet)] px-2 font-medium ${i === 0 ? FIGEE + " border-l-[6px] text-left" : "border-l text-center"}`}
                         style={i === 0 ? { borderLeftColor: g.couleur } : undefined}
                       >
                         {c.libelle}
                       </th>
                     ))}
+                    {colonnes.map((c, rang) => (
+                      <th key={c.id} scope="col" className="h-9 w-[10rem] border-b border-l border-[var(--filet)] p-0 font-medium">
+                        <EnTeteColonne colonne={c} rang={rang} total={colonnes.length} />
+                      </th>
+                    ))}
+                    {gererColonnes && (
+                      <th scope="col" className="h-9 w-[3rem] border-b border-l border-[var(--filet)] p-0">
+                        <button
+                          type="button"
+                          onClick={() => composerColonne(null)}
+                          title="Ajouter une colonne"
+                          aria-label="Ajouter une colonne"
+                          className="grid h-9 w-full place-items-center text-lg text-[var(--encre-douce)] hover:bg-[var(--surface-creuse)]"
+                        >
+                          +
+                        </button>
+                      </th>
+                    )}
                   </tr>
                 </thead>
                 <tbody>
                   {g.taches.length === 0 ? (
                     <tr>
-                      <td colSpan={COLONNES.length} className="h-10 border-l-[6px] px-3 text-xs text-[var(--encre-faible)]" style={{ borderLeftColor: `${g.couleur}80` }}>
+                      <td colSpan={COLONNES.length + colonnes.length + (gererColonnes ? 1 : 0)} className="h-10 border-l-[6px] px-3 text-xs text-[var(--encre-faible)]" style={{ borderLeftColor: `${g.couleur}80` }}>
                         Aucune tâche dans ce groupe.
                       </td>
                     </tr>
@@ -95,6 +118,12 @@ export function VueTableur({ taches, regroupement }: { taches: TacheAffichee[]; 
                         <PlageEcheances taches={g.taches} />
                       </td>
                       <td colSpan={4} className="border-t border-[var(--filet)]" />
+                      {colonnes.map((c) => (
+                        <td key={c.id} className="border-l border-t border-[var(--filet)] px-1 py-1.5">
+                          <PiedColonne colonne={c} taches={g.taches} />
+                        </td>
+                      ))}
+                      {gererColonnes && <td className="border-l border-t border-[var(--filet)]" />}
                     </tr>
                   </tfoot>
                 )}
@@ -108,11 +137,11 @@ export function VueTableur({ taches, regroupement }: { taches: TacheAffichee[]; 
 }
 
 function Ligne({ t, couleur }: { t: TacheAffichee; couleur: string }) {
-  const { ouvrir, aujourdhui, maintenantIso } = useTaches();
+  const { ouvrir, aujourdhui, maintenantIso, colonnes, gererColonnes } = useTaches();
   const cellule = "h-10 border-l border-b border-[var(--filet)] p-0";
   return (
     <tr className="group hover:bg-[var(--surface-creuse)]/60">
-      <td className="h-10 border-b border-l-[6px] border-[var(--filet)] px-3" style={{ borderLeftColor: couleur }}>
+      <td className={`${FIGEE} h-10 border-b border-l-[6px] border-[var(--filet)] px-3`} style={{ borderLeftColor: couleur }}>
         <button type="button" onClick={() => ouvrir(t.id)} className={`block w-full truncate text-left font-medium hover:text-marque-600 hover:underline ${titreBarre(t)}`} title={t.titre}>
           {t.titre}
         </button>
@@ -138,6 +167,12 @@ function Ligne({ t, couleur }: { t: TacheAffichee; couleur: string }) {
       </td>
       <td className={`${cellule} px-2 text-center text-xs text-[var(--encre-douce)]`}>{depuis(t.majLeIso, maintenantIso)}</td>
       <td className={`${cellule} chiffres whitespace-nowrap px-2 text-center text-xs text-[var(--encre-faible)]`}>{t.numero}</td>
+      {colonnes.map((c) => (
+        <td key={c.id} className={cellule}>
+          <CelluleChamp t={t} colonne={c} />
+        </td>
+      ))}
+      {gererColonnes && <td className={cellule} />}
     </tr>
   );
 }

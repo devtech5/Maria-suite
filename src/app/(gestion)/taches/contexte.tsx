@@ -6,13 +6,14 @@ import { useRouter } from "next/navigation";
 import { Retour, type Resultat } from "@/components/ui/operations";
 import { Fenetre } from "@/components/ui/fenetre";
 import { CLASSE_CHAMP } from "@/components/ui/primitives";
-import { agirSurTache, creerTache, modifierTache } from "@/modules/taches/actions";
+import { agirSurTache, creerTache, definirValeur, deplacerColonne, modifierTache, supprimerColonne } from "@/modules/taches/actions";
 import { gestesPossibles, type Geste, type Priorite } from "@/modules/taches/calcul";
 import { estClose } from "@/modules/taches/vues";
 
 import { valeurExecutant, type Salarie } from "./champs-tache";
+import { FormulaireColonne } from "./colonnes-ui";
 import { FicheTache } from "./fiche-tache";
-import type { TacheAffichee } from "./types";
+import type { ColonneAffichee, TacheAffichee } from "./types";
 
 /** Ce qui se change d'un clic dans une cellule, sans ouvrir le formulaire. */
 export interface Retouche {
@@ -41,6 +42,16 @@ interface Contexte {
   /** Contenu, échéance et exécutant se modifient : créateur ou qui attribue, tâche ouverte. */
   modifiable: (t: TacheAffichee) => boolean;
   gestes: (t: TacheAffichee) => Geste[];
+  /** Colonnes personnalisées, de gauche à droite. */
+  colonnes: ColonneAffichee[];
+  /** Les colonnes se remplissent par l'exécutant, le créateur ou qui attribue. */
+  peutRemplir: (t: TacheAffichee) => boolean;
+  definir: (t: TacheAffichee, colonne: ColonneAffichee, valeur: string | null) => void;
+  /** Composer les colonnes : qui attribue. */
+  gererColonnes: boolean;
+  composerColonne: (colonne: ColonneAffichee | null) => void;
+  deplacerColonne: (colonne: ColonneAffichee, sens: -1 | 1) => void;
+  retirerColonne: (colonne: ColonneAffichee) => void;
 }
 
 const ContexteTaches = createContext<Contexte | null>(null);
@@ -65,9 +76,11 @@ export function FournisseurTaches({
   personnel,
   aujourdhui,
   maintenantIso,
+  colonnes,
   children,
 }: {
   taches: TacheAffichee[];
+  colonnes: ColonneAffichee[];
   moi: string;
   attribue: boolean;
   executer: boolean;
@@ -79,6 +92,8 @@ export function FournisseurTaches({
   const [ouverteId, setOuverteId] = useState<string | null>(null);
   const [saisie, setSaisie] = useState<{ tache: TacheAffichee; geste: "terminer" | "annuler"; texte: string } | null>(null);
   const [resultat, setResultat] = useState<Resultat | null>(null);
+  // `null` : pas de fenêtre ; « nouvelle » : création ; sinon la colonne qu'on règle.
+  const [composee, setComposee] = useState<ColonneAffichee | "nouvelle" | null>(null);
   const [enCours, demarrer] = useTransition();
   const routeur = useRouter();
 
@@ -120,6 +135,19 @@ export function FournisseurTaches({
       donnees.set("executant", r.executant ?? valeurExecutant(t, moi));
       lancer(() => modifierTache(t.id, donnees));
     },
+    colonnes,
+    peutRemplir: (t) => executer && (attribue || t.creeParUserId === moi || t.assigneeUserId === moi),
+    definir(t, colonne, valeur) {
+      if ((t.valeurs[colonne.id] ?? null) === valeur) return;
+      lancer(() => definirValeur(t.id, colonne.id, valeur));
+    },
+    gererColonnes: attribue,
+    composerColonne: (c) => setComposee(c ?? "nouvelle"),
+    deplacerColonne: (c, sens) => lancer(() => deplacerColonne(c.id, sens)),
+    retirerColonne(c) {
+      if (!window.confirm(`Retirer la colonne « ${c.libelle} » ? Elle disparaît du tableau pour toute l'équipe ; ses valeurs restent au journal.`)) return;
+      lancer(() => supprimerColonne(c.id));
+    },
     creerRapide(titre) {
       const donnees = new FormData();
       donnees.set("titre", titre);
@@ -141,6 +169,23 @@ export function FournisseurTaches({
 
       <Fenetre ouverte={ouverte !== null} titre={ouverte ? ouverte.titre : "Tâche"} sousTitre={ouverte?.numero} presentation="ample" onFermer={() => setOuverteId(null)}>
         {ouverte && <FicheTache key={ouverte.id} tache={ouverte} lancer={lancer} />}
+      </Fenetre>
+
+      <Fenetre
+        ouverte={composee !== null}
+        titre={composee === "nouvelle" ? "Nouvelle colonne" : composee ? `Colonne « ${composee.libelle} »` : "Colonne"}
+        sousTitre="Commune à tout le tableau des tâches de l'entreprise."
+        presentation="ample"
+        onFermer={() => setComposee(null)}
+      >
+        {composee !== null && (
+          <FormulaireColonne
+            key={composee === "nouvelle" ? "nouvelle" : composee.id}
+            colonne={composee === "nouvelle" ? null : composee}
+            lancer={lancer}
+            fermer={() => setComposee(null)}
+          />
+        )}
       </Fenetre>
 
       <Fenetre

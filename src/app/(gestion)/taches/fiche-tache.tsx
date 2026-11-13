@@ -8,6 +8,7 @@ import { LIBELLE_PRIORITE, LIBELLE_STATUT } from "@/modules/taches/calcul";
 import { COULEUR_PRIORITE, COULEUR_STATUT } from "@/modules/taches/vues";
 
 import { ChampsTache, valeurExecutant } from "./champs-tache";
+import { CelluleChamp } from "./colonnes-ui";
 import { useTaches } from "./contexte";
 import { Avatar, depuis, jourLong, LIBELLE_GESTE, TexteEcheance } from "./elements";
 import type { TacheAffichee } from "./types";
@@ -19,7 +20,7 @@ const MOMENT = new Intl.DateTimeFormat("fr-FR", { day: "numeric", month: "long",
  * sait d'elle, ses gestes, et le formulaire pour la modifier ou la réattribuer.
  */
 export function FicheTache({ tache: t, lancer }: { tache: TacheAffichee; lancer: (action: () => Promise<Resultat>, apres?: () => void) => void }) {
-  const { moi, attribue, personnel, aujourdhui, maintenantIso, enCours, gestes, geste, modifiable } = useTaches();
+  const { moi, attribue, personnel, aujourdhui, maintenantIso, enCours, gestes, geste, modifiable, colonnes } = useTaches();
   const [edition, setEdition] = useState(false);
   const possibles = gestes(t);
 
@@ -59,8 +60,8 @@ export function FicheTache({ tache: t, lancer }: { tache: TacheAffichee; lancer:
     );
   }
 
-  const ligne = (libelle: string, valeur: ReactNode) => (
-    <div className="grid grid-cols-[9rem_minmax(0,1fr)] gap-3 border-b border-[var(--filet)] py-2.5 text-sm last:border-0">
+  const ligne = (libelle: string, valeur: ReactNode, cle?: string) => (
+    <div key={cle ?? libelle} className="grid grid-cols-[9rem_minmax(0,1fr)] gap-3 border-b border-[var(--filet)] py-2.5 text-sm last:border-0">
       <dt className="text-[var(--encre-faible)]">{libelle}</dt>
       <dd className="min-w-0">{valeur}</dd>
     </div>
@@ -143,6 +144,15 @@ export function FicheTache({ tache: t, lancer }: { tache: TacheAffichee; lancer:
             </>,
           )}
         {t.statut === "annulee" && t.motifAnnulation && ligne("Motif d'annulation", <span className="text-danger-600">{t.motifAnnulation}</span>)}
+        {colonnes.map((c) =>
+          ligne(
+            c.libelle,
+            <span className="flex h-9 max-w-[18rem] items-stretch overflow-hidden rounded bg-[var(--surface-creuse)]">
+              <CelluleChamp t={t} colonne={c} />
+            </span>,
+            c.id,
+          ),
+        )}
       </dl>
     </div>
   );

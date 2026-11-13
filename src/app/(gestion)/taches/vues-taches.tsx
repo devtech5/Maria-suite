@@ -17,7 +17,7 @@ import {
 
 import type { Salarie } from "./champs-tache";
 import { FournisseurTaches, useTaches } from "./contexte";
-import type { TacheAffichee } from "./types";
+import type { ColonneAffichee, TacheAffichee } from "./types";
 import { VueCalendrier } from "./vue-calendrier";
 import { VueFiches, VueKanban } from "./vue-cartes";
 import { VueFrise } from "./vue-frise";
@@ -71,6 +71,8 @@ export function VuesTaches({
   taches: TacheAffichee[];
   /** Ce qui s'affiche quand le périmètre n'a aucune tâche. */
   vide: ReactNode;
+  /** Colonnes personnalisées du tableau. */
+  colonnes: ColonneAffichee[];
   perimetre: Perimetre;
   /** Les périmètres permis : « Toute l'équipe » demande le droit d'attribuer. */
   perimetres: Perimetre[];
@@ -95,7 +97,7 @@ export function VuesTaches({
   const filtre = recherche.trim() !== "" || !!periode.du || !!periode.au || masquerCloses;
   const visibles = taches.filter(
     (t) =>
-      correspond(recherche, [t.titre, t.numero, t.description, t.assignee, t.createur]) &&
+      correspond(recherche, [t.titre, t.numero, t.description, t.assignee, t.createur, ...texteDesColonnes(t, partage.colonnes)]) &&
       dansPeriode(t.echeance, periode) &&
       !(masquerCloses && estClose(t.statut)),
   );
@@ -157,6 +159,7 @@ export function VuesTaches({
 
       <div className="mb-4 flex flex-wrap items-center gap-2">
         <AjoutRapide />
+        <BoutonColonne />
         <input
           value={recherche}
           onChange={(e) => setRecherche(e.target.value)}
@@ -249,5 +252,30 @@ function AjoutRapide() {
         Ajouter
       </button>
     </form>
+  );
+}
+
+/** Ce qu'une recherche trouve dans les colonnes personnalisées : le texte, le lien, le nom de l'étiquette. */
+function texteDesColonnes(t: TacheAffichee, colonnes: ColonneAffichee[]): string[] {
+  return colonnes.flatMap((c) => {
+    const v = t.valeurs[c.id];
+    if (!v) return [];
+    if (c.type === "etiquette") return c.options.etiquettes?.filter((e) => e.cle === v).map((e) => e.libelle) ?? [];
+    return c.type === "texte" || c.type === "lien" || c.type === "nombre" ? [v] : [];
+  });
+}
+
+/** « + Colonne » : la même fenêtre que le « + » du tableur, offerte dans toutes les vues. */
+function BoutonColonne() {
+  const { gererColonnes, composerColonne } = useTaches();
+  if (!gererColonnes) return null;
+  return (
+    <button
+      type="button"
+      onClick={() => composerColonne(null)}
+      className="h-9 rounded-lg border border-[var(--filet)] px-3 text-sm font-medium text-[var(--encre-douce)] hover:bg-[var(--surface-creuse)]"
+    >
+      + Colonne
+    </button>
   );
 }

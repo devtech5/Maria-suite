@@ -7,6 +7,7 @@ import { joursAvantEcheance, LIBELLE_PRIORITE, LIBELLE_STATUT, type Geste, type 
 import { COULEUR_PRIORITE, COULEUR_STATUT, couleurPersonne, estClose, gesteVers, initiales } from "@/modules/taches/vues";
 
 import { valeurExecutant } from "./champs-tache";
+import { CelluleChamp } from "./colonnes-ui";
 import { useTaches } from "./contexte";
 import type { TacheAffichee } from "./types";
 
@@ -340,13 +341,20 @@ const DESSINS = {
   drapeau: <path d="M4 14V3M4 3h7l-1.5 2.5L11 8H4" />,
   texte: <path d="M4 4h8M8 4v9" />,
   horloge: <path d="M8 14A6 6 0 1 0 8 2a6 6 0 0 0 0 12ZM8 5v3l2 1.5" />,
+  nombre: <path d="M6 3 5 13M11 3l-1 10M3 6h10M3 10h10" />,
+  etiquette: <path d="M3 3h5l5 5-5 5-5-5zM5.5 5.5h.01" />,
+  case: <path d="M3 3h10v10H3zM5.5 8l2 2 3-4" />,
+  lien: <path d="M7 9a2.5 2.5 0 0 0 3.5 0l2-2a2.5 2.5 0 0 0-3.5-3.5L8 4.5M9 7a2.5 2.5 0 0 0-3.5 0l-2 2A2.5 2.5 0 0 0 7 12.5l1-1" />,
+  date: <path d="M3 5h10v8H3zM3 7.5h10M6 3v3M10 3v3" />,
 };
 
+export type Dessin = keyof typeof DESSINS;
+
 /** Ligne « icône · libellé · valeur » des fiches et des cartes du Kanban. */
-export function LigneFiche({ icone, libelle, children }: { icone: keyof typeof DESSINS; libelle: string; children: ReactNode }) {
+export function LigneFiche({ icone, libelle, children }: { icone: Dessin; libelle: string; children: ReactNode }) {
   return (
     <div className="grid grid-cols-[6.5rem_minmax(0,1fr)] items-stretch gap-1 text-[13px]">
-      <span className="flex items-center gap-1.5 truncate text-[var(--encre-douce)]">
+      <span className="flex items-center gap-1.5 truncate text-[var(--encre-douce)]" title={libelle}>
         <svg viewBox="0 0 16 16" className="size-3.5 shrink-0 text-[var(--encre-faible)]" fill="none" stroke="currentColor" strokeWidth="1.3" strokeLinecap="round" strokeLinejoin="round" aria-hidden>
           {DESSINS[icone]}
         </svg>
@@ -359,7 +367,7 @@ export function LigneFiche({ icone, libelle, children }: { icone: keyof typeof D
 
 /** Le contenu d'une carte : celui des Fiches, plus serré dans le Kanban. */
 export function CorpsCarte({ t, compacte = false }: { t: TacheAffichee; compacte?: boolean }) {
-  const { aujourdhui, maintenantIso } = useTaches();
+  const { aujourdhui, maintenantIso, colonnes } = useTaches();
   return (
     <div className="space-y-1">
       <LigneFiche icone="personne" libelle="Responsable">
@@ -383,6 +391,11 @@ export function CorpsCarte({ t, compacte = false }: { t: TacheAffichee; compacte
           {t.description || "—"}
         </span>
       </LigneFiche>
+      {colonnes.map((c) => (
+        <LigneFiche key={c.id} icone={c.type === "texte" ? "texte" : c.type} libelle={c.libelle}>
+          <CelluleChamp t={t} colonne={c} />
+        </LigneFiche>
+      ))}
       <LigneFiche icone="horloge" libelle="Mise à jour">
         <span className="truncate px-2 text-[var(--encre-douce)]">{depuis(t.majLeIso, maintenantIso)}</span>
       </LigneFiche>

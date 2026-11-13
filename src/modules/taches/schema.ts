@@ -1,9 +1,11 @@
 import { sql } from "drizzle-orm";
-import { check, date, index, pgEnum, pgTable, text, timestamp, unique, uuid } from "drizzle-orm/pg-core";
+import { check, date, index, integer, jsonb, pgEnum, pgTable, text, timestamp, unique, uuid } from "drizzle-orm/pg-core";
 
 import { primaryId, rowVersion, timestamps } from "@/db/schema/_shared";
 import { organizations } from "@/db/schema/tenancy";
 import { employees } from "@/modules/personnes/schema";
+
+import type { OptionsColonne } from "./colonnes";
 
 /**
  * Tâches.
@@ -75,3 +77,66 @@ export const taches = pgTable(
 export type Tache = typeof taches.$inferSelect;
 export type StatutTache = Tache["statut"];
 export type PrioriteTache = Tache["priorite"];
+
+/**
+ * Colonnes personnalisées du tableau des tâches, communes à toute
+ * l'entreprise : « Client », « Montant du devis », « Chantier », « Validé »…
+ *
+ * Le type ne change plus après la création : une valeur saisie comme nombre
+ * ne se relit pas comme une étiquette. Retirer une colonne est logique — ses
+ * valeurs restent en base, et la trace avec elles.
+ */
+export const tachesColonnes = pgTable(
+  "taches_colonnes",
+  {
+    id: primaryId(),
+    organizationId: uuid("organization_id")
+      .notNull()
+      .references(() => organizations.id, { onDelete: "cascade" }),
+    libelle: text("libelle").notNull(),
+    /** `texte`, `nombre`, `date`, `etiquette`, `case`, `lien` (`TYPES_COLONNE`). */
+    type: text("type").notNull(),
+    /** Étiquettes et leurs couleurs, unité d'un nombre. */
+    options: jsonb("options").$type<OptionsColonne>().notNull().default({}),
+    /** Ordre d'affichage, de gauche à droite. */
+    rang: integer("rang").notNull().default(0),
+    creeParUserId: uuid("cree_par_user_id"),
+    ...timestamps,
+    ...rowVersion,
+  },
+  (t) => [
+    check("taches_colonnes_type", sql`${t.type} IN ('texte', 'nombre', 'date', 'etiquette', 'case', 'lien')`),
+    index("taches_colonnes_rang").on(t.organizationId, t.rang),
+  ],
+);
+
+/**
+ * La valeur d'une colonne pour une tâche, en texte normalisé par
+ * `normaliserValeur` : un nombre est un entier écrit en chiffres, une date
+ * un jour ISO, une étiquette sa clé, une case « 1 ». Nulle : vidée.
+ */
+export const tachesValeurs = pgTable(
+  "taches_valeurs",
+  {
+    id: primaryId(),
+    organizationId: uuid("organization_id")
+      .notNull()
+      .references(() => organizations.id, { onDelete: "cascade" }),
+    tacheId: uuid("tache_id")
+      .notNull()
+      .references(() => taches.id, { onDelete: "cascade" }),
+    colonneId: uuid("colonne_id")
+      .notNull()
+      .references(() => tachesColonnes.id, { onDelete: "cascade" }),
+    valeur: text("valeur"),
+    modifieParUserId: uuid("modifie_par_user_id"),
+    ...timestamps,
+    ...rowVersion,
+  },
+  (t) => [
+    unique("taches_valeurs_unique").on(t.tacheId, t.colonneId),
+    index("taches_valeurs_org").on(t.organizationId, t.colonneId),
+  ],
+);
+
+export type ColonneTache = typeof tachesColonnes.$inferSelect;

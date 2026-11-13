@@ -8,6 +8,7 @@ import { fmtEntier } from "@/lib/format";
 import { lireFiltresListe } from "@/lib/recherche";
 import { creerTache } from "@/modules/taches/actions";
 import { enRetard } from "@/modules/taches/calcul";
+import { listerColonnes, valeursDe } from "@/modules/taches/colonnes-base";
 import { listerTaches, personnelActif, type VueTaches } from "@/modules/taches/requetes";
 import { lireAffichage } from "@/modules/taches/vues";
 
@@ -36,10 +37,15 @@ export default async function PageTaches({ searchParams }: PageProps<"/taches">)
   const vue: VueTaches =
     demandee === "confiees" ? "confiees" : demandee === "toutes" && attribue ? "toutes" : "miennes";
 
-  const [taches, personnel] = await Promise.all([
+  const [taches, personnel, colonnes] = await Promise.all([
     listerTaches(session.organizationId, session.userId, vue),
     attribue ? personnelActif(session.organizationId) : Promise.resolve([]),
+    listerColonnes(session.organizationId),
   ]);
+  const valeurs = await valeursDe(
+    session.organizationId,
+    taches.map((t) => t.id),
+  );
 
   // Le jour se juge à Abidjan, en UTC : une échéance n'a pas d'heure.
   const maintenant = new Date();
@@ -69,6 +75,7 @@ export default async function PageTaches({ searchParams }: PageProps<"/taches">)
     terminateur: t.terminateur,
     compteRendu: t.compteRendu,
     motifAnnulation: t.motifAnnulation,
+    valeurs: valeurs.get(t.id) ?? {},
   }));
 
   return (
@@ -109,6 +116,7 @@ export default async function PageTaches({ searchParams }: PageProps<"/taches">)
           />
         }
         taches={affichees}
+        colonnes={colonnes}
         perimetre={vue}
         perimetres={attribue ? ["miennes", "confiees", "toutes"] : ["miennes", "confiees"]}
         affichageInitial={lireAffichage(affichage)}

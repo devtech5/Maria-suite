@@ -8,6 +8,8 @@ import { exigerEntreprise } from "@/lib/auth/dal";
 import { peut, refusDroit } from "@/lib/droits/garde";
 
 import type { Acteur, Geste } from "./calcul";
+import { TYPES_COLONNE } from "./colonnes";
+import { creerColonneDans, definirValeurDans, deplacerColonneDans, modifierColonneDans, supprimerColonneDans } from "./colonnes-base";
 import { appliquerGesteDans, creerTacheDans, modifierTacheDans, type Executant } from "./creation";
 import { notifier } from "@/modules/communication/notifications";
 
@@ -135,6 +137,102 @@ export async function agirSurTache(tacheId: string, geste: Geste, texteLibre?: s
     );
     rafraichir();
     return { ok: true, message: MESSAGES[geste](numero) };
+  } catch (erreur) {
+    return { ok: false, message: lisible(erreur) };
+  }
+}
+
+// ------------------------------------------------------------ colonnes personnalisées
+
+const schemaOptions = z
+  .object({
+    unite: z.string().max(40).optional(),
+    etiquettes: z
+      .array(z.object({ cle: z.string().max(10), libelle: z.string().max(200), couleur: z.string().max(10) }))
+      .max(50)
+      .optional(),
+  })
+  .optional();
+
+const schemaNouvelleColonne = z.object({
+  libelle: z.string().max(200),
+  type: z.enum(TYPES_COLONNE),
+  options: schemaOptions,
+});
+
+/** Les colonnes sont celles de toute l'entreprise : seul qui attribue les compose. */
+async function gestionnaire(): Promise<{ organizationId: string; userId: string } | { refus: string }> {
+  const refus = await refusDroit("taches.attribuer");
+  if (refus) return { refus: refus.erreur };
+  const session = await exigerEntreprise();
+  return { organizationId: session.organizationId, userId: session.userId };
+}
+
+export async function creerColonne(saisie: z.input<typeof schemaNouvelleColonne>): Promise<Resultat> {
+  const qui = await gestionnaire();
+  if ("refus" in qui) return { ok: false, message: qui.refus };
+  const analyse = schemaNouvelleColonne.safeParse(saisie);
+  if (!analyse.success) return { ok: false, message: "Colonne invalide." };
+  try {
+    await db.transaction((tx) => creerColonneDans(tx, qui.organizationId, analyse.data, qui.userId));
+    rafraichir();
+    return { ok: true, message: `Colonne « ${analyse.data.libelle.trim()} » ajoutée.` };
+  } catch (erreur) {
+    return { ok: false, message: lisible(erreur) };
+  }
+}
+
+export async function modifierColonne(colonneId: string, saisie: { libelle: string; options?: z.input<typeof schemaOptions> }): Promise<Resultat> {
+  const qui = await gestionnaire();
+  if ("refus" in qui) return { ok: false, message: qui.refus };
+  const analyse = z.object({ libelle: z.string().max(200), options: schemaOptions }).safeParse(saisie);
+  if (!UUID.test(colonneId) || !analyse.success) return { ok: false, message: "Colonne invalide." };
+  try {
+    await db.transaction((tx) => modifierColonneDans(tx, qui.organizationId, colonneId, analyse.data, qui.userId));
+    rafraichir();
+    return { ok: true, message: "Colonne enregistrée." };
+  } catch (erreur) {
+    return { ok: false, message: lisible(erreur) };
+  }
+}
+
+export async function supprimerColonne(colonneId: string): Promise<Resultat> {
+  const qui = await gestionnaire();
+  if ("refus" in qui) return { ok: false, message: qui.refus };
+  if (!UUID.test(colonneId)) return { ok: false, message: "Colonne invalide." };
+  try {
+    const { libelle } = await db.transaction((tx) => supprimerColonneDans(tx, qui.organizationId, colonneId, qui.userId));
+    rafraichir();
+    return { ok: true, message: `Colonne « ${libelle} » retirée.` };
+  } catch (erreur) {
+    return { ok: false, message: lisible(erreur) };
+  }
+}
+
+export async function deplacerColonne(colonneId: string, sens: -1 | 1): Promise<Resultat> {
+  const qui = await gestionnaire();
+  if ("refus" in qui) return { ok: false, message: qui.refus };
+  if (!UUID.test(colonneId) || (sens !== -1 && sens !== 1)) return { ok: false, message: "Colonne invalide." };
+  try {
+    await db.transaction((tx) => deplacerColonneDans(tx, qui.organizationId, colonneId, sens, qui.userId));
+    rafraichir();
+    return { ok: true, message: "Colonne déplacée." };
+  } catch (erreur) {
+    return { ok: false, message: lisible(erreur) };
+  }
+}
+
+export async function definirValeur(tacheId: string, colonneId: string, valeur: string | null): Promise<Resultat> {
+  const refus = await refusDroit("taches.executer");
+  if (refus) return { ok: false, message: refus.erreur };
+  if (!UUID.test(tacheId) || !UUID.test(colonneId) || (valeur !== null && (typeof valeur !== "string" || valeur.length > 2000))) {
+    return { ok: false, message: "Valeur invalide." };
+  }
+  const { organizationId, acteur: qui } = await acteur();
+  try {
+    const { numero, libelle } = await db.transaction((tx) => definirValeurDans(tx, organizationId, tacheId, colonneId, valeur, qui));
+    rafraichir();
+    return { ok: true, message: `${numero} : ${libelle} enregistré.` };
   } catch (erreur) {
     return { ok: false, message: lisible(erreur) };
   }
