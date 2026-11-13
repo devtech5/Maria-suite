@@ -8,6 +8,7 @@ import { newId } from "@/lib/ids";
 import { prochainNumero, type Transaction } from "@/lib/sequences";
 import { jourLocal } from "@/modules/presences/calcul";
 
+import { bornerTaille, estPoliceCourrier, POLICE_PAR_DEFAUT, TAILLE_PAR_DEFAUT, type PoliceCourrier } from "./courriers-calcul";
 import { courriers, type Courrier } from "./schema";
 
 /** Ce que la personne saisit. Le numéro, lui, ne se saisit jamais. */
@@ -20,10 +21,16 @@ export interface SaisieCourrier {
   corps: string;
   signataire: string;
   fonction: string | null;
+  /** Absente : la police de la charte à la création, inchangée à la correction. */
+  police?: PoliceCourrier;
+  /** Taille du corps en centièmes de point. Même règle que la police. */
+  taillePolice?: number;
 }
 
 function nettoyer(saisie: SaisieCourrier) {
   return {
+    ...(saisie.police !== undefined && { police: saisie.police }),
+    ...(saisie.taillePolice !== undefined && { taillePolice: bornerTaille(saisie.taillePolice) }),
     lieu: saisie.lieu.trim(),
     dateCourrier: saisie.dateCourrier,
     destinataire: saisie.destinataire?.trim() || null,
@@ -213,7 +220,8 @@ export async function courrierDe(organizationId: string, courrierId: string): Pr
 
 /**
  * Valeurs proposées pour un nouveau courrier : la ville de l'entreprise, le
- * jour, et le signataire du dernier courrier — c'est presque toujours le même.
+ * jour, et le signataire, la police et la taille du dernier courrier — c'est
+ * presque toujours les mêmes.
  */
 export async function brouillonCourrier(organizationId: string): Promise<SaisieCourrier> {
   const [[o], [dernier]] = await Promise.all([
@@ -222,7 +230,13 @@ export async function brouillonCourrier(organizationId: string): Promise<SaisieC
       .from(organizations)
       .where(eq(organizations.id, organizationId)),
     db
-      .select({ signataire: courriers.signataire, fonction: courriers.fonction, lieu: courriers.lieu })
+      .select({
+        signataire: courriers.signataire,
+        fonction: courriers.fonction,
+        lieu: courriers.lieu,
+        police: courriers.police,
+        taillePolice: courriers.taillePolice,
+      })
       .from(courriers)
       .where(and(eq(courriers.organizationId, organizationId), isNull(courriers.deletedAt)))
       .orderBy(desc(courriers.createdAt))
@@ -236,5 +250,7 @@ export async function brouillonCourrier(organizationId: string): Promise<SaisieC
     corps: "",
     signataire: dernier?.signataire ?? "",
     fonction: dernier?.fonction ?? null,
+    police: estPoliceCourrier(dernier?.police) ? dernier.police : POLICE_PAR_DEFAUT,
+    taillePolice: dernier?.taillePolice ?? TAILLE_PAR_DEFAUT,
   };
 }

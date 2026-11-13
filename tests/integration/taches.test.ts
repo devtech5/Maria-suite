@@ -101,3 +101,31 @@ describe("tâches confiées au Personnel", () => {
     ).rejects.toThrow(/attribuer/);
   });
 });
+
+describe("période d'une tâche", () => {
+  it("garde le début prévu, le rend à la liste, et le modifie", async () => {
+    const { id } = await db.transaction((tx) =>
+      creerTacheDans(tx, org, { titre: "Inventaire du dépôt", priorite: "haute", dateDebut: "2026-11-02", echeance: "2026-11-06" }, acteur()),
+    );
+    const [lue] = (await listerTaches(org, chef, "miennes")).filter((t) => t.id === id);
+    expect(lue).toMatchObject({ dateDebut: "2026-11-02", echeance: "2026-11-06" });
+    expect(lue.majLe).toBeInstanceOf(Date);
+
+    await db.transaction((tx) =>
+      modifierTacheDans(tx, org, id, { titre: "Inventaire du dépôt", priorite: "haute", dateDebut: "2026-11-09", echeance: "2026-11-13" }, acteur()),
+    );
+    const [ligne] = await db.select().from(taches).where(eq(taches.id, id));
+    expect(ligne).toMatchObject({ dateDebut: "2026-11-09", echeance: "2026-11-13" });
+  });
+
+  it("refuse un début après l'échéance, en clair et en base", async () => {
+    await expect(
+      db.transaction((tx) =>
+        creerTacheDans(tx, org, { titre: "À l'envers", priorite: "normale", dateDebut: "2026-11-10", echeance: "2026-11-01" }, acteur()),
+      ),
+    ).rejects.toThrow("Le début prévu doit précéder l'échéance.");
+
+    const { id } = await db.transaction((tx) => creerTacheDans(tx, org, { titre: "Sans dates", priorite: "normale" }, acteur()));
+    await expect(db.update(taches).set({ dateDebut: "2026-11-10", echeance: "2026-11-01" }).where(eq(taches.id, id))).rejects.toThrow();
+  });
+});

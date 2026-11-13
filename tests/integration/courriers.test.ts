@@ -4,6 +4,7 @@ import { afterAll, beforeAll, describe, expect, it } from "vitest";
 import type { db as Db } from "@/db";
 import { auditLogs } from "@/db/schema";
 import {
+  brouillonCourrier,
   courrierDe,
   creerCourrierDans,
   listerCourriers,
@@ -86,5 +87,25 @@ describe("courriers", () => {
     expect(await courrierDe(autre, id)).toBeNull();
     expect(await db.transaction((tx) => supprimerCourrierDans(tx, autre, id))).toBe(false);
     expect(await courrierDe(org, id)).not.toBeNull();
+  });
+
+  it("garde police et taille, et les propose au courrier suivant", async () => {
+    const { id } = await db.transaction((tx) => creerCourrierDans(tx, org, saisie, user));
+    expect(await courrierDe(org, id)).toMatchObject({ police: "montserrat", taillePolice: 865 });
+
+    await db.transaction((tx) => modifierCourrierDans(tx, org, id, { ...saisie, police: "times", taillePolice: 1150 }, user));
+    expect(await courrierDe(org, id)).toMatchObject({ police: "times", taillePolice: 1150 });
+
+    // Une correction qui ne dit rien de la police ne la remet pas à la charte.
+    await db.transaction((tx) => modifierCourrierDans(tx, org, id, { ...saisie, objet: "Autre objet" }, user));
+    expect(await courrierDe(org, id)).toMatchObject({ police: "times", taillePolice: 1150 });
+
+    expect(await brouillonCourrier(org)).toMatchObject({ police: "times", taillePolice: 1150 });
+  });
+
+  it("refuse une police ou une taille hors liste, en base", async () => {
+    const { id } = await db.transaction((tx) => creerCourrierDans(tx, org, saisie, user));
+    await expect(db.update(courriers).set({ police: "comic" }).where(eq(courriers.id, id))).rejects.toThrow();
+    await expect(db.update(courriers).set({ taillePolice: 5000 }).where(eq(courriers.id, id))).rejects.toThrow();
   });
 });

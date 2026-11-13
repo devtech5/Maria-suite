@@ -40,6 +40,8 @@ export const taches = pgTable(
     statut: statutTache("statut").notNull().default("a_faire"),
     /** Date limite, sans heure : « pour vendredi ». */
     echeance: date("echeance"),
+    /** Premier jour prévu, sans heure : la barre du Gantt part de là. Facultatif. */
+    dateDebut: date("date_debut"),
 
     creeParUserId: uuid("cree_par_user_id").notNull(),
     /** Qui la fait avancer dans l'application. Égal au créateur pour une tâche personnelle. */
@@ -64,6 +66,7 @@ export const taches = pgTable(
     unique("taches_numero_unique").on(t.organizationId, t.numero),
     check("taches_terminee_datee", sql`${t.statut} <> 'terminee' OR ${t.termineeLe} IS NOT NULL`),
     check("taches_annulation_motivee", sql`${t.statut} <> 'annulee' OR ${t.motifAnnulation} IS NOT NULL`),
+    check("taches_debut_avant_echeance", sql`${t.dateDebut} IS NULL OR ${t.echeance} IS NULL OR ${t.dateDebut} <= ${t.echeance}`),
     index("taches_assignee_idx").on(t.organizationId, t.assigneeUserId, t.statut),
     index("taches_createur_idx").on(t.organizationId, t.creeParUserId),
   ],

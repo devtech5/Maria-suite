@@ -1,5 +1,4 @@
 import type { Metadata } from "next";
-import Link from "next/link";
 
 import { FormulaireRepliable } from "@/components/ui/operations";
 import { CarteIndicateur, EnTetePage, EtatVide } from "@/components/ui/primitives";
@@ -10,30 +9,28 @@ import { lireFiltresListe } from "@/lib/recherche";
 import { creerTache } from "@/modules/taches/actions";
 import { enRetard } from "@/modules/taches/calcul";
 import { listerTaches, personnelActif, type VueTaches } from "@/modules/taches/requetes";
+import { lireAffichage } from "@/modules/taches/vues";
 
 import { ChampsTache } from "./champs-tache";
-import { ListeTaches, type TacheAffichee } from "./liste-taches";
+import type { TacheAffichee } from "./types";
+import { VuesTaches } from "./vues-taches";
 
 export const metadata: Metadata = { title: "Tâches" };
-
-const ONGLETS: { vue: VueTaches; libelle: string }[] = [
-  { vue: "miennes", libelle: "Mes tâches" },
-  { vue: "confiees", libelle: "Confiées à d'autres" },
-  { vue: "toutes", libelle: "Toute l'équipe" },
-];
 
 /**
  * Tâches.
  *
  * Chacun tient sa liste et l'exécute. Qui porte le droit d'attribuer confie
  * des tâches aux autres, les réattribue et voit celles de toute l'équipe.
+ * Six affichages des mêmes tâches : Tableur, Fiches, Calendrier, Kanban,
+ * Gantt, Échéancier (`?affichage=`).
  */
 export default async function PageTaches({ searchParams }: PageProps<"/taches">) {
   const session = await exigerEntreprise();
   const [executer, attribue] = await Promise.all([peut("taches.executer"), peut("taches.attribuer")]);
 
   const parametres = await searchParams;
-  const { vue: demandee } = parametres;
+  const { vue: demandee, affichage } = parametres;
   // `?q=` arrive de la recherche globale ; la liste filtre ensuite sur place.
   const filtres = lireFiltresListe(parametres);
   const vue: VueTaches =
@@ -45,7 +42,8 @@ export default async function PageTaches({ searchParams }: PageProps<"/taches">)
   ]);
 
   // Le jour se juge à Abidjan, en UTC : une échéance n'a pas d'heure.
-  const aujourdhui = new Date().toISOString().slice(0, 10);
+  const maintenant = new Date();
+  const aujourdhui = maintenant.toISOString().slice(0, 10);
   const ouvertes = taches.filter((t) => t.statut === "a_faire" || t.statut === "en_cours");
   const retard = ouvertes.filter((t) => enRetard(t.echeance, t.statut, aujourdhui)).length;
   const terminees = taches.filter((t) => t.statut === "terminee").length;
@@ -58,6 +56,7 @@ export default async function PageTaches({ searchParams }: PageProps<"/taches">)
     priorite: t.priorite,
     statut: t.statut,
     echeance: t.echeance,
+    dateDebut: t.dateDebut,
     creeParUserId: t.creeParUserId,
     createur: t.createur,
     assigneeUserId: t.assigneeUserId,
@@ -65,6 +64,7 @@ export default async function PageTaches({ searchParams }: PageProps<"/taches">)
     assignee: t.assignee,
     sansCompte: t.sansCompte,
     creeLeIso: t.creeLe.toISOString(),
+    majLeIso: t.majLe.toISOString(),
     termineeLeIso: t.termineeLe?.toISOString() ?? null,
     terminateur: t.terminateur,
     compteRendu: t.compteRendu,
@@ -85,21 +85,6 @@ export default async function PageTaches({ searchParams }: PageProps<"/taches">)
         }
       />
 
-      <nav aria-label="Vues" className="mb-4 flex gap-1 overflow-x-auto border-b border-[var(--filet)] pb-2">
-        {ONGLETS.filter((o) => o.vue !== "toutes" || attribue).map((o) => (
-          <Link
-            key={o.vue}
-            href={o.vue === "miennes" ? "/taches" : `/taches?vue=${o.vue}`}
-            aria-current={vue === o.vue ? "page" : undefined}
-            className={`shrink-0 whitespace-nowrap rounded-lg px-3 py-2 text-sm font-medium ${
-              vue === o.vue ? "bg-[var(--surface-creuse)] text-[var(--encre)]" : "text-[var(--encre-douce)] hover:bg-[var(--surface-creuse)]"
-            }`}
-          >
-            {o.libelle}
-          </Link>
-        ))}
-      </nav>
-
       <section className="mb-5 grid grid-cols-2 gap-2 sm:gap-3 xl:grid-cols-4">
         <CarteIndicateur libelle="À faire" valeur={fmtEntier(ouvertes.filter((t) => t.statut === "a_faire").length)} />
         <CarteIndicateur libelle="En cours" valeur={fmtEntier(ouvertes.filter((t) => t.statut === "en_cours").length)} ton="marque" />
@@ -112,27 +97,30 @@ export default async function PageTaches({ searchParams }: PageProps<"/taches">)
         <CarteIndicateur libelle="Terminées" valeur={fmtEntier(terminees)} ton="valide" precision="Sur les 30 derniers jours" />
       </section>
 
-      {taches.length === 0 ? (
-        <EtatVide
+      <VuesTaches
+        vide={
+          <EtatVide
           titre={vue === "confiees" ? "Aucune tâche confiée" : "Aucune tâche"}
           message={
             vue === "confiees"
               ? "Les tâches que vous confiez au personnel apparaîtront ici, avec leur avancement."
               : "Notez ce que vous avez à faire : chaque tâche se commence, se termine avec un compte rendu, et reste tracée au journal."
-          }
-        />
-      ) : (
-        <ListeTaches
-          taches={affichees}
-          moi={session.userId}
-          attribue={attribue}
-          personnel={personnel}
-          aujourdhui={aujourdhui}
-          montrerAssignee={vue !== "miennes"}
-          rechercheInitiale={filtres.q}
-          periodeInitiale={filtres.periode}
-        />
-      )}
+            }
+          />
+        }
+        taches={affichees}
+        perimetre={vue}
+        perimetres={attribue ? ["miennes", "confiees", "toutes"] : ["miennes", "confiees"]}
+        affichageInitial={lireAffichage(affichage)}
+        moi={session.userId}
+        attribue={attribue}
+        executer={executer}
+        personnel={personnel}
+        aujourdhui={aujourdhui}
+        maintenantIso={maintenant.toISOString()}
+        rechercheInitiale={filtres.q}
+        periodeInitiale={filtres.periode}
+      />
     </>
   );
 }

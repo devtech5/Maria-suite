@@ -501,7 +501,10 @@ export const CHAPITRES_GESTION: Chapitre[] = [
         ancre: "courriers",
         titre: "Courriers et signatures",
         chemin: "/documents/courriers",
-        texte: ["Un courrier officiel se rédige au papier à en-tête et s'imprime. Une demande de signature suit qui a signé et qui ne l'a pas encore fait."],
+        texte: [
+          "Un courrier officiel se rédige au papier à en-tête et s'imprime. Une demande de signature suit qui a signé et qui ne l'a pas encore fait.",
+          "« Mise en forme du texte » change la police (Montserrat de la charte, Arial, Calibri, Times New Roman, Georgia, Garamond) et la taille : A− et A+ par demi-point, ou une taille choisie dans la liste. L'aperçu suit aussitôt ; l'en-tête et le pied de page gardent la charte.",
+        ],
       },
     ],
     quiz: [],

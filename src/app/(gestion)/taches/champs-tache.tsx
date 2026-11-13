@@ -38,6 +38,7 @@ export function ChampsTache({
     description: string | null;
     priorite: Priorite;
     echeance: string | null;
+    dateDebut: string | null;
     executant: string;
     /** Nom de l'exécutant actuel, s'il n'est plus dans la liste. */
     executantNom: string;
@@ -74,7 +75,7 @@ export function ChampsTache({
           className={`${CLASSE_CHAMP} h-auto py-2`}
         />
       </label>
-      <div className="grid gap-3 sm:grid-cols-3">
+      <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
         <label className="block">
           <span className={libelle}>Priorité</span>
           <select name="priorite" defaultValue={initial?.priorite ?? "normale"} className={CLASSE_CHAMP}>
@@ -84,6 +85,10 @@ export function ChampsTache({
               </option>
             ))}
           </select>
+        </label>
+        <label className="block">
+          <span className={libelle}>Début prévu</span>
+          <input type="date" name="dateDebut" defaultValue={initial?.dateDebut ?? ""} className={CLASSE_CHAMP} />
         </label>
         <label className="block">
           <span className={libelle}>Échéance</span>
