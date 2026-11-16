@@ -99,6 +99,16 @@ const DESSINS: Record<CleIcone, ReactNode> = {
       <rect x="9" y="33" width="20" height="9" rx="4.5" fill={JAUNE} />
     </>
   ),
+  /** Une équerre de chantier posée sur un agglo : implanter, puis compter. */
+  calculs: (
+    <>
+      <rect x="6" y="27" width="36" height="15" rx="3" fill={SARCELLE} />
+      <rect x="12" y="31" width="9" height="7" rx="1.5" fill={BLANC} opacity=".85" />
+      <rect x="27" y="31" width="9" height="7" rx="1.5" fill={BLANC} opacity=".85" />
+      <path d="M8 4h7v15h20v7H8Z" fill={ORANGE} />
+      <path d="M11 8h2M11 12h2M11 16h2M19 21v2M24 21v2M29 21v2" stroke={BLANC} strokeWidth="1.5" strokeLinecap="round" />
+    </>
+  ),
   missions: (
     <>
       <ellipse cx="24" cy="42" rx="13" ry="3.5" fill={SARCELLE} opacity=".55" />

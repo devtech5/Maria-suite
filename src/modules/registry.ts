@@ -367,6 +367,20 @@ export const MODULES: ModuleDefinition[] = [
   },
 
   {
+    key: "calculs",
+    name: "Calculs chantier",
+    layer: "socle",
+    // En base : les ratios de l'entreprise (`reglages_calculs`). Les calculs
+    // eux-mêmes sont des règles pures exécutées dans le navigateur, aux
+    // formats ivoiriens (ciment en sacs de 50 kg, agglos de 40 × 20, fer en
+    // barres de 12 m). Premier morceau du bureau d'études BTP : la note de
+    // calcul rattachée à un projet et son passage au devis viendront ensuite.
+    status: "en_cours",
+    requires: [],
+    description: "Quantités de matériaux d'un ouvrage : béton et fer, agglos, carrelage, pente, escalier, angle droit.",
+  },
+
+  {
     key: "prestataires",
     name: "Prestataires externes",
     layer: "socle",
