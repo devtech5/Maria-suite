@@ -124,6 +124,21 @@ l'annuaire INTERNE de l'entreprise (pas les contacts clients, `contacts_tiers`).
 - Bureau d'études (DQE, BPU, métrés), journal de chantier, PV, non-conformités,
   essais, réceptions avec réserves, cautions bancaires.
 
+### Calculs chantier (lot 1 livré le 16 novembre 2026)
+
+Inspiré de baticalcul.fr, adapté aux chantiers ivoiriens (`src/modules/calculs/`).
+
+- **Lot 1, livré** : béton et fer (sacs de 50 kg, barres de 12 m, ratio
+  d'armatures par ouvrage), agglos de 10, 15 et 20 avec mortier de pose,
+  carrelage (cartons, colle ou mortier, plinthes), pente, escalier, angle
+  droit. Ratios réglables par l'entreprise, « à vérifier » jusqu'à
+  attestation. Calcul dans le navigateur, sans réseau.
+- **Lot 2, à faire** : note de calcul numérotée (`document_sequences`)
+  rattachée à un projet ; matériaux reliés aux articles du catalogue pour
+  chiffrer ; passage au devis et au bon de commande.
+- À confirmer par un conducteur de travaux : les ratios de départ (dosages,
+  fer au m³, mortier au m², pièces par carton).
+
 ### Preuves de livraison et de paiement (proposition, à confirmer)
 
 Chaque franc et chaque sac de ciment se rattachent à un chantier, avec sa

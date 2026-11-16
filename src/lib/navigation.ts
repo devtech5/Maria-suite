@@ -12,7 +12,7 @@ import { REPRISE_OUVERTE } from "@/modules/reprise/calcul";
 export const CLES_ICONE = [
   "accueil", "maison", "tableau-de-bord", "enquetes", "securite",
   "commercial", "stock", "achats", "prestataires", "marches",
-  "projets", "missions", "actifs", "parc-auto", "parc-informatique",
+  "projets", "calculs", "missions", "actifs", "parc-auto", "parc-informatique",
   "comptabilite", "tresorerie",
   "personnel", "presences", "planning", "anniversaires", "contacts", "reglement", "guide", "visiteurs", "courrier", "transmissions", "taches", "meeting", "messagerie", "boite-mail", "documents", "archives",
   "utilisateurs", "entreprise", "demarrage", "communication", "rapports", "journal",
@@ -114,6 +114,7 @@ export const GROUPES_MODULES: GroupeModules[] = [
     icone: "projets",
     modules: [
       { href: "/projets", racine: "/projets", icone: "projets", libelle: "Projets", description: "Projets, budgets, dépenses, photos et preuves.", droit: "projet.consulter" },
+      { href: "/calculs", racine: "/calculs", icone: "calculs", libelle: "Calculs chantier", description: "Béton et fer, agglos, carrelage, pente, escalier : les quantités d'un ouvrage.", droit: "calculs.utiliser" },
       { href: "/missions", racine: "/missions", icone: "missions", libelle: "Missions", description: "Missions assignées, étapes et preuves de terrain.", droit: "missions.consulter" },
       { href: "/prestataires", racine: "/prestataires", icone: "prestataires", libelle: "Prestataires", description: "Plombiers, photographes, monteurs : annuaire et prestations.", droit: "prestataires.consulter" },
       { href: "/rh/intervenants", racine: "/rh/intervenants", icone: "personnel", libelle: "Intervenants / manœuvres", description: "Maçons, manœuvres, tâcherons : pointage et bons de paiement.", droit: "personnes.consulter" },

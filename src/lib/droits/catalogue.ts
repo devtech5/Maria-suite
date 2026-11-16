@@ -799,6 +799,24 @@ export const DROITS = [
       "Voir les projets qui vous sont confiés (comme agent, superviseur ou chef de projet) et y relever ce qui est constaté, " +
       "avec photo et position GPS. Accordé à tous les comptes : seuls les projets où vous êtes en poste apparaissent.",
   },
+
+  // ---------------------------------------------------------------- calculs
+  {
+    cle: "calculs.utiliser",
+    moduleKey: "calculs",
+    libelle: "Calculer les quantités d'un chantier",
+    description:
+      "Béton et fer, maçonnerie d'agglos, carrelage, pente, escalier, angle droit : " +
+      "les quantités de matériaux d'un ouvrage, selon les ratios de l'entreprise.",
+  },
+  {
+    cle: "calculs.regler",
+    moduleKey: "calculs",
+    libelle: "Régler les ratios des calculs",
+    description:
+      "Fixer les dosages du béton et du mortier, les agglos au m², les pertes et les conditionnements " +
+      "(sac de ciment, barre de fer), et les attester.",
+  },
   {
     cle: "depense.demander",
     moduleKey: "projet",

@@ -549,6 +549,28 @@ suit) ; la première part de l'équipe du projet. La fiche du projet liste
 ses réunions. Le texte des points suit la mise en forme des
 tâches (`src/modules/taches/mise-en-forme.ts`), rendue en éléments React.
 
+## Calculs chantier
+
+`src/modules/calculs/` (règles pures dans `regles.ts`). Béton et fer,
+maçonnerie d'agglos, carrelage, pente, escalier (Blondel), angle droit
+(3-4-5) : calculés DANS LE NAVIGATEUR à chaque frappe, sans aller-retour,
+donc sans réseau une fois la page chargée. Tout en entiers — longueurs en
+mm, volumes en litres, masses en kg, pentes en centièmes de %, angles en
+centièmes de degré —, produits intermédiaires en `BigInt` ; la saisie
+« 3,25 » se lit par `lireDecimal`, jamais par `parseFloat`. Ce qui s'achète
+s'arrondit au-dessus (`diviserAuDessus`). Formats ivoiriens : ciment en
+sacs de 50 kg, agglos 40 × 20 en 10, 15, 20, fer en barres de 12 m.
+
+Les ratios (dosages, agglos au m², pertes, conditionnements) sont des
+réglages de l'entreprise : une ligne `reglages_calculs` (JSON relu par
+`normaliserReglages`, qui reprend la valeur de départ d'un ratio absent ou
+hors bornes ; `verifierReglages` refuse, lui, une saisie hors bornes).
+« À vérifier » tant que `calculs.regler` ne les a pas attestés ; les
+modifier sans attester les y remet. Les grandeurs physiques (poids du fer,
+Blondel) ne se règlent pas. Droits : `calculs.utiliser`, `calculs.regler`.
+Lot 2 à venir : note de calcul numérotée rattachée à un projet, passage au
+devis et au bon de commande.
+
 ## Interrogations de fond et liens publics
 
 Tout ce qui interroge le serveur en tâche de fond — la cloche, la

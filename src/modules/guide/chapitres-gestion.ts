@@ -236,6 +236,50 @@ export const CHAPITRES_GESTION: Chapitre[] = [
     ],
   },
   {
+    cle: "calculs",
+    titre: "Calculs chantier",
+    entree: "/calculs",
+    resume: "Les quantités de matériaux d'un ouvrage : béton et fer, agglos, carrelage, pente, escalier, angle droit.",
+    sections: [
+      {
+        ancre: "calculer",
+        titre: "Calculer un ouvrage",
+        chemin: "/calculs",
+        texte: [
+          "Choisissez le calcul, saisissez les dimensions en mètres (0,12 pour 12 cm) : le résultat s'affiche à chaque frappe, sans enregistrer. Les formats sont ceux de nos chantiers : ciment en sacs de 50 kg, agglos de 40 × 20 en 10, 15 ou 20, fer en barres de 12 m.",
+          "Ce qui s'achète s'arrondit toujours au-dessus, pertes comprises : un sac qui manque arrête le coulage. Le fer est une estimation par ratio ; le plan de ferraillage fait foi.",
+          "Une fois la page ouverte, le calcul marche sans réseau : il se fait dans l'appareil. « Imprimer ou enregistrer en PDF » garde le résultat.",
+        ],
+        etapes: ["Ouvrez le calcul voulu.", "Saisissez les dimensions.", "Lisez les quantités à commander, ou imprimez-les."],
+      },
+      {
+        ancre: "ratios",
+        titre: "Les ratios de l'entreprise",
+        chemin: "/calculs/reglages",
+        texte: [
+          "Dosages du béton et du mortier, agglos au m², pertes, poids du sac de ciment : ce sont des réglages de l'entreprise, tenus par qui a le droit de régler les calculs. Tant qu'ils ne sont pas attestés, chaque calcul affiche « ratios à vérifier ».",
+          "Changer un ratio sans cocher l'attestation le remet « à vérifier ».",
+        ],
+      },
+    ],
+    quiz: [
+      {
+        cle: "calculs-arrondi",
+        question: "Le calcul donne 17,6 sacs de ciment. Combien en commande-t-on ?",
+        choix: ["17", "18", "17,6"],
+        bonne: 1,
+        explication: "Ce qui s'achète s'arrondit toujours au-dessus : un sac de trop reste en stock, un sac qui manque arrête le chantier.",
+      },
+      {
+        cle: "calculs-fer",
+        question: "Pour le fer d'une dalle, qu'est-ce qui fait foi ?",
+        choix: ["Le ratio du calcul", "Le plan de ferraillage", "L'habitude du ferrailleur"],
+        bonne: 1,
+        explication: "Le calcul estime le fer par un ratio au m³ ; le plan de ferraillage donne les vraies quantités.",
+      },
+    ],
+  },
+  {
     cle: "missions",
     titre: "Missions",
     entree: "/missions",
