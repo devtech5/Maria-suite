@@ -11,6 +11,8 @@ import { fmt, fmtCompact, fmtTauxBp } from "@/lib/format";
 import { moduleOuvert } from "@/lib/modules/garde";
 import { EquipeProjet } from "@/components/terrain/equipe-projet";
 import { listerEnquetes } from "@/modules/enquetes/requetes";
+import { listerPv } from "@/modules/pv/donnees";
+import { LIBELLE_STATUT as LIBELLE_STATUT_PV, referencePv } from "@/modules/pv/regles";
 import { ouvrirPieceProjet, signerPiecesProjet } from "@/modules/projets/actions";
 import { LIBELLE_STATUT_PROJET } from "@/modules/projets/calcul";
 import { ficheProjet, membresActifs, type PieceVue } from "@/modules/projets/requetes";
@@ -64,6 +66,12 @@ export default async function PageProjet({ params }: { params: Promise<{ id: str
   const personnel = peutGererEquipe ? await personnelPourProjet(session.organizationId, equipe) : [];
   const voitLesReleves = peutExaminer(acteurTerrain, projet, equipe);
   // Les enquêtes du projet, si le module est ouvert et la session les voit.
+  // Les PV de chantier de ce projet que la session peut ouvrir, les plus récents d'abord.
+  const pvChantier =
+    moduleOuvert("pv") && (await peut("pv.consulter"))
+      ? (await listerPv(session.organizationId, { userId: session.userId, valideur: await peut("pv.valider") })).filter((l) => l.projetId === id && l.type === "chantier" && !l.remplace)
+      : null;
+  const redigerPv = pvChantier !== null && (await peut("pv.rediger"));
   const enquetes =
     moduleOuvert("enquetes") && (await peut("enquetes.consulter")) ? await listerEnquetes(session.organizationId, id) : null;
   const { bilan } = projet;
@@ -277,6 +285,44 @@ export default async function PageProjet({ params }: { params: Promise<{ id: str
             Voir les relevés de terrain →
           </Link>
         </p>
+      )}
+
+      {pvChantier && (
+        <section className="mb-6">
+          <div className="mb-2 flex items-center justify-between gap-3">
+            <h2 className="text-sm font-semibold">Réunions de chantier ({pvChantier.length})</h2>
+            {redigerPv && (
+              <Link href={`/pv/nouveau?type=chantier&projet=${projet.id}`} className="text-sm font-semibold text-marque-600 hover:underline">
+                + Nouveau PV de chantier
+              </Link>
+            )}
+          </div>
+          {pvChantier.length === 0 ? (
+            <p className="text-sm text-[var(--encre-faible)]">Aucun procès-verbal de réunion de chantier pour ce projet.</p>
+          ) : (
+            <ul className="divide-y divide-[var(--filet)] overflow-hidden rounded-xl border border-[var(--filet)] bg-[var(--surface)]">
+              {pvChantier.slice(0, 8).map((l) => (
+                <li key={l.id}>
+                  <Link href={`/pv/${l.id}`} className="flex flex-wrap items-center gap-x-3 gap-y-1 px-4 py-2.5 text-sm hover:bg-[var(--surface-creuse)]">
+                    <span className="chiffres w-24 shrink-0 font-semibold">{l.numeroReunion ? `Réunion n° ${l.numeroReunion}` : "Réunion"}</span>
+                    <span className="min-w-0 flex-1 truncate">{l.objet}</span>
+                    <span className="chiffres text-xs text-[var(--encre-faible)]">
+                      {JOUR.format(new Date(`${l.dateSeance}T00:00:00Z`))} · {referencePv(l.numero, l.revision)}
+                    </span>
+                    {l.statut !== "publie" && <Pastille ton={l.statut === "a_valider" ? "alerte" : "neutre"}>{LIBELLE_STATUT_PV[l.statut]}</Pastille>}
+                  </Link>
+                </li>
+              ))}
+            </ul>
+          )}
+          {pvChantier.length > 8 && (
+            <p className="mt-2 text-sm">
+              <Link href={`/pv?vue=tous&projet=${projet.id}`} className="font-semibold text-marque-600 hover:underline">
+                Toutes les réunions de ce chantier →
+              </Link>
+            </p>
+          )}
+        </section>
       )}
 
       <section className="mb-6">

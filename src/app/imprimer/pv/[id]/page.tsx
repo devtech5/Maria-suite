@@ -59,6 +59,9 @@ export default async function ImpressionPv({ params }: { params: Promise<{ id: s
             pieces: complet.fichiers.map((f) => f.nom),
             signataires: signatairesDe(pv.participants),
             signatures: complet.signatures.map((x) => ({ rang: x.rang, trace: x.trace, signeLe: x.signeLe, recueilliePar: x.recueilliePar })),
+            projet: complet.projet ? `${complet.projet.code} — ${complet.projet.nom}` : null,
+            numeroReunion: pv.numeroReunion,
+            chantier: pv.chantier,
           }}
         />
       </ApercuA4>

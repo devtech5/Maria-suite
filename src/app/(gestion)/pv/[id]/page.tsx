@@ -10,7 +10,7 @@ import { EtatVide, Pastille } from "@/components/ui/primitives";
 import { exigerEntreprise } from "@/lib/auth/dal";
 import { peut } from "@/lib/droits/garde";
 import { identiteEntreprise } from "@/lib/identite";
-import { comptesDiffusion, pvComplet, servicesActifs } from "@/modules/pv/donnees";
+import { comptesDiffusion, projetsPourPv, pvComplet, servicesActifs } from "@/modules/pv/donnees";
 import { gestesPv, LIBELLE_STATUT, piecesModifiables, signatairesDe, LIBELLE_TYPE_COURT, normaliserDiffusion, referencePv, type StatutPv, type TypePv } from "@/modules/pv/regles";
 import { personnelActif } from "@/modules/taches/requetes";
 import { db } from "@/db";
@@ -58,6 +58,9 @@ export default async function PagePvDetail({ params }: PageProps<"/pv/[id]">) {
     pieces: complet.fichiers.map((f) => f.nom),
     signataires: signatairesDe(pv.participants),
     signatures: complet.signatures.map((x) => ({ rang: x.rang, trace: x.trace, signeLe: x.signeLe, recueilliePar: x.recueilliePar })),
+    projet: complet.projet ? `${complet.projet.code} — ${complet.projet.nom}` : null,
+    numeroReunion: pv.numeroReunion,
+    chantier: pv.chantier,
   };
   const pieces = complet.fichiers.map((f) => ({ id: f.id, nom: f.nom, typeMime: f.typeMime, taille: f.taille, deposePar: f.deposePar }));
 
@@ -73,6 +76,12 @@ export default async function PagePvDetail({ params }: PageProps<"/pv/[id]">) {
         <span>· rédigé par {complet.redacteur}</span>
         <Pastille ton={statut === "publie" ? "valide" : statut === "a_valider" ? "alerte" : "neutre"}>{LIBELLE_STATUT[statut]}</Pastille>
         {pv.confidentiel && <Pastille ton="danger">Confidentiel</Pastille>}
+        {complet.projet && (
+          <Link href={`/projets/${complet.projet.id}`} className="text-marque-600 hover:underline">
+            Projet {complet.projet.code}
+            {pv.numeroReunion ? ` · réunion n° ${pv.numeroReunion}` : ""}
+          </Link>
+        )}
         {complet.reunion && (
           <Link href={`/meeting/${complet.reunion.id}`} className="text-marque-600 hover:underline">
             Réunion {complet.reunion.numero}
@@ -83,7 +92,12 @@ export default async function PagePvDetail({ params }: PageProps<"/pv/[id]">) {
   );
 
   if (editable) {
-    const [comptes, services, personnel] = await Promise.all([comptesDiffusion(db, session.organizationId), servicesActifs(session.organizationId), personnelActif(session.organizationId)]);
+    const [comptes, services, personnel, projets] = await Promise.all([
+      comptesDiffusion(db, session.organizationId),
+      servicesActifs(session.organizationId),
+      personnelActif(session.organizationId),
+      projetsPourPv(session.organizationId, pv.projetId),
+    ]);
     return (
       <>
         {enTete}
@@ -106,6 +120,9 @@ export default async function PagePvDetail({ params }: PageProps<"/pv/[id]">) {
             accuseRequis: pv.accuseRequis,
             confidentiel: pv.confidentiel,
             actions: complet.actions.map((a) => ({ id: a.id, libelle: a.libelle, responsableEmployeId: a.responsableEmployeId, echeance: a.echeance })),
+            projetId: pv.projetId,
+            numeroReunion: pv.numeroReunion,
+            chantier: pv.chantier,
           }}
           meta={{ numero: pv.numero, revision: pv.revision, redacteur: complet.redacteur }}
           comptes={comptes.map((c) => ({ userId: c.userId, nom: c.nom, service: c.service }))}
@@ -113,6 +130,7 @@ export default async function PagePvDetail({ params }: PageProps<"/pv/[id]">) {
           personnel={personnel.map((p) => ({ id: p.id, nom: p.nom, poste: p.poste }))}
           pieces={pieces}
           piecesModifiables={piecesModifiables(statut, { redacteur, valideur })}
+          projets={projets}
         />
       </>
     );

@@ -536,7 +536,17 @@ recueille sur place la signature d'un extérieur ou d'un collègue
 en entiers dans un cadre 1000 × 400 (`verifierTrace`), stocké en base et
 jamais un fichier ; horodaté avec IP et appareil, il ne se reprend pas.
 Une nouvelle version se signe à nouveau. La relance couvre lectures et
-signatures en attente. Le texte des points suit la mise en forme des
+signatures en attente.
+
+**PV de chantier** (type `chantier`) : rattaché à un projet (`projet_id`,
+exigé), numéroté dans la suite des réunions du projet (`numero_reunion`,
+`numeroReunionSuivant`), il porte en JSON (`chantier`, `normaliserChantier`)
+météo, arrêt pour intempéries, effectifs par entreprise et avancement par
+lot (prévu, réalisé, en % ENTIERS ; retard dès 5 points). La réunion
+suivante reprend la dernière publiée (`repriseChantier`) : participants,
+entreprises, lots, lieu, diffusion et actions encore ouvertes (leur tâche
+suit) ; la première part de l'équipe du projet. La fiche du projet liste
+ses réunions. Le texte des points suit la mise en forme des
 tâches (`src/modules/taches/mise-en-forme.ts`), rendue en éléments React.
 
 ## Interrogations de fond et liens publics

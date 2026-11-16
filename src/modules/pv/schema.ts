@@ -5,9 +5,10 @@ import { primaryId, rowVersion, timestamps } from "@/db/schema/_shared";
 import { organizations } from "@/db/schema/tenancy";
 import { reunions } from "@/modules/meeting/schema";
 import { employees } from "@/modules/personnes/schema";
+import { projets } from "@/modules/projets/schema";
 import { taches } from "@/modules/taches/schema";
 
-import type { Diffusion, Participant, Point } from "./regles";
+import type { Diffusion, DonneesChantier, Participant, Point } from "./regles";
 
 /**
  * Procès-verbaux, comptes rendus et rapports.
@@ -40,6 +41,13 @@ export const procesVerbaux = pgTable(
     /** Réunion Meeting dont le PV rend compte, s'il y en a une. */
     reunionId: uuid("reunion_id").references(() => reunions.id, { onDelete: "set null" }),
 
+    /** Projet (le chantier) dont le PV rend compte : exigé pour un PV de chantier. */
+    projetId: uuid("projet_id").references(() => projets.id, { onDelete: "set null" }),
+    /** PV de chantier : n° de la réunion dans la suite de celles du projet. */
+    numeroReunion: integer("numero_reunion"),
+    /** PV de chantier : météo, effectifs, avancement par lot, prochaine réunion. */
+    chantier: jsonb("chantier").$type<DonneesChantier>(),
+
     participants: jsonb("participants").$type<Participant[]>().notNull().default(sql`'[]'::jsonb`),
     points: jsonb("points").$type<Point[]>().notNull().default(sql`'[]'::jsonb`),
     conclusion: text("conclusion"),
@@ -62,12 +70,14 @@ export const procesVerbaux = pgTable(
   },
   (t) => [
     unique("proces_verbaux_numero_revision").on(t.organizationId, t.numero, t.revision),
-    check("proces_verbaux_type", sql`${t.type} IN ('reunion', 'compte_rendu', 'rapport')`),
+    check("proces_verbaux_type", sql`${t.type} IN ('reunion', 'chantier', 'compte_rendu', 'rapport')`),
+    check("proces_verbaux_numero_reunion", sql`${t.numeroReunion} IS NULL OR ${t.numeroReunion} BETWEEN 1 AND 9999`),
     check("proces_verbaux_statut", sql`${t.statut} IN ('brouillon', 'a_valider', 'publie')`),
     check("proces_verbaux_publie", sql`${t.statut} <> 'publie' OR (${t.numero} IS NOT NULL AND ${t.publieLe} IS NOT NULL)`),
     check("proces_verbaux_revision", sql`${t.revision} >= 1`),
     index("proces_verbaux_org_idx").on(t.organizationId, t.statut, t.dateSeance),
     index("proces_verbaux_redacteur_idx").on(t.organizationId, t.redigeParUserId),
+    index("proces_verbaux_projet_idx").on(t.organizationId, t.projetId),
   ],
 );
 

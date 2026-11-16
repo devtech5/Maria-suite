@@ -28,7 +28,7 @@ export default async function PagePv({ searchParams }: PageProps<"/pv">) {
     <>
       <EnTetePage
         titre="Procès-verbaux"
-        sousTitre="PV de réunion, comptes rendus et rapports, validés par la direction et diffusés au personnel"
+        sousTitre="PV de réunion et de chantier, comptes rendus et rapports, validés par la direction et diffusés au personnel"
         actions={
           rediger ? (
             <Link href="/pv/nouveau" className="h-cible inline-flex items-center rounded-lg bg-marque-600 px-3.5 text-sm font-semibold text-white hover:bg-marque-700">
@@ -48,6 +48,7 @@ export default async function PagePv({ searchParams }: PageProps<"/pv">) {
         moi={session.userId}
         valideur={valideur}
         ongletInitial={typeof p.vue === "string" ? p.vue : undefined}
+        projetInitial={typeof p.projet === "string" ? p.projet : undefined}
       />
     </>
   );

@@ -10,13 +10,16 @@ import { correspond } from "@/lib/recherche";
 import type { IdentiteEntreprise } from "@/lib/identite";
 import { enregistrerPv, publierPv, renvoyerPv, soumettrePv, supprimerPv, type SaisiePv } from "@/modules/pv/actions";
 import {
+  CHANTIER_VIDE,
   LIBELLE_PRESENCE,
+  normaliserChantier,
   LIBELLE_TYPE,
   normaliserPoints,
   OBJET_MAX,
   refusSoumission,
   TYPES_PV,
   type Diffusion,
+  type DonneesChantier,
   type Participant,
   type Point,
   type Presence,
@@ -24,6 +27,7 @@ import {
   type TypePv,
 } from "@/modules/pv/regles";
 
+import { SectionChantier } from "./chantier-pv";
 import { DocumentPv } from "./document-pv";
 import { PiecesJointesPv, type PieceAffichee } from "./pieces-jointes";
 
@@ -53,6 +57,9 @@ export interface InitialPv {
   accuseRequis: boolean;
   confidentiel: boolean;
   actions: ActionSaisie[];
+  projetId: string | null;
+  numeroReunion: number | null;
+  chantier: DonneesChantier | null;
 }
 
 const libelle = "mb-1 block text-xs font-semibold text-[var(--encre-faible)]";
@@ -86,6 +93,7 @@ export function EditeurPv({
   personnel,
   pieces,
   piecesModifiables,
+  projets,
 }: {
   pvId: string;
   statut: StatutPv;
@@ -100,6 +108,7 @@ export function EditeurPv({
   personnel: { id: string; nom: string; poste: string }[];
   pieces: PieceAffichee[];
   piecesModifiables: boolean;
+  projets: { id: string; code: string; nom: string }[];
 }) {
   const [type, setType] = useState<TypePv>(initial.type);
   const [objet, setObjet] = useState(initial.objet);
@@ -114,6 +123,9 @@ export function EditeurPv({
   const [accuseRequis, setAccuseRequis] = useState(initial.accuseRequis);
   const [confidentiel, setConfidentiel] = useState(initial.confidentiel);
   const [actions, setActions] = useState<ActionSaisie[]>(initial.actions);
+  const [projetId, setProjetId] = useState<string | null>(initial.projetId);
+  const [numeroReunion, setNumeroReunion] = useState<number | null>(initial.numeroReunion);
+  const [chantier, setChantier] = useState<DonneesChantier>(initial.chantier ?? CHANTIER_VIDE);
   const [chercheLecteur, setChercheLecteur] = useState("");
   const [apercu, setApercu] = useState(false);
   const [modifie, setModifie] = useState(false);
@@ -139,8 +151,24 @@ export function EditeurPv({
     accuseRequis,
     confidentiel,
     actions: actions.map((a) => ({ id: a.id, libelle: a.libelle, responsableEmployeId: a.responsableEmployeId || null, echeance: a.echeance || null })),
+    projetId: type === "chantier" ? projetId : null,
+    numeroReunion: type === "chantier" ? numeroReunion : null,
+    chantier: type === "chantier" ? chantier : null,
   };
-  const manque = refusSoumission({ objet, type, participants: participants.filter((p) => p.nom.trim().length >= 2), points: pointsPropres, diffusion, confidentiel });
+  const chantierPropre = normaliserChantier(chantier);
+  const manque = refusSoumission({
+    objet,
+    type,
+    participants: participants.filter((p) => p.nom.trim().length >= 2),
+    points: pointsPropres,
+    diffusion,
+    confidentiel,
+    projetId,
+    chantier: chantierPropre,
+  });
+  const projetChoisi = projets.find((p) => p.id === projetId) ?? null;
+  // Les participants qui ont un compte et ne sont pas encore destinataires.
+  const participantsHorsDiffusion = [...new Set(participants.flatMap((p) => (p.userId && !diffusion.comptes.includes(p.userId) ? [p.userId] : [])))].filter((u) => comptes.some((c) => c.userId === u));
 
   const lancer = (action: () => Promise<Resultat>, apres?: () => void) => {
     setResultat(null);
@@ -171,7 +199,7 @@ export function EditeurPv({
       )}
 
       <Section titre="En-tête">
-        <div className="grid gap-3 sm:grid-cols-3">
+        <div className="grid gap-2 sm:grid-cols-2 xl:grid-cols-4">
           {TYPES_PV.map((t) => (
             <label key={t} className={`cursor-pointer rounded-lg border px-3 py-2 text-sm font-medium ${type === t ? "border-marque-600 ring-1 ring-marque-600" : "border-[var(--filet)]"}`}>
               <input type="radio" checked={type === t} onChange={() => changer(setType)(t)} className="sr-only" />
@@ -194,6 +222,20 @@ export function EditeurPv({
           </label>
         </div>
       </Section>
+
+      {type === "chantier" && (
+        <Section titre="Chantier" aide="Le projet et le n° de la réunion, les conditions du jour, l'avancement lot par lot et la prochaine réunion.">
+          <SectionChantier
+            projets={projets}
+            projetId={projetId}
+            onProjet={changer(setProjetId)}
+            numeroReunion={numeroReunion}
+            onNumero={changer(setNumeroReunion)}
+            valeur={chantier}
+            onChange={changer(setChantier)}
+          />
+        </Section>
+      )}
 
       <Section titre="Participants" aide="Présents, excusés, absents. Les personnes extérieures se saisissent à la main, avec leur qualité.">
         <ul className="space-y-2">
@@ -403,6 +445,11 @@ export function EditeurPv({
             </fieldset>
           </div>
         )}
+        {!diffusion.tous && participantsHorsDiffusion.length > 0 && (
+          <button type="button" onClick={() => changer(setDiffusion)({ ...diffusion, comptes: [...diffusion.comptes, ...participantsHorsDiffusion] })} className="mt-2 text-sm font-semibold text-marque-600 hover:underline">
+            + Diffuser aux participants ({participantsHorsDiffusion.length})
+          </button>
+        )}
         <p className="mt-2 text-xs text-[var(--encre-faible)]">Environ {nombreLecteurs} destinataire{nombreLecteurs > 1 ? "s" : ""}.</p>
         <div className="mt-3 space-y-2 border-t border-[var(--filet)] pt-3">
           <label className="flex items-start gap-2 text-sm">
@@ -456,6 +503,9 @@ export function EditeurPv({
                   publiePar: null,
                   publieLe: null,
                   pieces: pieces.map((p) => p.nom),
+                  projet: type === "chantier" && projetChoisi ? `${projetChoisi.code} — ${projetChoisi.nom}` : null,
+                  numeroReunion: type === "chantier" ? numeroReunion : null,
+                  chantier: type === "chantier" ? chantierPropre : null,
                   actions: actions.filter((a) => a.libelle.trim()).map((a) => ({ libelle: a.libelle, responsable: a.responsableEmployeId ? (parId.get(a.responsableEmployeId)?.nom ?? null) : null, echeance: a.echeance })),
                 }}
               />

@@ -8,17 +8,19 @@
  * en publier une nouvelle version, sous le même numéro.
  */
 
-export const TYPES_PV = ["reunion", "compte_rendu", "rapport"] as const;
+export const TYPES_PV = ["reunion", "chantier", "compte_rendu", "rapport"] as const;
 export type TypePv = (typeof TYPES_PV)[number];
 
 export const LIBELLE_TYPE: Record<TypePv, string> = {
   reunion: "Procès-verbal de réunion",
+  chantier: "Procès-verbal de réunion de chantier",
   compte_rendu: "Compte rendu",
   rapport: "Rapport",
 };
 
 export const LIBELLE_TYPE_COURT: Record<TypePv, string> = {
   reunion: "PV de réunion",
+  chantier: "PV de chantier",
   compte_rendu: "Compte rendu",
   rapport: "Rapport",
 };
@@ -123,10 +125,15 @@ export function refusSoumission(pv: {
   points: Point[];
   diffusion: Diffusion;
   confidentiel: boolean;
+  projetId?: string | null;
+  chantier?: DonneesChantier | null;
 }): string | null {
   if (pv.objet.trim().length < 3) return "Donnez l'objet du procès-verbal.";
-  if (pv.points.length === 0) return "Rédigez au moins un point.";
-  if (pv.type === "reunion" && !pv.participants.some((p) => p.presence === "present")) return "Un PV de réunion nomme au moins un participant présent.";
+  if (pv.type === "chantier") {
+    if (!pv.projetId) return "Rattachez le PV de chantier à son projet.";
+    if (pv.points.length === 0 && !(pv.chantier?.avancement.length ?? 0)) return "Rédigez au moins un point ou l'avancement d'un lot.";
+  } else if (pv.points.length === 0) return "Rédigez au moins un point.";
+  if ((pv.type === "reunion" || pv.type === "chantier") && !pv.participants.some((p) => p.presence === "present")) return "Un PV de réunion nomme au moins un participant présent.";
   if (diffusionVide(pv.diffusion)) return "Choisissez à qui le diffuser : tout le personnel, des services ou des personnes.";
   if (pv.confidentiel && pv.diffusion.tous) return "Un PV confidentiel ne se diffuse pas à tout le personnel : choisissez ses lecteurs.";
   return null;
@@ -284,4 +291,120 @@ export function signaturePermise(
   if (signataire.userId && signataire.userId === acteur.userId) return "personnelle";
   if (acteur.redacteur || acteur.valideur) return "sur_place";
   return null;
+}
+
+// ------------------------------------------------------------------ chantier
+
+/**
+ * Le PV de réunion de chantier : rattaché à un projet, numéroté dans la
+ * suite des réunions de ce projet (réunion n° 1, 2, 3…), il porte en plus
+ * les conditions du jour (météo, effectifs présents par entreprise),
+ * l'avancement des travaux lot par lot et la date de la prochaine réunion.
+ * Pourcentages et effectifs sont des entiers.
+ */
+export const METEOS = ["ensoleille", "nuageux", "pluvieux", "orageux"] as const;
+export type Meteo = (typeof METEOS)[number];
+
+export const LIBELLE_METEO: Record<Meteo, string> = { ensoleille: "Ensoleillé", nuageux: "Nuageux", pluvieux: "Pluvieux", orageux: "Orageux" };
+
+export interface Effectif {
+  /** Entreprise ou équipe : « MARIA GROUP », « Sous-traitant électricité ». */
+  entreprise: string;
+  /** Lot ou corps d'état, facultatif. */
+  lot: string;
+  /** Personnes présentes sur le chantier : un entier. */
+  nombre: number;
+}
+
+export interface Avancement {
+  /** Lot, ouvrage ou tâche du planning : « Gros œuvre — R+1 ». */
+  lot: string;
+  /** Avancement prévu au planning à la date de la réunion, en %, s'il est connu. */
+  prevu: number | null;
+  /** Avancement constaté, en %. */
+  realise: number;
+  observation: string;
+}
+
+export interface DonneesChantier {
+  meteo: Meteo | null;
+  /** Travaux interrompus par les intempéries ce jour-là. */
+  intemperies: boolean;
+  effectifs: Effectif[];
+  avancement: Avancement[];
+  prochaineReunion: { date: string | null; heure: string | null; lieu: string };
+}
+
+export const CHANTIER_VIDE: DonneesChantier = { meteo: null, intemperies: false, effectifs: [], avancement: [], prochaineReunion: { date: null, heure: null, lieu: "" } };
+
+export const LIGNES_CHANTIER_MAX = 60;
+export const NUMERO_REUNION_MAX = 9999;
+
+/** Un entier borné, ou `null` si la saisie n'en est pas un. */
+function entier(v: unknown, min: number, max: number): number | null {
+  const n = typeof v === "number" ? v : typeof v === "string" && v.trim() !== "" ? Number(v) : NaN;
+  if (!Number.isFinite(n)) return null;
+  return Math.min(max, Math.max(min, Math.round(n)));
+}
+
+/** Données de chantier nettoyées : lignes vides retirées, pourcentages entre 0 et 100, effectifs entiers. */
+export function normaliserChantier(brut: unknown): DonneesChantier {
+  const o = (brut ?? {}) as Record<string, unknown>;
+  const meteo = (METEOS as readonly string[]).includes(o.meteo as string) ? (o.meteo as Meteo) : null;
+  const effectifs = (Array.isArray(o.effectifs) ? o.effectifs : [])
+    .map((e): Effectif => {
+      const x = (e ?? {}) as Record<string, unknown>;
+      return { entreprise: propre(x.entreprise, 120), lot: propre(x.lot, 120), nombre: entier(x.nombre, 0, 100_000) ?? 0 };
+    })
+    .filter((e) => e.entreprise.length >= 2)
+    .slice(0, LIGNES_CHANTIER_MAX);
+  const avancement = (Array.isArray(o.avancement) ? o.avancement : [])
+    .map((a): Avancement => {
+      const x = (a ?? {}) as Record<string, unknown>;
+      return { lot: propre(x.lot, 160), prevu: entier(x.prevu, 0, 100), realise: entier(x.realise, 0, 100) ?? 0, observation: propre(x.observation, 500) };
+    })
+    .filter((a) => a.lot.length >= 2)
+    .slice(0, LIGNES_CHANTIER_MAX);
+  const p = (o.prochaineReunion ?? {}) as Record<string, unknown>;
+  const date = typeof p.date === "string" && /^\d{4}-\d{2}-\d{2}$/.test(p.date) ? p.date : null;
+  const heure = typeof p.heure === "string" && /^([01]\d|2[0-3]):[0-5]\d$/.test(p.heure) ? p.heure : null;
+  return { meteo, intemperies: o.intemperies === true, effectifs, avancement, prochaineReunion: { date, heure, lieu: propre(p.lieu, 120) } };
+}
+
+/** Effectif total présent sur le chantier : la somme des lignes. */
+export const effectifTotal = (effectifs: Effectif[]) => effectifs.reduce((t, e) => t + e.nombre, 0);
+
+/**
+ * Écart entre le réalisé et le prévu, en points : négatif = retard. `null`
+ * sans prévu. Un retard se signale dès 5 points.
+ */
+export function ecartAvancement(a: Avancement): { points: number; retard: boolean } | null {
+  if (a.prevu === null) return null;
+  const points = a.realise - a.prevu;
+  return { points, retard: points <= -5 };
+}
+
+/** Le numéro de la prochaine réunion d'un projet : la suite du plus grand déjà donné. */
+export const numeroReunionSuivant = (dejaDonnes: (number | null)[]) => Math.min(NUMERO_REUNION_MAX, Math.max(0, ...dejaDonnes.filter((n): n is number => typeof n === "number")) + 1);
+
+/** « Réunion de chantier n° 7 — Résidence Les Palmiers ». */
+export const objetChantier = (numero: number, projet: string) => `Réunion de chantier n° ${numero} — ${projet}`.slice(0, OBJET_MAX);
+
+/**
+ * Ce que la réunion suivante reprend de la précédente : les mêmes
+ * participants (tous présents par défaut), les mêmes entreprises et les mêmes
+ * lots, l'avancement constaté devenant le point de départ. (Le lieu, la
+ * diffusion et les actions encore ouvertes se reprennent en base.) Météo, effectifs et
+ * observations sont ceux du jour : ils repartent à zéro.
+ */
+export function repriseChantier(precedent: { participants: Participant[]; chantier: DonneesChantier | null }): { participants: Participant[]; chantier: DonneesChantier } {
+  const c = precedent.chantier ?? CHANTIER_VIDE;
+  return {
+    participants: precedent.participants.map((p) => ({ ...p, presence: "present" as const })),
+    chantier: {
+      ...CHANTIER_VIDE,
+      effectifs: c.effectifs.map((e) => ({ ...e, nombre: 0 })),
+      avancement: c.avancement.map((a) => ({ lot: a.lot, prevu: null, realise: a.realise, observation: "" })),
+    },
+  };
 }

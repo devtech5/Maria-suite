@@ -8,9 +8,24 @@ import { creerPv } from "@/modules/pv/actions";
 import { LIBELLE_TYPE, OBJET_MAX, TYPES_PV, type TypePv } from "@/modules/pv/regles";
 
 /** Le type, l'objet, la date et le lieu ; la réunion Meeting dont on rend compte, s'il y en a une. */
-export function FormulaireNouveauPv({ reunions, reunionInitiale, aujourdhui }: { reunions: { id: string; numero: string; titre: string; jour: string }[]; reunionInitiale: string; aujourdhui: string }) {
+export function FormulaireNouveauPv({
+  reunions,
+  reunionInitiale,
+  aujourdhui,
+  projets,
+  projetInitial,
+  typeInitial,
+}: {
+  reunions: { id: string; numero: string; titre: string; jour: string }[];
+  reunionInitiale: string;
+  aujourdhui: string;
+  projets: { id: string; code: string; nom: string }[];
+  projetInitial: string;
+  typeInitial: TypePv;
+}) {
   const [reunion, setReunion] = useState(reunionInitiale);
-  const [type, setType] = useState<TypePv>("reunion");
+  const [type, setType] = useState<TypePv>(typeInitial);
+  const [projet, setProjet] = useState(projetInitial);
   const [resultat, setResultat] = useState<Resultat | null>(null);
   const [enCours, demarrer] = useTransition();
   const choisie = reunions.find((r) => r.id === reunion);
@@ -30,7 +45,7 @@ export function FormulaireNouveauPv({ reunions, reunionInitiale, aujourdhui }: {
     >
       <fieldset>
         <legend className="mb-2 text-xs font-semibold text-[var(--encre-faible)]">Nature du document</legend>
-        <div className="grid gap-2 sm:grid-cols-3">
+        <div className="grid gap-2 sm:grid-cols-2 lg:grid-cols-4">
           {TYPES_PV.map((t) => (
             <label key={t} className={`cursor-pointer rounded-lg border p-3 text-sm font-semibold ${type === t ? "border-marque-600 ring-1 ring-marque-600" : "border-[var(--filet)] hover:bg-[var(--surface-creuse)]"}`}>
               <input type="radio" name="type" value={t} checked={type === t} onChange={() => setType(t)} className="sr-only" />
@@ -39,6 +54,19 @@ export function FormulaireNouveauPv({ reunions, reunionInitiale, aujourdhui }: {
           ))}
         </div>
       </fieldset>
+
+      {type === "chantier" && (
+        <Champ libelle="Projet (le chantier)" precision="Le PV prend le numéro de réunion suivant de ce projet. Il reprend les participants, les entreprises, les lots et les actions encore ouvertes de la réunion précédente ; pour la première, l'équipe du projet.">
+          <select name="projetId" value={projet} onChange={(e) => setProjet(e.target.value)} required className={CLASSE_CHAMP}>
+            <option value="">Choisir le projet…</option>
+            {projets.map((p) => (
+              <option key={p.id} value={p.id}>
+                {p.code} — {p.nom}
+              </option>
+            ))}
+          </select>
+        </Champ>
+      )}
 
       {reunions.length > 0 && (
         <Champ libelle="Réunion Meeting (facultatif)" precision="Le PV en reprend l'objet, les présents et les absents, et le compte rendu déjà écrit.">
@@ -53,8 +81,11 @@ export function FormulaireNouveauPv({ reunions, reunionInitiale, aujourdhui }: {
         </Champ>
       )}
 
-      <Champ libelle="Objet" precision={choisie ? "Laissé vide, il reprend le titre de la réunion." : undefined}>
-        <input name="objet" maxLength={OBJET_MAX} required={!choisie} placeholder={choisie?.titre ?? "Réunion de chantier n° 4 — Bingerville"} className={CLASSE_CHAMP} />
+      <Champ
+        libelle="Objet"
+        precision={type === "chantier" ? "Laissé vide : « Réunion de chantier n° … — projet »." : choisie ? "Laissé vide, il reprend le titre de la réunion." : undefined}
+      >
+        <input name="objet" maxLength={OBJET_MAX} required={!choisie && type !== "chantier"} placeholder={choisie?.titre ?? "Réunion de chantier n° 4 — Bingerville"} className={CLASSE_CHAMP} />
       </Champ>
 
       <div className="grid gap-4 sm:grid-cols-2">
