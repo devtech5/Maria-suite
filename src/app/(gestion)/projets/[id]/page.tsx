@@ -10,6 +10,8 @@ import { peut } from "@/lib/droits/garde";
 import { fmt, fmtCompact, fmtTauxBp } from "@/lib/format";
 import { moduleOuvert } from "@/lib/modules/garde";
 import { EquipeProjet } from "@/components/terrain/equipe-projet";
+import { listerNotes } from "@/modules/calculs/donnees";
+import { TYPES_NOTE } from "@/modules/calculs/notes";
 import { listerEnquetes } from "@/modules/enquetes/requetes";
 import { listerPv } from "@/modules/pv/donnees";
 import { LIBELLE_STATUT as LIBELLE_STATUT_PV, referencePv } from "@/modules/pv/regles";
@@ -72,6 +74,9 @@ export default async function PageProjet({ params }: { params: Promise<{ id: str
       ? (await listerPv(session.organizationId, { userId: session.userId, valideur: await peut("pv.valider") })).filter((l) => l.projetId === id && l.type === "chantier" && !l.remplace)
       : null;
   const redigerPv = pvChantier !== null && (await peut("pv.rediger"));
+  // Les notes de calcul du chantier : quantités figées, et leur passage au devis ou à la commande.
+  const notesCalcul =
+    moduleOuvert("calculs") && (await peut("calculs.utiliser")) ? (await listerNotes(session.organizationId, id)).filter((n) => !n.annulee) : null;
   const enquetes =
     moduleOuvert("enquetes") && (await peut("enquetes.consulter")) ? await listerEnquetes(session.organizationId, id) : null;
   const { bilan } = projet;
@@ -319,6 +324,41 @@ export default async function PageProjet({ params }: { params: Promise<{ id: str
             <p className="mt-2 text-sm">
               <Link href={`/pv?vue=tous&projet=${projet.id}`} className="font-semibold text-marque-600 hover:underline">
                 Toutes les réunions de ce chantier →
+              </Link>
+            </p>
+          )}
+        </section>
+      )}
+
+      {notesCalcul && (
+        <section className="mb-6">
+          <div className="mb-2 flex items-center justify-between gap-3">
+            <h2 className="text-sm font-semibold">Notes de calcul ({notesCalcul.length})</h2>
+            {ouvert && (
+              <Link href="/calculs" className="text-sm font-semibold text-marque-600 hover:underline">
+                + Nouveau calcul
+              </Link>
+            )}
+          </div>
+          {notesCalcul.length === 0 ? (
+            <p className="text-sm text-[var(--encre-faible)]">Aucune note de calcul pour ce projet : faites un calcul, puis « Enregistrer sur un projet ».</p>
+          ) : (
+            <ul className="divide-y divide-[var(--filet)] overflow-hidden rounded-xl border border-[var(--filet)] bg-[var(--surface)]">
+              {notesCalcul.slice(0, 8).map((n) => (
+                <li key={n.id}>
+                  <Link href={`/calculs/notes/${n.id}`} className="flex flex-wrap items-center gap-x-3 gap-y-1 px-4 py-2.5 text-sm hover:bg-[var(--surface-creuse)]">
+                    <span className="chiffres w-32 shrink-0 font-semibold">{n.numero}</span>
+                    <span className="min-w-0 flex-1 truncate">{n.libelle}</span>
+                    <span className="text-xs text-[var(--encre-faible)]">{TYPES_NOTE[n.type]}</span>
+                  </Link>
+                </li>
+              ))}
+            </ul>
+          )}
+          {notesCalcul.length > 8 && (
+            <p className="mt-2 text-sm">
+              <Link href={`/calculs/notes?projet=${projet.id}`} className="font-semibold text-marque-600 hover:underline">
+                Toutes les notes de ce projet →
               </Link>
             </p>
           )}

@@ -21,7 +21,13 @@ export default async function LayoutCalculs({ children }: { children: React.Reac
           { href: "/calculs/pente", libelle: "Pente" },
           { href: "/calculs/escalier", libelle: "Escalier" },
           { href: "/calculs/equerre", libelle: "Angle droit" },
-          ...(a.regler ? [{ href: "/calculs/reglages", libelle: "Ratios" }] : []),
+          { href: "/calculs/notes", libelle: "Notes" },
+          ...(a.regler
+            ? [
+                { href: "/calculs/reglages", libelle: "Ratios" },
+                { href: "/calculs/articles", libelle: "Articles" },
+              ]
+            : []),
         ]}
       />
       {!r.verifie && (

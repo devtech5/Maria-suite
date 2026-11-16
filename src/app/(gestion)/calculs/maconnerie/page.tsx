@@ -3,17 +3,17 @@ import type { Metadata } from "next";
 import { CalculMaconnerie } from "@/components/calculs/calculateurs";
 import { EnTetePage } from "@/components/ui/primitives";
 import { accesCalculs } from "@/modules/calculs/acces";
-import { reglagesCalculsDe } from "@/modules/calculs/donnees";
+import { contexteCalculs } from "@/modules/calculs/donnees";
 
 export const metadata: Metadata = { title: "Maçonnerie d'agglos" };
 
 export default async function Page() {
   const { session } = await accesCalculs();
-  const r = await reglagesCalculsDe(session.organizationId);
+  const contexte = await contexteCalculs(session.organizationId);
   return (
     <>
       <EnTetePage titre="Maçonnerie d'agglos" sousTitre="Agglos et mortier de pose d'un mur" />
-      <CalculMaconnerie reglages={r.valeurs} />
+      <CalculMaconnerie contexte={contexte} />
     </>
   );
 }

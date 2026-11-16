@@ -568,8 +568,24 @@ hors bornes ; `verifierReglages` refuse, lui, une saisie hors bornes).
 « À vérifier » tant que `calculs.regler` ne les a pas attestés ; les
 modifier sans attester les y remet. Les grandeurs physiques (poids du fer,
 Blondel) ne se règlent pas. Droits : `calculs.utiliser`, `calculs.regler`.
-Lot 2 à venir : note de calcul numérotée rattachée à un projet, passage au
-devis et au bon de commande.
+
+**Notes de calcul** (`notes.ts` pour les règles, `donnees.ts` pour la
+base) : « Enregistrer sur un projet » envoie la SAISIE seule ;
+`calculerNote` la relit et refait le calcul côté serveur, jamais le
+résultat du navigateur. La note (`notes_calcul`, `NC-AAAA-NNNNN`,
+`document_sequences` clé `note_calcul`) fige saisie, résultat, matériaux et
+ratios du jour ; elle ne se modifie pas, elle s'annule avec motif (son
+rédacteur, ou `calculs.regler`). Projet exigé, ni terminé ni annulé.
+Un matériau (`Materiau` : clé, quantité en MILLIÈMES de son unité d'achat
+— sacs et barres en pièces, sable et gravier en m³, fer sans diamètre en
+kg) se relie à un article par `calculs_articles` (page « Articles »,
+`calculs.regler`) ; un article d'une autre unité est REFUSÉ
+(`refusArticle`), jamais converti. Devis brouillon au client du projet, au
+prix de vente (`enregistrerBrouillonDans`, droit `commercial.piece.gerer`
+en plus) ; commande brouillon au fournisseur choisi, au prix d'achat, TVA
+et compte de l'article ou de sa famille (`creerCommandeDans`, droit
+`achats.commande.gerer`). Chaque pièce tirée est notée dans
+`notes_calcul_suites`. La fiche du projet liste ses notes.
 
 ## Interrogations de fond et liens publics
 
