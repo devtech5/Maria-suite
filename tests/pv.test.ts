@@ -1,7 +1,14 @@
 import { describe, expect, it } from "vitest";
 
 import {
+  CHANTIER_VIDE,
   destinataires,
+  ecartAvancement,
+  effectifTotal,
+  normaliserChantier,
+  numeroReunionSuivant,
+  objetChantier,
+  repriseChantier,
   gestesPv,
   normaliserDiffusion,
   normaliserParticipants,
@@ -148,5 +155,86 @@ describe("signatures", () => {
     // Un texte qui peut encore bouger ne se signe pas.
     expect(signaturePermise("a_valider", awa, { userId: A, redacteur: false, valideur: false })).toBeNull();
     expect(signaturePermise("publie", undefined, { userId: A, redacteur: true, valideur: true })).toBeNull();
+  });
+});
+
+describe("PV de chantier", () => {
+  it("nettoie les données du jour : lignes vides retirées, entiers bornés", () => {
+    const c = normaliserChantier({
+      meteo: "pluvieux",
+      intemperies: true,
+      effectifs: [
+        { entreprise: " MARIA  GROUP ", lot: "Gros œuvre", nombre: "12" },
+        { entreprise: "", lot: "x", nombre: 3 },
+        { entreprise: "Électro CI", lot: "", nombre: 4.6 },
+        { entreprise: "Négatif", lot: "", nombre: -2 },
+      ],
+      avancement: [
+        { lot: "Fondations", prevu: 100, realise: "100", observation: "Terminé" },
+        { lot: "Élévation R+1", prevu: "", realise: 140, observation: "" },
+        { lot: "", realise: 10 },
+      ],
+      prochaineReunion: { date: "2026-11-20", heure: "09:00", lieu: "Base vie" },
+    });
+    expect(c.meteo).toBe("pluvieux");
+    expect(c.intemperies).toBe(true);
+    expect(c.effectifs).toEqual([
+      { entreprise: "MARIA GROUP", lot: "Gros œuvre", nombre: 12 },
+      { entreprise: "Électro CI", lot: "", nombre: 5 },
+      { entreprise: "Négatif", lot: "", nombre: 0 },
+    ]);
+    expect(effectifTotal(c.effectifs)).toBe(17);
+    expect(c.avancement).toEqual([
+      { lot: "Fondations", prevu: 100, realise: 100, observation: "Terminé" },
+      { lot: "Élévation R+1", prevu: null, realise: 100, observation: "" },
+    ]);
+    expect(c.prochaineReunion).toEqual({ date: "2026-11-20", heure: "09:00", lieu: "Base vie" });
+    expect(normaliserChantier({ meteo: "neige", prochaineReunion: { date: "20/11", heure: "25:00" } })).toEqual({ ...CHANTIER_VIDE, prochaineReunion: { date: null, heure: null, lieu: "" } });
+    expect(normaliserChantier(null)).toEqual(CHANTIER_VIDE);
+  });
+
+  it("mesure l'écart au planning : un retard dès 5 points", () => {
+    expect(ecartAvancement({ lot: "A", prevu: null, realise: 40, observation: "" })).toBeNull();
+    expect(ecartAvancement({ lot: "A", prevu: 50, realise: 46, observation: "" })).toEqual({ points: -4, retard: false });
+    expect(ecartAvancement({ lot: "A", prevu: 50, realise: 45, observation: "" })).toEqual({ points: -5, retard: true });
+    expect(ecartAvancement({ lot: "A", prevu: 50, realise: 60, observation: "" })).toEqual({ points: 10, retard: false });
+  });
+
+  it("numérote les réunions d'un projet à la suite", () => {
+    expect(numeroReunionSuivant([])).toBe(1);
+    expect(numeroReunionSuivant([1, null, 3, 2])).toBe(4);
+    expect(numeroReunionSuivant([9999])).toBe(9999);
+    expect(objetChantier(7, "Résidence Les Palmiers")).toBe("Réunion de chantier n° 7 — Résidence Les Palmiers");
+  });
+
+  it("reprend de la réunion précédente les participants, les entreprises et les lots", () => {
+    const r = repriseChantier({
+      participants: [
+        { nom: "Awa Koné", qualite: "Chef de projet", presence: "excuse", userId: A },
+        { nom: "Kouadio Serge", qualite: "VERITAS", presence: "present", userId: null },
+      ],
+      chantier: {
+        meteo: "orageux",
+        intemperies: true,
+        effectifs: [{ entreprise: "MARIA GROUP", lot: "Gros œuvre", nombre: 12 }],
+        avancement: [{ lot: "Élévation", prevu: 60, realise: 45, observation: "Retard d'aciers" }],
+        prochaineReunion: { date: "2026-11-20", heure: null, lieu: "" },
+      },
+    });
+    expect(r.participants.map((p) => p.presence)).toEqual(["present", "present"]);
+    expect(r.participants[0].userId).toBe(A);
+    expect(r.chantier).toEqual({
+      ...CHANTIER_VIDE,
+      effectifs: [{ entreprise: "MARIA GROUP", lot: "Gros œuvre", nombre: 0 }],
+      avancement: [{ lot: "Élévation", prevu: null, realise: 45, observation: "" }],
+    });
+  });
+
+  it("exige le projet, un présent, et un point ou l'avancement d'un lot", () => {
+    const chantier = { ...CHANTIER_VIDE, avancement: [{ lot: "Fondations", prevu: null, realise: 30, observation: "" }] };
+    expect(refusSoumission(pv({ type: "chantier", projetId: null, chantier }))).toBe("Rattachez le PV de chantier à son projet.");
+    expect(refusSoumission(pv({ type: "chantier", projetId: A, chantier, points: [] }))).toBeNull();
+    expect(refusSoumission(pv({ type: "chantier", projetId: A, chantier: CHANTIER_VIDE, points: [] }))).toBe("Rédigez au moins un point ou l'avancement d'un lot.");
+    expect(refusSoumission(pv({ type: "chantier", projetId: A, chantier, participants: [] }))).toBe("Un PV de réunion nomme au moins un participant présent.");
   });
 });

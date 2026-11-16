@@ -60,6 +60,7 @@ const schemaNouveau = z.object({
   dateSeance: z.string().regex(DATE_ISO, "Indiquez la date de la séance."),
   lieu: z.string().max(200).optional(),
   reunionId: z.string().regex(UUID).optional(),
+  projetId: z.string().regex(UUID, "Choisissez le projet.").optional(),
 });
 
 /** Ouvre un brouillon et y mène. */
@@ -76,6 +77,7 @@ export async function creerPv(donnees: FormData): Promise<Resultat> {
     dateSeance: texte("dateSeance") ?? "",
     lieu: texte("lieu"),
     reunionId: texte("reunionId"),
+    projetId: texte("projetId"),
   });
   if (!analyse.success) return { ok: false, message: analyse.error.issues[0].message };
   const { organizationId, acteur: qui } = await acteur();
@@ -110,6 +112,9 @@ const schemaBrouillon = z.object({
       }),
     )
     .max(200),
+  projetId: z.string().regex(UUID).nullable().optional(),
+  numeroReunion: z.number().int().nullable().optional(),
+  chantier: z.unknown().optional(),
 });
 
 export type SaisiePv = z.input<typeof schemaBrouillon>;

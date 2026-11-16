@@ -3,7 +3,19 @@ import { FeuilleA4 } from "@/components/impression/feuille-a4";
 import { CorpsMessage } from "@/components/ui/texte-mis-en-forme";
 import type { IdentiteEntreprise } from "@/lib/identite";
 import { dateEnLettres } from "@/modules/documents/courriers-calcul";
-import { LIBELLE_PRESENCE, LIBELLE_TYPE, referencePv, type Participant, type Point, type Signataire, type TypePv } from "@/modules/pv/regles";
+import {
+  ecartAvancement,
+  effectifTotal,
+  LIBELLE_METEO,
+  LIBELLE_PRESENCE,
+  LIBELLE_TYPE,
+  referencePv,
+  type DonneesChantier,
+  type Participant,
+  type Point,
+  type Signataire,
+  type TypePv,
+} from "@/modules/pv/regles";
 
 import { TraceSignature } from "./signature";
 
@@ -27,7 +39,15 @@ export interface ContenuPv {
   /** Participants présents, appelés à signer — une fois le PV publié. */
   signataires?: Signataire[];
   signatures?: { rang: number; trace: string; signeLe: Date; recueilliePar: string | null }[];
+  /** PV de chantier : « CODE — Nom » du projet, n° de réunion, données du jour. */
+  projet?: string | null;
+  numeroReunion?: number | null;
+  chantier?: DonneesChantier | null;
 }
+
+const TITRE = "mb-[1.5mm] border-b border-[#c9a96e] pb-[0.5mm] text-[9.5pt] font-bold uppercase";
+const TH = "border-b border-[#d8dee6] py-[1mm] pr-[2mm] font-semibold";
+const TD = "border-b border-[#eef1f5] py-[1mm] pr-[2mm] align-top";
 
 const MOMENT = new Intl.DateTimeFormat("fr-FR", { dateStyle: "long", timeStyle: "short", timeZone: "Africa/Abidjan" });
 
@@ -38,6 +58,7 @@ const MOMENT = new Intl.DateTimeFormat("fr-FR", { dateStyle: "long", timeStyle: 
  * l'impression. Le texte est mis en forme en éléments, jamais en HTML.
  */
 export function DocumentPv({ pv, identite }: { pv: ContenuPv; identite: IdentiteEntreprise }) {
+  const chantier = pv.type === "chantier" ? pv.chantier : null;
   const parPresence = (p: Participant["presence"]) => pv.participants.filter((x) => x.presence === p);
   return (
     <FeuilleA4 pied={<PiedDocument identite={identite} />}>
@@ -54,6 +75,13 @@ export function DocumentPv({ pv, identite }: { pv: ContenuPv; identite: Identite
             {referencePv(pv.numero, pv.revision)} · {dateEnLettres(pv.dateSeance)}
             {pv.lieu ? ` · ${pv.lieu}` : ""}
           </p>
+          {pv.type === "chantier" && (pv.projet || pv.numeroReunion) && (
+            <p className="mt-[1mm] text-[8.5pt] font-semibold">
+              {pv.projet ? `Projet ${pv.projet}` : ""}
+              {pv.projet && pv.numeroReunion ? " · " : ""}
+              {pv.numeroReunion ? `Réunion n° ${pv.numeroReunion}` : ""}
+            </p>
+          )}
         </div>
 
         {pv.participants.length > 0 && (
@@ -69,6 +97,82 @@ export function DocumentPv({ pv, identite }: { pv: ContenuPv; identite: Identite
                 </p>
               ) : null,
             )}
+          </section>
+        )}
+
+        {chantier && (chantier.meteo || chantier.intemperies || chantier.effectifs.length > 0) && (
+          <section className="mt-[5mm] [break-inside:avoid]">
+            <h2 className={TITRE}>Conditions du chantier</h2>
+            {(chantier.meteo || chantier.intemperies) && (
+              <p className="mb-[1.5mm]">
+                {chantier.meteo && (
+                  <>
+                    <span className="font-semibold">Météo : </span>
+                    {LIBELLE_METEO[chantier.meteo]}
+                  </>
+                )}
+                {chantier.intemperies && <span className="font-semibold text-[#b42318]">{chantier.meteo ? " — " : ""}travaux interrompus par les intempéries</span>}
+              </p>
+            )}
+            {chantier.effectifs.length > 0 && (
+              <table className="w-full border-collapse text-[8.5pt]">
+                <thead>
+                  <tr className="text-left">
+                    <th className={TH}>Entreprise</th>
+                    <th className={TH}>Lot</th>
+                    <th className={`${TH} w-[25mm] pr-0 text-right`}>Effectif</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {chantier.effectifs.map((e, i) => (
+                    <tr key={i}>
+                      <td className={TD}>{e.entreprise}</td>
+                      <td className={TD}>{e.lot || "—"}</td>
+                      <td className={`${TD} pr-0 text-right tabular-nums`}>{e.nombre}</td>
+                    </tr>
+                  ))}
+                  <tr className="font-semibold">
+                    <td className="py-[1mm]" colSpan={2}>
+                      Total
+                    </td>
+                    <td className="py-[1mm] text-right tabular-nums">{effectifTotal(chantier.effectifs)}</td>
+                  </tr>
+                </tbody>
+              </table>
+            )}
+          </section>
+        )}
+
+        {chantier && chantier.avancement.length > 0 && (
+          <section className="mt-[5mm] [break-inside:avoid]">
+            <h2 className={TITRE}>Avancement des travaux</h2>
+            <table className="w-full border-collapse text-[8.5pt]">
+              <thead>
+                <tr className="text-left">
+                  <th className={TH}>Lot, ouvrage</th>
+                  <th className={`${TH} w-[15mm] text-right`}>Prévu</th>
+                  <th className={`${TH} w-[17mm] text-right`}>Réalisé</th>
+                  <th className={`${TH} w-[15mm] text-right`}>Écart</th>
+                  <th className={`${TH} pr-0`}>Observations</th>
+                </tr>
+              </thead>
+              <tbody>
+                {chantier.avancement.map((a, i) => {
+                  const ecart = ecartAvancement(a);
+                  return (
+                    <tr key={i}>
+                      <td className={`${TD} font-medium`}>{a.lot}</td>
+                      <td className={`${TD} text-right tabular-nums`}>{a.prevu === null ? "—" : `${a.prevu} %`}</td>
+                      <td className={`${TD} text-right font-semibold tabular-nums`}>{a.realise} %</td>
+                      <td className={`${TD} text-right tabular-nums ${ecart?.retard ? "font-semibold text-[#b42318]" : ""}`}>
+                        {ecart ? `${ecart.points > 0 ? "+" : ""}${ecart.points}` : "—"}
+                      </td>
+                      <td className={`${TD} pr-0`}>{a.observation || ""}</td>
+                    </tr>
+                  );
+                })}
+              </tbody>
+            </table>
           </section>
         )}
 
@@ -124,6 +228,15 @@ export function DocumentPv({ pv, identite }: { pv: ContenuPv; identite: Identite
             <h2 className="mb-[1.5mm] border-b border-[#c9a96e] pb-[0.5mm] text-[9.5pt] font-bold uppercase">Conclusion</h2>
             <p className="whitespace-pre-line text-justify">{pv.conclusion}</p>
           </section>
+        )}
+
+        {chantier?.prochaineReunion.date && (
+          <p className="mt-[5mm] rounded-[1.5mm] border border-[#c9a96e] px-[3mm] py-[1.5mm] [break-inside:avoid]">
+            <span className="font-semibold">Prochaine réunion : </span>
+            {dateEnLettres(chantier.prochaineReunion.date)}
+            {chantier.prochaineReunion.heure ? ` à ${chantier.prochaineReunion.heure.replace(":", " h ")}` : ""}
+            {chantier.prochaineReunion.lieu ? `, ${chantier.prochaineReunion.lieu}` : ""}
+          </p>
         )}
 
         {pv.publieLe && pv.signataires && pv.signataires.length > 0 && (

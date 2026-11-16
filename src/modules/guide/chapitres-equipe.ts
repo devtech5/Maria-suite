@@ -108,7 +108,7 @@ export const CHAPITRES_EQUIPE: Chapitre[] = [
     cle: "pv",
     titre: "Procès-verbaux",
     entree: "/pv",
-    resume: "PV de réunion, comptes rendus et rapports : rédigés, validés par la direction, diffusés avec accusé de lecture.",
+    resume: "PV de réunion et de chantier, comptes rendus et rapports : rédigés, validés par la direction, diffusés avec accusé de lecture.",
     sections: [
       {
         ancre: "rediger",
@@ -128,6 +128,17 @@ export const CHAPITRES_EQUIPE: Chapitre[] = [
           "La direction relit le PV soumis : elle le renvoie avec une remarque, ou le publie. La publication lui donne son numéro (PV-2026-00012), fige son texte et le diffuse — à tout le personnel, à des services ou à des personnes. Chacun en est prévenu dans la cloche.",
           "Si l'accusé de lecture est demandé, chaque destinataire confirme « J'ai pris connaissance » ; le rédacteur et la direction voient qui l'a fait et peuvent relancer. Chaque action décidée devient une tâche d'un clic, confiée à son responsable. Pour corriger un PV publié, on en publie une nouvelle version, sous le même numéro.",
         ],
+      },
+      {
+        ancre: "chantier",
+        titre: "PV de réunion de chantier",
+        chemin: "/pv/nouveau",
+        texte: [
+          "Choisissez « Procès-verbal de réunion de chantier » et le projet : le PV prend le numéro de réunion suivant de ce chantier (réunion n° 1, 2, 3…). On l'ouvre aussi depuis la fiche du projet, « + Nouveau PV de chantier », où se listent toutes ses réunions.",
+          "La section « Chantier » porte la météo du jour (et l'arrêt pour intempéries), les effectifs présents par entreprise avec leur total, l'avancement de chaque lot en pourcentage — prévu au planning et réalisé, l'écart en retard ressort en rouge — et la date de la prochaine réunion.",
+          "La réunion suivante reprend la précédente : mêmes participants, mêmes entreprises et mêmes lots (l'avancement constaté devient le point de départ), même lieu et même diffusion, et les actions encore ouvertes. La première réunion d'un projet part de son équipe, chef de projet en tête.",
+        ],
+        etapes: ["Ouvrez un PV de chantier et choisissez le projet.", "Renseignez météo, effectifs et avancement par lot.", "Rédigez les points et les actions, fixez la prochaine réunion.", "Soumettez-le à la direction."],
       },
       {
         ancre: "signer",
@@ -153,6 +164,13 @@ export const CHAPITRES_EQUIPE: Chapitre[] = [
         choix: ["Modifier le texte directement", "Le supprimer et en refaire un", "Publier une nouvelle version, sous le même numéro"],
         bonne: 2,
         explication: "Le texte publié est celui que chacun a lu : il ne se réécrit pas. « Corriger : nouvelle version » ouvre une version 2, qui remplace la première à sa publication.",
+      },
+      {
+        cle: "pv-chantier-reprise",
+        question: "Vous ouvrez la réunion de chantier n° 8 d'un projet. Que reprend-elle de la n° 7 ?",
+        choix: ["Rien : tout se ressaisit", "Les participants, entreprises, lots, le lieu, la diffusion et les actions encore ouvertes", "Le texte entier de la réunion n° 7"],
+        bonne: 1,
+        explication: "Météo, effectifs et observations sont ceux du jour ; le reste suit d'une réunion à l'autre, et l'avancement constaté devient le point de départ.",
       },
       {
         cle: "pv-signature-exterieur",

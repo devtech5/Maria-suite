@@ -9,6 +9,8 @@ import { prochainNumero, type Transaction } from "@/lib/sequences";
 import { cheminDe, deposer, supprimer, urlSignee } from "@/lib/stockage";
 import { reunionParticipants, reunions } from "@/modules/meeting/schema";
 import { employees, services } from "@/modules/personnes/schema";
+import { projets } from "@/modules/projets/schema";
+import { membresProjet } from "@/modules/projets/terrain-schema";
 import { jourLocal } from "@/modules/presences/calcul";
 import { relancePermise } from "@/modules/reglement/regles";
 import { creerTacheDans } from "@/modules/taches/creation";
@@ -17,6 +19,12 @@ import { verifierFichier } from "@/modules/taches/suivi-regles";
 
 import {
   ACTIONS_MAX,
+  CHANTIER_VIDE,
+  NUMERO_REUNION_MAX,
+  normaliserChantier,
+  numeroReunionSuivant,
+  objetChantier,
+  repriseChantier,
   destinataires,
   estTypePv,
   gestesPv,
@@ -32,6 +40,7 @@ import {
   signaturePermise,
   verifierTrace,
   type Diffusion,
+  type DonneesChantier,
   type GestePv,
   type Participant,
   type Point,
@@ -87,6 +96,51 @@ export interface NouveauPv {
   dateSeance: string;
   lieu?: string | null;
   reunionId?: string | null;
+  /** Le projet (le chantier) : exigé pour un PV de chantier. */
+  projetId?: string | null;
+}
+
+/** Le projet, s'il est bien de cette entreprise. */
+async function projetDe(tx: Executant, organizationId: string, projetId: string) {
+  const [projet] = await tx
+    .select({ id: projets.id, code: projets.code, nom: projets.nom, responsableUserId: projets.responsableUserId })
+    .from(projets)
+    .where(and(eq(projets.id, projetId), eq(projets.organizationId, organizationId), isNull(projets.deletedAt)));
+  if (!projet) throw new Error("Projet introuvable.");
+  return projet;
+}
+
+/**
+ * Les participants d'une première réunion de chantier : le chef de projet et
+ * l'équipe en poste sur le projet, internes comme externes.
+ */
+async function equipeEnParticipants(tx: Executant, organizationId: string, projet: { id: string; responsableUserId: string | null }): Promise<Participant[]> {
+  const membres = await tx
+    .select({ role: membresProjet.role, nom: membresProjet.nom, organisme: membresProjet.organisme, userId: membresProjet.userId, salarie: employees.nom, poste: employees.poste, compteSalarie: employees.userId, compte: users.fullName })
+    .from(membresProjet)
+    .leftJoin(employees, eq(employees.id, membresProjet.employeeId))
+    .leftJoin(users, eq(users.id, membresProjet.userId))
+    .where(and(eq(membresProjet.organizationId, organizationId), eq(membresProjet.projetId, projet.id), eq(membresProjet.actif, true), isNull(membresProjet.deletedAt)))
+    .orderBy(asc(membresProjet.role), asc(membresProjet.createdAt));
+  const liste: Participant[] = [];
+  const vus = new Set<string>();
+  if (projet.responsableUserId) {
+    const [chef] = await tx.select({ nom: users.fullName }).from(users).where(eq(users.id, projet.responsableUserId));
+    if (chef) {
+      liste.push({ nom: chef.nom, qualite: "Chef de projet", presence: "present", userId: projet.responsableUserId });
+      vus.add(projet.responsableUserId);
+    }
+  }
+  for (const m of membres) {
+    const userId = m.userId ?? m.compteSalarie ?? null;
+    if (userId && vus.has(userId)) continue;
+    if (userId) vus.add(userId);
+    const nom = m.salarie ?? m.compte ?? m.nom;
+    if (!nom) continue;
+    const qualite = m.role === "superviseur" ? "Superviseur" : (m.poste ?? m.organisme ?? "");
+    liste.push({ nom, qualite, presence: "present", userId });
+  }
+  return liste;
 }
 
 /**
@@ -97,9 +151,16 @@ export interface NouveauPv {
 export async function creerPvDans(tx: Transaction, organizationId: string, saisie: NouveauPv, acteur: ActeurPv): Promise<{ id: string }> {
   if (!estTypePv(saisie.type)) throw new Error("Type de procès-verbal inconnu.");
   if (!DATE_ISO.test(saisie.dateSeance)) throw new Error("Indiquez la date de la séance.");
-  let objet = saisie.objet.replace(/\s+/g, " ").trim().slice(0, OBJET_MAX);
+  const objetSaisi = saisie.objet.replace(/\s+/g, " ").trim().slice(0, OBJET_MAX);
+  let objet = objetSaisi;
   let participants: Participant[] = [];
   let points: Point[] = [];
+  let chantier: DonneesChantier | null = null;
+  let numeroReunion: number | null = null;
+  let actionsReprises: { libelle: string; responsableEmployeId: string | null; echeance: string | null; tacheId: string | null }[] = [];
+  let lieu = saisie.lieu?.trim().slice(0, 120) || null;
+  let diffusion: Diffusion | undefined;
+  let accuseRequis = false;
 
   if (saisie.reunionId) {
     const [reunion] = await tx
@@ -126,6 +187,53 @@ export async function creerPvDans(tx: Transaction, organizationId: string, saisi
     });
     if (reunion.compteRendu?.trim()) points = [{ titre: "Compte rendu de la réunion", texte: reunion.compteRendu.trim(), decisions: [] }];
   }
+
+  if (saisie.type === "chantier") {
+    if (!saisie.projetId) throw new Error("Choisissez le projet (le chantier) de la réunion.");
+    const projet = await projetDe(tx, organizationId, saisie.projetId);
+    const deja = await tx
+      .select({ numero: procesVerbaux.numeroReunion })
+      .from(procesVerbaux)
+      .where(and(eq(procesVerbaux.organizationId, organizationId), eq(procesVerbaux.projetId, projet.id), eq(procesVerbaux.type, "chantier"), isNull(procesVerbaux.deletedAt)));
+    numeroReunion = numeroReunionSuivant(deja.map((d) => d.numero));
+    // La réunion précédente publiée de ce chantier, dans sa dernière version.
+    const [precedent] = await tx
+      .select({
+        id: procesVerbaux.id,
+        participants: procesVerbaux.participants,
+        chantier: procesVerbaux.chantier,
+        lieu: procesVerbaux.lieu,
+        diffusion: procesVerbaux.diffusion,
+        accuseRequis: procesVerbaux.accuseRequis,
+      })
+      .from(procesVerbaux)
+      .where(and(eq(procesVerbaux.organizationId, organizationId), eq(procesVerbaux.projetId, projet.id), eq(procesVerbaux.type, "chantier"), eq(procesVerbaux.statut, "publie"), isNull(procesVerbaux.deletedAt)))
+      .orderBy(desc(procesVerbaux.numeroReunion), desc(procesVerbaux.revision))
+      .limit(1);
+    if (precedent) {
+      const reprise = repriseChantier({ participants: precedent.participants, chantier: precedent.chantier });
+      chantier = reprise.chantier;
+      if (!participants.length) participants = reprise.participants;
+      // Même chantier, mêmes lecteurs : lieu et diffusion se reprennent aussi.
+      lieu ||= precedent.lieu;
+      diffusion = normaliserDiffusion(precedent.diffusion);
+      accuseRequis = precedent.accuseRequis;
+      // Les actions encore ouvertes se reportent : leur tâche, s'il y en a une, les suit.
+      const ouvertes = await tx
+        .select({ libelle: pvActions.libelle, responsableEmployeId: pvActions.responsableEmployeId, echeance: pvActions.echeance, tacheId: pvActions.tacheId, statut: taches.statut })
+        .from(pvActions)
+        .leftJoin(taches, eq(taches.id, pvActions.tacheId))
+        .where(and(eq(pvActions.pvId, precedent.id), isNull(pvActions.deletedAt)))
+        .orderBy(asc(pvActions.rang));
+      actionsReprises = ouvertes
+        .filter((a) => a.statut !== "terminee" && a.statut !== "annulee")
+        .map((a) => ({ libelle: a.libelle, responsableEmployeId: a.responsableEmployeId, echeance: a.echeance ? jourIso(a.echeance) : null, tacheId: a.tacheId }));
+    } else {
+      chantier = CHANTIER_VIDE;
+      if (!participants.length) participants = await equipeEnParticipants(tx, organizationId, projet);
+    }
+    if (!objetSaisi) objet = objetChantier(numeroReunion, projet.nom);
+  }
   if (objet.length < 3) throw new Error("Donnez l'objet du procès-verbal.");
 
   const id = newId();
@@ -135,13 +243,20 @@ export async function creerPvDans(tx: Transaction, organizationId: string, saisi
     type: saisie.type,
     objet,
     dateSeance: saisie.dateSeance,
-    lieu: saisie.lieu?.trim().slice(0, 120) || null,
+    lieu,
     reunionId: saisie.reunionId ?? null,
+    ...(diffusion ? { diffusion, accuseRequis } : {}),
+    projetId: saisie.type === "chantier" ? (saisie.projetId ?? null) : null,
+    numeroReunion,
+    chantier,
     participants,
     points,
     redigeParUserId: acteur.userId,
   });
-  await tracer(tx, organizationId, acteur.userId, "pv.creer", id, { objet, type: saisie.type, reunion: saisie.reunionId ?? null });
+  if (actionsReprises.length) {
+    await tx.insert(pvActions).values(actionsReprises.slice(0, ACTIONS_MAX).map((a, rang) => ({ id: newId(), organizationId, pvId: id, rang, ...a })));
+  }
+  await tracer(tx, organizationId, acteur.userId, "pv.creer", id, { objet, type: saisie.type, reunion: saisie.reunionId ?? null, projet: saisie.projetId ?? null, numeroReunion });
   return { id };
 }
 
@@ -166,6 +281,10 @@ export interface SaisieBrouillon {
   accuseRequis: boolean;
   confidentiel: boolean;
   actions: SaisieAction[];
+  /** PV de chantier : le projet, le n° de réunion et les données du jour. */
+  projetId?: string | null;
+  numeroReunion?: number | null;
+  chantier?: unknown;
 }
 
 /** Enregistre le brouillon : contenu, diffusion et actions. Les actions retirées le sont logiquement. */
@@ -177,12 +296,22 @@ export async function enregistrerPvDans(tx: Transaction, organizationId: string,
   if (!DATE_ISO.test(s.dateSeance)) throw new Error("Indiquez la date de la séance.");
   const objet = s.objet.replace(/\s+/g, " ").trim().slice(0, OBJET_MAX);
   if (objet.length < 3) throw new Error("Donnez l'objet du procès-verbal.");
+  const estChantier = s.type === "chantier";
+  if (estChantier && s.projetId) await projetDe(tx, organizationId, s.projetId);
+  const numeroReunion = estChantier
+    ? Number.isInteger(s.numeroReunion) && s.numeroReunion! >= 1 && s.numeroReunion! <= NUMERO_REUNION_MAX
+      ? s.numeroReunion!
+      : (pv.numeroReunion ?? 1)
+    : null;
 
   const maintenant = new Date();
   await tx
     .update(procesVerbaux)
     .set({
       type: s.type,
+      projetId: estChantier ? (s.projetId ?? null) : null,
+      numeroReunion,
+      chantier: estChantier ? normaliserChantier(s.chantier) : null,
       objet,
       dateSeance: s.dateSeance,
       lieu: s.lieu?.trim().slice(0, 120) || null,
@@ -234,6 +363,8 @@ function verifierContenu(pv: ProcesVerbal) {
     points: pv.points,
     diffusion: normaliserDiffusion(pv.diffusion),
     confidentiel: pv.confidentiel,
+    projetId: pv.projetId,
+    chantier: pv.chantier,
   });
   if (refus) throw new Error(refus);
 }
@@ -356,6 +487,9 @@ export async function reviserPvDans(tx: Transaction, organizationId: string, pvI
     dateSeance: pv.dateSeance,
     lieu: pv.lieu,
     reunionId: pv.reunionId,
+    projetId: pv.projetId,
+    numeroReunion: pv.numeroReunion,
+    chantier: pv.chantier,
     participants: pv.participants,
     points: pv.points,
     conclusion: pv.conclusion,
@@ -537,6 +671,10 @@ export interface LignePv {
   participant: boolean;
   /** Je dois encore signer. */
   aSigner: boolean;
+  /** PV de chantier : son projet et le n° de la réunion. */
+  projetId: string | null;
+  projet: string | null;
+  numeroReunion: number | null;
 }
 
 const jourIso = (v: string | Date) => (v instanceof Date ? v.toISOString().slice(0, 10) : v.slice(0, 10));
@@ -561,6 +699,10 @@ export async function listerPv(organizationId: string, acteur: ActeurPv): Promis
       publieLe: procesVerbaux.publieLe,
       accuseRequis: procesVerbaux.accuseRequis,
       confidentiel: procesVerbaux.confidentiel,
+      projetId: procesVerbaux.projetId,
+      projetCode: projets.code,
+      projetNom: projets.nom,
+      numeroReunion: procesVerbaux.numeroReunion,
       lectureId: pvLectures.id,
       luLe: pvLectures.luLe,
       remplace: sql<boolean>`exists (select 1 from proces_verbaux s where s.organization_id = ${procesVerbaux.organizationId} and s.numero = ${procesVerbaux.numero} and s.revision > ${procesVerbaux.revision} and s.statut = 'publie' and s.deleted_at is null)`,
@@ -569,6 +711,7 @@ export async function listerPv(organizationId: string, acteur: ActeurPv): Promis
     })
     .from(procesVerbaux)
     .leftJoin(users, eq(users.id, procesVerbaux.redigeParUserId))
+    .leftJoin(projets, eq(projets.id, procesVerbaux.projetId))
     .leftJoin(pvLectures, and(eq(pvLectures.pvId, procesVerbaux.id), eq(pvLectures.userId, moi)))
     .where(
       and(
@@ -592,8 +735,9 @@ export async function listerPv(organizationId: string, acteur: ActeurPv): Promis
     )
     .orderBy(desc(procesVerbaux.dateSeance), desc(procesVerbaux.createdAt))
     .limit(500);
-  return lignes.map((l) => ({
+  return lignes.map(({ projetCode, projetNom, ...l }) => ({
     ...l,
+    projet: projetNom ? `${projetCode} — ${projetNom}` : null,
     type: l.type as TypePv,
     statut: l.statut as StatutPv,
     dateSeance: jourIso(l.dateSeance),
@@ -610,6 +754,7 @@ export interface PvComplet {
   redacteur: string;
   publiePar: string | null;
   reunion: { id: string; numero: string; titre: string } | null;
+  projet: { id: string; code: string; nom: string } | null;
   actions: { id: string; libelle: string; responsableEmployeId: string | null; responsable: string | null; echeance: string | null; tacheId: string | null; tacheNumero: string | null; tacheStatut: string | null }[];
   lectures: { userId: string; nom: string; luLe: Date | null }[];
   versions: { id: string; revision: number; statut: StatutPv; publieLe: Date | null }[];
@@ -634,10 +779,13 @@ export async function pvComplet(organizationId: string, pvId: string, acteur: Ac
   const voit = redacteur || (acteur.valideur && pv.statut !== "brouillon") || (pv.statut === "publie" && (maLecture !== undefined || participant));
   if (!voit) return null;
 
-  const [noms, reunion, actions, lectures, versions, fichiers, signatures] = await Promise.all([
+  const [noms, reunion, projet, actions, lectures, versions, fichiers, signatures] = await Promise.all([
     db.select({ id: users.id, nom: users.fullName }).from(users).where(inArray(users.id, [pv.redigeParUserId, ...(pv.publieParUserId ? [pv.publieParUserId] : [])])),
     pv.reunionId
       ? db.select({ id: reunions.id, numero: reunions.numero, titre: reunions.titre }).from(reunions).where(eq(reunions.id, pv.reunionId)).then((r) => r[0] ?? null)
+      : Promise.resolve(null),
+    pv.projetId
+      ? db.select({ id: projets.id, code: projets.code, nom: projets.nom }).from(projets).where(eq(projets.id, pv.projetId)).then((r) => r[0] ?? null)
       : Promise.resolve(null),
     db
       .select({
@@ -697,6 +845,7 @@ export async function pvComplet(organizationId: string, pvId: string, acteur: Ac
     redacteur: nom(pv.redigeParUserId) ?? "Ancien membre",
     publiePar: nom(pv.publieParUserId),
     reunion,
+    projet,
     actions: actions.map((a) => ({ ...a, echeance: a.echeance ? jourIso(a.echeance) : null })),
     lectures: lectures.map((l) => ({ ...l, nom: l.nom })),
     versions: versions.map((v) => ({ ...v, statut: v.statut as StatutPv })).filter((v) => v.statut === "publie" || v.id === pv.id),
@@ -828,3 +977,18 @@ export async function servicesActifs(organizationId: string): Promise<{ id: stri
 }
 
 export type { Diffusion };
+
+/** Projets auxquels rattacher un PV de chantier : ceux qui ne sont ni terminés ni annulés, et celui déjà choisi. */
+export async function projetsPourPv(organizationId: string, garder?: string | null): Promise<{ id: string; code: string; nom: string }[]> {
+  return db
+    .select({ id: projets.id, code: projets.code, nom: projets.nom })
+    .from(projets)
+    .where(
+      and(
+        eq(projets.organizationId, organizationId),
+        isNull(projets.deletedAt),
+        garder ? or(inArray(projets.statut, ["preparation", "en_cours", "suspendu"]), eq(projets.id, garder)) : inArray(projets.statut, ["preparation", "en_cours", "suspendu"]),
+      ),
+    )
+    .orderBy(desc(projets.code));
+}

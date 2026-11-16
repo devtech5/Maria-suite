@@ -25,6 +25,9 @@ export interface LignePvAffichee {
   remplace: boolean;
   aSigner: boolean;
   participant: boolean;
+  projetId: string | null;
+  projet: string | null;
+  numeroReunion: number | null;
 }
 
 type Onglet = "recus" | "redaction" | "a_valider" | "tous";
@@ -32,7 +35,7 @@ type Onglet = "recus" | "redaction" | "a_valider" | "tous";
 const TON_STATUT: Record<StatutPv, TonPastille> = { brouillon: "neutre", a_valider: "alerte", publie: "valide" };
 
 /** La liste des PV, en onglets, avec recherche sur l'objet, le numéro et le rédacteur. */
-export function ListePv({ liste, moi, valideur, ongletInitial }: { liste: LignePvAffichee[]; moi: string; valideur: boolean; ongletInitial?: string }) {
+export function ListePv({ liste, moi, valideur, ongletInitial, projetInitial }: { liste: LignePvAffichee[]; moi: string; valideur: boolean; ongletInitial?: string; projetInitial?: string }) {
   const onglets: { cle: Onglet; libelle: string }[] = [
     { cle: "recus", libelle: "Diffusés à moi" },
     { cle: "redaction", libelle: "Mes rédactions" },
@@ -48,10 +51,13 @@ export function ListePv({ liste, moi, valideur, ongletInitial }: { liste: LigneP
   };
   const [onglet, setOnglet] = useState<Onglet>(ongletParDefaut);
   const [recherche, setRecherche] = useState("");
+  // Les chantiers qui ont des PV : de quoi n'en lire qu'un.
+  const chantiers = [...new Map(liste.flatMap((l) => (l.projetId && l.projet ? [[l.projetId, l.projet] as const] : []))).entries()].sort((a, b) => a[1].localeCompare(b[1], "fr"));
+  const [chantier, setChantier] = useState(chantiers.some(([id]) => id === projetInitial) ? projetInitial! : "");
 
   const dans = (l: LignePvAffichee, o: Onglet) =>
     o === "recus" ? l.statut === "publie" && (l.destinataire || l.participant) : o === "redaction" ? l.redigeParUserId === moi : o === "a_valider" ? l.statut === "a_valider" : true;
-  const visibles = liste.filter((l) => dans(l, onglet) && correspond(recherche, [l.objet, l.numero, l.redacteur, LIBELLE_TYPE_COURT[l.type]]));
+  const visibles = liste.filter((l) => dans(l, onglet) && (!chantier || l.projetId === chantier) && correspond(recherche, [l.objet, l.numero, l.redacteur, LIBELLE_TYPE_COURT[l.type], l.projet]));
 
   return (
     <div>
@@ -73,13 +79,25 @@ export function ListePv({ liste, moi, valideur, ongletInitial }: { liste: LigneP
           );
         })}
       </nav>
-      <input
-        value={recherche}
-        onChange={(e) => setRecherche(e.target.value)}
-        placeholder="Rechercher un objet, un numéro, un rédacteur…"
-        aria-label="Rechercher un procès-verbal"
-        className={`${CLASSE_CHAMP} mb-3`}
-      />
+      <div className="mb-3 flex flex-col gap-2 sm:flex-row">
+        <input
+          value={recherche}
+          onChange={(e) => setRecherche(e.target.value)}
+          placeholder="Rechercher un objet, un numéro, un rédacteur, un projet…"
+          aria-label="Rechercher un procès-verbal"
+          className={CLASSE_CHAMP}
+        />
+        {chantiers.length > 0 && (
+          <select value={chantier} onChange={(e) => setChantier(e.target.value)} aria-label="Chantier" className={`${CLASSE_CHAMP} sm:w-72`}>
+            <option value="">Tous les procès-verbaux</option>
+            {chantiers.map(([id, nom]) => (
+              <option key={id} value={id}>
+                Chantier {nom}
+              </option>
+            ))}
+          </select>
+        )}
+      </div>
       {visibles.length === 0 ? (
         <p className="py-10 text-center text-sm text-[var(--encre-faible)]">
           {recherche ? "Aucun procès-verbal ne répond à cette recherche." : onglet === "recus" ? "Aucun procès-verbal ne vous a encore été diffusé." : "Rien ici pour l'instant."}
@@ -94,7 +112,9 @@ export function ListePv({ liste, moi, valideur, ongletInitial }: { liste: LigneP
                   <span className="min-w-0 flex-1">
                     <span className={`block truncate text-sm font-semibold ${l.remplace ? "text-[var(--encre-faible)]" : ""}`}>{l.objet}</span>
                     <span className="chiffres block text-xs text-[var(--encre-faible)]">
-                      {referencePv(l.numero, l.revision)} · {LIBELLE_TYPE_COURT[l.type]} · {dateEnLettres(l.dateSeance)} · {l.redacteur}
+                      {referencePv(l.numero, l.revision)} · {LIBELLE_TYPE_COURT[l.type]}
+                      {l.numeroReunion ? ` n° ${l.numeroReunion}` : ""}
+                      {l.projet ? ` · ${l.projet}` : ""} · {dateEnLettres(l.dateSeance)} · {l.redacteur}
                     </span>
                   </span>
                   {l.confidentiel && <Pastille ton="danger">Confidentiel</Pastille>}
