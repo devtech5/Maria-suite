@@ -124,7 +124,7 @@ l'annuaire INTERNE de l'entreprise (pas les contacts clients, `contacts_tiers`).
 - Bureau d'études (DQE, BPU, métrés), journal de chantier, PV, non-conformités,
   essais, réceptions avec réserves, cautions bancaires.
 
-### Calculs chantier (lot 1 livré le 16 novembre 2026)
+### Calculs chantier (lots 1 et 2 livrés le 16 novembre 2026)
 
 Inspiré de baticalcul.fr, adapté aux chantiers ivoiriens (`src/modules/calculs/`).
 
@@ -133,9 +133,12 @@ Inspiré de baticalcul.fr, adapté aux chantiers ivoiriens (`src/modules/calculs
   carrelage (cartons, colle ou mortier, plinthes), pente, escalier, angle
   droit. Ratios réglables par l'entreprise, « à vérifier » jusqu'à
   attestation. Calcul dans le navigateur, sans réseau.
-- **Lot 2, à faire** : note de calcul numérotée (`document_sequences`)
-  rattachée à un projet ; matériaux reliés aux articles du catalogue pour
-  chiffrer ; passage au devis et au bon de commande.
+- **Lot 2, livré le 16 novembre 2026** : note de calcul numérotée
+  `NC-AAAA-NNNNN` rattachée à un projet, figée ; matériaux reliés aux
+  articles du catalogue pour chiffrer ; devis brouillon au client du projet
+  et commande brouillon au fournisseur ; notes listées sur la fiche projet.
+- Plus tard : comparer le consommé du chantier (sorties de dépôt) aux
+  quantités des notes, comme prévu pour le DQE.
 - À confirmer par un conducteur de travaux : les ratios de départ (dosages,
   fer au m³, mortier au m², pièces par carton).
 

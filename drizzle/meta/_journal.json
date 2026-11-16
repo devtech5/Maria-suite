@@ -715,6 +715,13 @@
       "when": 1794836087826,
       "tag": "0101_calculs_reglages",
       "breakpoints": true
+    },
+    {
+      "idx": 102,
+      "version": "7",
+      "when": 1794852700478,
+      "tag": "0102_calculs_notes",
+      "breakpoints": true
     }
   ]
 }

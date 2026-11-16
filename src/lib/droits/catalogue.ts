@@ -807,7 +807,9 @@ export const DROITS = [
     libelle: "Calculer les quantités d'un chantier",
     description:
       "Béton et fer, maçonnerie d'agglos, carrelage, pente, escalier, angle droit : " +
-      "les quantités de matériaux d'un ouvrage, selon les ratios de l'entreprise.",
+      "les quantités de matériaux d'un ouvrage, selon les ratios de l'entreprise. Enregistrer " +
+      "un calcul en note numérotée sur un projet ; en tirer un devis ou une commande demande " +
+      "en plus le droit de faire des devis ou de passer des commandes.",
   },
   {
     cle: "calculs.regler",
@@ -815,7 +817,8 @@ export const DROITS = [
     libelle: "Régler les ratios des calculs",
     description:
       "Fixer les dosages du béton et du mortier, les agglos au m², les pertes et les conditionnements " +
-      "(sac de ciment, barre de fer), et les attester.",
+      "(sac de ciment, barre de fer), et les attester ; associer chaque matériau à son article " +
+      "du catalogue ; annuler la note d'un autre.",
   },
   {
     cle: "depense.demander",

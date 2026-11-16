@@ -253,6 +253,23 @@ export const CHAPITRES_GESTION: Chapitre[] = [
         etapes: ["Ouvrez le calcul voulu.", "Saisissez les dimensions.", "Lisez les quantités à commander, ou imprimez-les."],
       },
       {
+        ancre: "notes",
+        titre: "Notes de calcul, devis et commande",
+        chemin: "/calculs/notes",
+        texte: [
+          "Sous un résultat, « Enregistrer sur un projet » fige le calcul en note numérotée (NC-AAAA-NNNNN) : la saisie, le résultat, les ratios du jour et les matériaux à acheter. Le serveur refait le calcul ; changer un ratio demain ne change pas la note d'hier. Une note ne se corrige pas : elle s'annule avec un motif, et l'on en fait une autre.",
+          "Sur la note, chaque matériau prend l'article du catalogue qui lui est associé, au prix du catalogue. « Préparer le devis » fait un devis brouillon au client du projet, au prix de vente ; « Préparer la commande » fait une commande brouillon au fournisseur choisi, au prix d'achat. Les deux se relisent ensuite dans leurs modules avant de partir.",
+          "Un article doit se compter dans l'unité du matériau : le ciment en sacs (pièces), le sable et le gravier en m³, le fer en barres, ou en kg sans diamètre. Sinon la ligne est refusée plutôt que convertie de travers.",
+        ],
+        etapes: ["Calculez, puis « Enregistrer sur un projet ».", "Sur la note, vérifiez l'article de chaque matériau.", "Préparez le devis ou la commande, puis relisez-les."],
+      },
+      {
+        ancre: "articles",
+        titre: "Associer les matériaux aux articles",
+        chemin: "/calculs/articles",
+        texte: ["Qui règle les calculs associe une fois pour toutes chaque matériau (ciment, sable, fer HA10, agglo de 15, carreau 60 × 60…) à l'article du catalogue qui se commande et se vend. Seuls les articles de la même unité se proposent."],
+      },
+      {
         ancre: "ratios",
         titre: "Les ratios de l'entreprise",
         chemin: "/calculs/reglages",
@@ -269,6 +286,13 @@ export const CHAPITRES_GESTION: Chapitre[] = [
         choix: ["17", "18", "17,6"],
         bonne: 1,
         explication: "Ce qui s'achète s'arrondit toujours au-dessus : un sac de trop reste en stock, un sac qui manque arrête le chantier.",
+      },
+      {
+        cle: "calculs-note",
+        question: "Un ratio change après l'enregistrement d'une note. Que devient la note ?",
+        choix: ["Elle se recalcule", "Elle garde le calcul et les ratios du jour où elle a été faite", "Elle est annulée"],
+        bonne: 1,
+        explication: "Une note est figée : saisie, résultat et ratios du jour sont copiés. Pour un autre calcul, on fait une autre note.",
       },
       {
         cle: "calculs-fer",
