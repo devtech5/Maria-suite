@@ -99,7 +99,7 @@ function Mise({ titre, saisie, resultat, erreur, aide }: { titre: string; saisie
                     {l.libelle}
                     {l.precision && <span className="block text-xs text-[var(--encre-faible)]">{l.precision}</span>}
                   </dt>
-                  <dd className={`chiffres text-right ${l.fort ? "text-base font-bold" : "text-sm font-medium"}`}>{l.valeur}</dd>
+                  <dd className={`chiffres shrink-0 whitespace-nowrap text-right ${l.fort ? "text-base font-bold" : "text-sm font-medium"}`}>{l.valeur}</dd>
                 </div>
               ))}
             </dl>
