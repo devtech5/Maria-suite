@@ -475,6 +475,7 @@ export const CHAPITRES_GESTION: Chapitre[] = [
         chemin: "/comptabilite/etats",
         texte: [
           "Le bilan se calcule à la date choisie à partir des soldes cumulés ; le résultat d'un exercice non clôturé figure au passif. Les à-nouveaux ne sont pas des écritures recopiées : la balance d'ouverture d'un exercice est la situation de la veille de son premier jour.",
+          "Le tableau des flux de trésorerie part de la capacité d'autofinancement et la corrige de ce qui a bougé au bilan : stocks, créances, dettes, investissements, capital, emprunts. Sa dernière ligne doit égaler la trésorerie du bilan ; un écart signalé en rouge veut dire qu'un mouvement n'est classé nulle part, et le tableau ne se reporte pas tant qu'il n'est pas expliqué.",
         ],
       },
     ],

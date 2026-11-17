@@ -4,6 +4,7 @@ import { and, asc, desc, eq, inArray, sql } from "drizzle-orm";
 
 import { db } from "@/db";
 import type { SoldeCompte } from "@/lib/comptabilite/etats";
+import type { DonneesFlux } from "@/lib/comptabilite/flux";
 import { motsRecherche, type FiltresListe } from "@/lib/recherche";
 import { dansPeriodeSql, motsDans } from "@/lib/recherche-sql";
 import { ecritures, lignesEcriture } from "./schema";
@@ -75,6 +76,49 @@ export async function soldesAuJour(organizationId: string, date: string): Promis
     order by l.compte
   `);
   return lignes.map((l) => ({ compte: l.compte, libelle: l.libelle, debit: Number(l.debit), credit: Number(l.credit) }));
+}
+
+/**
+ * Valeur d'origine des immobilisations sorties par cession pendant l'exercice :
+ * les crédits portés sur le brut (21 à 27) par une écriture qui constate aussi
+ * la valeur comptable cédée, en 81 ou en 654 (`estEcritureDeCession`).
+ */
+async function sortiesDeCessions(organizationId: string, exercice: string): Promise<SoldeCompte[]> {
+  const lignes = await db.execute<{ compte: string; libelle: string; credit: string }>(sql`
+    select l.compte, min(l.libelle_compte) as libelle, coalesce(sum(l.credit), 0) as credit
+    from lignes_ecriture l
+    join ecritures e on e.id = l.ecriture_id
+    where l.organization_id = ${organizationId}
+      and e.exercice = ${exercice}
+      and e.origine <> 'cloture'
+      and l.compte ~ '^2[1-7]'
+      and l.credit > 0
+      and exists (
+        select 1 from lignes_ecriture c
+        where c.organization_id = ${organizationId}
+          and c.ecriture_id = l.ecriture_id
+          and (c.compte like '81%' or c.compte like '654%')
+      )
+    group by l.compte
+    order by l.compte
+  `);
+  return lignes.map((l) => ({ compte: l.compte, libelle: l.libelle, debit: 0, credit: Number(l.credit) }));
+}
+
+/**
+ * Ce que le tableau des flux de trésorerie lit pour un exercice : ses
+ * mouvements, la situation à la veille de son premier jour et à sa date de
+ * fin, et les biens sortis par cession. `fin` vaut le 31 décembre, ou le jour
+ * même pour l'exercice en cours.
+ */
+export async function donneesFlux(organizationId: string, exercice: string, fin = `${exercice}-12-31`): Promise<DonneesFlux> {
+  const [mouvements, soldesDebut, soldesFin, sortiesCessions] = await Promise.all([
+    soldesParCompte(organizationId, exercice),
+    soldesAuJour(organizationId, `${Number(exercice) - 1}-12-31`),
+    soldesAuJour(organizationId, fin),
+    sortiesDeCessions(organizationId, exercice),
+  ]);
+  return { mouvements, soldesDebut, soldesFin, sortiesCessions };
 }
 
 /**
