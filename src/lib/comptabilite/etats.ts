@@ -305,9 +305,14 @@ function selonSens(soldes: readonly SoldeCompte[], prefixes: readonly string[], 
  * compte hors des classes 1 à 8.
  */
 export function calculerBilan(soldes: readonly SoldeCompte[]): Bilan {
-  const tiersActif = (prefixes: string[], sauf: string[] = []) => selonSens(soldes, prefixes, sauf).debiteur;
-  const tiersPassif = (prefixes: string[], sauf: string[] = []) => selonSens(soldes, prefixes, sauf).crediteur;
-  const AUTRES_TIERS = ["40", "41", "42", "43", "44"];
+  const tiersActif = (prefixes: readonly string[], sauf: readonly string[] = []) => selonSens(soldes, prefixes, sauf).debiteur;
+  const tiersPassif = (prefixes: readonly string[], sauf: readonly string[] = []) => selonSens(soldes, prefixes, sauf).crediteur;
+  // Une dépréciation corrige l'actif qu'elle déprécie : elle s'en déduit, elle
+  // n'est pas une dette. Seules les provisions pour risques à court terme (499)
+  // restent au passif.
+  const deprecie = (prefixes: readonly string[]) => net(soldes, prefixes);
+  const DEPRECIATIONS_AUTRES_CREANCES = ["492", "493", "494", "495", "496", "497", "498"];
+  const DEPRECIATIONS_TIERS = ["490", "491", ...DEPRECIATIONS_AUTRES_CREANCES];
 
   const actif: PosteBilan[] = [
     { code: "AD", libelle: "Immobilisations incorporelles", montant: net(soldes, ["21", "281", "291"]) },
@@ -315,10 +320,10 @@ export function calculerBilan(soldes: readonly SoldeCompte[]): Bilan {
     { code: "AP", libelle: "Avances et acomptes versés sur immobilisations", montant: net(soldes, ["25", "295"]) },
     { code: "AQ", libelle: "Immobilisations financières", montant: net(soldes, ["26", "27", "296", "297"]) },
     { code: "BB", libelle: "Stocks et encours", montant: net(soldes, ["3"]) },
-    { code: "BH", libelle: "Fournisseurs, avances versées", montant: tiersActif(["40"]) },
-    { code: "BI", libelle: "Clients", montant: tiersActif(["41"]) },
-    { code: "BJ", libelle: "Autres créances", montant: tiersActif(["4"], ["40", "41"]) },
-    { code: "BT", libelle: "Trésorerie actif", montant: tiersActif(["5"]) },
+    { code: "BH", libelle: "Fournisseurs, avances versées", montant: tiersActif(["40"]) + deprecie(["490"]) },
+    { code: "BI", libelle: "Clients", montant: tiersActif(["41"]) + deprecie(["491"]) },
+    { code: "BJ", libelle: "Autres créances", montant: tiersActif(["4"], ["40", "41", "49"]) + deprecie(DEPRECIATIONS_AUTRES_CREANCES) },
+    { code: "BT", libelle: "Trésorerie actif", montant: tiersActif(["5"], ["59"]) + deprecie(["59"]) },
   ];
 
   const resultatEnInstance = oppose(net(soldes, ["6", "7", "8"]));
@@ -330,10 +335,11 @@ export function calculerBilan(soldes: readonly SoldeCompte[]): Bilan {
     { code: "CL", libelle: "Subventions et provisions réglementées", montant: -net(soldes, ["14", "15"]) },
     { code: "DA", libelle: "Emprunts et dettes financières", montant: -net(soldes, ["16", "17", "18"]) },
     { code: "DC", libelle: "Provisions pour risques et charges", montant: -net(soldes, ["19"]) },
+    { code: "DI", libelle: "Clients, avances reçues", montant: tiersPassif(["41"]) },
     { code: "DJ", libelle: "Fournisseurs", montant: tiersPassif(["40"]) },
     { code: "DK", libelle: "Dettes fiscales et sociales", montant: tiersPassif(["42", "43", "44"]) },
-    { code: "DM", libelle: "Autres dettes", montant: tiersPassif(["4"], AUTRES_TIERS) },
-    { code: "DT", libelle: "Trésorerie passif", montant: tiersPassif(["5"]) },
+    { code: "DM", libelle: "Autres dettes", montant: tiersPassif(["4"], ["40", "41", "42", "43", "44", ...DEPRECIATIONS_TIERS]) },
+    { code: "DT", libelle: "Trésorerie passif", montant: tiersPassif(["5"], ["59"]) },
   ];
 
   const somme = (postes: PosteBilan[]) => postes.reduce((t, p) => t + p.montant, 0);

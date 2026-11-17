@@ -5,6 +5,7 @@ import { and, asc, desc, eq, inArray, sql } from "drizzle-orm";
 import { db } from "@/db";
 import type { SoldeCompte } from "@/lib/comptabilite/etats";
 import type { DonneesFlux } from "@/lib/comptabilite/flux";
+import type { DonneesNotes } from "@/lib/comptabilite/notes";
 import { motsRecherche, type FiltresListe } from "@/lib/recherche";
 import { dansPeriodeSql, motsDans } from "@/lib/recherche-sql";
 import { ecritures, lignesEcriture } from "./schema";
@@ -119,6 +120,18 @@ export async function donneesFlux(organizationId: string, exercice: string, fin 
     sortiesDeCessions(organizationId, exercice),
   ]);
   return { mouvements, soldesDebut, soldesFin, sortiesCessions };
+}
+
+/** Ce que les notes annexes lisent : les deux bilans et les mouvements des deux exercices. */
+export async function donneesNotes(organizationId: string, exercice: string): Promise<DonneesNotes> {
+  const precedent = String(Number(exercice) - 1);
+  const [bilanN, bilanN1, mouvementsN, mouvementsN1] = await Promise.all([
+    soldesAuJour(organizationId, `${exercice}-12-31`),
+    soldesAuJour(organizationId, `${precedent}-12-31`),
+    soldesParCompte(organizationId, exercice),
+    soldesParCompte(organizationId, precedent),
+  ]);
+  return { bilanN, bilanN1, mouvementsN, mouvementsN1 };
 }
 
 /**
