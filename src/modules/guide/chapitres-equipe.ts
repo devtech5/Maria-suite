@@ -255,8 +255,9 @@ export const CHAPITRES_EQUIPE: Chapitre[] = [
         texte: [
           "Une demande de congé porte ses dates, du premier au dernier jour inclus, et son motif. Elle reçoit un numéro ; celui qui accorde les congés l'accepte ou la refuse, et vous en êtes prévenu.",
           "Le décompte tient compte des jours fériés du pays. Un congé sans solde accordé est retenu sur la paie du mois.",
+          "« Imprimer », sur la ligne d'une demande, la sort sur papier à en-tête, remplie, avec le solde et la décision, pour la faire signer. « Formulaire vierge » donne la même feuille à remplir à la main.",
         ],
-        etapes: ["Onglet Congés, nouvelle demande.", "Choisissez les dates et le motif.", "Attendez la décision dans la cloche."],
+        etapes: ["Onglet Congés, nouvelle demande.", "Choisissez les dates et le motif.", "Attendez la décision dans la cloche.", "Pour un exemplaire signé : « Imprimer » sur la ligne de la demande."],
       },
       {
         ancre: "permissions",

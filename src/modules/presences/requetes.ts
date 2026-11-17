@@ -440,3 +440,49 @@ export async function listerPermissions(
     aJustificatif: Boolean(justificatif),
   }));
 }
+
+/** Ce que porte la demande de congé imprimée : la demande, le salarié, qui a demandé et qui a décidé. */
+export interface CongeAImprimer extends LigneConge {
+  matricule: string;
+  poste: string;
+  service: string | null;
+  demandeParNom: string | null;
+  decideParNom: string | null;
+  decideLe: Date | null;
+}
+
+export async function congeAImprimer(organizationId: string, id: string): Promise<CongeAImprimer | null> {
+  const demandeur = sql<string | null>`(select ${users.fullName} from ${users} where ${users.id} = ${conges.demandeParUserId})`;
+  const decideur = sql<string | null>`(select ${users.fullName} from ${users} where ${users.id} = ${conges.decideParUserId})`;
+  const [l] = await db
+    .select({
+      id: conges.id,
+      numero: conges.numero,
+      employeeId: conges.employeeId,
+      nom: employees.nom,
+      matricule: employees.matricule,
+      poste: employees.poste,
+      service: employees.service,
+      nature: conges.nature,
+      debut: conges.debut,
+      fin: conges.fin,
+      debutDemi: conges.debutDemi,
+      finDemi: conges.finDemi,
+      jours: conges.joursCentiemes,
+      motif: conges.motif,
+      statut: conges.statut,
+      commentaire: conges.commentaire,
+      salarieUserId: employees.userId,
+      justificatif: conges.justificatif,
+      creeLe: conges.createdAt,
+      demandeParNom: demandeur,
+      decideParNom: decideur,
+      decideLe: conges.decideLe,
+    })
+    .from(conges)
+    .innerJoin(employees, eq(employees.id, conges.employeeId))
+    .where(and(eq(conges.organizationId, organizationId), eq(conges.id, id), isNull(conges.deletedAt)));
+  if (!l) return null;
+  const { justificatif, ...reste } = l;
+  return { ...reste, aJustificatif: Boolean(justificatif), libelleNature: NATURES_CONGE[l.nature].libelle };
+}

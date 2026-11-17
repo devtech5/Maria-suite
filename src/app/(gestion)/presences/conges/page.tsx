@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import Link from "next/link";
 
 import { ActionsConge, FormulaireConge } from "@/components/presences/formulaires";
 import { CarteIndicateur, EnTetePage, Pastille, Tableau, Td, Th, type TonPastille } from "@/components/ui/primitives";
@@ -56,6 +57,9 @@ function TableConges({ lignes, avecNom, peutDecider, userId, aujourdhui }: { lig
                 {c.commentaire && <span className="block text-xs text-[var(--encre-faible)]">{c.commentaire}</span>}
               </Td>
               <Td aligne="droite">
+                <Link href={`/imprimer/demande-conge/${c.id}`} className="mb-1 inline-block text-xs font-semibold text-marque-700 hover:underline">
+                  Imprimer
+                </Link>
                 <ActionsConge
                   id={c.id}
                   peutDecider={peutDecider && c.statut === "demande"}
@@ -100,6 +104,12 @@ export default async function PageConges({ searchParams }: PageProps<"/presences
         sousTitre={`${formatJours(r.congesCentiemesParMois)} acquis par mois de service · décompte en jours ${r.decompte === "ouvrables" ? "ouvrables" : "travaillés"}`}
         actions={
           <div className="flex flex-wrap gap-2">
+            <Link
+              href="/imprimer/demande-conge"
+              className="h-cible inline-flex items-center rounded-lg border border-[var(--filet)] bg-[var(--surface)] px-4 text-sm font-semibold hover:bg-[var(--surface-creuse)]"
+            >
+              Formulaire vierge
+            </Link>
             {moi && droits.has("conges.demander") && <FormulaireConge aujourdhui={aujourdhui} pourMoi />}
             {valideur && <FormulaireConge salaries={salaries.map((s) => ({ id: s.id, nom: s.nom }))} aujourdhui={aujourdhui} pourMoi={false} />}
           </div>
