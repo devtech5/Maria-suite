@@ -12,36 +12,12 @@ import localFont from "next/font/local";
  */
 const montserrat = localFont({
   src: [
-    {
-      path: "./polices/montserrat-latin-500-normal.woff2",
-      weight: "500",
-      style: "normal",
-    },
-    {
-      path: "./polices/montserrat-latin-500-italic.woff2",
-      weight: "500",
-      style: "italic",
-    },
-    {
-      path: "./polices/montserrat-latin-600-normal.woff2",
-      weight: "600",
-      style: "normal",
-    },
-    {
-      path: "./polices/montserrat-latin-600-italic.woff2",
-      weight: "600",
-      style: "italic",
-    },
-    {
-      path: "./polices/montserrat-latin-700-normal.woff2",
-      weight: "700",
-      style: "normal",
-    },
-    {
-      path: "./polices/montserrat-latin-700-italic.woff2",
-      weight: "700",
-      style: "italic",
-    },
+    { path: "./polices/montserrat-latin-500-normal.woff2", weight: "500", style: "normal" },
+    { path: "./polices/montserrat-latin-500-italic.woff2", weight: "500", style: "italic" },
+    { path: "./polices/montserrat-latin-600-normal.woff2", weight: "600", style: "normal" },
+    { path: "./polices/montserrat-latin-600-italic.woff2", weight: "600", style: "italic" },
+    { path: "./polices/montserrat-latin-700-normal.woff2", weight: "700", style: "normal" },
+    { path: "./polices/montserrat-latin-700-italic.woff2", weight: "700", style: "italic" },
   ],
   display: "swap",
 });
@@ -58,18 +34,8 @@ const montserrat = localFont({
  * Relative et isolée : le filigrane de l'en-tête s'y place, derrière le texte.
  * `paysage` couche la feuille (297 × 210 mm) pour les registres larges.
  */
-export function FeuilleA4({
-  children,
-  pied,
-  paysage = false,
-}: {
-  children: ReactNode;
-  pied?: ReactNode;
-  paysage?: boolean;
-}) {
-  const format = paysage
-    ? "min-h-[210mm] w-[297mm] print:min-h-[209mm]"
-    : "min-h-[297mm] w-[210mm] print:min-h-[296mm]";
+export function FeuilleA4({ children, pied, paysage = false }: { children: ReactNode; pied?: ReactNode; paysage?: boolean }) {
+  const format = paysage ? "min-h-[210mm] w-[297mm] print:min-h-[209mm]" : "min-h-[297mm] w-[210mm] print:min-h-[296mm]";
   return (
     <article
       id="document-imprimable"
