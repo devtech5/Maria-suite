@@ -7,10 +7,11 @@ import { BoutonImprimer } from "@/components/ui/bouton-imprimer";
 import { db } from "@/db";
 import { exigerEntreprise } from "@/lib/auth/dal";
 import { calculerBilan, calculerSIG, elementsResultat, type PosteBilan } from "@/lib/comptabilite/etats";
+import { calculerFluxTresorerie, type FluxTresorerie } from "@/lib/comptabilite/flux";
 import { peut } from "@/lib/droits/garde";
 import { fmt, fmtTauxBp } from "@/lib/format";
 import { identiteEntreprise } from "@/lib/identite";
-import { soldesAuJour, soldesParCompte } from "@/modules/comptabilite/requetes";
+import { donneesFlux, soldesAuJour, soldesParCompte } from "@/modules/comptabilite/requetes";
 import { affectationsResultat, exercicesClotures, impotsBenefices } from "@/modules/fiscalite/schema";
 
 export const metadata: Metadata = { title: "États financiers annuels" };
@@ -53,6 +54,42 @@ function TableComparee({ titre, n, n1, exercice, total }: { titre: string; n: Po
   );
 }
 
+/** Le TFT comparé à l'exercice précédent : toutes les lignes du modèle, nulles comprises. */
+function TableFlux({ n, n1, exercice }: { n: FluxTresorerie; n1: FluxTresorerie; exercice: string }) {
+  const precedent = new Map(n1.lignes.map((l) => [l.code, l.montant]));
+  return (
+    <table className="w-full border-collapse tabular-nums">
+      <thead>
+        <tr className="border-y border-black/40 text-left text-[8pt] uppercase">
+          <th className="w-10 py-1">Réf.</th>
+          <th className="py-1">Libellés</th>
+          <th className="w-6 py-1" />
+          <th className="py-1 text-right">{exercice}</th>
+          <th className="py-1 text-right">{Number(exercice) - 1}</th>
+        </tr>
+      </thead>
+      <tbody>
+        {n.lignes.map((l) => (
+          <tr key={l.code} className={`border-b border-black/10 ${l.total ? "font-bold" : ""}`}>
+            <td className="py-1">{l.code}</td>
+            <td className="py-1">{l.libelle}</td>
+            <td className="py-1">{l.lettre}</td>
+            <td className="py-1 text-right">{montant(l.montant)}</td>
+            <td className="py-1 text-right">{montant(precedent.get(l.code) ?? 0)}</td>
+          </tr>
+        ))}
+        <tr className="text-[8pt]">
+          <td />
+          <td className="py-1">Contrôle : trésorerie actif N − trésorerie passif N</td>
+          <td />
+          <td className="py-1 text-right">{montant(n.tresorerieFin)}</td>
+          <td className="py-1 text-right">{montant(n1.tresorerieFin)}</td>
+        </tr>
+      </tbody>
+    </table>
+  );
+}
+
 /**
  * Liasse annuelle de l'exercice, telle que la comptabilité la donne : bilan
  * et compte de résultat comparés à l'exercice précédent, détermination de
@@ -67,7 +104,7 @@ export default async function ImpressionDsf({ params }: { params: Promise<{ exer
   const org = session.organizationId;
   const precedent = String(Number(exercice) - 1);
 
-  const [identite, bilanN, bilanN1, resultatN, resultatN1, [cloture], [impot], [affectation]] = await Promise.all([
+  const [identite, bilanN, bilanN1, resultatN, resultatN1, [cloture], [impot], [affectation], pourFluxN, pourFluxN1] = await Promise.all([
     identiteEntreprise(org),
     soldesAuJour(org, `${exercice}-12-31`),
     soldesAuJour(org, `${precedent}-12-31`),
@@ -76,6 +113,8 @@ export default async function ImpressionDsf({ params }: { params: Promise<{ exer
     db.select().from(exercicesClotures).where(and(eq(exercicesClotures.organizationId, org), eq(exercicesClotures.exercice, exercice))),
     db.select().from(impotsBenefices).where(and(eq(impotsBenefices.organizationId, org), eq(impotsBenefices.exercice, exercice))),
     db.select().from(affectationsResultat).where(and(eq(affectationsResultat.organizationId, org), eq(affectationsResultat.exercice, exercice))),
+    donneesFlux(org, exercice),
+    donneesFlux(org, precedent),
   ]);
   if (bilanN.length === 0 && resultatN.length === 0) notFound();
 
@@ -83,6 +122,8 @@ export default async function ImpressionDsf({ params }: { params: Promise<{ exer
   const b1 = calculerBilan(bilanN1);
   const sig = calculerSIG(elementsResultat(resultatN)).map((s) => ({ code: s.code, libelle: s.libelle, montant: s.montant }));
   const sig1 = calculerSIG(elementsResultat(resultatN1)).map((s) => ({ code: s.code, libelle: s.libelle, montant: s.montant }));
+  const fluxN = calculerFluxTresorerie(pourFluxN);
+  const fluxN1 = calculerFluxTresorerie(pourFluxN1);
 
   return (
     <main className="min-h-dvh bg-[var(--fond)] py-6 print:bg-white print:py-0">
@@ -107,6 +148,17 @@ export default async function ImpressionDsf({ params }: { params: Promise<{ exer
         <div className="mt-2">
           <TableComparee titre="Rubrique" n={sig} n1={sig1} exercice={exercice} />
         </div>
+
+        <h2 className="mt-6 text-sm font-bold uppercase [break-before:page]">Tableau des flux de trésorerie</h2>
+        <div className="mt-2">
+          <TableFlux n={fluxN} n1={fluxN1} exercice={exercice} />
+        </div>
+        {fluxN.ecart !== 0 && (
+          <p className="mt-1 font-bold">
+            Écart de {fmt(fluxN.ecart)} entre la trésorerie calculée (ZH) et celle du bilan : un mouvement n&apos;est classé dans aucune ligne. À rapprocher avant
+            report.
+          </p>
+        )}
 
         <h2 className="mt-6 text-sm font-bold uppercase">Détermination de l&apos;impôt sur les bénéfices</h2>
         {impot ? (
@@ -163,8 +215,8 @@ export default async function ImpressionDsf({ params }: { params: Promise<{ exer
 
         <p className="mt-8 text-[8pt] text-black/70">
           Document établi depuis la comptabilité de l&apos;entreprise, soldes cumulés jusqu&apos;au 31 décembre. La déclaration statistique et fiscale se
-          dépose auprès de la DGI sur sa liasse officielle : reportez-y ces montants, ligne à ligne, sur le formulaire en vigueur. Le tableau des flux de
-          trésorerie et les notes annexes ne sont pas produits ici.
+          dépose auprès de la DGI sur sa liasse officielle : reportez-y ces montants, ligne à ligne, sur le formulaire en vigueur. Les notes annexes ne
+          sont pas encore produites ici.
         </p>
       </article>
     </main>

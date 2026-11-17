@@ -4,8 +4,9 @@ import Link from "next/link";
 import { EnTetePage, EtatVide, Tableau, Td, Th } from "@/components/ui/primitives";
 import { exigerEntreprise } from "@/lib/auth/dal";
 import { calculerBilan, calculerSIG, elementsResultat, type PosteBilan } from "@/lib/comptabilite/etats";
+import { calculerFluxTresorerie, type FluxTresorerie } from "@/lib/comptabilite/flux";
 import { fmt, fmtEntier } from "@/lib/format";
-import { exercicesEcrits, soldesAuJour, soldesParCompte } from "@/modules/comptabilite/requetes";
+import { donneesFlux, exercicesEcrits, soldesAuJour, soldesParCompte } from "@/modules/comptabilite/requetes";
 
 export const metadata: Metadata = { title: "États financiers" };
 
@@ -22,6 +23,39 @@ const CLASSES = [
 ];
 
 const dateFr = (iso: string) => `${iso.slice(8, 10)}/${iso.slice(5, 7)}/${iso.slice(0, 4)}`;
+const signe = (v: number) => (v < 0 ? `(${fmt(-v)})` : fmt(v));
+
+/** Le TFT de l'exercice, ligne à ligne, et son contrôle par la classe 5. */
+function TableauFlux({ flux, dateFin }: { flux: FluxTresorerie; dateFin: string }) {
+  return (
+    <>
+      <table className="w-full text-sm">
+        <tbody>
+          {flux.lignes.map((l) => (
+            <tr key={l.code} className={`border-b border-[var(--filet)] ${l.total ? "bg-[var(--surface-creuse)] font-semibold" : ""}`}>
+              <td className="chiffres w-10 py-2 pl-4 text-xs text-[var(--encre-faible)]">{l.code}</td>
+              <td className={`py-2 pr-3 ${l.total ? "" : "text-[var(--encre-douce)]"}`}>{l.libelle}</td>
+              <td className="chiffres w-8 py-2 text-xs text-[var(--encre-faible)]">{l.lettre}</td>
+              <td className={`chiffres py-2 pr-4 text-right ${l.montant < 0 ? "text-danger-600" : ""}`}>{l.montant === 0 ? "—" : signe(l.montant)}</td>
+            </tr>
+          ))}
+          <tr>
+            <td />
+            <td className="py-2 pr-3 text-xs text-[var(--encre-faible)]">Contrôle : trésorerie actif − trésorerie passif au {dateFr(dateFin)}</td>
+            <td />
+            <td className="chiffres py-2 pr-4 text-right text-xs text-[var(--encre-faible)]">{signe(flux.tresorerieFin)}</td>
+          </tr>
+        </tbody>
+      </table>
+      {flux.ecart !== 0 && (
+        <p className="border-t border-[var(--filet)] bg-danger-50 px-4 py-2 text-sm text-danger-600">
+          {signe(flux.ecart)} F de trésorerie ne sont classés dans aucune ligne : un compte hors du modèle a été mouvementé, ou une dotation est passée par un compte
+          inattendu. Rapprochez la balance générale avant de reporter ce tableau.
+        </p>
+      )}
+    </>
+  );
+}
 
 /** Une colonne du bilan : postes non nuls, puis le total. */
 function ColonneBilan({ titre, postes, total }: { titre: string; postes: PosteBilan[]; total: number }) {
@@ -59,8 +93,13 @@ export default async function PageEtats({ searchParams }: { searchParams: Promis
   const aujourdhui = new Date().toISOString().slice(0, 10);
   // Exercice terminé : le bilan au 31 décembre. En cours : la situation du jour.
   const dateBilan = `${exercice}-12-31` < aujourdhui ? `${exercice}-12-31` : aujourdhui;
-  const [soldes, cumules] = await Promise.all([soldesParCompte(session.organizationId, exercice), soldesAuJour(session.organizationId, dateBilan)]);
+  const [soldes, cumules, pourFlux] = await Promise.all([
+    soldesParCompte(session.organizationId, exercice),
+    soldesAuJour(session.organizationId, dateBilan),
+    donneesFlux(session.organizationId, exercice, dateBilan),
+  ]);
   const bilan = calculerBilan(cumules);
+  const flux = calculerFluxTresorerie(pourFlux);
   const ecartBilan = bilan.totalActif - bilan.totalPassif;
 
   if (soldes.length === 0) {
@@ -188,7 +227,6 @@ export default async function PageEtats({ searchParams }: { searchParams: Promis
             <h2 className="mb-2 text-sm font-semibold">Ce qui manque encore</h2>
             {/* Annoncer ce qui n'existe pas vaut mieux que de le faire croire. */}
             <ul className="space-y-1.5 text-sm text-[var(--encre-douce)]">
-              <li>Tableau des flux de trésorerie</li>
               <li>Notes annexes</li>
             </ul>
           </section>
@@ -222,6 +260,19 @@ export default async function PageEtats({ searchParams }: { searchParams: Promis
             Le bilan ne tombe pas juste ({fmt(ecartBilan)}) : un compte hors des classes 1 à 8 a été mouvementé. Vérifiez la balance générale.
           </p>
         )}
+      </section>
+
+      {/* ------------------------------------------- flux de trésorerie */}
+      <section className="mt-6 overflow-hidden rounded-xl border border-[var(--filet)] bg-[var(--surface)]">
+        <header className="border-b border-[var(--filet)] px-4 py-3">
+          <h2 className="text-sm font-semibold">
+            Tableau des flux de trésorerie · du 01/01/{exercice} au {dateFr(dateBilan)}
+          </h2>
+          <p className="text-xs text-[var(--encre-faible)]">
+            Méthode indirecte du SYSCOHADA révisé : la capacité d&apos;autofinancement, corrigée de ce qui a bougé au bilan. Entre parenthèses, la trésorerie consommée.
+          </p>
+        </header>
+        <TableauFlux flux={flux} dateFin={dateBilan} />
       </section>
 
       {/* ------------------------------------------------- balance générale */}

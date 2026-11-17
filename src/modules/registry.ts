@@ -81,9 +81,10 @@ export const MODULES: ModuleDefinition[] = [
     // règle du pays attestée (taux, minimum forfaitaire), constaté avant la
     // clôture et payé en fractions l'année suivante ; clôture d'exercice
     // (131/139), affectation du résultat, réouverture motivée qui contrepasse.
-    // Bilan cumulé et à-nouveaux lus dans les soldes, liasse annuelle
-    // imprimable. Restent le tableau des flux de trésorerie, les notes
-    // annexes et le dépôt au format de la DGI.
+    // Bilan cumulé et à-nouveaux lus dans les soldes, tableau des flux de
+    // trésorerie (méthode indirecte, contrôlé par la classe 5), liasse
+    // annuelle imprimable. Restent les notes annexes et le dépôt au format
+    // de la DGI.
     status: "en_cours",
     requires: ["tiers"],
     description:
