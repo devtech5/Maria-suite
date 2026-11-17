@@ -14,6 +14,20 @@ const nextConfig: NextConfig = {
   // Les bibliothèques de messagerie (IMAP, MIME, SMTP) ouvrent des sockets
   // et chargent leurs encodages à l'exécution : elles restent dans node_modules.
   serverExternalPackages: ["@electric-sql/pglite", "imapflow", "mailparser", "nodemailer"],
+  // Service worker de l'application installable : relu au réseau à chaque
+  // visite, sinon un déploiement attendrait l'expiration du cache HTTP.
+  async headers() {
+    return [
+      {
+        source: "/sw.js",
+        headers: [
+          { key: "Content-Type", value: "application/javascript; charset=utf-8" },
+          { key: "Cache-Control", value: "no-cache, no-store, must-revalidate" },
+          { key: "Content-Security-Policy", value: "default-src 'self'; script-src 'self'" },
+        ],
+      },
+    ];
+  },
   experimental: {
     serverActions: {
       // Une pièce jointe va jusqu'à 10 Mo (photo de chantier, reçu scanné) ;

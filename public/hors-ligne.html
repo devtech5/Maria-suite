@@ -1,0 +1,32 @@
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="theme-color" content="#162E49">
+<title>Hors ligne · Maria Suite</title>
+<style>
+  :root { color-scheme: light dark; --fond: #f6f8fa; --texte: #162e49; --doux: #6a7a8c; --carte: #ffffff; }
+  @media (prefers-color-scheme: dark) { :root { --fond: #0b1520; --texte: #e8eef5; --doux: #9aa9b9; --carte: #0f2236; } }
+  * { box-sizing: border-box; }
+  body { margin: 0; min-height: 100vh; display: grid; place-items: center; padding: 16px;
+         background: var(--fond); color: var(--texte); font-family: system-ui, -apple-system, "Segoe UI", sans-serif; }
+  main { max-width: 380px; width: 100%; text-align: center; background: var(--carte);
+         border-radius: 16px; padding: 32px 24px; box-shadow: 0 4px 24px rgb(0 0 0 / 0.08); }
+  img { width: 72px; height: 72px; border-radius: 16px; }
+  h1 { font-size: 1.25rem; margin: 16px 0 8px; }
+  p { color: var(--doux); line-height: 1.5; margin: 0 0 24px; }
+  button { font: inherit; font-weight: 600; border: 0; border-radius: 10px; padding: 12px 20px;
+           background: #162e49; color: #fff; cursor: pointer; width: 100%; }
+</style>
+</head>
+<body>
+<main>
+  <img src="/pwa/icone-192.png" alt="">
+  <h1>Pas de connexion</h1>
+  <p>Maria Suite a besoin du réseau pour afficher cette page. Vérifiez la connexion, puis réessayez.</p>
+  <button type="button" onclick="location.reload()">Réessayer</button>
+</main>
+<script>window.addEventListener("online", function () { location.reload(); });</script>
+</body>
+</html>
