@@ -594,6 +594,17 @@ et compte de l'article ou de sa famille (`creerCommandeDans`, droit
 `achats.commande.gerer`). Chaque pièce tirée est notée dans
 `notes_calcul_suites`. La fiche du projet liste ses notes.
 
+## Application installable (PWA)
+
+`src/app/manifest.ts` (servi à `/manifest.webmanifest`), icônes dans
+`public/pwa/`, service worker `public/sw.js` inscrit en production seulement
+(`src/app/enregistrer-sw.tsx`, `updateViaCache: "none"`, en-têtes sans cache
+dans `next.config.ts`). Il ne met en cache QUE le statique (`/_next/static/`,
+`/pwa/`, `/marque/`, `/polices/`) et `/hors-ligne.html`, servie quand une
+navigation échoue sans réseau. Jamais une page de gestion, une API ni une
+pièce jointe : données de l'entreprise, appareils partagés. Changer
+`VERSION` dans `sw.js` purge les anciens caches.
+
 ## Interrogations de fond et liens publics
 
 Tout ce qui interroge le serveur en tâche de fond — la cloche, la

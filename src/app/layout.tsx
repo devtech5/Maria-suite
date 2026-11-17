@@ -1,4 +1,5 @@
 import type { Metadata, Viewport } from "next";
+import { EnregistrerServiceWorker } from "./enregistrer-sw";
 import "./globals.css";
 
 export const metadata: Metadata = {
@@ -6,8 +7,9 @@ export const metadata: Metadata = {
     default: "Maria Suite",
     template: "%s · Maria Suite",
   },
-  description:
-    "ERP et point de vente de MARIA GROUP SARL. Encaisse sans connexion.",
+  description: "ERP de MARIA GROUP SARL.",
+  // Application installable : le manifeste vient de `app/manifest.ts`.
+  appleWebApp: { capable: true, title: "Maria Suite", statusBarStyle: "default" },
 };
 
 export const viewport: Viewport = {
@@ -35,7 +37,10 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
       <head>
         <script dangerouslySetInnerHTML={{ __html: RESTAURER_THEME }} />
       </head>
-      <body>{children}</body>
+      <body>
+        {children}
+        <EnregistrerServiceWorker />
+      </body>
     </html>
   );
 }
