@@ -116,7 +116,8 @@ export const DROITS = [
     libelle: "Clôturer un exercice",
     description:
       "Constater l'impôt sur les bénéfices, déterminer le résultat de l'année et fermer l'exercice, affecter le résultat. " +
-      "Rouvrir un exercice clos, motif à l'appui : la clôture est contrepassée, jamais effacée.",
+      "Rouvrir un exercice clos, motif à l'appui : la clôture est contrepassée, jamais effacée. " +
+      "Rédiger les notes annexes que les écritures ne fournissent pas (sûretés, méthodes, engagements).",
   },
 
   // ----------------------------------------------------------- personnes

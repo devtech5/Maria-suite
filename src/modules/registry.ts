@@ -83,9 +83,9 @@ export const MODULES: ModuleDefinition[] = [
     // (131/139), affectation du résultat, réouverture motivée qui contrepasse.
     // Bilan cumulé et à-nouveaux lus dans les soldes, tableau des flux de
     // trésorerie (méthode indirecte, contrôlé par la classe 5), liasse
-    // annuelle imprimable, notes annexes calculées depuis les comptes.
-    // Restent les notes à rédiger (sûretés, méthodes, engagements,
-    // effectifs, informations sociales) et le dépôt au format de la DGI.
+    // annuelle imprimable, notes annexes : calculées depuis les comptes, le
+    // personnel et la fiche Entreprise, ou rédigées par le comptable. Reste
+    // le dépôt au format de la DGI.
     status: "en_cours",
     requires: ["tiers"],
     description:

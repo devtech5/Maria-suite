@@ -743,6 +743,13 @@
       "when": 1794946286049,
       "tag": "0105_categorie_poste_valeur_nominale",
       "breakpoints": true
+    },
+    {
+      "idx": 106,
+      "version": "7",
+      "when": 1794947362511,
+      "tag": "0106_notes_annexes_redigees",
+      "breakpoints": true
     }
   ]
 }
