@@ -62,10 +62,15 @@ export default async function PageAccueilVisiteurs({ searchParams }: PageProps<"
         titre={`Accueil · ${accueil.nom}`}
         sousTitre={accueil.lieu ?? "Entrées et sorties du jour"}
         actions={
-          <FormulaireRepliable libelle="Enregistrer une arrivée" titre={`Arrivée · ${accueil.nom}`} action={enregistrerArrivee} presentation="ample">
-            <input type="hidden" name="accueilId" value={accueil.id} />
-            <ChampsVisite personnes={personnes} arrivee pieceExigee={accueil.pieceExigee} />
-          </FormulaireRepliable>
+          <>
+            <Link href={`/imprimer/fiche-presence-visiteurs?accueil=${accueil.id}`} className="h-cible inline-flex items-center rounded-lg border border-[var(--filet)] bg-[var(--surface)] px-4 text-sm font-semibold hover:bg-[var(--surface-creuse)]">
+              Fiche de présence à imprimer
+            </Link>
+            <FormulaireRepliable libelle="Enregistrer une arrivée" titre={`Arrivée · ${accueil.nom}`} action={enregistrerArrivee} presentation="ample">
+              <input type="hidden" name="accueilId" value={accueil.id} />
+              <ChampsVisite personnes={personnes} arrivee pieceExigee={accueil.pieceExigee} />
+            </FormulaireRepliable>
+          </>
         }
       />
 

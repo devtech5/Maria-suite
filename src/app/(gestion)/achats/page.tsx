@@ -54,12 +54,13 @@ export default async function PageAchats({ searchParams }: PageProps<"/achats">)
         titre="Achats"
         sousTitre="Commandes fournisseurs, de la demande à la livraison"
         actions={
-          gerer ? (
-            <>
-              <PreparerReassort />
-              {fournisseurs.length > 0 && <EditeurCommande fournisseurs={fournisseurs} depots={depots} articles={articles} aujourdhui={aujourdhui} />}
-            </>
-          ) : undefined
+          <>
+            <Link href="/imprimer/besoins-materiel" className="h-cible inline-flex items-center rounded-lg border border-[var(--filet)] bg-[var(--surface)] px-4 text-sm font-semibold hover:bg-[var(--surface-creuse)]">
+              Fiche de besoins à imprimer
+            </Link>
+            {gerer && <PreparerReassort />}
+            {gerer && fournisseurs.length > 0 && <EditeurCommande fournisseurs={fournisseurs} depots={depots} articles={articles} aujourdhui={aujourdhui} />}
+          </>
         }
       />
 

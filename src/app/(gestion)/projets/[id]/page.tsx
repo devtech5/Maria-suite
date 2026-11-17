@@ -107,7 +107,14 @@ export default async function PageProjet({ params }: { params: Promise<{ id: str
         ]
           .filter(Boolean)
           .join(" · ")}
-        actions={<Pastille ton={projet.statut === "en_cours" ? "marque" : "neutre"}>{LIBELLE_STATUT_PROJET[projet.statut]}</Pastille>}
+        actions={
+          <>
+            <Link href={`/imprimer/besoins-materiel?projet=${projet.id}`} className="h-cible inline-flex items-center rounded-lg border border-[var(--filet)] bg-[var(--surface)] px-4 text-sm font-semibold hover:bg-[var(--surface-creuse)]">
+              Besoins en matériel
+            </Link>
+            <Pastille ton={projet.statut === "en_cours" ? "marque" : "neutre"}>{LIBELLE_STATUT_PROJET[projet.statut]}</Pastille>
+          </>
+        }
       />
       {projet.description && <p className="mb-4 max-w-[80ch] text-sm text-[var(--encre-douce)]">{projet.description}</p>}
 
