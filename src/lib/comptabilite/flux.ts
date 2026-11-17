@@ -108,6 +108,16 @@ interface Categorie {
 const INCORPORELLES: Categorie = { brut: ["21"], fournisseurs: ["4811"] };
 const CORPORELLES: Categorie = { brut: ["22", "23", "24", "25"], fournisseurs: ["481", "482"], fournisseursSauf: ["4811"] };
 
+/**
+ * Capacité d'autofinancement globale de l'exercice : le résultat net, sans
+ * les charges et produits calculés (dotations, reprises) ni le résultat des
+ * cessions, qui relèvent de l'investissement.
+ */
+export function capaciteAutofinancement(mouvements: readonly SoldeCompte[]): number {
+  const net = (prefixes: readonly string[]) => somme(mouvements, prefixes, (s) => s.debit - s.credit);
+  return propre(oppose(net(["6", "7", "8"])) + net(DOTATIONS) + net(REPRISES) + net(VALEURS_CEDEES) + net(PRODUITS_CESSIONS));
+}
+
 /** Trésorerie nette : solde de la classe 5, actif moins passif. */
 const tresorerieNette = (soldes: readonly SoldeCompte[]) => somme(soldes, ["5"], (s) => s.debit - s.credit);
 
@@ -140,8 +150,7 @@ export function calculerFluxTresorerie(d: DonneesFlux): FluxTresorerie {
   const sorties = (prefixes: readonly string[]) => somme(d.sortiesCessions, prefixes, (s) => s.credit);
 
   // ------------------------------------------------- activités opérationnelles
-  const resultatNet = oppose(net(["6", "7", "8"]));
-  const cafg = resultatNet + net(DOTATIONS) + net(REPRISES) + net(VALEURS_CEDEES) + net(PRODUITS_CESSIONS);
+  const cafg = capaciteAutofinancement(m);
   const actifHao = oppose(net([ACTIF_CIRCULANT_HAO]));
   const stocks = oppose(net(["3"]));
   const debut = tiersParSens(d.soldesDebut);

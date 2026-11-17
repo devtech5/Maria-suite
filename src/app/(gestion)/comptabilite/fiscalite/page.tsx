@@ -254,6 +254,9 @@ export default async function PageFiscalite() {
                     <a href={`/imprimer/dsf/${e.exercice}`} target="_blank" rel="noopener" className="block text-[11px] font-normal text-marque-600 hover:underline">
                       Liasse (DSF)
                     </a>
+                    <a href={`/imprimer/notes-annexes/${e.exercice}`} target="_blank" rel="noopener" className="block text-[11px] font-normal text-marque-600 hover:underline">
+                      Notes annexes
+                    </a>
                   </Td>
                   <Td aligne="droite" chiffres fort>
                     <span className={e.resultat < 0 ? "text-danger-600" : ""}>{fmt(e.resultat)}</span>

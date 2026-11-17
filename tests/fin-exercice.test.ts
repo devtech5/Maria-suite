@@ -60,6 +60,34 @@ describe("bilan", () => {
     expect(b.totalActif).toBe(b.totalPassif);
   });
 
+  it("met l'avance reçue d'un client au passif, et le bilan tombe juste", () => {
+    const b = calculerBilan([s("101", 0, 100_000), s("5211", 180_000, 0), s("4191", 0, 80_000)]);
+    expect(poste(b.passif, "DI")).toBe(80_000);
+    expect(b.totalActif).toBe(b.totalPassif);
+  });
+
+  it("déduit les dépréciations de créances de l'actif au lieu d'en faire des dettes", () => {
+    const b = calculerBilan([s("411", 500_000, 0), s("4711", 30_000, 0), s("701", 0, 530_000), s("6594", 80_000, 0), s("491", 0, 50_000), s("497", 0, 30_000)]);
+    expect(poste(b.actif, "BI")).toBe(450_000);
+    expect(poste(b.actif, "BJ")).toBe(0);
+    expect(poste(b.passif, "DM")).toBe(0);
+    expect(b.totalActif).toBe(450_000);
+    expect(b.totalActif).toBe(b.totalPassif);
+  });
+
+  it("garde les provisions pour risques à court terme (499) au passif", () => {
+    const b = calculerBilan([s("5211", 100_000, 0), s("101", 0, 100_000), s("6597", 20_000, 0), s("499", 0, 20_000)]);
+    expect(poste(b.passif, "DM")).toBe(20_000);
+    expect(b.totalActif).toBe(b.totalPassif);
+  });
+
+  it("déduit la dépréciation des titres de placement de la trésorerie actif", () => {
+    const b = calculerBilan([s("101", 0, 300_000), s("5211", 200_000, 0), s("501", 100_000, 0), s("6795", 10_000, 0), s("590", 0, 10_000)]);
+    expect(poste(b.actif, "BT")).toBe(290_000);
+    expect(poste(b.passif, "DT")).toBe(0);
+    expect(b.totalActif).toBe(b.totalPassif);
+  });
+
   it("après clôture, le résultat est en 13 et plus en instance", () => {
     const clos = [s("101", 0, 1_000), s("5211", 1_200, 0), s("701", 300, 300), s("601", 100, 100), s("131", 0, 200)];
     const b = calculerBilan(clos);

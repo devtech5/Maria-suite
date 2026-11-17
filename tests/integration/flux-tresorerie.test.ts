@@ -3,8 +3,9 @@ import { afterAll, beforeAll, describe, expect, it } from "vitest";
 import type { db as Db } from "@/db";
 import type { Ecriture } from "@/lib/comptabilite/ecritures";
 import { calculerFluxTresorerie } from "@/lib/comptabilite/flux";
+import { calculerNotesAnnexes } from "@/lib/comptabilite/notes";
 import { enregistrerEcritureDans } from "@/modules/comptabilite/enregistrement";
-import { donneesFlux } from "@/modules/comptabilite/requetes";
+import { donneesFlux, donneesNotes } from "@/modules/comptabilite/requetes";
 
 import { ouvrirBaseDeTest, semerEntreprise } from "./base";
 
@@ -57,5 +58,17 @@ describe("tableau des flux de trésorerie en base", () => {
     expect(ligne("ZH")).toBe(11_000_000);
     expect(flux.tresorerieFin).toBe(11_000_000);
     expect(flux.ecart).toBe(0);
+  });
+
+  it("les notes annexes lisent les mêmes écritures : immobilisations, cession, emprunt", async () => {
+    const notes = calculerNotesAnnexes(await donneesNotes(org, "2026"), "2026");
+    const totalNote = (numero: string, libelle?: string) =>
+      notes.find((n) => n.numero === numero)?.lignes.find((l) => (libelle ? l.libelle === libelle && l.niveau === "rubrique" : l.niveau === "total"))?.valeurs;
+
+    expect(totalNote("3A", "Immobilisations corporelles")).toEqual([1_000_000, 2_000_000, 1_000_000, 2_000_000]);
+    expect(totalNote("3C", "Amortissements des immobilisations corporelles")).toEqual([200_000, 400_000, 200_000, 400_000]);
+    expect(totalNote("3D")).toEqual([800_000, 900_000, 100_000]);
+    expect(totalNote("16A")?.[0]).toBe(3_000_000);
+    expect(totalNote("19")?.[0]).toBe(500_000);
   });
 });
