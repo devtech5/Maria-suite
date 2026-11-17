@@ -729,6 +729,13 @@
       "when": 1794931562589,
       "tag": "0103_effacement_au_demarrage",
       "breakpoints": true
+    },
+    {
+      "idx": 104,
+      "version": "7",
+      "when": 1794942837744,
+      "tag": "0104_cloture_impot_affectation",
+      "breakpoints": true
     }
   ]
 }

@@ -244,3 +244,102 @@ export function positionComptable(soldes: readonly SoldeCompte[]): PositionCompt
     tvaDue: soldeCrediteur(soldes, "443", "4441") - soldeDebiteur(soldes, "445", "4449"),
   };
 }
+
+// ------------------------------------------------------------------- bilan
+
+export interface PosteBilan {
+  /** Code du bilan AUDCIF : AD, AI… pour l'actif, CA, CF… pour le passif. */
+  code: string;
+  libelle: string;
+  montant: number;
+}
+
+export interface Bilan {
+  actif: PosteBilan[];
+  passif: PosteBilan[];
+  totalActif: number;
+  totalPassif: number;
+  /**
+   * Résultat des classes 6 à 8 que nulle clôture n'a encore porté en 13 :
+   * l'exercice en cours, ou un exercice terminé pas encore clôturé. Il
+   * figure au passif avec le résultat net.
+   */
+  resultatEnInstance: number;
+}
+
+/** Débit moins crédit des comptes qui commencent par l'un des préfixes, sauf exclusions. */
+function net(soldes: readonly SoldeCompte[], prefixes: readonly string[], sauf: readonly string[] = []): number {
+  let total = 0;
+  for (const s of soldes) {
+    if (prefixes.some((p) => s.compte.startsWith(p)) && !sauf.some((p) => s.compte.startsWith(p))) total += s.debit - s.credit;
+  }
+  return total;
+}
+
+/** Comptes de tiers ou de trésorerie, rangés à l'actif ou au passif selon le sens de LEUR solde. */
+function selonSens(soldes: readonly SoldeCompte[], prefixes: readonly string[], sauf: readonly string[] = []): { debiteur: number; crediteur: number } {
+  let debiteur = 0;
+  let crediteur = 0;
+  for (const s of soldes) {
+    if (!prefixes.some((p) => s.compte.startsWith(p)) || sauf.some((p) => s.compte.startsWith(p))) continue;
+    const solde = s.debit - s.credit;
+    if (solde > 0) debiteur += solde;
+    else crediteur -= solde;
+  }
+  return { debiteur, crediteur };
+}
+
+/**
+ * Bilan SYSCOHADA, déduit de soldes CUMULÉS depuis la première écriture
+ * jusqu'à la date du bilan — c'est ce qui en fait les à-nouveaux : la
+ * situation d'ouverture d'un exercice est le bilan à la veille de son premier
+ * jour, sans écriture recopiée.
+ *
+ * Les immobilisations et les stocks se présentent nets de leurs amortissements
+ * et dépréciations (28, 29, 39). Un compte de tiers ou de trésorerie va à
+ * l'actif s'il est débiteur, au passif s'il est créditeur : un fournisseur à
+ * qui l'on a trop versé est une créance, une banque à découvert une dette.
+ *
+ * Le bilan tombe juste par construction : chaque ligne d'écriture est
+ * équilibrée, et chaque compte est rangé quelque part. Un écart signale un
+ * compte hors des classes 1 à 8.
+ */
+export function calculerBilan(soldes: readonly SoldeCompte[]): Bilan {
+  const tiersActif = (prefixes: string[], sauf: string[] = []) => selonSens(soldes, prefixes, sauf).debiteur;
+  const tiersPassif = (prefixes: string[], sauf: string[] = []) => selonSens(soldes, prefixes, sauf).crediteur;
+  const AUTRES_TIERS = ["40", "41", "42", "43", "44"];
+
+  const actif: PosteBilan[] = [
+    { code: "AD", libelle: "Immobilisations incorporelles", montant: net(soldes, ["21", "281", "291"]) },
+    { code: "AI", libelle: "Immobilisations corporelles", montant: net(soldes, ["22", "23", "24", "282", "283", "284", "292", "293", "294"]) },
+    { code: "AP", libelle: "Avances et acomptes versés sur immobilisations", montant: net(soldes, ["25", "295"]) },
+    { code: "AQ", libelle: "Immobilisations financières", montant: net(soldes, ["26", "27", "296", "297"]) },
+    { code: "BB", libelle: "Stocks et encours", montant: net(soldes, ["3"]) },
+    { code: "BH", libelle: "Fournisseurs, avances versées", montant: tiersActif(["40"]) },
+    { code: "BI", libelle: "Clients", montant: tiersActif(["41"]) },
+    { code: "BJ", libelle: "Autres créances", montant: tiersActif(["4"], ["40", "41"]) },
+    { code: "BT", libelle: "Trésorerie actif", montant: tiersActif(["5"]) },
+  ];
+
+  const resultatEnInstance = oppose(net(soldes, ["6", "7", "8"]));
+  const passif: PosteBilan[] = [
+    { code: "CA", libelle: "Capital", montant: -net(soldes, ["10"]) },
+    { code: "CD", libelle: "Primes et réserves", montant: -net(soldes, ["11"]) },
+    { code: "CH", libelle: "Report à nouveau", montant: -net(soldes, ["12"]) },
+    { code: "CJ", libelle: "Résultat net de l'exercice", montant: -net(soldes, ["13"]) + resultatEnInstance },
+    { code: "CL", libelle: "Subventions et provisions réglementées", montant: -net(soldes, ["14", "15"]) },
+    { code: "DA", libelle: "Emprunts et dettes financières", montant: -net(soldes, ["16", "17", "18"]) },
+    { code: "DC", libelle: "Provisions pour risques et charges", montant: -net(soldes, ["19"]) },
+    { code: "DJ", libelle: "Fournisseurs", montant: tiersPassif(["40"]) },
+    { code: "DK", libelle: "Dettes fiscales et sociales", montant: tiersPassif(["42", "43", "44"]) },
+    { code: "DM", libelle: "Autres dettes", montant: tiersPassif(["4"], AUTRES_TIERS) },
+    { code: "DT", libelle: "Trésorerie passif", montant: tiersPassif(["5"]) },
+  ];
+
+  const somme = (postes: PosteBilan[]) => postes.reduce((t, p) => t + p.montant, 0);
+  const propre = (postes: PosteBilan[]) => postes.map((p) => ({ ...p, montant: oppose(-p.montant) }));
+  return { actif: propre(actif), passif: propre(passif), totalActif: somme(actif), totalPassif: somme(passif), resultatEnInstance };
+}
+
+/** Comptes de bilan (classes 1 à 5) : ceux qui se reportent d'un exercice à l'autre. */
+export const estCompteDeBilan = (compte: string) => /^[1-5]/.test(compte);
