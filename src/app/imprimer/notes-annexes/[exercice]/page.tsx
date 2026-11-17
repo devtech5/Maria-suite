@@ -9,22 +9,10 @@ import { peut } from "@/lib/droits/garde";
 import { fmt, fmtTauxBp } from "@/lib/format";
 import { identiteEntreprise } from "@/lib/identite";
 import { notesComplementaires } from "@/modules/comptabilite/notes-donnees";
+import { notesRedigeesPourLiasse } from "@/modules/comptabilite/notes-redigees";
 import { donneesNotes } from "@/modules/comptabilite/requetes";
 
 export const metadata: Metadata = { title: "Notes annexes" };
-
-/** Notes de la liasse que la comptabilité ne produit pas seule : à établir par le comptable. */
-const A_ETABLIR = [
-  "1 — Dettes garanties par des sûretés réelles",
-  "2 — Informations obligatoires (méthodes et dérogations)",
-  "3B — Biens pris en location-acquisition",
-  "3E — Réévaluations",
-  "3F — Étalement des charges immobilisées",
-  "15B — Autres fonds propres",
-  "16B, 16C — Engagements de retraite, actifs et passifs éventuels",
-  "32, 33 — Production de l'exercice, achats destinés à la production",
-  "35 — Informations sociales, environnementales et sociétales",
-];
 
 function cellule(v: number | null, format: Format): string {
   if (v === null) return "—";
@@ -38,8 +26,18 @@ function Note({ note }: { note: NoteAnnexe }) {
       <h2 className="text-[10pt] font-bold uppercase">
         Note {note.numero} — {note.titre}
       </h2>
-      {note.vide ? (
+      {note.aRediger ? (
+        <p className="mt-1 font-bold">À rédiger par le comptable.</p>
+      ) : note.vide ? (
         <p className="mt-1">Néant.</p>
+      ) : note.texte ? (
+        <div className="mt-1 space-y-1.5">
+          {note.texte.map((p, i) => (
+            <p key={i} className="whitespace-pre-line">
+              {p}
+            </p>
+          ))}
+        </div>
       ) : (
         <table className="mt-1.5 w-full border-collapse tabular-nums">
           <thead>
@@ -97,9 +95,15 @@ export default async function ImpressionNotesAnnexes({ params }: { params: Promi
   if (!(await peut("comptabilite.ecriture.consulter"))) notFound();
   const org = session.organizationId;
 
-  const [identite, donnees, complementaires] = await Promise.all([identiteEntreprise(org), donneesNotes(org, exercice), notesComplementaires(org, exercice)]);
+  const [identite, donnees, complementaires, redigees] = await Promise.all([
+    identiteEntreprise(org),
+    donneesNotes(org, exercice),
+    notesComplementaires(org, exercice),
+    notesRedigeesPourLiasse(org, exercice),
+  ]);
   if (donnees.bilanN.length === 0 && donnees.mouvementsN.length === 0) notFound();
-  const notes = dansLOrdre([...calculerNotesAnnexes(donnees, exercice), ...complementaires]);
+  const notes = dansLOrdre([...calculerNotesAnnexes(donnees, exercice), ...complementaires, ...redigees]);
+  const aRediger = notes.filter((n) => n.aRediger).map((n) => n.numero);
 
   return (
     <main className="min-h-dvh bg-[var(--fond)] py-6 print:bg-white print:py-0">
@@ -110,22 +114,18 @@ export default async function ImpressionNotesAnnexes({ params }: { params: Promi
         <EnTeteDocument identite={identite}>
           <p className="text-lg font-bold uppercase">Notes annexes</p>
           <p>Exercice du 01/01/{exercice} au 31/12/{exercice} — SYSCOHADA révisé</p>
-          <p>Notes établies depuis la comptabilité, comparées à l&apos;exercice {Number(exercice) - 1}</p>
+          <p>Notes établies depuis la comptabilité, comparées à l&apos;exercice {Number(exercice) - 1}, et notes rédigées par le comptable</p>
         </EnTeteDocument>
 
         {notes.map((n) => (
           <Note key={n.numero} note={n} />
         ))}
 
-        <section className="mt-6 break-inside-avoid">
-          <h2 className="text-[10pt] font-bold uppercase">Notes à établir par le comptable</h2>
-          <p className="mt-1">Elles demandent des informations que les écritures ne portent pas :</p>
-          <ul className="mt-1 list-disc pl-5">
-            {A_ETABLIR.map((n) => (
-              <li key={n}>{n}</li>
-            ))}
-          </ul>
-        </section>
+        {aRediger.length > 0 && (
+          <p className="mt-6 font-bold print:hidden">
+            {aRediger.length} note{aRediger.length > 1 ? "s" : ""} encore à rédiger ({aRediger.join(", ")}) : Comptabilité › États financiers › Notes à rédiger.
+          </p>
+        )}
 
         <p className="mt-6 text-[8pt] text-black/70">
           Montants en francs CFA, soldes cumulés au 31 décembre. Entre parenthèses, les montants qui viennent en déduction. Chaque note retombe sur le poste

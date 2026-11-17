@@ -216,7 +216,7 @@ export default async function ImpressionDsf({ params }: { params: Promise<{ exer
         <p className="mt-8 text-[8pt] text-black/70">
           Document établi depuis la comptabilité de l&apos;entreprise, soldes cumulés jusqu&apos;au 31 décembre. La déclaration statistique et fiscale se
           dépose auprès de la DGI sur sa liasse officielle : reportez-y ces montants, ligne à ligne, sur le formulaire en vigueur. Les notes annexes
-          calculées depuis les comptes s&apos;impriment à part (/imprimer/notes-annexes/{exercice}) ; les autres sont à rédiger par le comptable.
+          s&apos;impriment à part (/imprimer/notes-annexes/{exercice}), celles que les écritures ne fournissent pas se rédigent dans Comptabilité › États financiers › Notes à rédiger.
         </p>
       </article>
     </main>

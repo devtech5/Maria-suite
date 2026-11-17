@@ -148,6 +148,12 @@ export default async function PageEtats({ searchParams }: { searchParams: Promis
             >
               Notes annexes
             </a>
+            <Link
+              href={`/comptabilite/etats/notes?exercice=${exercice}`}
+              className="h-cible inline-flex items-center rounded-lg border border-[var(--filet)] bg-[var(--surface)] px-3.5 text-sm font-medium hover:bg-[var(--surface-creuse)]"
+            >
+              Notes à rédiger
+            </Link>
           </div>
         }
       />
@@ -237,7 +243,7 @@ export default async function PageEtats({ searchParams }: { searchParams: Promis
             <h2 className="mb-2 text-sm font-semibold">Ce qui manque encore</h2>
             {/* Annoncer ce qui n'existe pas vaut mieux que de le faire croire. */}
             <ul className="space-y-1.5 text-sm text-[var(--encre-douce)]">
-              <li>Notes annexes à rédiger : sûretés, méthodes, engagements, effectifs, informations sociales</li>
+              <li>Le dépôt de la liasse au format de la DGI : les montants se reportent sur le formulaire officiel</li>
             </ul>
           </section>
         </aside>

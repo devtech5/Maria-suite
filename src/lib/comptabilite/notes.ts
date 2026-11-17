@@ -58,10 +58,14 @@ export interface NoteAnnexe {
   vide: boolean;
   /** Ce que le comptable doit savoir pour la reporter : écart, donnée manquante. */
   remarques?: string[];
+  /** Note rédigée : son texte, paragraphe par paragraphe. */
+  texte?: string[];
+  /** Note rédigée attendue mais pas encore écrite. */
+  aRediger?: boolean;
 }
 
 /** Ordre des notes dans la liasse du système normal. */
-const ORDRE_LIASSE = [
+export const ORDRE_LIASSE = [
   "1", "2", "3A", "3B", "3C", "3D", "3E", "3F", "4", "5", "6", "7", "8", "9", "10", "11", "12", "13", "14", "15A", "15B",
   "16A", "16B", "16C", "17", "18", "19", "20", "21", "22", "23", "24", "25", "26", "27A", "27B", "28", "29", "30", "31",
   "32", "33", "34", "35",

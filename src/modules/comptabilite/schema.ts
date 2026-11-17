@@ -1,5 +1,6 @@
 import { sql } from "drizzle-orm";
 import {
+  boolean,
   check,
   date,
   index,
@@ -168,5 +169,34 @@ export const lignesEcriture = pgTable(
     index("lignes_ecriture_ecriture_idx").on(t.ecritureId),
     index("lignes_ecriture_compte_idx").on(t.organizationId, t.compte),
     index("lignes_ecriture_lettrage_idx").on(t.organizationId, t.lettrage),
+  ],
+);
+
+/**
+ * Notes annexes rédigées par le comptable, une par exercice et par note
+ * (`src/lib/comptabilite/notes-redigees.ts`) : sûretés, méthodes,
+ * engagements, informations sociales. Une note « néant » n'a pas de texte ;
+ * une note absente reste à rédiger, la liasse le signale.
+ */
+export const notesAnnexesRedigees = pgTable(
+  "notes_annexes_redigees",
+  {
+    id: primaryId(),
+    organizationId: uuid("organization_id")
+      .notNull()
+      .references(() => organizations.id, { onDelete: "cascade" }),
+    exercice: text("exercice").notNull(),
+    /** Numéro de la note dans la liasse : 1, 2, 3B… */
+    numero: text("numero").notNull(),
+    texte: text("texte").notNull().default(""),
+    neant: boolean("neant").notNull().default(false),
+    redigeParUserId: uuid("redige_par_user_id").notNull(),
+    ...timestamps,
+    ...rowVersion,
+  },
+  (t) => [
+    unique("notes_annexes_redigees_unique").on(t.organizationId, t.exercice, t.numero),
+    check("notes_annexes_redigees_exercice", sql`${t.exercice} ~ '^[0-9]{4}$'`),
+    check("notes_annexes_redigees_texte", sql`length(${t.texte}) <= 20000 AND (NOT ${t.neant} OR ${t.texte} = '')`),
   ],
 );
