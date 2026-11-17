@@ -144,6 +144,34 @@ change à la première connexion. Relancer la commande ne duplique rien et ne
 touche pas au mot de passe ; `--reinitialiser` en tire un nouveau. Le script
 refuse une base qui porte déjà une autre entreprise.
 
+### Effacer les données d'essai avant la mise en service
+
+Même terminal. D'abord l'état des lieux, qui ne touche à rien :
+
+```bash
+node scripts/effacer-donnees.cjs
+```
+
+Il liste ce qui reste — l'entreprise, les comptes, les rôles et les droits,
+les modules, les référentiels et les réglages — et, table par table, ce qui
+sera effacé : tout ce qui a été saisi à l'usage (salariés, tiers, pièces,
+écritures, congés, visites, courrier, projets, journal d'audit…). La
+numérotation des pièces repart de 1.
+
+**Irréversible : sauvegarder la base juste avant** (Dokploy, onglet
+« Backups » de la base). Puis, avec la raison sociale exacte :
+
+```bash
+node scripts/effacer-donnees.cjs --confirmer "MARIA GROUP SARL"
+```
+
+Les pièces jointes ne sont pas détruites : le dossier de l'entreprise sous
+`/donnees/fichiers` est renommé `<id>.efface-<date>`, à supprimer à la main
+une fois la reprise vérifiée. Le script refuse une base à plusieurs
+entreprises. Liste des tables gardées : `TABLES_GARDEES`
+(`src/db/effacement.ts`) ; une nouvelle table de réglage s'y ajoute, sinon
+elle serait effacée.
+
 **Sans terminal**, la même installation se fait au démarrage : ajouter dans
 **Environment** `MARIA_ADMIN_MOT_DE_PASSE=<mot de passe provisoire>` (avec
 `MIGRATIONS_AU_DEMARRAGE=1`), puis **Redeploy**. Le journal de l'application
