@@ -1,11 +1,13 @@
-import { resolve } from "node:path";
+import { existsSync, mkdirSync, mkdtempSync, writeFileSync } from "node:fs";
+import { tmpdir } from "node:os";
+import { join, resolve } from "node:path";
 
 import { PGlite } from "@electric-sql/pglite";
 import { drizzle } from "drizzle-orm/pglite";
 import { migrate } from "drizzle-orm/pglite/migrator";
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
 
-import { effacerDonnees, planEffacement, TABLES_GARDEES } from "@/db/effacement";
+import { effacerAuDemarrage, effacerDonnees, planEffacement, TABLES_GARDEES } from "@/db/effacement";
 import { installerEntreprise, PROPRIETAIRE, type Requete } from "@/db/installation";
 
 let client: PGlite;
@@ -69,5 +71,44 @@ describe("effacement des données d'essai", () => {
   it("refuse une base qui porte plusieurs entreprises", async () => {
     await requete(`insert into organizations (name, slug, country_code, currency, timezone) values ('AUTRE SARL', 'autre', 'CI', 'XOF', 'Africa/Abidjan')`);
     await expect(planEffacement(requete)).rejects.toThrow(/2 entreprises/);
+  });
+});
+
+describe("effacement au démarrage (EFFACER_DONNEES_CONFIRMATION)", () => {
+  it("refuse une confirmation qui n'est pas la raison sociale exacte, sans rien toucher", async () => {
+    await saisirDesEssais();
+    const issue = await effacerAuDemarrage(requete, { confirmation: "MARIA GROUP" });
+    expect(issue.genre).toBe("refuse");
+    expect(await compter("employees")).toBe(1);
+    const [{ le }] = await requete(`select donnees_effacees_le as le from organizations`);
+    expect(le).toBeNull();
+  });
+
+  it("efface une fois, met les pièces jointes de côté, puis refuse aux démarrages suivants", async () => {
+    await saisirDesEssais();
+    const [{ org }] = await requete(`select id as org from organizations`);
+    const racine = mkdtempSync(join(tmpdir(), "maria-effacement-"));
+    mkdirSync(join(racine, org));
+    writeFileSync(join(racine, org, "piece.pdf"), "essai");
+
+    const premiere = await effacerAuDemarrage(requete, { confirmation: " MARIA GROUP SARL ", racineFichiers: racine });
+    expect(premiere).toMatchObject({ genre: "efface" });
+    expect(await compter("employees")).toBe(0);
+    expect(await compter("users")).toBeGreaterThan(0);
+    expect(existsSync(join(racine, org))).toBe(false);
+    expect(premiere.genre === "efface" && premiere.fichiers && existsSync(join(premiere.fichiers, "piece.pdf"))).toBe(true);
+
+    // Les vraies données arrivent ; la variable est restée dans l'hébergeur.
+    await saisirDesEssais();
+    const seconde = await effacerAuDemarrage(requete, { confirmation: "MARIA GROUP SARL", racineFichiers: racine });
+    expect(seconde).toMatchObject({ genre: "refuse" });
+    expect(await compter("employees")).toBe(1);
+  });
+
+  it("refuse aussi après un effacement fait au terminal", async () => {
+    await effacerDonnees(requete, await planEffacement(requete));
+    await saisirDesEssais();
+    expect(await effacerAuDemarrage(requete, { confirmation: "MARIA GROUP SARL" })).toMatchObject({ genre: "refuse" });
+    expect(await compter("employees")).toBe(1);
   });
 });

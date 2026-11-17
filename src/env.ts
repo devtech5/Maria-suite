@@ -43,6 +43,13 @@ const schema = z.object({
   DATABASE_URL_MIGRATION: z.string().optional(),
 
   /**
+   * Effacement des données d'essai au démarrage, UNE fois : la raison
+   * sociale exacte (« MARIA GROUP SARL »), avec MIGRATIONS_AU_DEMARRAGE=1.
+   * Sauvegarder la base avant ; retirer la variable après.
+   */
+  EFFACER_DONNEES_CONFIRMATION: z.string().optional(),
+
+  /**
    * Modules à ouvrir malgré leurs écrans sur jeu d'essai.
    *
    * Clés du registre séparées par des virgules, ou `*` pour toutes. Renseignée,

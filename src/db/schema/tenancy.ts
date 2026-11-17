@@ -98,6 +98,13 @@ export const organizations = pgTable(
      */
     delaiVerrouillageMinutes: integer("delai_verrouillage_minutes").notNull().default(15),
 
+    /**
+     * Dernier effacement des données d'essai (`src/db/effacement.ts`).
+     * Renseigné, il interdit l'effacement au démarrage : une variable
+     * oubliée dans l'hébergeur ne vide pas la base à chaque redémarrage.
+     */
+    donneesEffaceesLe: timestamp("donnees_effacees_le", { withTimezone: true }),
+
     ...timestamps,
     ...rowVersion,
   },
