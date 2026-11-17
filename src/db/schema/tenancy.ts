@@ -81,6 +81,8 @@ export const organizations = pgTable(
     siteWeb: text("site_web"),
     /** Capital social, en unités entières de la devise (FCFA). */
     capitalSocial: money("capital_social"),
+    /** Valeur nominale d'une action ou d'une part (note annexe 13) ; le nombre de parts s'en déduit. */
+    valeurNominalePart: money("valeur_nominale_part"),
 
     status: organizationStatus("status").notNull().default("essai"),
     trialEndsAt: timestamp("trial_ends_at", { withTimezone: true }),
@@ -115,6 +117,7 @@ export const organizations = pgTable(
     check("organizations_couleur", sql`${t.couleurDocuments} IS NULL OR ${t.couleurDocuments} ~ '^#[0-9a-fA-F]{6}$'`),
     check("organizations_couleur_secondaire", sql`${t.couleurSecondaire} IS NULL OR ${t.couleurSecondaire} ~ '^#[0-9a-fA-F]{6}$'`),
     check("organizations_capital_social_positif", sql`${t.capitalSocial} IS NULL OR ${t.capitalSocial} >= 0`),
+    check("organizations_valeur_nominale_positive", sql`${t.valeurNominalePart} IS NULL OR ${t.valeurNominalePart} > 0`),
   ],
 );
 

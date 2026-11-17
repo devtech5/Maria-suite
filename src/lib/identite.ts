@@ -29,6 +29,8 @@ export interface IdentiteEntreprise {
   siteWeb: string | null;
   /** Capital social, en unités entières de `devise`. */
   capitalSocial: number | null;
+  /** Valeur nominale d'une part, en unités entières de `devise`. */
+  valeurNominalePart: number | null;
   devise: string;
   pays: string;
   referentiel: ReferentielPays;
@@ -58,6 +60,7 @@ export async function identiteEntreprise(organizationId: string): Promise<Identi
     slogan: o.slogan,
     siteWeb: o.siteWeb,
     capitalSocial: o.capitalSocial,
+    valeurNominalePart: o.valeurNominalePart,
     devise: o.currency,
     pays: o.countryCode,
     referentiel: referentielPays(o.countryCode),

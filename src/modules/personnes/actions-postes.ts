@@ -5,7 +5,9 @@ import { revalidatePath } from "next/cache";
 import { exigerEntreprise } from "@/lib/auth/dal";
 import { refusDroit } from "@/lib/droits/garde";
 
-import { ajouterPostePour, basculerPostePour, renommerPostePour } from "./referentiel-postes";
+import { estCategorie } from "@/lib/comptabilite/categories-socioprofessionnelles";
+
+import { ajouterPostePour, basculerPostePour, classerPostePour, renommerPostePour } from "./referentiel-postes";
 
 export type Resultat = { ok: boolean; message: string };
 
@@ -56,6 +58,22 @@ export async function basculerPoste(posteId: string, actif: boolean): Promise<Re
     await basculerPostePour(session.organizationId, session.userId, posteId, actif);
     revalidatePath("/rh", "layout");
     return { ok: true, message: actif ? "Poste remis dans la liste." : "Poste retiré de la liste." };
+  } catch (erreur) {
+    return { ok: false, message: lisible(erreur) };
+  }
+}
+
+/** Catégorie socioprofessionnelle du poste, pour les effectifs de la note annexe 27B. */
+export async function classerPoste(posteId: string, categorie: string | null): Promise<Resultat> {
+  const session = await exigerEntreprise();
+  const refus = await refusDroit("personnes.salarie.gerer");
+  if (refus) return { ok: false, message: refus.erreur };
+  if (!UUID.test(posteId)) return { ok: false, message: "Poste introuvable." };
+  if (categorie !== null && !estCategorie(categorie)) return { ok: false, message: "Catégorie inconnue." };
+  try {
+    await classerPostePour(session.organizationId, session.userId, posteId, categorie);
+    revalidatePath("/rh", "layout");
+    return { ok: true, message: categorie ? "Poste classé." : "Poste déclassé." };
   } catch (erreur) {
     return { ok: false, message: lisible(erreur) };
   }

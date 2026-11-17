@@ -4,10 +4,11 @@ import { notFound } from "next/navigation";
 import { EnTeteDocument } from "@/components/impression/entete-document";
 import { BoutonImprimer } from "@/components/ui/bouton-imprimer";
 import { exigerEntreprise } from "@/lib/auth/dal";
-import { calculerNotesAnnexes, type Format, type NoteAnnexe } from "@/lib/comptabilite/notes";
+import { calculerNotesAnnexes, dansLOrdre, type Format, type NoteAnnexe } from "@/lib/comptabilite/notes";
 import { peut } from "@/lib/droits/garde";
 import { fmt, fmtTauxBp } from "@/lib/format";
 import { identiteEntreprise } from "@/lib/identite";
+import { notesComplementaires } from "@/modules/comptabilite/notes-donnees";
 import { donneesNotes } from "@/modules/comptabilite/requetes";
 
 export const metadata: Metadata = { title: "Notes annexes" };
@@ -19,11 +20,8 @@ const A_ETABLIR = [
   "3B — Biens pris en location-acquisition",
   "3E — Réévaluations",
   "3F — Étalement des charges immobilisées",
-  "13 — Capital : valeur nominale des actions ou parts",
   "15B — Autres fonds propres",
   "16B, 16C — Engagements de retraite, actifs et passifs éventuels",
-  "27B — Effectifs, masse salariale et personnel extérieur",
-  "31 — Répartition du résultat et cinq derniers exercices",
   "32, 33 — Production de l'exercice, achats destinés à la production",
   "35 — Informations sociales, environnementales et sociétales",
 ];
@@ -62,7 +60,9 @@ function Note({ note }: { note: NoteAnnexe }) {
                 className={l.niveau === "total" ? "border-t-2 border-black font-bold" : l.niveau === "rubrique" ? "border-b border-black/20 font-semibold" : "border-b border-black/10"}
               >
                 <td className="py-0.5 text-[8pt]">{l.compte}</td>
-                <td className={`py-0.5 ${l.niveau === "detail" && l.compte ? "pl-2" : ""}`}>{l.libelle}</td>
+                <td className={`py-0.5 ${l.niveau === "detail" && l.compte ? "pl-2" : ""}`} colSpan={l.valeurs.length === 0 ? note.colonnes.length + 1 : undefined}>
+                  {l.libelle}
+                </td>
                 {l.valeurs.map((v, j) => (
                   <td key={j} className="py-0.5 pl-2 text-right">
                     {cellule(v, note.colonnes[j].format === "taux" ? "taux" : (l.format ?? "montant"))}
@@ -72,6 +72,13 @@ function Note({ note }: { note: NoteAnnexe }) {
             ))}
           </tbody>
         </table>
+      )}
+      {note.remarques && note.remarques.length > 0 && (
+        <ul className="mt-1 list-disc pl-5 text-[8pt] italic">
+          {note.remarques.map((r) => (
+            <li key={r}>{r}</li>
+          ))}
+        </ul>
       )}
     </section>
   );
@@ -90,9 +97,9 @@ export default async function ImpressionNotesAnnexes({ params }: { params: Promi
   if (!(await peut("comptabilite.ecriture.consulter"))) notFound();
   const org = session.organizationId;
 
-  const [identite, donnees] = await Promise.all([identiteEntreprise(org), donneesNotes(org, exercice)]);
+  const [identite, donnees, complementaires] = await Promise.all([identiteEntreprise(org), donneesNotes(org, exercice), notesComplementaires(org, exercice)]);
   if (donnees.bilanN.length === 0 && donnees.mouvementsN.length === 0) notFound();
-  const notes = calculerNotesAnnexes(donnees, exercice);
+  const notes = dansLOrdre([...calculerNotesAnnexes(donnees, exercice), ...complementaires]);
 
   return (
     <main className="min-h-dvh bg-[var(--fond)] py-6 print:bg-white print:py-0">
