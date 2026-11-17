@@ -4,7 +4,8 @@ import { useState } from "react";
 
 import { Retour, useOperation } from "@/components/ui/operations";
 import { CLASSE_CHAMP, CLASSE_CHAMP_COMPACT, Pastille, Tableau, Td, Th } from "@/components/ui/primitives";
-import { basculerPoste, renommerPoste } from "@/modules/personnes/actions-postes";
+import { CATEGORIES_SOCIOPROFESSIONNELLES } from "@/lib/comptabilite/categories-socioprofessionnelles";
+import { basculerPoste, classerPoste, renommerPoste } from "@/modules/personnes/actions-postes";
 import { rangerPoste } from "@/modules/personnes/actions-services";
 import type { LignePoste } from "@/modules/personnes/referentiel-postes";
 import { LONGUEUR_MAX_POSTE } from "@/modules/personnes/postes";
@@ -81,6 +82,26 @@ function LignePosteEditable({ poste, gerer, services }: { poste: LignePoste; ger
           (services.find((s) => s.id === poste.serviceId)?.libelle ?? <span className="text-[var(--encre-faible)]">—</span>)
         )}
       </Td>
+      <Td>
+        {gerer ? (
+          <select
+            value={poste.categorie ?? ""}
+            disabled={op.enCours}
+            onChange={(e) => op.lancer(() => classerPoste(poste.id, e.target.value || null))}
+            aria-label={`Catégorie du poste ${poste.libelle}`}
+            className={`${CLASSE_CHAMP_COMPACT} max-w-64`}
+          >
+            <option value="">— À classer —</option>
+            {CATEGORIES_SOCIOPROFESSIONNELLES.map((c) => (
+              <option key={c.cle} value={c.cle}>
+                {c.libelle}
+              </option>
+            ))}
+          </select>
+        ) : (
+          (CATEGORIES_SOCIOPROFESSIONNELLES.find((c) => c.cle === poste.categorie)?.libelle ?? <span className="text-[var(--encre-faible)]">—</span>)
+        )}
+      </Td>
       <Td aligne="droite" chiffres>
         {poste.occupants}
       </Td>
@@ -115,6 +136,7 @@ export function ListePostes({ postes, gerer, services }: { postes: LignePoste[];
         <tr>
           <Th>Poste</Th>
           <Th>Service</Th>
+          <Th>Catégorie</Th>
           <Th aligne="droite">Collaborateurs</Th>
           <Th>État</Th>
           {gerer && <Th aligne="droite">Actions</Th>}

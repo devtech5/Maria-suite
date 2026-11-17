@@ -44,6 +44,8 @@ const schema = z.object({
   siteWeb: texte(120),
   /** Entier, en unités de la devise : le franc CFA n'a pas de subdivision. */
   capitalSocial: z.number().int("Capital social : un montant entier.").min(0, "Capital social négatif.").max(1e15).nullable(),
+  /** Valeur nominale d'une part : entière et strictement positive. */
+  valeurNominalePart: z.number().int("Valeur nominale : un montant entier.").min(1, "Valeur nominale : au moins 1 franc.").max(1e15).nullable(),
   /** Absent : inchangé ; nul : retiré ; chaîne : nouveau logo. */
   logo: z
     .string()
@@ -80,6 +82,7 @@ export async function modifierIdentite(saisie: z.input<typeof schema>): Promise<
       slogan: v.slogan,
       siteWeb: v.siteWeb,
       capitalSocial: v.capitalSocial,
+      valeurNominalePart: v.valeurNominalePart,
       ...(v.logo !== undefined ? { logo: v.logo } : {}),
       updatedAt: new Date(),
       version: sql`${organizations.version} + 1`,

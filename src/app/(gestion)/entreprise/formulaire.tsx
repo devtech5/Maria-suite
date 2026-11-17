@@ -26,6 +26,8 @@ interface Identite {
   siteWeb: string;
   /** Saisi en chiffres, espaces tolérées ; vide : non renseigné. */
   capitalSocial: string;
+  /** Valeur nominale d'une part, saisie comme le capital ; vide : non renseignée. */
+  valeurNominalePart: string;
   logo: string | null;
 }
 
@@ -96,7 +98,12 @@ export function FormulaireIdentite({ initial, libelles }: { initial: Identite; l
         onSubmit={(e) => {
           e.preventDefault();
           op.lancer(
-            () => modifierIdentite({ ...v, capitalSocial: montantSaisi(v.capitalSocial), logo: logoChange ? v.logo : undefined }),
+            () => modifierIdentite({
+                ...v,
+                capitalSocial: montantSaisi(v.capitalSocial),
+                valeurNominalePart: montantSaisi(v.valeurNominalePart),
+                logo: logoChange ? v.logo : undefined,
+              }),
             () => setLogoChange(false),
           );
         }}
@@ -135,6 +142,9 @@ export function FormulaireIdentite({ initial, libelles }: { initial: Identite; l
           </Champ>
           <Champ libelle="Capital social (FCFA)" aide="Imprimé avec le registre et l'identifiant fiscal, en bas de chaque document.">
             <input {...champ("capitalSocial")} inputMode="numeric" placeholder="1 000 000" />
+          </Champ>
+          <Champ libelle="Valeur nominale d'une part (FCFA)" aide="Pour la note annexe 13 : le nombre de parts se déduit du capital.">
+            <input {...champ("valeurNominalePart")} inputMode="numeric" placeholder="10 000" />
           </Champ>
           <Champ libelle="Couleur primaire" aide="Raison sociale, titre et filet de l'en-tête.">
             <span className="flex items-center gap-2">

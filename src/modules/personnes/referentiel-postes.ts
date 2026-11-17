@@ -6,6 +6,7 @@ import { db } from "@/db";
 import { tracerPour } from "@/lib/audit";
 import { newId } from "@/lib/ids";
 import type { Transaction } from "@/lib/sequences";
+import type { CategorieSocioprofessionnelle } from "@/lib/comptabilite/categories-socioprofessionnelles";
 
 import { clePoste, motifRefusLibellePoste, normaliserLibellePoste, selectionPostes } from "./postes";
 import { affectationsPostes, employees, postes } from "./schema";
@@ -23,6 +24,8 @@ export interface LignePoste {
   serviceId: string | null;
   /** Collaborateurs en poste qui l'occupent. */
   occupants: number;
+  /** Catégorie socioprofessionnelle (note annexe 27B) ; nulle tant que le poste n'est pas classé. */
+  categorie: CategorieSocioprofessionnelle | null;
 }
 
 /** Les postes proposés au choix, dans leur ordre. */
@@ -65,6 +68,7 @@ export async function listerPostes(organizationId: string): Promise<LignePoste[]
       libelle: postes.libelle,
       actif: postes.actif,
       serviceId: postes.serviceId,
+      categorie: sql<CategorieSocioprofessionnelle | null>`${postes.categorie}`,
       occupants: sql<number>`coalesce(${occupants.nombre}, 0)::int`,
     })
     .from(postes)
@@ -280,4 +284,20 @@ export async function basculerPostePour(organizationId: string, userId: string, 
     entiteId: posteId,
     apres: { libelle: modifie.libelle },
   });
+}
+
+/** Classe un poste dans une catégorie socioprofessionnelle, ou le déclasse (nul). */
+export async function classerPostePour(
+  organizationId: string,
+  userId: string,
+  posteId: string,
+  categorie: CategorieSocioprofessionnelle | null,
+): Promise<void> {
+  const [modifie] = await db
+    .update(postes)
+    .set({ categorie, updatedAt: new Date(), version: sql`${postes.version} + 1` })
+    .where(and(eq(postes.organizationId, organizationId), eq(postes.id, posteId), isNull(postes.deletedAt)))
+    .returning({ libelle: postes.libelle });
+  if (!modifie) throw new Error("Poste introuvable.");
+  await tracerPour(organizationId, userId, { action: "poste.classe", entite: "poste", entiteId: posteId, apres: { libelle: modifie.libelle, categorie } });
 }

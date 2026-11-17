@@ -86,12 +86,18 @@ export const postes = pgTable(
     actif: boolean("actif").notNull().default(true),
     /** Service auquel le poste appartient. Nul tant qu'on ne l'a pas rangé. */
     serviceId: uuid("service_id").references(() => services.id, { onDelete: "set null" }),
+    /**
+     * Catégorie socioprofessionnelle du poste (note annexe 27B) : cadre_superieur,
+     * cadre_moyen, maitrise, employe. Nulle tant que le poste n'est pas classé.
+     */
+    categorie: text("categorie"),
 
     ...timestamps,
     ...rowVersion,
   },
   (t) => [
     unique("postes_libelle_unique").on(t.organizationId, t.libelle),
+    check("postes_categorie", sql`${t.categorie} IS NULL OR ${t.categorie} IN ('cadre_superieur', 'cadre_moyen', 'maitrise', 'employe')`),
     index("postes_org_idx").on(t.organizationId, t.ordre),
   ],
 );

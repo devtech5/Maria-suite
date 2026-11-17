@@ -56,7 +56,22 @@ export interface NoteAnnexe {
   lignes: LigneNote[];
   /** Aucun montant : la note se signale « néant » plutôt que de s'imprimer à zéro. */
   vide: boolean;
+  /** Ce que le comptable doit savoir pour la reporter : écart, donnée manquante. */
+  remarques?: string[];
 }
+
+/** Ordre des notes dans la liasse du système normal. */
+const ORDRE_LIASSE = [
+  "1", "2", "3A", "3B", "3C", "3D", "3E", "3F", "4", "5", "6", "7", "8", "9", "10", "11", "12", "13", "14", "15A", "15B",
+  "16A", "16B", "16C", "17", "18", "19", "20", "21", "22", "23", "24", "25", "26", "27A", "27B", "28", "29", "30", "31",
+  "32", "33", "34", "35",
+];
+
+/** Range des notes dans l'ordre de la liasse. */
+export const dansLOrdre = (notes: readonly NoteAnnexe[]) => [...notes].sort((a, b) => ORDRE_LIASSE.indexOf(a.numero) - ORDRE_LIASSE.indexOf(b.numero));
+
+/** Une ligne de titre de section dans une note : pas de valeur, elle couvre toute la largeur. */
+export const intertitre = (libelle: string): LigneNote => ({ libelle, niveau: "rubrique", valeurs: [] });
 
 const propre = (v: number) => (v === 0 ? 0 : v);
 const correspond = (compte: string, prefixes: readonly string[]) => prefixes.some((p) => compte.startsWith(p));

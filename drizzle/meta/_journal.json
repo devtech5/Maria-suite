@@ -736,6 +736,13 @@
       "when": 1794942837744,
       "tag": "0104_cloture_impot_affectation",
       "breakpoints": true
+    },
+    {
+      "idx": 105,
+      "version": "7",
+      "when": 1794946286049,
+      "tag": "0105_categorie_poste_valeur_nominale",
+      "breakpoints": true
     }
   ]
 }

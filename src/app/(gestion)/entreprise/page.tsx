@@ -42,6 +42,7 @@ export default async function PageEntreprise() {
           slogan: i.slogan ?? "",
           siteWeb: i.siteWeb ?? "",
           capitalSocial: i.capitalSocial === null ? "" : fmt(i.capitalSocial),
+          valeurNominalePart: i.valeurNominalePart === null ? "" : fmt(i.valeurNominalePart),
           logo: i.logo,
         }}
         libelles={{ identifiantFiscal: i.referentiel.identifiantFiscalLong, sigle: i.referentiel.identifiantFiscal, registre: i.referentiel.registre }}
