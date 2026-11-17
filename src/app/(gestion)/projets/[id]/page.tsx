@@ -4,7 +4,15 @@ import { notFound } from "next/navigation";
 
 import { BoutonApercu } from "@/components/ui/apercu";
 import { Visionneuse } from "@/components/ui/fichiers";
-import { CarteIndicateur, EnTetePage, EtatVide, Pastille, Tableau, Td, Th } from "@/components/ui/primitives";
+import {
+  CarteIndicateur,
+  EnTetePage,
+  EtatVide,
+  Pastille,
+  Tableau,
+  Td,
+  Th,
+} from "@/components/ui/primitives";
 import { exigerEntreprise } from "@/lib/auth/dal";
 import { peut } from "@/lib/droits/garde";
 import { fmt, fmtCompact, fmtTauxBp } from "@/lib/format";
@@ -14,10 +22,20 @@ import { listerNotes } from "@/modules/calculs/donnees";
 import { TYPES_NOTE } from "@/modules/calculs/notes";
 import { listerEnquetes } from "@/modules/enquetes/requetes";
 import { listerPv } from "@/modules/pv/donnees";
-import { LIBELLE_STATUT as LIBELLE_STATUT_PV, referencePv } from "@/modules/pv/regles";
-import { ouvrirPieceProjet, signerPiecesProjet } from "@/modules/projets/actions";
+import {
+  LIBELLE_STATUT as LIBELLE_STATUT_PV,
+  referencePv,
+} from "@/modules/pv/regles";
+import {
+  ouvrirPieceProjet,
+  signerPiecesProjet,
+} from "@/modules/projets/actions";
 import { LIBELLE_STATUT_PROJET } from "@/modules/projets/calcul";
-import { ficheProjet, membresActifs, type PieceVue } from "@/modules/projets/requetes";
+import {
+  ficheProjet,
+  membresActifs,
+  type PieceVue,
+} from "@/modules/projets/requetes";
 import { equipeDuProjet, personnelPourProjet } from "@/modules/projets/terrain";
 import { estChef, peutExaminer } from "@/modules/projets/terrain-regles";
 import { listerTiers } from "@/modules/tiers/requetes";
@@ -29,8 +47,17 @@ import { TableauDepenses } from "../tableau-depenses";
 export const metadata: Metadata = { title: "Projet" };
 
 const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
-const JOUR = new Intl.DateTimeFormat("fr-FR", { day: "numeric", month: "short", year: "numeric", timeZone: "UTC" });
-const NATURE_PIECE: Record<string, string> = { devis: "Devis", facture: "Facture", avoir: "Avoir" };
+const JOUR = new Intl.DateTimeFormat("fr-FR", {
+  day: "numeric",
+  month: "short",
+  year: "numeric",
+  timeZone: "UTC",
+});
+const NATURE_PIECE: Record<string, string> = {
+  devis: "Devis",
+  facture: "Facture",
+  avoir: "Avoir",
+};
 const STATUT_PIECE: Record<string, string> = {
   brouillon: "Brouillon",
   emise: "Émise",
@@ -39,55 +66,84 @@ const STATUT_PIECE: Record<string, string> = {
   convertie: "Convertie",
   annulee: "Annulée",
 };
-const NATURE = { photo: "Photo", preuve_paiement: "Preuve de paiement", facture: "Facture / devis", autre: "Pièce" } as const;
+const NATURE = {
+  photo: "Photo",
+  preuve_paiement: "Preuve de paiement",
+  facture: "Facture / devis",
+  autre: "Pièce",
+} as const;
 
 /**
  * Fiche d'un projet : affectation, budget, dépenses tracées, photos et
  * preuves. Tout ce qu'il faut pour rendre compte de l'argent dépensé.
  */
-export default async function PageProjet({ params }: { params: Promise<{ id: string }> }) {
+export default async function PageProjet({
+  params,
+}: {
+  params: Promise<{ id: string }>;
+}) {
   const { id } = await params;
   if (!UUID.test(id)) notFound();
   const session = await exigerEntreprise();
 
-  const [fiche, gerer, approuver, payer, demander, membres, fournisseurs] = await Promise.all([
-    ficheProjet(session.organizationId, id),
-    peut("projet.gerer"),
-    peut("depense.approuver"),
-    peut("depense.payer"),
-    peut("depense.demander"),
-    membresActifs(session.organizationId),
-    listerTiers(session.organizationId, "fournisseur"),
-  ]);
+  const [fiche, gerer, approuver, payer, demander, membres, fournisseurs] =
+    await Promise.all([
+      ficheProjet(session.organizationId, id),
+      peut("projet.gerer"),
+      peut("depense.approuver"),
+      peut("depense.payer"),
+      peut("depense.demander"),
+      membresActifs(session.organizationId),
+      listerTiers(session.organizationId, "fournisseur"),
+    ]);
   if (!fiche) notFound();
   const { projet, depenses, pieces, factures } = fiche;
   // L'équipe : le chef de projet (le responsable) et l'encadrement la règlent.
   const equipe = await equipeDuProjet(session.organizationId, id);
   const acteurTerrain = { userId: session.userId, gestionnaire: gerer };
   const peutGererEquipe = gerer || estChef(acteurTerrain, projet);
-  const personnel = peutGererEquipe ? await personnelPourProjet(session.organizationId, equipe) : [];
+  const personnel = peutGererEquipe
+    ? await personnelPourProjet(session.organizationId, equipe)
+    : [];
   const voitLesReleves = peutExaminer(acteurTerrain, projet, equipe);
   // Les enquêtes du projet, si le module est ouvert et la session les voit.
   // Les PV de chantier de ce projet que la session peut ouvrir, les plus récents d'abord.
   const pvChantier =
     moduleOuvert("pv") && (await peut("pv.consulter"))
-      ? (await listerPv(session.organizationId, { userId: session.userId, valideur: await peut("pv.valider") })).filter((l) => l.projetId === id && l.type === "chantier" && !l.remplace)
+      ? (
+          await listerPv(session.organizationId, {
+            userId: session.userId,
+            valideur: await peut("pv.valider"),
+          })
+        ).filter(
+          (l) => l.projetId === id && l.type === "chantier" && !l.remplace,
+        )
       : null;
   const redigerPv = pvChantier !== null && (await peut("pv.rediger"));
   // Les notes de calcul du chantier : quantités figées, et leur passage au devis ou à la commande.
   const notesCalcul =
-    moduleOuvert("calculs") && (await peut("calculs.utiliser")) ? (await listerNotes(session.organizationId, id)).filter((n) => !n.annulee) : null;
+    moduleOuvert("calculs") && (await peut("calculs.utiliser"))
+      ? (await listerNotes(session.organizationId, id)).filter(
+          (n) => !n.annulee,
+        )
+      : null;
   const enquetes =
-    moduleOuvert("enquetes") && (await peut("enquetes.consulter")) ? await listerEnquetes(session.organizationId, id) : null;
+    moduleOuvert("enquetes") && (await peut("enquetes.consulter"))
+      ? await listerEnquetes(session.organizationId, id)
+      : null;
   const { bilan } = projet;
   const benefice = bilan.resultat >= 0;
   // Sans facture ni prix convenu, le projet ne doit rien rapporter : c'est un coût, pas une perte.
   const interne = projet.facture === 0 && projet.prixVente === null;
 
-  const photos = pieces.filter((p) => p.nature === "photo" && p.typeMime.startsWith("image/"));
+  const photos = pieces.filter(
+    (p) => p.nature === "photo" && p.typeMime.startsWith("image/"),
+  );
   const autres = pieces.filter((p) => !photos.includes(p));
   const parDepense = new Map<string, PieceVue[]>();
-  for (const p of pieces) if (p.depenseId) parDepense.set(p.depenseId, [...(parDepense.get(p.depenseId) ?? []), p]);
+  for (const p of pieces)
+    if (p.depenseId)
+      parDepense.set(p.depenseId, [...(parDepense.get(p.depenseId) ?? []), p]);
   const ouvert = projet.statut !== "termine" && projet.statut !== "annule";
 
   return (
@@ -101,30 +157,57 @@ export default async function PageProjet({ params }: { params: Promise<{ id: str
         titre={projet.nom}
         sousTitre={[
           projet.code,
-          projet.client ?? (projet.prixVente === null ? "Projet interne" : "Client non désigné"),
+          projet.client ??
+            (projet.prixVente === null
+              ? "Projet interne"
+              : "Client non désigné"),
           projet.debut ? `du ${JOUR.format(new Date(projet.debut))}` : null,
           projet.fin ? `au ${JOUR.format(new Date(projet.fin))}` : null,
         ]
           .filter(Boolean)
           .join(" · ")}
-        actions={<Pastille ton={projet.statut === "en_cours" ? "marque" : "neutre"}>{LIBELLE_STATUT_PROJET[projet.statut]}</Pastille>}
+        actions={
+          <>
+            <Link
+              href={`/imprimer/besoins-materiel?projet=${projet.id}`}
+              className="h-cible inline-flex items-center rounded-lg border border-[var(--filet)] bg-[var(--surface)] px-4 text-sm font-semibold hover:bg-[var(--surface-creuse)]"
+            >
+              Besoins en matériel
+            </Link>
+            <Pastille ton={projet.statut === "en_cours" ? "marque" : "neutre"}>
+              {LIBELLE_STATUT_PROJET[projet.statut]}
+            </Pastille>
+          </>
+        }
       />
-      {projet.description && <p className="mb-4 max-w-[80ch] text-sm text-[var(--encre-douce)]">{projet.description}</p>}
+      {projet.description && (
+        <p className="mb-4 max-w-[80ch] text-sm text-[var(--encre-douce)]">
+          {projet.description}
+        </p>
+      )}
 
       <section className="mb-6 rounded-xl border border-[var(--filet)] bg-[var(--surface)] p-4">
         <div className="flex flex-wrap items-start justify-between gap-3">
           <div>
             <h2 className="text-sm font-semibold">Bilan du projet</h2>
-            <p className="text-xs text-[var(--encre-faible)]">Hors taxes : la TVA n&apos;est ni un gain ni une perte.</p>
+            <p className="text-xs text-[var(--encre-faible)]">
+              Hors taxes : la TVA n&apos;est ni un gain ni une perte.
+            </p>
           </div>
           {bilan.tauxReussite !== null && (
             <div className="text-right">
               <p className="text-xs text-[var(--encre-faible)]">
-                {projet.statut === "termine" ? "Taux de réussite" : "Taux de réussite à date"}
+                {projet.statut === "termine"
+                  ? "Taux de réussite"
+                  : "Taux de réussite à date"}
               </p>
               <p
                 className={`chiffres text-2xl font-bold ${
-                  bilan.tauxReussite === 100 ? "text-valide-600" : bilan.tauxReussite >= 50 ? "text-alerte-600" : "text-danger-600"
+                  bilan.tauxReussite === 100
+                    ? "text-valide-600"
+                    : bilan.tauxReussite >= 50
+                      ? "text-alerte-600"
+                      : "text-danger-600"
                 }`}
               >
                 {bilan.tauxReussite} %
@@ -135,62 +218,110 @@ export default async function PageProjet({ params }: { params: Promise<{ id: str
 
         <dl className="mt-3 grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
           <div className="rounded-lg bg-[var(--surface-creuse)] p-3">
-            <dt className="text-xs text-[var(--encre-faible)]">Facturé au client</dt>
-            <dd className="chiffres text-lg font-bold">{fmt(projet.facture)}</dd>
-            <dd className="chiffres text-xs text-[var(--encre-faible)]">{fmt(projet.encaisse)} F TTC encaissés</dd>
+            <dt className="text-xs text-[var(--encre-faible)]">
+              Facturé au client
+            </dt>
+            <dd className="chiffres text-lg font-bold">
+              {fmt(projet.facture)}
+            </dd>
+            <dd className="chiffres text-xs text-[var(--encre-faible)]">
+              {fmt(projet.encaisse)} F TTC encaissés
+            </dd>
           </div>
           <div className="rounded-lg bg-[var(--surface-creuse)] p-3">
-            <dt className="text-xs text-[var(--encre-faible)]">Coûts engagés</dt>
-            <dd className="chiffres text-lg font-bold">{fmt(projet.coutEngageHt)}</dd>
-            <dd className="chiffres text-xs text-[var(--encre-faible)]">dont {fmt(projet.coutPayeHt)} payés</dd>
+            <dt className="text-xs text-[var(--encre-faible)]">
+              Coûts engagés
+            </dt>
+            <dd className="chiffres text-lg font-bold">
+              {fmt(projet.coutEngageHt)}
+            </dd>
+            <dd className="chiffres text-xs text-[var(--encre-faible)]">
+              dont {fmt(projet.coutPayeHt)} payés
+            </dd>
           </div>
           {interne ? (
             <div className="rounded-lg bg-[var(--surface-creuse)] p-3">
-              <dt className="text-xs text-[var(--encre-faible)]">Coût du projet</dt>
-              <dd className="chiffres text-lg font-bold">{fmt(projet.coutEngageHt)}</dd>
-              <dd className="text-xs text-[var(--encre-faible)]">Projet interne : aucune recette attendue</dd>
+              <dt className="text-xs text-[var(--encre-faible)]">
+                Coût du projet
+              </dt>
+              <dd className="chiffres text-lg font-bold">
+                {fmt(projet.coutEngageHt)}
+              </dd>
+              <dd className="text-xs text-[var(--encre-faible)]">
+                Projet interne : aucune recette attendue
+              </dd>
             </div>
           ) : (
-          <div className={`rounded-lg p-3 ${benefice ? "bg-valide-50" : "bg-danger-50"}`}>
-            <dt className={`text-xs font-medium ${benefice ? "text-valide-600" : "text-danger-600"}`}>{benefice ? "Bénéfice" : "Perte"}</dt>
-            <dd className={`chiffres text-lg font-bold ${benefice ? "text-valide-600" : "text-danger-600"}`}>
-              {benefice ? "" : "− "}
-              {fmt(Math.abs(bilan.resultat))}
-            </dd>
-            <dd className="text-xs text-[var(--encre-faible)]">
-              {bilan.margeBp !== null ? `Marge ${fmtTauxBp(bilan.margeBp)}` : "Rien de facturé pour l'instant"}
-            </dd>
-          </div>
+            <div
+              className={`rounded-lg p-3 ${benefice ? "bg-valide-50" : "bg-danger-50"}`}
+            >
+              <dt
+                className={`text-xs font-medium ${benefice ? "text-valide-600" : "text-danger-600"}`}
+              >
+                {benefice ? "Bénéfice" : "Perte"}
+              </dt>
+              <dd
+                className={`chiffres text-lg font-bold ${benefice ? "text-valide-600" : "text-danger-600"}`}
+              >
+                {benefice ? "" : "− "}
+                {fmt(Math.abs(bilan.resultat))}
+              </dd>
+              <dd className="text-xs text-[var(--encre-faible)]">
+                {bilan.margeBp !== null
+                  ? `Marge ${fmtTauxBp(bilan.margeBp)}`
+                  : "Rien de facturé pour l'instant"}
+              </dd>
+            </div>
           )}
           <div className="rounded-lg bg-[var(--surface-creuse)] p-3">
-            <dt className="text-xs text-[var(--encre-faible)]">Résultat prévu</dt>
+            <dt className="text-xs text-[var(--encre-faible)]">
+              Résultat prévu
+            </dt>
             <dd className="chiffres text-lg font-bold">
-              {bilan.resultatPrevu === null ? "—" : `${bilan.resultatPrevu < 0 ? "− " : ""}${fmt(Math.abs(bilan.resultatPrevu))}`}
+              {bilan.resultatPrevu === null
+                ? "—"
+                : `${bilan.resultatPrevu < 0 ? "− " : ""}${fmt(Math.abs(bilan.resultatPrevu))}`}
             </dd>
             <dd className="text-xs text-[var(--encre-faible)]">
-              {projet.prixVente === null ? "Fixez un prix de vente pour le calculer" : `Prix convenu ${fmt(projet.prixVente)} HT`}
+              {projet.prixVente === null
+                ? "Fixez un prix de vente pour le calculer"
+                : `Prix convenu ${fmt(projet.prixVente)} HT`}
             </dd>
           </div>
         </dl>
 
-        <h3 className="mt-4 text-xs font-semibold text-[var(--encre-faible)]">Écarts avec le prévu</h3>
+        <h3 className="mt-4 text-xs font-semibold text-[var(--encre-faible)]">
+          Écarts avec le prévu
+        </h3>
         <ul className="mt-1.5 grid gap-2 text-sm sm:grid-cols-3">
           <li className="rounded-lg border border-[var(--filet)] px-3 py-2">
-            <span className="block text-xs text-[var(--encre-faible)]">Budget (TTC)</span>
+            <span className="block text-xs text-[var(--encre-faible)]">
+              Budget (TTC)
+            </span>
             {bilan.ecarts.budget === null ? (
               <span className="text-[var(--encre-faible)]">Pas de budget</span>
             ) : (
-              <span className={`chiffres font-semibold ${bilan.ecarts.budget < 0 ? "text-danger-600" : "text-valide-600"}`}>
-                {bilan.ecarts.budget < 0 ? `${fmt(-bilan.ecarts.budget)} de dépassement` : `${fmt(bilan.ecarts.budget)} disponibles`}
+              <span
+                className={`chiffres font-semibold ${bilan.ecarts.budget < 0 ? "text-danger-600" : "text-valide-600"}`}
+              >
+                {bilan.ecarts.budget < 0
+                  ? `${fmt(-bilan.ecarts.budget)} de dépassement`
+                  : `${fmt(bilan.ecarts.budget)} disponibles`}
               </span>
             )}
           </li>
           <li className="rounded-lg border border-[var(--filet)] px-3 py-2">
-            <span className="block text-xs text-[var(--encre-faible)]">Chiffre d&apos;affaires (HT)</span>
+            <span className="block text-xs text-[var(--encre-faible)]">
+              Chiffre d&apos;affaires (HT)
+            </span>
             {bilan.ecarts.chiffre === null ? (
-              <span className="text-[var(--encre-faible)]">Pas de prix convenu</span>
+              <span className="text-[var(--encre-faible)]">
+                Pas de prix convenu
+              </span>
             ) : (
-              <span className={`chiffres font-semibold ${bilan.ecarts.chiffre < 0 ? "text-alerte-600" : "text-valide-600"}`}>
+              <span
+                className={`chiffres font-semibold ${bilan.ecarts.chiffre < 0 ? "text-alerte-600" : "text-valide-600"}`}
+              >
                 {bilan.ecarts.chiffre < 0
                   ? `${fmt(-bilan.ecarts.chiffre)} à facturer`
                   : bilan.ecarts.chiffre === 0
@@ -200,13 +331,21 @@ export default async function PageProjet({ params }: { params: Promise<{ id: str
             )}
           </li>
           <li className="rounded-lg border border-[var(--filet)] px-3 py-2">
-            <span className="block text-xs text-[var(--encre-faible)]">Délai</span>
+            <span className="block text-xs text-[var(--encre-faible)]">
+              Délai
+            </span>
             {projet.fin === null ? (
-              <span className="text-[var(--encre-faible)]">Pas d&apos;échéance</span>
+              <span className="text-[var(--encre-faible)]">
+                Pas d&apos;échéance
+              </span>
             ) : bilan.ecarts.delaiJours === null ? (
-              <span className="text-[var(--encre-douce)]">Échéance le {JOUR.format(new Date(projet.fin))}</span>
+              <span className="text-[var(--encre-douce)]">
+                Échéance le {JOUR.format(new Date(projet.fin))}
+              </span>
             ) : (
-              <span className={`chiffres font-semibold ${bilan.ecarts.delaiJours > 0 ? "text-danger-600" : "text-valide-600"}`}>
+              <span
+                className={`chiffres font-semibold ${bilan.ecarts.delaiJours > 0 ? "text-danger-600" : "text-valide-600"}`}
+              >
                 {bilan.ecarts.delaiJours > 0
                   ? `${bilan.ecarts.delaiJours} j de retard`
                   : bilan.ecarts.delaiJours < 0
@@ -220,16 +359,28 @@ export default async function PageProjet({ params }: { params: Promise<{ id: str
         {bilan.criteres.length > 0 && (
           <>
             <h3 className="mt-4 text-xs font-semibold text-[var(--encre-faible)]">
-              Critères de réussite ({bilan.criteres.filter((c) => c.atteint).length} sur {bilan.criteres.length})
+              Critères de réussite (
+              {bilan.criteres.filter((c) => c.atteint).length} sur{" "}
+              {bilan.criteres.length})
             </h3>
             <ul className="mt-1.5 space-y-1 text-sm">
               {bilan.criteres.map((c) => (
-                <li key={c.cle} className="flex flex-wrap items-baseline gap-x-2">
-                  <span aria-hidden className={c.atteint ? "text-valide-600" : "text-danger-600"}>
+                <li
+                  key={c.cle}
+                  className="flex flex-wrap items-baseline gap-x-2"
+                >
+                  <span
+                    aria-hidden
+                    className={
+                      c.atteint ? "text-valide-600" : "text-danger-600"
+                    }
+                  >
                     {c.atteint ? "✓" : "✗"}
                   </span>
                   <span className="font-medium">{c.libelle}</span>
-                  <span className="text-xs text-[var(--encre-faible)]">{c.detail}</span>
+                  <span className="text-xs text-[var(--encre-faible)]">
+                    {c.detail}
+                  </span>
                 </li>
               ))}
             </ul>
@@ -248,22 +399,53 @@ export default async function PageProjet({ params }: { params: Promise<{ id: str
           libelle="Engagé"
           valeur={fmtCompact(projet.suivi.engage)}
           unite="FCFA"
-          ton={projet.suivi.reste !== null && projet.suivi.reste < 0 ? "danger" : "marque"}
-          precision={projet.suivi.taux !== null ? `${projet.suivi.taux} % du budget` : undefined}
+          ton={
+            projet.suivi.reste !== null && projet.suivi.reste < 0
+              ? "danger"
+              : "marque"
+          }
+          precision={
+            projet.suivi.taux !== null
+              ? `${projet.suivi.taux} % du budget`
+              : undefined
+          }
         />
-        <CarteIndicateur libelle="Payé" valeur={fmtCompact(projet.suivi.paye)} unite="FCFA" ton="valide" />
         <CarteIndicateur
-          libelle={projet.suivi.reste !== null && projet.suivi.reste < 0 ? "Dépassement" : "Reste"}
-          valeur={projet.suivi.reste === null ? "—" : fmt(Math.abs(projet.suivi.reste))}
+          libelle="Payé"
+          valeur={fmtCompact(projet.suivi.paye)}
+          unite="FCFA"
+          ton="valide"
+        />
+        <CarteIndicateur
+          libelle={
+            projet.suivi.reste !== null && projet.suivi.reste < 0
+              ? "Dépassement"
+              : "Reste"
+          }
+          valeur={
+            projet.suivi.reste === null
+              ? "—"
+              : fmt(Math.abs(projet.suivi.reste))
+          }
           unite={projet.suivi.reste === null ? undefined : "FCFA"}
-          ton={projet.suivi.reste !== null && projet.suivi.reste < 0 ? "danger" : "valide"}
-          precision={projet.suivi.enAttente > 0 ? `${fmt(projet.suivi.enAttente)} F en attente d'approbation` : undefined}
+          ton={
+            projet.suivi.reste !== null && projet.suivi.reste < 0
+              ? "danger"
+              : "valide"
+          }
+          precision={
+            projet.suivi.enAttente > 0
+              ? `${fmt(projet.suivi.enAttente)} F en attente d'approbation`
+              : undefined
+          }
         />
       </section>
 
       {gerer && (
         <section className="mb-6 rounded-xl border border-[var(--filet)] bg-[var(--surface)] p-4">
-          <h2 className="mb-3 text-sm font-semibold">Affectation et pilotage</h2>
+          <h2 className="mb-3 text-sm font-semibold">
+            Affectation et pilotage
+          </h2>
           <PilotageProjet
             id={projet.id}
             statut={projet.statut}
@@ -275,18 +457,32 @@ export default async function PageProjet({ params }: { params: Promise<{ id: str
         </section>
       )}
       {!gerer && (
-        <p className="mb-6 text-sm text-[var(--encre-douce)]">Responsable : {projet.responsable ?? "non affecté"}</p>
+        <p className="mb-6 text-sm text-[var(--encre-douce)]">
+          Responsable : {projet.responsable ?? "non affecté"}
+        </p>
       )}
 
       <EquipeProjet
         projetId={projet.id}
         peutGerer={peutGererEquipe}
         personnel={personnel}
-        membres={equipe.map((m) => ({ id: m.id, nom: m.nom, role: m.role, origine: m.origine, detail: m.detail, telephone: m.telephone, organisme: m.organisme, avecCompte: m.userId !== null }))}
+        membres={equipe.map((m) => ({
+          id: m.id,
+          nom: m.nom,
+          role: m.role,
+          origine: m.origine,
+          detail: m.detail,
+          telephone: m.telephone,
+          organisme: m.organisme,
+          avecCompte: m.userId !== null,
+        }))}
       />
       {voitLesReleves && (
         <p className="-mt-3 mb-6 text-sm">
-          <Link href={`/terrain/${projet.id}`} className="font-semibold text-marque-600 hover:underline">
+          <Link
+            href={`/terrain/${projet.id}`}
+            className="font-semibold text-marque-600 hover:underline"
+          >
             Voir les relevés de terrain →
           </Link>
         </p>
@@ -295,26 +491,47 @@ export default async function PageProjet({ params }: { params: Promise<{ id: str
       {pvChantier && (
         <section className="mb-6">
           <div className="mb-2 flex items-center justify-between gap-3">
-            <h2 className="text-sm font-semibold">Réunions de chantier ({pvChantier.length})</h2>
+            <h2 className="text-sm font-semibold">
+              Réunions de chantier ({pvChantier.length})
+            </h2>
             {redigerPv && (
-              <Link href={`/pv/nouveau?type=chantier&projet=${projet.id}`} className="text-sm font-semibold text-marque-600 hover:underline">
+              <Link
+                href={`/pv/nouveau?type=chantier&projet=${projet.id}`}
+                className="text-sm font-semibold text-marque-600 hover:underline"
+              >
                 + Nouveau PV de chantier
               </Link>
             )}
           </div>
           {pvChantier.length === 0 ? (
-            <p className="text-sm text-[var(--encre-faible)]">Aucun procès-verbal de réunion de chantier pour ce projet.</p>
+            <p className="text-sm text-[var(--encre-faible)]">
+              Aucun procès-verbal de réunion de chantier pour ce projet.
+            </p>
           ) : (
             <ul className="divide-y divide-[var(--filet)] overflow-hidden rounded-xl border border-[var(--filet)] bg-[var(--surface)]">
               {pvChantier.slice(0, 8).map((l) => (
                 <li key={l.id}>
-                  <Link href={`/pv/${l.id}`} className="flex flex-wrap items-center gap-x-3 gap-y-1 px-4 py-2.5 text-sm hover:bg-[var(--surface-creuse)]">
-                    <span className="chiffres w-24 shrink-0 font-semibold">{l.numeroReunion ? `Réunion n° ${l.numeroReunion}` : "Réunion"}</span>
+                  <Link
+                    href={`/pv/${l.id}`}
+                    className="flex flex-wrap items-center gap-x-3 gap-y-1 px-4 py-2.5 text-sm hover:bg-[var(--surface-creuse)]"
+                  >
+                    <span className="chiffres w-24 shrink-0 font-semibold">
+                      {l.numeroReunion
+                        ? `Réunion n° ${l.numeroReunion}`
+                        : "Réunion"}
+                    </span>
                     <span className="min-w-0 flex-1 truncate">{l.objet}</span>
                     <span className="chiffres text-xs text-[var(--encre-faible)]">
-                      {JOUR.format(new Date(`${l.dateSeance}T00:00:00Z`))} · {referencePv(l.numero, l.revision)}
+                      {JOUR.format(new Date(`${l.dateSeance}T00:00:00Z`))} ·{" "}
+                      {referencePv(l.numero, l.revision)}
                     </span>
-                    {l.statut !== "publie" && <Pastille ton={l.statut === "a_valider" ? "alerte" : "neutre"}>{LIBELLE_STATUT_PV[l.statut]}</Pastille>}
+                    {l.statut !== "publie" && (
+                      <Pastille
+                        ton={l.statut === "a_valider" ? "alerte" : "neutre"}
+                      >
+                        {LIBELLE_STATUT_PV[l.statut]}
+                      </Pastille>
+                    )}
                   </Link>
                 </li>
               ))}
@@ -322,7 +539,10 @@ export default async function PageProjet({ params }: { params: Promise<{ id: str
           )}
           {pvChantier.length > 8 && (
             <p className="mt-2 text-sm">
-              <Link href={`/pv?vue=tous&projet=${projet.id}`} className="font-semibold text-marque-600 hover:underline">
+              <Link
+                href={`/pv?vue=tous&projet=${projet.id}`}
+                className="font-semibold text-marque-600 hover:underline"
+              >
                 Toutes les réunions de ce chantier →
               </Link>
             </p>
@@ -333,23 +553,38 @@ export default async function PageProjet({ params }: { params: Promise<{ id: str
       {notesCalcul && (
         <section className="mb-6">
           <div className="mb-2 flex items-center justify-between gap-3">
-            <h2 className="text-sm font-semibold">Notes de calcul ({notesCalcul.length})</h2>
+            <h2 className="text-sm font-semibold">
+              Notes de calcul ({notesCalcul.length})
+            </h2>
             {ouvert && (
-              <Link href="/calculs" className="text-sm font-semibold text-marque-600 hover:underline">
+              <Link
+                href="/calculs"
+                className="text-sm font-semibold text-marque-600 hover:underline"
+              >
                 + Nouveau calcul
               </Link>
             )}
           </div>
           {notesCalcul.length === 0 ? (
-            <p className="text-sm text-[var(--encre-faible)]">Aucune note de calcul pour ce projet : faites un calcul, puis « Enregistrer sur un projet ».</p>
+            <p className="text-sm text-[var(--encre-faible)]">
+              Aucune note de calcul pour ce projet : faites un calcul, puis «
+              Enregistrer sur un projet ».
+            </p>
           ) : (
             <ul className="divide-y divide-[var(--filet)] overflow-hidden rounded-xl border border-[var(--filet)] bg-[var(--surface)]">
               {notesCalcul.slice(0, 8).map((n) => (
                 <li key={n.id}>
-                  <Link href={`/calculs/notes/${n.id}`} className="flex flex-wrap items-center gap-x-3 gap-y-1 px-4 py-2.5 text-sm hover:bg-[var(--surface-creuse)]">
-                    <span className="chiffres w-32 shrink-0 font-semibold">{n.numero}</span>
+                  <Link
+                    href={`/calculs/notes/${n.id}`}
+                    className="flex flex-wrap items-center gap-x-3 gap-y-1 px-4 py-2.5 text-sm hover:bg-[var(--surface-creuse)]"
+                  >
+                    <span className="chiffres w-32 shrink-0 font-semibold">
+                      {n.numero}
+                    </span>
                     <span className="min-w-0 flex-1 truncate">{n.libelle}</span>
-                    <span className="text-xs text-[var(--encre-faible)]">{TYPES_NOTE[n.type]}</span>
+                    <span className="text-xs text-[var(--encre-faible)]">
+                      {TYPES_NOTE[n.type]}
+                    </span>
                   </Link>
                 </li>
               ))}
@@ -357,7 +592,10 @@ export default async function PageProjet({ params }: { params: Promise<{ id: str
           )}
           {notesCalcul.length > 8 && (
             <p className="mt-2 text-sm">
-              <Link href={`/calculs/notes?projet=${projet.id}`} className="font-semibold text-marque-600 hover:underline">
+              <Link
+                href={`/calculs/notes?projet=${projet.id}`}
+                className="font-semibold text-marque-600 hover:underline"
+              >
                 Toutes les notes de ce projet →
               </Link>
             </p>
@@ -372,7 +610,8 @@ export default async function PageProjet({ params }: { params: Promise<{ id: str
         </div>
         {photos.length === 0 ? (
           <p className="text-sm text-[var(--encre-faible)]">
-            Aucune photo. Avant, pendant, après : la photo datée est la meilleure preuve de l&apos;avancement.
+            Aucune photo. Avant, pendant, après : la photo datée est la
+            meilleure preuve de l&apos;avancement.
           </p>
         ) : (
           <Visionneuse
@@ -385,28 +624,49 @@ export default async function PageProjet({ params }: { params: Promise<{ id: str
               titre: p.legende ?? p.nomFichier,
               sousTitre: `${JOUR.format(p.depose)}${p.auteur ? ` · ${p.auteur}` : ""}`,
             }))}
-            pieds={gerer ? Object.fromEntries(photos.map((p) => [p.id, <RetraitPiece key={p.id} id={p.id} />])) : undefined}
+            pieds={
+              gerer
+                ? Object.fromEntries(
+                    photos.map((p) => [
+                      p.id,
+                      <RetraitPiece key={p.id} id={p.id} />,
+                    ]),
+                  )
+                : undefined
+            }
           />
         )}
       </section>
 
       {autres.length > 0 && (
         <section className="mb-6">
-          <h2 className="mb-2 text-sm font-semibold">Preuves et pièces ({autres.length})</h2>
+          <h2 className="mb-2 text-sm font-semibold">
+            Preuves et pièces ({autres.length})
+          </h2>
           <ul className="divide-y divide-[var(--filet)] rounded-xl border border-[var(--filet)] bg-[var(--surface)]">
             {autres.map((p) => (
-              <li key={p.id} className="flex items-center justify-between gap-3 px-3 py-2 text-sm">
+              <li
+                key={p.id}
+                className="flex items-center justify-between gap-3 px-3 py-2 text-sm"
+              >
                 <span className="min-w-0">
                   <BoutonApercu
-                    piece={{ titre: p.legende ?? p.nomFichier, nomFichier: p.nomFichier, typeMime: p.typeMime, signer: ouvrirPieceProjet.bind(null, p.id) }}
+                    piece={{
+                      titre: p.legende ?? p.nomFichier,
+                      nomFichier: p.nomFichier,
+                      typeMime: p.typeMime,
+                      signer: ouvrirPieceProjet.bind(null, p.id),
+                    }}
                     className="text-left text-marque-600 hover:underline"
                   >
                     {p.legende ?? p.nomFichier}
                   </BoutonApercu>
                   <span className="block text-xs text-[var(--encre-faible)]">
                     {NATURE[p.nature]}
-                    {p.depenseId ? ` · ${depenses.find((d) => d.id === p.depenseId)?.numero ?? "dépense"}` : ""} ·{" "}
-                    {JOUR.format(p.depose)}
+                    {p.depenseId
+                      ? ` · ${depenses.find((d) => d.id === p.depenseId)?.numero ?? "dépense"}`
+                      : ""}{" "}
+                    · {JOUR.format(p.depose)}
                     {p.auteur ? ` · ${p.auteur}` : ""}
                   </span>
                 </span>
@@ -419,15 +679,21 @@ export default async function PageProjet({ params }: { params: Promise<{ id: str
 
       <section className="mb-6">
         <div className="mb-2 flex items-center justify-between gap-3">
-          <h2 className="text-sm font-semibold">Devis et factures ({factures.length})</h2>
-          <Link href="/commercial/factures" className="text-xs font-semibold text-marque-600 hover:underline">
+          <h2 className="text-sm font-semibold">
+            Devis et factures ({factures.length})
+          </h2>
+          <Link
+            href="/commercial/factures"
+            className="text-xs font-semibold text-marque-600 hover:underline"
+          >
             Facturer ce projet →
           </Link>
         </div>
         {factures.length === 0 ? (
           <p className="text-sm text-[var(--encre-faible)]">
-            Aucune pièce rattachée. Choisissez ce projet dans le champ « Projet » d&apos;un devis ou d&apos;une facture :
-            c&apos;est ce qui donne la recette du bilan.
+            Aucune pièce rattachée. Choisissez ce projet dans le champ « Projet
+            » d&apos;un devis ou d&apos;une facture : c&apos;est ce qui donne la
+            recette du bilan.
           </p>
         ) : (
           <Tableau>
@@ -446,13 +712,23 @@ export default async function PageProjet({ params }: { params: Promise<{ id: str
                 <tr key={f.id}>
                   <Td chiffres fort>
                     {f.numero ?? "Brouillon"}
-                    <span className="block text-xs font-normal text-[var(--encre-faible)]">{NATURE_PIECE[f.nature] ?? f.nature}</span>
+                    <span className="block text-xs font-normal text-[var(--encre-faible)]">
+                      {NATURE_PIECE[f.nature] ?? f.nature}
+                    </span>
                   </Td>
-                  <Td chiffres>{f.datePiece ? JOUR.format(new Date(f.datePiece)) : "—"}</Td>
+                  <Td chiffres>
+                    {f.datePiece ? JOUR.format(new Date(f.datePiece)) : "—"}
+                  </Td>
                   <Td>{STATUT_PIECE[f.statut] ?? f.statut}</Td>
-                  <Td aligne="droite" chiffres>{fmt(f.totalHt)}</Td>
-                  <Td aligne="droite" chiffres>{fmt(f.totalTtc)}</Td>
-                  <Td aligne="droite" chiffres>{fmt(f.regle)}</Td>
+                  <Td aligne="droite" chiffres>
+                    {fmt(f.totalHt)}
+                  </Td>
+                  <Td aligne="droite" chiffres>
+                    {fmt(f.totalTtc)}
+                  </Td>
+                  <Td aligne="droite" chiffres>
+                    {fmt(f.regle)}
+                  </Td>
                 </tr>
               ))}
             </tbody>
@@ -462,38 +738,65 @@ export default async function PageProjet({ params }: { params: Promise<{ id: str
 
       <section>
         <div className="mb-2 flex items-center justify-between gap-3">
-          <h2 className="text-sm font-semibold">Dépenses ({depenses.length})</h2>
+          <h2 className="text-sm font-semibold">
+            Dépenses ({depenses.length})
+          </h2>
           {demander && ouvert && (
-            <FormulaireDepense projets={[]} projetId={projet.id} fournisseurs={fournisseurs.map((f) => ({ id: f.id, nom: f.nom }))} />
+            <FormulaireDepense
+              projets={[]}
+              projetId={projet.id}
+              fournisseurs={fournisseurs.map((f) => ({ id: f.id, nom: f.nom }))}
+            />
           )}
         </div>
         {depenses.length === 0 ? (
-          <EtatVide titre="Aucune dépense" message="Les achats de ce projet apparaîtront ici, avec qui les a demandés, approuvés et payés." />
+          <EtatVide
+            titre="Aucune dépense"
+            message="Les achats de ce projet apparaîtront ici, avec qui les a demandés, approuvés et payés."
+          />
         ) : (
-          <TableauDepenses depenses={depenses} pieces={parDepense} droits={{ approuver, payer, demander }} afficherProjet={false} />
+          <TableauDepenses
+            depenses={depenses}
+            pieces={parDepense}
+            droits={{ approuver, payer, demander }}
+            afficherProjet={false}
+          />
         )}
       </section>
 
       {enquetes && (
         <section className="mt-6">
-          <h2 className="mb-2 text-sm font-semibold">Enquêtes et satisfaction ({enquetes.length})</h2>
+          <h2 className="mb-2 text-sm font-semibold">
+            Enquêtes et satisfaction ({enquetes.length})
+          </h2>
           {enquetes.length === 0 ? (
             <p className="text-sm text-[var(--encre-faible)]">
               Aucune enquête sur ce projet.{" "}
-              <Link href="/enquetes" className="font-medium text-marque-600 hover:underline">
+              <Link
+                href="/enquetes"
+                className="font-medium text-marque-600 hover:underline"
+              >
                 Mesurer la satisfaction de ses clients
               </Link>
             </p>
           ) : (
             <ul className="divide-y divide-[var(--filet)] rounded-xl border border-[var(--filet)] bg-[var(--surface)]">
               {enquetes.map((e) => (
-                <li key={e.id} className="flex flex-wrap items-baseline justify-between gap-2 px-4 py-2.5 text-sm">
-                  <Link href={`/enquetes/${e.id}`} className="font-medium hover:underline">
+                <li
+                  key={e.id}
+                  className="flex flex-wrap items-baseline justify-between gap-2 px-4 py-2.5 text-sm"
+                >
+                  <Link
+                    href={`/enquetes/${e.id}`}
+                    className="font-medium hover:underline"
+                  >
                     {e.titre}
                   </Link>
                   <span className="chiffres text-[var(--encre-douce)]">
                     {e.reponses} réponse{e.reponses > 1 ? "s" : ""}
-                    {e.satisfaction !== null && <> · satisfaction {e.satisfaction} / 100</>}
+                    {e.satisfaction !== null && (
+                      <> · satisfaction {e.satisfaction} / 100</>
+                    )}
                   </span>
                 </li>
               ))}
