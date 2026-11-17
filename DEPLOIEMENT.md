@@ -172,6 +172,14 @@ entreprises. Liste des tables gardées : `TABLES_GARDEES`
 (`src/db/effacement.ts`) ; une nouvelle table de réglage s'y ajoute, sinon
 elle serait effacée.
 
+**Sans terminal**, une seule fois : sauvegarder la base, puis ajouter dans
+**Environment** `EFFACER_DONNEES_CONFIRMATION=MARIA GROUP SARL` (avec
+`MIGRATIONS_AU_DEMARRAGE=1`) et **Redeploy**. Le journal affiche
+`"evenement":"donnees_effacees"`, ou `"effacement_refuse"` avec le motif.
+Retirer ensuite la variable. Même si elle reste, elle ne rejoue rien :
+tout effacement renseigne `organizations.donnees_effacees_le`, et le
+démarrage refuse alors d'effacer.
+
 **Sans terminal**, la même installation se fait au démarrage : ajouter dans
 **Environment** `MARIA_ADMIN_MOT_DE_PASSE=<mot de passe provisoire>` (avec
 `MIGRATIONS_AU_DEMARRAGE=1`), puis **Redeploy**. Le journal de l'application

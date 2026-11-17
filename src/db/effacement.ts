@@ -1,3 +1,6 @@
+import { existsSync, renameSync } from "node:fs";
+import { join } from "node:path";
+
 import type { Requete } from "./installation";
 
 /**
@@ -121,7 +124,53 @@ export async function planEffacement(requete: Requete): Promise<PlanEffacement> 
  */
 export async function effacerDonnees(requete: Requete, plan: PlanEffacement): Promise<number> {
   const tables = plan.effacees.map((t) => `"${t.table}"`);
-  if (tables.length === 0) return 0;
-  await requete(`truncate table ${tables.join(", ")}`);
+  if (tables.length > 0) await requete(`truncate table ${tables.join(", ")}`);
+  // Témoin : interdit désormais l'effacement au démarrage (voir plus bas).
+  await requete(`update organizations set donnees_effacees_le = now() where id = $1`, [plan.organisation.id]);
   return plan.effacees.reduce((s, t) => s + t.lignes, 0);
+}
+
+/**
+ * Met de côté les pièces jointes de l'entreprise : le dossier est RENOMMÉ
+ * (`<id>.efface-<date>`), pas détruit, et plus rien ne le lit. À supprimer à
+ * la main une fois la reprise vérifiée. Rend le nouveau chemin, ou `null`
+ * s'il n'y avait aucun dossier.
+ */
+export function mettreDeCoteFichiers(racine: string, organisationId: string, maintenant = new Date()): string | null {
+  const dossier = join(racine, organisationId);
+  if (!existsSync(dossier)) return null;
+  const cote = `${dossier}.efface-${maintenant.toISOString().slice(0, 19).replace(/[-:T]/g, "")}`;
+  renameSync(dossier, cote);
+  return cote;
+}
+
+export type IssueEffacementAuDemarrage =
+  | { genre: "efface"; lignes: number; fichiers: string | null }
+  | { genre: "refuse"; motif: string };
+
+/**
+ * Effacement des données d'essai au démarrage, quand aucun terminal
+ * n'atteint le conteneur : `EFFACER_DONNEES_CONFIRMATION` porte la raison
+ * sociale exacte, le redéploiement fait le reste.
+ *
+ * UNE SEULE FOIS : refusé dès que `organizations.donnees_effacees_le` est
+ * renseigné, ce que fait tout effacement, celui-ci comme celui du terminal.
+ * Une variable oubliée dans l'hébergeur ne vide donc jamais la base à un
+ * redémarrage suivant, quand les vraies données y sont entrées.
+ */
+export async function effacerAuDemarrage(
+  requete: Requete,
+  { confirmation, racineFichiers }: { confirmation: string; racineFichiers?: string },
+): Promise<IssueEffacementAuDemarrage> {
+  const [org] = await requete(`select name, donnees_effacees_le from organizations`);
+  if (org?.donnees_effacees_le) {
+    return { genre: "refuse", motif: `Données déjà effacées le ${new Date(org.donnees_effacees_le).toISOString()} : l'effacement au démarrage ne se fait qu'une fois. Retirer EFFACER_DONNEES_CONFIRMATION.` };
+  }
+  const plan = await planEffacement(requete);
+  if (confirmation.trim() !== plan.organisation.nom) {
+    return { genre: "refuse", motif: `Confirmation « ${confirmation} » différente de la raison sociale « ${plan.organisation.nom} ». Rien n'a été touché.` };
+  }
+  const lignes = await effacerDonnees(requete, plan);
+  const fichiers = racineFichiers ? mettreDeCoteFichiers(racineFichiers, plan.organisation.id) : null;
+  return { genre: "efface", lignes, fichiers };
 }

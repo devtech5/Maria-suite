@@ -5,6 +5,7 @@ import { migrate } from "drizzle-orm/postgres-js/migrator";
 import postgres from "postgres";
 
 import { synchroniserDroits } from "./droits";
+import { effacerAuDemarrage } from "./effacement";
 import { installerEntreprise, PROPRIETAIRE } from "./installation";
 
 /** Clé du verrou consultatif : deux démarrages simultanés ne migrent pas ensemble. */
@@ -35,6 +36,10 @@ export async function migrerAuDemarrage(): Promise<void> {
     }));
     if (process.env.MARIA_ADMIN_MOT_DE_PASSE) {
       await installerAuDemarrage((texte, valeurs) => client.unsafe(texte, (valeurs ?? []) as never[]));
+    }
+    const confirmation = process.env.EFFACER_DONNEES_CONFIRMATION?.trim();
+    if (confirmation) {
+      await effacerAuDemarrageJournalise((texte, valeurs) => client.unsafe(texte, (valeurs ?? []) as never[]), confirmation);
     }
     await client`select pg_advisory_unlock(${VERROU_MIGRATION})`;
     console.info(JSON.stringify({ evenement: "migrations_appliquees", horodatage: new Date().toISOString() }));
@@ -77,6 +82,32 @@ async function installerAuDemarrage(requete: Parameters<typeof installerEntrepri
     console.error(
       JSON.stringify({
         evenement: "installation_refusee",
+        message: erreur instanceof Error ? erreur.message : String(erreur),
+        horodatage: new Date().toISOString(),
+      }),
+    );
+  }
+}
+
+/**
+ * Efface les données d'essai au démarrage, une seule fois
+ * (`effacerAuDemarrage`), sous le verrou des migrations : deux conteneurs
+ * qui démarrent ensemble n'effacent pas deux fois.
+ *
+ * Un refus ou un échec se journalise sans arrêter le serveur.
+ */
+async function effacerAuDemarrageJournalise(requete: Parameters<typeof effacerAuDemarrage>[0], confirmation: string): Promise<void> {
+  try {
+    const issue = await effacerAuDemarrage(requete, { confirmation, racineFichiers: process.env.STOCKAGE_LOCAL || undefined });
+    if (issue.genre === "efface") {
+      console.info(JSON.stringify({ evenement: "donnees_effacees", lignes: issue.lignes, fichiers_mis_de_cote: issue.fichiers, horodatage: new Date().toISOString() }));
+    } else {
+      console.warn(JSON.stringify({ evenement: "effacement_refuse", motif: issue.motif, horodatage: new Date().toISOString() }));
+    }
+  } catch (erreur) {
+    console.error(
+      JSON.stringify({
+        evenement: "effacement_en_echec",
         message: erreur instanceof Error ? erreur.message : String(erreur),
         horodatage: new Date().toISOString(),
       }),

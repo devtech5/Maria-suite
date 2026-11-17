@@ -276,7 +276,10 @@ des lieux), puis `--confirmer "MARIA GROUP SARL"` après une sauvegarde.
 Garde socle, comptes, droits, modules, référentiels et réglages
 (`TABLES_GARDEES`, `src/db/effacement.ts`), vide tout le reste d'un seul
 `TRUNCATE` et remet la numérotation à 1. Toute NOUVELLE table de réglage
-s'ajoute à `TABLES_GARDEES`, sinon elle serait effacée.
+s'ajoute à `TABLES_GARDEES`, sinon elle serait effacée. Sans terminal :
+`EFFACER_DONNEES_CONFIRMATION="MARIA GROUP SARL"` au démarrage, une seule
+fois — `organizations.donnees_effacees_le` interdit tout effacement au
+démarrage suivant.
 
 Commerce, restaurant, maquis, hôtel, réservations, billetterie, point de vente
 mobile money et caisse ont été **retirés de la plateforme** (migration 0074) :

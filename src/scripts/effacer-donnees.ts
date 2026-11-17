@@ -23,12 +23,11 @@
  * Depuis le terminal du conteneur (Dokploy) : `node scripts/effacer-donnees.cjs`.
  * Sur la base locale PGlite : `pnpm effacer-donnees`, serveur ARRÊTÉ.
  */
-import { existsSync, renameSync } from "node:fs";
 import { join, resolve } from "node:path";
 
 import { config as loadEnv } from "dotenv";
 
-import { effacerDonnees, planEffacement } from "../db/effacement";
+import { effacerDonnees, mettreDeCoteFichiers, planEffacement } from "../db/effacement";
 import { ouvrirBase, urlBase } from "./connexion-base";
 
 loadEnv({ path: ".env.local", quiet: true });
@@ -72,10 +71,8 @@ async function main() {
 
     // Les pièces jointes : mises de côté, pas détruites.
     const racine = resolve(process.env.STOCKAGE_LOCAL ?? (base.dossierPglite ? join(base.dossierPglite, "fichiers") : ".stockage"));
-    const dossier = join(racine, plan.organisation.id);
-    if (existsSync(dossier)) {
-      const cote = `${dossier}.efface-${new Date().toISOString().slice(0, 19).replace(/[-:T]/g, "")}`;
-      renameSync(dossier, cote);
+    const cote = mettreDeCoteFichiers(racine, plan.organisation.id);
+    if (cote) {
       console.info(`  Pièces jointes mises de côté : ${cote}\n  (à supprimer à la main une fois la reprise vérifiée).`);
     }
     console.info("");
