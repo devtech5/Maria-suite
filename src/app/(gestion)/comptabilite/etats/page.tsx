@@ -1,10 +1,11 @@
 import type { Metadata } from "next";
+import Link from "next/link";
 
 import { EnTetePage, EtatVide, Tableau, Td, Th } from "@/components/ui/primitives";
 import { exigerEntreprise } from "@/lib/auth/dal";
-import { calculerSIG, elementsResultat } from "@/lib/comptabilite/etats";
+import { calculerBilan, calculerSIG, elementsResultat, type PosteBilan } from "@/lib/comptabilite/etats";
 import { fmt, fmtEntier } from "@/lib/format";
-import { exercicesEcrits, soldesParCompte } from "@/modules/comptabilite/requetes";
+import { exercicesEcrits, soldesAuJour, soldesParCompte } from "@/modules/comptabilite/requetes";
 
 export const metadata: Metadata = { title: "États financiers" };
 
@@ -20,12 +21,47 @@ const CLASSES = [
   { numero: "8", intitule: "Autres charges et produits" },
 ];
 
-export default async function PageEtats() {
+const dateFr = (iso: string) => `${iso.slice(8, 10)}/${iso.slice(5, 7)}/${iso.slice(0, 4)}`;
+
+/** Une colonne du bilan : postes non nuls, puis le total. */
+function ColonneBilan({ titre, postes, total }: { titre: string; postes: PosteBilan[]; total: number }) {
+  return (
+    <div>
+      <h3 className="border-b border-[var(--filet)] px-4 py-2 text-xs font-semibold uppercase tracking-wide text-[var(--encre-faible)]">{titre}</h3>
+      <table className="w-full text-sm">
+        <tbody>
+          {postes
+            .filter((p) => p.montant !== 0)
+            .map((p) => (
+              <tr key={p.code} className="border-b border-[var(--filet)]">
+                <td className="chiffres w-10 py-2 pl-4 text-xs text-[var(--encre-faible)]">{p.code}</td>
+                <td className="py-2 pr-3 text-[var(--encre-douce)]">{p.libelle}</td>
+                <td className={`chiffres py-2 pr-4 text-right ${p.montant < 0 ? "text-danger-600" : ""}`}>{p.montant < 0 ? `(${fmt(-p.montant)})` : fmt(p.montant)}</td>
+              </tr>
+            ))}
+          <tr className="bg-[var(--surface-creuse)] font-semibold">
+            <td />
+            <td className="py-2.5 pr-3">Total</td>
+            <td className="chiffres py-2.5 pr-4 text-right">{fmt(total)}</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+  );
+}
+
+export default async function PageEtats({ searchParams }: { searchParams: Promise<{ exercice?: string }> }) {
   const session = await exigerEntreprise();
 
   const exercices = await exercicesEcrits(session.organizationId);
-  const exercice = exercices[0] ?? String(new Date().getFullYear());
-  const soldes = await soldesParCompte(session.organizationId, exercice);
+  const demande = (await searchParams).exercice;
+  const exercice = demande && exercices.includes(demande) ? demande : (exercices[0] ?? String(new Date().getFullYear()));
+  const aujourdhui = new Date().toISOString().slice(0, 10);
+  // Exercice terminé : le bilan au 31 décembre. En cours : la situation du jour.
+  const dateBilan = `${exercice}-12-31` < aujourdhui ? `${exercice}-12-31` : aujourdhui;
+  const [soldes, cumules] = await Promise.all([soldesParCompte(session.organizationId, exercice), soldesAuJour(session.organizationId, dateBilan)]);
+  const bilan = calculerBilan(cumules);
+  const ecartBilan = bilan.totalActif - bilan.totalPassif;
 
   if (soldes.length === 0) {
     return (
@@ -54,8 +90,33 @@ export default async function PageEtats() {
     <>
       <EnTetePage
         titre="États financiers"
-        sousTitre={`Compte de résultat SYSCOHADA · exercice ${exercice}`}
+        sousTitre={`Compte de résultat et bilan SYSCOHADA · exercice ${exercice}`}
+        actions={
+          <a
+            href={`/imprimer/dsf/${exercice}`}
+            target="_blank"
+            rel="noopener"
+            className="h-cible inline-flex items-center rounded-lg border border-[var(--filet)] bg-[var(--surface)] px-3.5 text-sm font-medium hover:bg-[var(--surface-creuse)]"
+          >
+            Liasse annuelle (DSF)
+          </a>
+        }
       />
+
+      {exercices.length > 1 && (
+        <nav aria-label="Exercices" className="mb-4 flex gap-1.5 overflow-x-auto pb-0.5">
+          {exercices.map((e) => (
+            <Link
+              key={e}
+              href={`/comptabilite/etats?exercice=${e}`}
+              aria-current={e === exercice ? "page" : undefined}
+              className={`shrink-0 rounded-full px-3.5 py-2 text-xs font-semibold ${e === exercice ? "bg-marque-600 text-white" : "bg-[var(--surface-creuse)] text-[var(--encre-douce)]"}`}
+            >
+              {e}
+            </Link>
+          ))}
+        </nav>
+      )}
 
       <div className="grid gap-5 lg:grid-cols-[minmax(0,1fr)_minmax(260px,320px)]">
         <section className="overflow-hidden rounded-xl border border-[var(--filet)] bg-[var(--surface)]">
@@ -125,21 +186,43 @@ export default async function PageEtats() {
 
           <section className="rounded-xl border border-[var(--filet)] bg-[var(--surface)] p-4">
             <h2 className="mb-2 text-sm font-semibold">Ce qui manque encore</h2>
-            {/* Annoncer ce qui n'existe pas vaut mieux que de le faire croire :
-                un exploitant qui découvre à la clôture qu'il n'a pas de bilan
-                a perdu son exercice. */}
+            {/* Annoncer ce qui n'existe pas vaut mieux que de le faire croire. */}
             <ul className="space-y-1.5 text-sm text-[var(--encre-douce)]">
-              <li>Bilan — actif et passif</li>
-              <li>Tableau de flux de trésorerie</li>
+              <li>Tableau des flux de trésorerie</li>
               <li>Notes annexes</li>
             </ul>
-            <p className="mt-2.5 text-xs text-[var(--encre-faible)]">
-              Ces états supposent les immobilisations et la clôture d&apos;exercice,
-              qui viendront avec le module des actifs.
-            </p>
           </section>
         </aside>
       </div>
+
+      {/* ------------------------------------------------------------ bilan */}
+      <section className="mt-6 overflow-hidden rounded-xl border border-[var(--filet)] bg-[var(--surface)]">
+        <header className="flex flex-wrap items-baseline justify-between gap-2 border-b border-[var(--filet)] px-4 py-3">
+          <div>
+            <h2 className="text-sm font-semibold">Bilan au {dateFr(dateBilan)}</h2>
+            <p className="text-xs text-[var(--encre-faible)]">
+              Soldes cumulés depuis la première écriture : la situation d&apos;ouverture d&apos;un exercice est le bilan de la veille.{" "}
+              <Link href={`/rapports/balance-ouverture?au=${exercice}-12-31`} className="font-semibold text-marque-600 hover:underline">
+                À-nouveaux {exercice}
+              </Link>
+            </p>
+          </div>
+          {bilan.resultatEnInstance !== 0 && (
+            <p className="text-xs text-[var(--encre-faible)]">
+              Dont résultat non clôturé : <span className="chiffres font-semibold">{fmt(bilan.resultatEnInstance)}</span>
+            </p>
+          )}
+        </header>
+        <div className="grid lg:grid-cols-2 lg:divide-x lg:divide-[var(--filet)]">
+          <ColonneBilan titre="Actif" postes={bilan.actif} total={bilan.totalActif} />
+          <ColonneBilan titre="Passif" postes={bilan.passif} total={bilan.totalPassif} />
+        </div>
+        {ecartBilan !== 0 && (
+          <p className="border-t border-[var(--filet)] bg-danger-50 px-4 py-2 text-sm text-danger-600">
+            Le bilan ne tombe pas juste ({fmt(ecartBilan)}) : un compte hors des classes 1 à 8 a été mouvementé. Vérifiez la balance générale.
+          </p>
+        )}
+      </section>
 
       {/* ------------------------------------------------- balance générale */}
       <section className="mt-6">

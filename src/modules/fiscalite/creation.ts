@@ -22,7 +22,8 @@ import {
   type ObligationTva,
   type SoldeTva,
 } from "./calcul";
-import { declarationsTva, exercicesClotures } from "./schema";
+import { pieceLibre } from "./exercice";
+import { declarationsTva, exercicesClotures, impotsBenefices } from "./schema";
 
 type Lecteur = Pick<Transaction, "execute" | "select">;
 
@@ -183,17 +184,20 @@ export async function cloturerExerciceDans(tx: Transaction, organizationId: stri
   const clotures = await tx.select({ exercice: exercicesClotures.exercice }).from(exercicesClotures).where(eq(exercicesClotures.organizationId, organizationId));
   const ecrits = await tx.execute<{ exercice: string }>(sql`select distinct exercice from ecritures where organization_id = ${organizationId} and exercice < ${exercice} order by exercice desc limit 1`);
   const calendrier = await calendrierTva(tx, organizationId, aujourdhui);
+  const [impot] = await tx.select({ id: impotsBenefices.id }).from(impotsBenefices).where(and(eq(impotsBenefices.organizationId, organizationId), eq(impotsBenefices.exercice, exercice)));
   const clos = new Set(clotures.map((c) => c.exercice));
   const precedent = ecrits[0]?.exercice ?? null;
   const refus = refusCloture(exercice, aujourdhui, clos.has(exercice), {
     exercicePrecedentOuvert: precedent && !clos.has(precedent) ? precedent : null,
     moisTvaEnAttente: calendrier.filter((o) => !o.declaree && o.mois.startsWith(`${exercice}-`)).map((o) => o.mois),
+    impotNonConstate: !impot,
   });
   if (refus) throw new Error(refus);
 
   const soldes = await soldesGestion(tx, organizationId, exercice);
   const id = newId();
-  const ecriture = await enregistrerEcritureDans(tx, ecritureCloture({ exercice, soldes }), {
+  const piece = await pieceLibre(tx, organizationId, "cloture", `CLO-${exercice}`);
+  const ecriture = await enregistrerEcritureDans(tx, ecritureCloture({ exercice, soldes, piece }), {
     organizationId,
     userId,
     origine: "cloture",

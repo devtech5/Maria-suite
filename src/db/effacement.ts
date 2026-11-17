@@ -37,6 +37,8 @@ export const TABLES_GARDEES = [
   "reglages_presence",
   "reglages_calculs",
   "parametres_paie",
+  // La règle d'impôt sur les bénéfices et son attestation par le comptable.
+  "parametres_fiscaux",
   "jours_feries",
   "horaires_planning",
   "baremes_perdiem",

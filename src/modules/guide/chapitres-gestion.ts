@@ -455,7 +455,27 @@ export const CHAPITRES_GESTION: Chapitre[] = [
         ancre: "fiscalite",
         titre: "Fiscalité",
         chemin: "/comptabilite/fiscalite",
-        texte: ["La TVA du mois se lit dans les écritures, se déclare dans l'ordre des mois, puis se paie depuis la trésorerie ; un mois déclaré est verrouillé."],
+        texte: [
+          "La TVA du mois se lit dans les écritures, se déclare dans l'ordre des mois, puis se paie depuis la trésorerie ; un mois déclaré est verrouillé.",
+          "En fin d'année, l'impôt sur les bénéfices se constate d'abord : on saisit réintégrations, déductions et chiffre d'affaires, l'écriture est datée du 31 décembre et l'impôt se paie l'année suivante en fractions. La clôture est refusée tant que l'impôt n'est pas constaté.",
+          "Une fois l'exercice clos, son résultat s'affecte à la date de la décision : réserve légale, autres réserves, dividendes, report à nouveau. Rouvrir un exercice clos exige un motif ; affectation et clôture sont contrepassées, jamais effacées. La liasse annuelle (DSF) s'imprime pour remplir le formulaire de la DGI.",
+        ],
+      },
+      {
+        ancre: "regle-impot",
+        titre: "Règle d'impôt",
+        chemin: "/comptabilite/fiscalite/impot",
+        texte: [
+          "Le taux, le minimum forfaitaire et les échéances des fractions viennent du pays de l'entreprise. La règle reste « à vérifier » tant que le comptable ne l'a pas attestée ; la modifier sans l'attester l'y remet.",
+        ],
+      },
+      {
+        ancre: "etats",
+        titre: "États financiers",
+        chemin: "/comptabilite/etats",
+        texte: [
+          "Le bilan se calcule à la date choisie à partir des soldes cumulés ; le résultat d'un exercice non clôturé figure au passif. Les à-nouveaux ne sont pas des écritures recopiées : la balance d'ouverture d'un exercice est la situation de la veille de son premier jour.",
+        ],
       },
     ],
     quiz: [
@@ -465,6 +485,13 @@ export const CHAPITRES_GESTION: Chapitre[] = [
         choix: ["Elle est enregistrée avec un avertissement", "Elle est refusée", "La différence va au compte d'attente"],
         bonne: 1,
         explication: "Toute écriture doit porter autant au débit qu'au crédit.",
+      },
+      {
+        cle: "compta-cloture-impot",
+        question: "Peut-on clôturer un exercice dont l'impôt sur les bénéfices n'est pas constaté ?",
+        choix: ["Oui, l'impôt se constate après", "Non, la clôture est refusée", "Oui, si le résultat est une perte"],
+        bonne: 1,
+        explication: "L'impôt se constate avant la clôture, après saisie des réintégrations et déductions.",
       },
     ],
   },
