@@ -271,6 +271,13 @@ entreprise. Logique commune dans `src/db/installation.ts` : avec
 aussi au démarrage, sans jamais toucher un compte existant.
 Un compte sans rattachement actif aboutit sur `/sans-acces`.
 
+**Effacer les données d'essai** : `node scripts/effacer-donnees.cjs` (état
+des lieux), puis `--confirmer "MARIA GROUP SARL"` après une sauvegarde.
+Garde socle, comptes, droits, modules, référentiels et réglages
+(`TABLES_GARDEES`, `src/db/effacement.ts`), vide tout le reste d'un seul
+`TRUNCATE` et remet la numérotation à 1. Toute NOUVELLE table de réglage
+s'ajoute à `TABLES_GARDEES`, sinon elle serait effacée.
+
 Commerce, restaurant, maquis, hôtel, réservations, billetterie, point de vente
 mobile money et caisse ont été **retirés de la plateforme** (migration 0074) :
 code, écrans, droits et rôles supprimés ; leurs tables supprimées seulement si
