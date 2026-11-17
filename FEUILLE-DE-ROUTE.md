@@ -174,3 +174,76 @@ réception) déjà en place :
 - **Gardés** : Stock, catalogue d'articles et tables de ventes — Achats et
   Devis/factures en dépendent.
 - **Enquêtes reste actif.**
+
+## Hors ligne (demandé le 17 novembre 2026)
+
+**Décision** : toute la plateforme doit fonctionner avec ou sans réseau.
+Chantier long : il démarre à la prochaine session de travail.
+
+**Déjà en place** : application installable et page « Pas de connexion »
+(#55) ; identifiants produits par le client (`newId()`) ; colonnes
+`version`, `updated_at`, `deleted_at` sur 123 des 165 tables ; tables
+`sync_mutations`, `change_log`, `sync_cursors` (créées, mais rien ne les
+alimente encore) ; file locale IndexedDB du terrain
+(`src/lib/terrain/file-locale.ts`), qui ne sert qu'aux Missions et seulement
+si l'écran est déjà ouvert.
+
+**Ce qui bloque aujourd'hui** : les 156 écrans sont rendus par le serveur et
+les écritures passent par des actions serveur (58 fichiers). Sans réseau,
+aucun écran ne s'ouvre et aucune action ne part. Les identifiants d'action
+changent à chaque déploiement : une action mise en file ne peut pas être
+rejouée telle quelle, il faut une API de synchronisation stable.
+
+### Architecture
+
+1. **Base locale** : IndexedDB par compte. Elle se remplit par
+   `GET /api/sync/tirer?depuis=<seq>` (lecture de `change_log`, filtrée par
+   `organization_id` et par les droits du compte).
+2. **Journal des changements** : un déclencheur PostgreSQL par table
+   réplicable incrémente `version` et écrit dans `change_log`. Le code de
+   chaque module reste inchangé.
+3. **Écritures** : les mutations vont en file locale, puis passent par
+   `POST /api/sync/pousser`, idempotent par l'identifiant client
+   (`sync_mutations`). Côté serveur, un registre associe chaque type de
+   mutation à la fonction `…Dans(tx, …)` existante du module (modèle :
+   `rapporterTerrain`). Les droits et les contrôles sont rejoués au serveur.
+4. **Conflits** : `base_version` est comparée à `version`. Un écart passe la
+   mutation en `conflit`, montré à la personne. Rien ne se fusionne
+   automatiquement sur l'argent, les quantités ou la numérotation.
+5. **Numérotation** : une pièce créée hors ligne reçoit son numéro définitif
+   à la synchronisation (statut « en attente de numéro »). Le ticket hors
+   ligne porte l'identifiant et son QR, jamais un numéro inventé.
+6. **Écrans** : le service worker garde l'enveloppe de l'application, et
+   chaque écran lit la base locale quand le réseau manque. C'est l'essentiel
+   du travail, module par module.
+7. **Fichiers et photos** : stockés dans IndexedDB, envoyés à la
+   synchronisation (même chemin `src/lib/stockage`).
+
+**Restent en ligne par nature** : Meeting (vidéo), boîte mail (IMAP/SMTP),
+envois WhatsApp, liens publics, vérification des URL signées.
+
+### Lots
+
+| Lot | Contenu | Risque |
+|---|---|---|
+| 0 — Socle | Déclencheurs `change_log`, API tirer/pousser, base locale, file générique, indicateur « hors ligne / à envoyer » | Moyen |
+| 1 — Lecture | Tous les écrans consultables hors ligne depuis la base locale | Faible |
+| 2 — Terrain | Missions, pointage des intervenants, présences, visiteurs, calculs chantier | Moyen |
+| 3 — Gestion | Tâches, PV, courrier, transmissions, congés et permissions, planning | Moyen |
+| 4 — Pièces et argent | Devis, factures, achats, trésorerie, comptabilité, paie | Élevé |
+
+Chaque lot fait l'objet d'une ou plusieurs PR, avec des tests d'intégration
+de la synchronisation (rejeu, doublon, conflit, numérotation).
+
+### À trancher par la direction avant le lot 0
+
+- **Données sur l'appareil** : les chiffrer avec une clé dérivée du mot de
+  passe (plus sûr sur un appareil partagé, déverrouillage obligatoire), ou
+  les stocker en clair. Proposé : chiffrées, et effacées à la déconnexion.
+- **Durée maximale hors ligne** : au-delà, l'appareil exige le réseau pour
+  revalider le compte. Proposé : 72 heures.
+- **Déverrouillage hors ligne** : le mot de passe se vérifie contre une
+  empreinte locale. Un compte désactivé entre-temps ne le découvre qu'au
+  retour du réseau.
+- **Écrans exclus du hors ligne**, au-delà de ceux qui restent en ligne par
+  nature.
