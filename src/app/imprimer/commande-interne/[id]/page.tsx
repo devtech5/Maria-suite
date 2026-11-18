@@ -1,7 +1,7 @@
 import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 
-import { EnTeteDocument, PiedDocument } from "@/components/impression/entete-document";
+import { PapierEnTete, TitreDocument, PiedDocument } from "@/components/impression/entete-document";
 import { ApercuA4, FeuilleA4 } from "@/components/impression/feuille-a4";
 import { BoutonImprimer } from "@/components/ui/bouton-imprimer";
 import { BoutonRetour } from "@/components/ui/bouton-retour";
@@ -36,7 +36,7 @@ const SIGNATAIRES = [
 
 /**
  * Bon de commande interne au format A4 : lignes regroupées par rubrique avec
- * leurs sous-totaux, récapitulatif, total en chiffres et en lettres, cases
+ * leurs sous-totaux, total en chiffres et en lettres, cases
  * de visa. Même règle de lecture que l'écran : qui ne voit pas tous les bons
  * n'ouvre que les siens.
  */
@@ -51,10 +51,10 @@ export default async function ImpressionCommandeInterne({ params }: { params: Pr
   const [c, identite] = await Promise.all([commandeInterne(session.organizationId, session.userId, voitTout, id), identiteEntreprise(session.organizationId)]);
   if (!c) notFound();
   const rubriques = regrouperParRubrique(c.lignes);
-  const avecRecap = rubriques.length > 1;
+  const avecSousTotaux = rubriques.length > 1;
   const nul = c.statut === "annule" || c.statut === "rejete";
 
-  const cellule = "px-[1.5mm] py-[1.3mm]";
+  const cellule = "px-[1.5mm] py-[0.8mm]";
   const filetTete = { background: identite.couleur };
 
   return (
@@ -66,14 +66,14 @@ export default async function ImpressionCommandeInterne({ params }: { params: Pr
         <BoutonImprimer />
       </div>
       <ApercuA4>
-        <FeuilleA4 pied={<PiedDocument identite={identite} />}>
-          <EnTeteDocument identite={identite}>
-            <p className="text-[16pt] font-bold uppercase tracking-wide">Bon de commande interne</p>
-            <p className="font-mono text-[11pt]">{c.numero}</p>
-            <p>Date : {JOUR.format(c.demandeLe)}</p>
+        <FeuilleA4 entete={<PapierEnTete identite={identite} />} pied={<PiedDocument identite={identite} />}>
+          <TitreDocument identite={identite}>
+            <p className="text-[15pt] font-bold uppercase tracking-wide">Bon de commande interne</p>
+            <p>
+              <span className="font-mono text-[11pt]">{c.numero}</span> · Date : {JOUR.format(c.demandeLe)} · <span className="text-black/60">{STATUT[c.statut]}</span>
+            </p>
             <p>Objet : {c.objet}</p>
-            <p className="text-[9pt] text-black/60">Statut : {STATUT[c.statut]}</p>
-          </EnTeteDocument>
+          </TitreDocument>
 
           {nul && (
             <p className="mt-4 rounded border-2 border-red-700 px-3 py-2 text-center font-bold uppercase text-red-700">
@@ -82,28 +82,38 @@ export default async function ImpressionCommandeInterne({ params }: { params: Pr
             </p>
           )}
 
-          <section className="mt-[5mm] grid grid-cols-2 gap-[6mm] text-[9.5pt]">
-            <div className="rounded border border-black/20 p-[3mm]">
-              <p className="text-[8pt] uppercase text-black/60">Demandeur</p>
-              <p className="font-semibold">{c.demandeur}</p>
-              {c.beneficiaire && <p>Bénéficiaire : <span className="font-semibold">{c.beneficiaire}</span></p>}
-              {c.service && <p>Service : {c.service}</p>}
-              {c.lieuLivraison && <p>Lieu de livraison : {c.lieuLivraison}</p>}
-            </div>
-            <div className="rounded border border-black/20 p-[3mm]">
-              <p className="text-[8pt] uppercase text-black/60">Décision</p>
+          <dl className="mt-[4mm] grid grid-cols-[auto_1fr] gap-x-[3mm] gap-y-[0.6mm] rounded border border-black/20 px-[3mm] py-[2mm] text-[9pt]">
+            <dt className="text-black/60">Demandeur</dt>
+            <dd>
+              <span className="font-semibold">{c.demandeur}</span>
+              {c.service && <> · Service : {c.service}</>}
+            </dd>
+            {c.beneficiaire && (
+              <>
+                <dt className="text-black/60">Bénéficiaire</dt>
+                <dd className="font-semibold">{c.beneficiaire}</dd>
+              </>
+            )}
+            {c.lieuLivraison && (
+              <>
+                <dt className="text-black/60">Livraison</dt>
+                <dd>{c.lieuLivraison}</dd>
+              </>
+            )}
+            <dt className="text-black/60">Décision</dt>
+            <dd>
               {c.approbateur ? (
-                <p>
+                <>
                   {c.statut === "rejete" ? "Refusé" : "Approuvé"} par <span className="font-semibold">{c.approbateur}</span>
                   {c.approuveLe && <> le {JOUR.format(c.approuveLe)}</>}
-                </p>
+                </>
               ) : (
-                <p className="text-black/60">En attente d&apos;approbation</p>
+                <span className="text-black/60">En attente d&apos;approbation</span>
               )}
-            </div>
-          </section>
+            </dd>
+          </dl>
 
-          <table className="mt-[5mm] w-full border-collapse text-[9.5pt]">
+          <table className="mt-[4mm] w-full border-collapse text-[9pt]">
             <thead className="[display:table-header-group]">
               <tr className="text-left text-[8pt] uppercase text-white" style={filetTete}>
                 <th className={cellule}>Désignation</th>
@@ -117,7 +127,7 @@ export default async function ImpressionCommandeInterne({ params }: { params: Pr
                 {r.rubrique && (
                   <tr className="bg-[#f3efe6] font-bold" style={{ color: identite.couleur }}>
                     <td colSpan={4} className={cellule}>
-                      {avecRecap ? `${i + 1}. ` : ""}
+                      {avecSousTotaux ? `${i + 1}. ` : ""}
                       {r.rubrique}
                     </td>
                   </tr>
@@ -130,7 +140,7 @@ export default async function ImpressionCommandeInterne({ params }: { params: Pr
                     <td className={`${cellule} text-right tabular-nums`}>{fmt(l.montant)}</td>
                   </tr>
                 ))}
-                {avecRecap && (
+                {avecSousTotaux && (
                   <tr className="border-b border-black/30 font-semibold">
                     <td colSpan={3} className={cellule}>
                       Sous-total {r.rubrique ? r.rubrique.toLowerCase() : "hors rubrique"}
@@ -142,26 +152,17 @@ export default async function ImpressionCommandeInterne({ params }: { params: Pr
             ))}
           </table>
 
-          <dl className="mt-[4mm] ml-auto w-[58%] space-y-[0.5mm] text-[9.5pt] tabular-nums [break-inside:avoid]">
-            {avecRecap &&
-              rubriques.map((r, i) => (
-                <div key={r.rubrique || `recap-${i}`} className="flex justify-between gap-4">
-                  <dt>{r.rubrique || "Hors rubrique"}</dt>
-                  <dd>{fmt(r.sousTotal)}</dd>
-                </div>
-              ))}
-            <div className="flex justify-between border-t border-black/40 pt-[1.5mm] text-[12pt] font-bold">
-              <dt>Total général</dt>
-              <dd>{fmt(c.total)} FCFA</dd>
-            </div>
-          </dl>
-          <p className="mt-[2mm] text-right text-[9pt] italic">Arrêté le présent bon à la somme de : {montantEnLettres(c.total)}.</p>
+          <p className="mt-[3mm] flex justify-end gap-[8mm] border-t border-black/40 pt-[1.5mm] text-[12pt] font-bold tabular-nums [break-inside:avoid]">
+            <span>Total général</span>
+            <span>{fmt(c.total)} FCFA</span>
+          </p>
+          <p className="mt-[1.5mm] text-right text-[9pt] italic">Arrêté le présent bon à la somme de : {montantEnLettres(c.total)}.</p>
 
-          {c.notes && <p className="mt-[4mm] whitespace-pre-line text-[9pt]">{c.notes}</p>}
+          {c.notes && <p className="mt-[3mm] whitespace-pre-line text-[9pt]">{c.notes}</p>}
 
-          <section className="mt-[6mm] grid grid-cols-3 gap-[5mm] text-[9pt] [break-inside:avoid]" aria-label="Signatures">
+          <section className="mt-[5mm] grid grid-cols-3 gap-[5mm] text-[9pt] [break-inside:avoid]" aria-label="Signatures">
             {SIGNATAIRES.map((s) => (
-              <div key={s.qui} className="flex h-[26mm] flex-col border border-black/40 px-[2.5mm] py-[1.5mm]">
+              <div key={s.qui} className="flex h-[24mm] flex-col border border-black/40 px-[2.5mm] py-[1.5mm]">
                 <p className="font-bold">{s.qui}</p>
                 {s.qui === "Le bénéficiaire" && c.beneficiaire && <p className="text-[8.5pt]">{c.beneficiaire}</p>}
                 <p className="text-[7.5pt] text-black/60">{s.mention}</p>

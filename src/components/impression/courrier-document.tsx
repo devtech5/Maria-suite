@@ -1,4 +1,4 @@
-import { EnTeteDocument, PiedDocument } from "@/components/impression/entete-document";
+import { PapierEnTete, TitreDocument, PiedDocument } from "@/components/impression/entete-document";
 import { FeuilleA4 } from "@/components/impression/feuille-a4";
 import type { IdentiteEntreprise } from "@/lib/identite";
 import {
@@ -51,12 +51,12 @@ export function CourrierDocument({ courrier, identite }: { courrier: ContenuCour
   const police = pile ? { fontFamily: pile } : undefined;
 
   return (
-    <FeuilleA4 pied={<PiedDocument identite={identite} />}>
-      <EnTeteDocument identite={identite}>
+    <FeuilleA4 entete={<PapierEnTete identite={identite} />} pied={<PiedDocument identite={identite} />}>
+      <TitreDocument identite={identite}>
         <p className="mt-[7mm] font-medium" style={{ ...police, fontSize: tailles.titre }}>
           {lieuEtDate(courrier.lieu, courrier.dateCourrier)}
         </p>
-      </EnTeteDocument>
+      </TitreDocument>
 
       <div style={{ color: identite.couleur, ...police }}>
         {destinataire.length > 0 && (

@@ -2,7 +2,7 @@ import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 
 import { AccesRefuse } from "@/components/coque/acces-refuse";
-import { EnTeteDocument, PiedDocument } from "@/components/impression/entete-document";
+import { PapierEnTete, TitreDocument, PiedDocument } from "@/components/impression/entete-document";
 import { ApercuA4, FeuilleA4 } from "@/components/impression/feuille-a4";
 import { BoutonImprimer } from "@/components/ui/bouton-imprimer";
 import { BoutonRetour } from "@/components/ui/bouton-retour";
@@ -53,10 +53,10 @@ export default async function FichePresenceVisiteurs({ searchParams }: { searchP
         <BoutonImprimer />
       </div>
       <ApercuA4>
-        <FeuilleA4 paysage pied={<PiedDocument identite={identite} />}>
-          <EnTeteDocument identite={identite}>
+        <FeuilleA4 entete={<PapierEnTete identite={identite} />} paysage pied={<PiedDocument identite={identite} />}>
+          <TitreDocument identite={identite}>
             <p className="text-[14pt] font-bold uppercase tracking-wide">Fiche de présence — Visiteurs</p>
-          </EnTeteDocument>
+          </TitreDocument>
 
           <div className="mt-[4mm] flex flex-wrap gap-x-[10mm] gap-y-[2mm] text-[9pt]">
             <p>

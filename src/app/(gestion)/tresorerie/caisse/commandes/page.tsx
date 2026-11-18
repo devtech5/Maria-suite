@@ -94,7 +94,7 @@ export default async function PageCommandesInternes() {
               </div>
               <label className="mt-3 block">
                 <span className={libelleChamp}>Observations (facultatif)</span>
-                <textarea name="notes" rows={2} maxLength={1000} placeholder="Tarif : 5 000 F / numéro / mois, ensuite 55 000 F / mois" className={CLASSE_CHAMP} />
+                <textarea name="notes" rows={2} maxLength={1000} className={CLASSE_CHAMP} />
               </label>
             </FormulaireRepliable>
           )

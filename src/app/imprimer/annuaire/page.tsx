@@ -2,7 +2,7 @@ import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 
 import { AccesRefuse } from "@/components/coque/acces-refuse";
-import { EnTeteDocument, PiedDocument } from "@/components/impression/entete-document";
+import { PapierEnTete, TitreDocument, PiedDocument } from "@/components/impression/entete-document";
 import { ApercuA4, FeuilleA4 } from "@/components/impression/feuille-a4";
 import { BoutonImprimer } from "@/components/ui/bouton-imprimer";
 import { BoutonRetour } from "@/components/ui/bouton-retour";
@@ -50,15 +50,15 @@ export default async function ImpressionAnnuaire({ searchParams }: { searchParam
         <BoutonImprimer />
       </div>
       <ApercuA4>
-        <FeuilleA4 pied={<PiedDocument identite={identite} />}>
-          <EnTeteDocument identite={identite}>
+        <FeuilleA4 entete={<PapierEnTete identite={identite} />} pied={<PiedDocument identite={identite} />}>
+          <TitreDocument identite={identite}>
             <p className="text-[14pt] font-bold uppercase tracking-wide">Annuaire du personnel</p>
             <p className="text-[9pt]">Au {JOUR.format(new Date())}</p>
             <p className="text-[9pt]">
               {lignes.length} collaborateur{lignes.length > 1 ? "s" : ""}
               {filtre ? ` — ${filtre}` : ""}
             </p>
-          </EnTeteDocument>
+          </TitreDocument>
 
           {groupes.length === 0 ? (
             <p className="mt-[8mm] text-center text-[10pt] text-black/60">Aucun collaborateur ne correspond.</p>

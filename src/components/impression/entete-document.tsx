@@ -34,14 +34,23 @@ export function assombrir(hex: string, part = 0.4): string {
     .join("")}`;
 }
 
-export function EnTeteDocument({ identite, children }: { identite: IdentiteEntreprise; children: ReactNode }) {
+/** Le monogramme en filigrane, en bas à droite de la feuille, derrière le texte. */
+export function Filigrane({ className = "" }: { className?: string }) {
+  return (
+    // eslint-disable-next-line @next/next/no-img-element -- SVG statique, imprimé tel quel
+    <img src={FILIGRANE_MARQUE} alt="" aria-hidden className={`pointer-events-none absolute -right-[25mm] bottom-[3mm] -z-10 w-[122mm] opacity-[0.06] ${className}`} />
+  );
+}
+
+/**
+ * Le papier à en-tête seul : logo, raison sociale, coordonnées et filet.
+ * C'est la partie que `FeuilleA4` répète en haut de chaque page imprimée.
+ */
+export function PapierEnTete({ identite }: { identite: IdentiteEntreprise }) {
   const i = identite;
   const coordonnees = [[i.adresse, i.ville].filter(Boolean).join(", "), i.telephone, i.email, i.siteWeb].filter(Boolean);
   return (
     <header style={{ color: i.couleur }}>
-      {/* Filigrane : positionné sur la feuille (`FeuilleA4`, relative et isolée), derrière le texte. */}
-      {/* eslint-disable-next-line @next/next/no-img-element -- SVG statique, imprimé tel quel */}
-      <img src={FILIGRANE_MARQUE} alt="" aria-hidden className="pointer-events-none absolute -right-[25mm] bottom-[3mm] -z-10 w-[122mm] opacity-[0.06]" />
       <div className="relative flex items-center justify-between gap-8">
         {/* eslint-disable-next-line @next/next/no-img-element -- data URL ou SVG statique, rien à optimiser */}
         <img src={i.logo ?? LOGO_MARQUE} alt={i.nom} className="max-h-[32mm] max-w-[62mm] object-contain" />
@@ -53,10 +62,31 @@ export function EnTeteDocument({ identite, children }: { identite: IdentiteEntre
         </div>
       </div>
       <div className="relative mt-[6mm] h-[2px]" style={{ background: i.couleurSecondaire }} />
-      <div className="relative mt-[7mm] text-right text-black [&>p:first-child]:text-[var(--couleur-doc)]" style={{ ["--couleur-doc" as string]: i.couleur }}>
-        {children}
-      </div>
     </header>
+  );
+}
+
+/** Sous le filet, à droite : le titre et les références de la pièce, sur la première page seulement. */
+export function TitreDocument({ identite, children }: { identite: IdentiteEntreprise; children: ReactNode }) {
+  return (
+    <div className="relative mt-[7mm] text-right text-black [&>p:first-child]:text-[var(--couleur-doc)]" style={{ ["--couleur-doc" as string]: identite.couleur }}>
+      {children}
+    </div>
+  );
+}
+
+/**
+ * En-tête complet, d'un seul bloc, pour les documents qui ne passent pas
+ * par `FeuilleA4` : filigrane, papier à en-tête, puis le titre.
+ */
+export function EnTeteDocument({ identite, children }: { identite: IdentiteEntreprise; children: ReactNode }) {
+  return (
+    <div>
+      {/* Filigrane : positionné sur la feuille, relative et isolée, derrière le texte. */}
+      <Filigrane />
+      <PapierEnTete identite={identite} />
+      <TitreDocument identite={identite}>{children}</TitreDocument>
+    </div>
   );
 }
 

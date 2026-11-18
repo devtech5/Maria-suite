@@ -1,7 +1,7 @@
 import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 
-import { EnTeteDocument, PiedDocument } from "@/components/impression/entete-document";
+import { PapierEnTete, TitreDocument, PiedDocument } from "@/components/impression/entete-document";
 import { ApercuA4, FeuilleA4 } from "@/components/impression/feuille-a4";
 import { trajet } from "@/components/transmissions/liste-transmissions";
 import { BoutonImprimer } from "@/components/ui/bouton-imprimer";
@@ -43,12 +43,12 @@ export default async function ImpressionBordereau({ params }: { params: Promise<
         <BoutonImprimer />
       </div>
       <ApercuA4>
-        <FeuilleA4 pied={<PiedDocument identite={identite} />}>
-          <EnTeteDocument identite={identite}>
+        <FeuilleA4 entete={<PapierEnTete identite={identite} />} pied={<PiedDocument identite={identite} />}>
+          <TitreDocument identite={identite}>
             <p className="text-[14pt] font-bold uppercase tracking-wide">Bordereau de transmission</p>
             <p className="font-mono text-[11pt]">{t.numero}</p>
             <p className="text-[9pt]">{JOUR.format(t.transmiseLe ?? t.recueLe ?? t.createdAt)}</p>
-          </EnTeteDocument>
+          </TitreDocument>
 
           <div className="mt-[6mm] grid grid-cols-[1fr_1fr_28mm] gap-[4mm] text-[9.5pt]">
             <div>
