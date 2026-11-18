@@ -8,6 +8,7 @@ import { exigerEntreprise } from "@/lib/auth/dal";
 import type { Droit } from "@/lib/droits/catalogue";
 import { peut, refusDroit } from "@/lib/droits/garde";
 import { notifier, notifierDetenteurs } from "@/modules/communication/notifications";
+import { servicesActifs } from "@/modules/personnes/referentiel-services";
 
 import { lireLignes } from "./commandes-internes";
 import { annulerCommandeInterneDans, deciderCommandeInterneDans, demanderCommandeInterneDans } from "./creation-commandes-internes";
@@ -43,7 +44,7 @@ const texte = (d: FormData, champ: string) => {
 const schemaEntete = z.object({
   objet: z.string().trim().min(3, "Indiquez l'objet du bon.").max(200, "Objet trop long : 200 caractères au plus."),
   service: z.string().trim().max(120, "Service trop long.").optional(),
-  lieuLivraison: z.string().trim().max(120, "Lieu de livraison trop long.").optional(),
+  lieuLivraison: z.string().trim().max(200, "Lieu de livraison trop long : 200 caractères au plus.").optional(),
   notes: z.string().trim().max(1000, "Observations trop longues : 1 000 caractères au plus.").optional(),
 });
 
@@ -58,6 +59,10 @@ export async function demanderCommandeInterne(donnees: FormData): Promise<Result
       notes: texte(donnees, "notes"),
     });
     if (!entete.success) return { ok: false, message: entete.error.issues[0].message };
+    if (entete.data.service) {
+      const services = await servicesActifs(organizationId);
+      if (services.length > 0 && !services.includes(entete.data.service)) return { ok: false, message: "Choisissez un service de la liste." };
+    }
     let brut: unknown;
     try {
       brut = JSON.parse(texte(donnees, "lignes") ?? "[]");
