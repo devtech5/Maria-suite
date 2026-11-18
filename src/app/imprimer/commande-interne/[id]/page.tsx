@@ -27,9 +27,9 @@ const STATUT: Record<StatutCommandeInterne, string> = {
   annule: "Annulé",
 };
 
-/** Le demandeur exprime le besoin ; la comptable et la PDG le visent. */
+/** Le bénéficiaire signe le bon ; la comptable et la PDG le visent. */
 const SIGNATAIRES = [
-  { qui: "Le demandeur", mention: "Nom, date et signature" },
+  { qui: "Le bénéficiaire", mention: "Nom, date et signature" },
   { qui: "La Comptable", mention: "Nom, date et signature" },
   { qui: "La PDG", mention: "Nom, date, signature et cachet" },
 ] as const;

@@ -578,7 +578,7 @@ export const CHAPITRES_GESTION: Chapitre[] = [
         texte: [
           "Le bon de commande interne chiffre un besoin du personnel : ordinateurs par poste, téléphones, abonnements, fournitures. Chaque ligne porte sa rubrique, sa désignation, sa quantité et son prix unitaire ; le total se calcule seul.",
           "Il ne s'adresse à aucun fournisseur : c'est le bon de commande standard, dans Achats, qui part chez le fournisseur et se suit jusqu'à la réception.",
-          "Comme un bon de caisse, il s'approuve par une autre personne. « Voir le bon » ouvre la pièce imprimable : lignes par rubrique, sous-totaux, total en lettres, et cases de signature du demandeur, de la comptable et de la PDG.",
+          "Comme un bon de caisse, il s'approuve par une autre personne. « Voir le bon » ouvre la pièce imprimable : lignes par rubrique, sous-totaux, total en lettres, et cases de signature du bénéficiaire, de la comptable et de la PDG.",
         ],
         etapes: ["Onglet « Bons de commande internes », puis « Nouveau bon de commande ».", "Saisir l'objet et les lignes, regroupées par rubrique.", "Approbation, puis impression pour les visas."],
       },
