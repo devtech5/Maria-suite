@@ -571,8 +571,26 @@ export const CHAPITRES_GESTION: Chapitre[] = [
         ],
         etapes: ["Demander un bon : motif, montant.", "Approbation par un responsable.", "Décaissement, puis justificatif."],
       },
+      {
+        ancre: "commande-interne",
+        titre: "Le bon de commande interne",
+        chemin: "/tresorerie/caisse/commandes",
+        texte: [
+          "Le bon de commande interne chiffre un besoin du personnel : ordinateurs par poste, téléphones, abonnements, fournitures. Chaque ligne porte sa rubrique, sa désignation, sa quantité et son prix unitaire ; le total se calcule seul.",
+          "Il ne s'adresse à aucun fournisseur : c'est le bon de commande standard, dans Achats, qui part chez le fournisseur et se suit jusqu'à la réception.",
+          "Comme un bon de caisse, il s'approuve par une autre personne. « Voir le bon » ouvre la pièce imprimable : lignes par rubrique, sous-totaux, total en lettres, et cases de signature du demandeur, de la comptable et de la PDG.",
+        ],
+        etapes: ["Onglet « Bons de commande internes », puis « Nouveau bon de commande ».", "Saisir l'objet et les lignes, regroupées par rubrique.", "Approbation, puis impression pour les visas."],
+      },
     ],
     quiz: [
+      {
+        cle: "bons-commande-interne",
+        question: "Où se fait la commande adressée à un fournisseur ?",
+        choix: ["Dans le bon de commande interne", "Dans Achats, par le bon de commande standard", "Dans un bon de caisse"],
+        bonne: 1,
+        explication: "Le bon de commande interne exprime un besoin du personnel ; la commande au fournisseur se passe dans Achats.",
+      },
       {
         cle: "bons-approbation",
         question: "Qui approuve votre bon de caisse ?",

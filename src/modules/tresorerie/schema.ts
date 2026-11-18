@@ -1,11 +1,13 @@
 import { sql } from "drizzle-orm";
-import { bigint, boolean, check, date, index, integer, pgEnum, pgTable, text, timestamp, unique, uniqueIndex, uuid } from "drizzle-orm/pg-core";
+import { bigint, boolean, check, date, index, integer, jsonb, pgEnum, pgTable, text, timestamp, unique, uniqueIndex, uuid } from "drizzle-orm/pg-core";
 
 import { money, primaryId, rowVersion, timestamps } from "@/db/schema/_shared";
 import { organizations } from "@/db/schema/tenancy";
 import { employees, workers } from "@/modules/personnes/schema";
 import { depenses } from "@/modules/projets/schema";
 import { tiers } from "@/modules/tiers/schema";
+
+import type { LigneCommandeInterne } from "./commandes-internes";
 
 /**
  * Trésorerie interne.
@@ -170,6 +172,45 @@ export const bonsCaisse = pgTable(
       sql`num_nonnulls(${t.beneficiaireTiersId}, ${t.beneficiaireEmployeId}, ${t.beneficiaireWorkerId}) <= 1`,
     ),
     index("bons_caisse_statut_idx").on(t.organizationId, t.statut),
+  ],
+);
+
+export const statutCommandeInterne = pgEnum("statut_commande_interne", ["demande", "approuve", "rejete", "annule"]);
+
+/**
+ * Bon de commande interne : un besoin du personnel (équipement, fournitures,
+ * abonnements), chiffré ligne par ligne et regroupé en rubriques, que la
+ * direction approuve ou refuse. Distinct du bon de commande fournisseur
+ * (Achats). Le total est figé à la demande : il est la somme des lignes.
+ */
+export const bonsCommandeInterne = pgTable(
+  "bons_commande_interne",
+  {
+    id: primaryId(),
+    organizationId: uuid("organization_id")
+      .notNull()
+      .references(() => organizations.id, { onDelete: "cascade" }),
+    numero: text("numero").notNull(),
+    objet: text("objet").notNull(),
+    /** Service ou poste pour lequel on commande : texte libre. */
+    service: text("service"),
+    lieuLivraison: text("lieu_livraison"),
+    notes: text("notes"),
+    lignes: jsonb("lignes").$type<LigneCommandeInterne[]>().notNull(),
+    total: money("total").notNull(),
+    statut: statutCommandeInterne("statut").notNull().default("demande"),
+    demandeParUserId: uuid("demande_par_user_id").notNull(),
+    approuveParUserId: uuid("approuve_par_user_id"),
+    approuveLe: timestamp("approuve_le", { withTimezone: true }),
+    motifRejet: text("motif_rejet"),
+    ...timestamps,
+    ...rowVersion,
+  },
+  (t) => [
+    unique("bons_commande_interne_numero_unique").on(t.organizationId, t.numero),
+    check("bons_commande_interne_total", sql`${t.total} > 0`),
+    check("bons_commande_interne_rejet_motive", sql`${t.statut} <> 'rejete' OR ${t.motifRejet} IS NOT NULL`),
+    index("bons_commande_interne_statut_idx").on(t.organizationId, t.statut),
   ],
 );
 
@@ -504,6 +545,7 @@ export const budgetsCharges = pgTable(
 export type CompteTresorerie = typeof comptesTresorerie.$inferSelect;
 export type VirementInterne = typeof virementsInternes.$inferSelect;
 export type BonCaisse = typeof bonsCaisse.$inferSelect;
+export type BonCommandeInterne = typeof bonsCommandeInterne.$inferSelect;
 export type AvanceTresorerie = typeof avancesTresorerie.$inferSelect;
 export type ChargeRecurrente = typeof chargesRecurrentes.$inferSelect;
 export type MouvementTresorerie = typeof mouvementsTresorerie.$inferSelect;
