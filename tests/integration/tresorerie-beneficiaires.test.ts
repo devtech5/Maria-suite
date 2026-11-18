@@ -62,12 +62,16 @@ describe("bénéficiaire des bons de caisse", () => {
     expect(bons.find((b) => b.id === sable.id)).toMatchObject({ beneficiaire: "Yao Serge", beneficiaireQualite: "Maçon" });
   });
 
-  it("garde le nom saisi pour qui n'a pas de fiche, et l'exige", async () => {
+  it("garde le nom et le prénom saisis pour qui n'a pas de fiche, et les exige", async () => {
     const taxi = await db.transaction((tx) =>
-      demanderBonDans(tx, org, { caisseId: caisse, nature: "transport", montant: 2_000, beneficiaire: " Taxi compteur ", motif: "Course Plateau" }, user),
+      demanderBonDans(tx, org, { caisseId: caisse, nature: "transport", montant: 2_000, beneficiaire: " Bamba Ali ", motif: "Course Plateau" }, user),
     );
     const bons = await listerBons(org, user, true);
-    expect(bons.find((b) => b.id === taxi.id)).toMatchObject({ beneficiaire: "Taxi compteur", beneficiaireQualite: null });
+    expect(bons.find((b) => b.id === taxi.id)).toMatchObject({ beneficiaire: "Bamba Ali", beneficiaireQualite: null });
+
+    await expect(
+      db.transaction((tx) => demanderBonDans(tx, org, { caisseId: caisse, nature: "transport", montant: 2_000, beneficiaire: "Taxi", motif: "Course" }, user)),
+    ).rejects.toThrow(/nom et le prénom/);
 
     await expect(
       db.transaction((tx) => demanderBonDans(tx, org, { caisseId: caisse, nature: "transport", montant: 2_000, motif: "Course" }, user)),

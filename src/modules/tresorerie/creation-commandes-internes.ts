@@ -6,6 +6,7 @@ import { auditLogs } from "@/db/schema";
 import { newId } from "@/lib/ids";
 import { prochainNumero, type Transaction } from "@/lib/sequences";
 
+import { estNomComplet, MESSAGE_NOM_COMPLET } from "./beneficiaire";
 import { resoudreBeneficiaire, type FicheBeneficiaire } from "./creation";
 import { lireLignes, totalCommande, type LigneCommandeInterne } from "./commandes-internes";
 import { bonsCommandeInterne } from "./schema";
@@ -28,11 +29,6 @@ export interface NouvelleCommandeInterne {
   lignes: LigneCommandeInterne[];
 }
 
-/** Nom et prénom : deux mots au moins, d'une lettre et plus chacun. */
-function nomComplet(v: string | null | undefined): boolean {
-  return (v ?? "").trim().split(/\s+/).filter((m) => /\p{L}/u.test(m)).length >= 2;
-}
-
 async function journaliser(tx: Transaction, organizationId: string, userId: string, action: string, entiteId: string, apres: Record<string, unknown>) {
   await tx.insert(auditLogs).values({ id: newId(), organizationId, userId, action, entityType: "commande_interne", entityId: entiteId, after: apres });
 }
@@ -50,7 +46,7 @@ export async function demanderCommandeInterneDans(
   const lignes = lireLignes(c.lignes);
   if (typeof lignes === "string") throw new Error(lignes);
   const total = totalCommande(lignes);
-  if (!c.fiche && !nomComplet(c.beneficiaire)) throw new Error("Indiquez le nom et le prénom du bénéficiaire.");
+  if (!c.fiche && !estNomComplet(c.beneficiaire)) throw new Error(MESSAGE_NOM_COMPLET);
   const qui = await resoudreBeneficiaire(tx, organizationId, c.fiche, c.beneficiaire);
   const a = annee();
   const numero = await prochainNumero(tx, organizationId, { cle: "commande_interne", prefix: `BCI-${a}-`, padding: 5, periode: a });

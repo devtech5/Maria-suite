@@ -32,7 +32,7 @@ export function ChoixBeneficiaire({
       <label className="block">
         <span className={libelleChamp}>{libelle}</span>
         <select name="beneficiaireRef" value={valeur} onChange={(e) => setValeur(e.target.value)} className={CLASSE_CHAMP}>
-          <option value="">Sans fiche : saisir le nom</option>
+          <option value="">Sans fiche : saisir nom et prénom</option>
           {remplis.map((g) => (
             <optgroup key={g.libelle} label={g.libelle}>
               {g.fiches.map((f) => (

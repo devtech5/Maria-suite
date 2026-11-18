@@ -110,6 +110,7 @@ export default async function ImpressionBonCaisse({ params }: { params: Promise<
           {SIGNATAIRES.map((s) => (
             <div key={s.qui} className="flex h-[32mm] flex-col border border-black/40 px-[3mm] py-[2mm]">
               <p className="font-bold">{s.qui}</p>
+              {s.qui === "Le bénéficiaire" && <p className="text-[9pt]">{bon.beneficiaire}</p>}
               <p className="text-[8pt] text-black/60">{s.mention}</p>
             </div>
           ))}
