@@ -14,6 +14,7 @@ import { beneficiairesProposes, listerArretes, listerAvances, listerBons, lister
 import { libelleChamp, OptionsComptes } from "../champs";
 import { ListeAvances } from "./avances";
 import { ListeBons } from "./bons";
+import { OngletsCaisse } from "./onglets-caisse";
 import { ChampsArrete } from "./champs-arrete";
 import { ChoixBeneficiaire } from "./choix-beneficiaire";
 
@@ -60,6 +61,7 @@ export default async function PageCaisseDepenses({ searchParams }: PageProps<"/t
 
   return (
     <>
+      <OngletsCaisse actif="/tresorerie/caisse" />
       <EnTetePage
         titre="Caisse de dépenses"
         sousTitre={voitTout ? "Bons de caisse, avances au personnel et arrêtés" : "Vos demandes de bons de caisse"}
