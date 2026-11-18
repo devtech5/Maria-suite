@@ -16,10 +16,13 @@ export function ChoixBeneficiaire({
   libelle,
   groupes,
   exemple,
+  libelleNom = "Nom du bénéficiaire",
 }: {
   libelle: string;
   groupes: { libelle: string; fiches: FicheProposee[] }[];
   exemple: string;
+  /** Intitulé du champ libre, quand le bénéficiaire n'a pas de fiche. */
+  libelleNom?: string;
 }) {
   const remplis = groupes.filter((g) => g.fiches.length > 0);
   const [valeur, setValeur] = useState("");
@@ -29,7 +32,7 @@ export function ChoixBeneficiaire({
       <label className="block">
         <span className={libelleChamp}>{libelle}</span>
         <select name="beneficiaireRef" value={valeur} onChange={(e) => setValeur(e.target.value)} className={CLASSE_CHAMP}>
-          <option value="">Sans fiche : saisir le nom</option>
+          <option value="">Sans fiche : saisir nom et prénom</option>
           {remplis.map((g) => (
             <optgroup key={g.libelle} label={g.libelle}>
               {g.fiches.map((f) => (
@@ -43,7 +46,7 @@ export function ChoixBeneficiaire({
       </label>
       {valeur === "" && (
         <label className="block">
-          <span className={libelleChamp}>Nom du bénéficiaire</span>
+          <span className={libelleChamp}>{libelleNom}</span>
           <input name="beneficiaire" required minLength={2} maxLength={120} placeholder={exemple} className={CLASSE_CHAMP} />
         </label>
       )}

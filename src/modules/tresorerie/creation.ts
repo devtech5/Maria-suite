@@ -9,6 +9,7 @@ import { contrepasser } from "@/lib/comptabilite/ecritures";
 import { newId } from "@/lib/ids";
 import { prochainNumero, type Transaction } from "@/lib/sequences";
 import { cheminDe, deposer, supprimer } from "@/lib/stockage";
+import { estNomComplet, MESSAGE_NOM_COMPLET } from "./beneficiaire";
 import { enregistrerEcritureDans, type OrigineEcriture } from "@/modules/comptabilite/enregistrement";
 import { employees, workers } from "@/modules/personnes/schema";
 import { tiers } from "@/modules/tiers/schema";
@@ -444,6 +445,7 @@ export async function demanderBonDans(
 ): Promise<{ id: string; numero: string; beneficiaire: string }> {
   const caisse = await compteDe(tx, organizationId, b.caisseId);
   if (caisse.nature === "banque") throw new Error("Un bon de caisse se paie en espèces ou en mobile money, pas depuis la banque.");
+  if (!b.fiche && !estNomComplet(b.beneficiaire)) throw new Error(MESSAGE_NOM_COMPLET);
   const qui = await resoudreBeneficiaire(tx, organizationId, b.fiche, b.beneficiaire);
   const numero = await numeroter(tx, organizationId, "bon_caisse", "BC", aujourdhui());
   const id = newId();

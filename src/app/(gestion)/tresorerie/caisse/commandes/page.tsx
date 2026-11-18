@@ -6,10 +6,14 @@ import { CarteIndicateur, CLASSE_CHAMP, EnTetePage } from "@/components/ui/primi
 import { exigerEntreprise } from "@/lib/auth/dal";
 import { peut } from "@/lib/droits/garde";
 import { fmt, fmtEntier } from "@/lib/format";
+import { identiteEntreprise } from "@/lib/identite";
+import { servicesActifs } from "@/modules/personnes/referentiel-services";
 import { demanderCommandeInterne } from "@/modules/tresorerie/actions-commandes-internes";
+import { beneficiairesProposes } from "@/modules/tresorerie/requetes";
 import { listerCommandesInternes } from "@/modules/tresorerie/requetes-commandes-internes";
 
 import { libelleChamp } from "../../champs";
+import { ChoixBeneficiaire } from "../choix-beneficiaire";
 import { OngletsCaisse } from "../onglets-caisse";
 import { LignesCommande } from "./lignes-commande";
 import { ListeCommandes } from "./liste-commandes";
@@ -30,7 +34,15 @@ export default async function PageCommandesInternes() {
   if (!demander && !consulter && !approuver) return <AccesRefuse droit="tresorerie.bon.demander" />;
   const voitTout = consulter || approuver;
 
-  const commandes = await listerCommandesInternes(session.organizationId, session.userId, voitTout);
+  const [commandes, services, identite, beneficiaires] = await Promise.all([
+    listerCommandesInternes(session.organizationId, session.userId, voitTout),
+    demander ? servicesActifs(session.organizationId) : Promise.resolve([]),
+    demander ? identiteEntreprise(session.organizationId) : Promise.resolve(null),
+    demander ? beneficiairesProposes(session.organizationId) : Promise.resolve({ fournisseurs: [], personnel: [], intervenants: [], comptes: [] }),
+  ]);
+  // Livraison au siège par défaut : l'adresse de l'en-tête des documents.
+  const adresseSiege = identite ? [identite.adresse, identite.ville].filter(Boolean).join(", ") : "";
+  const siege = adresseSiege ? `Siège — ${adresseSiege}` : "Siège";
   const aApprouver = commandes.filter((c) => c.statut === "demande");
   const approuvees = commandes.filter((c) => c.statut === "approuve");
 
@@ -48,13 +60,33 @@ export default async function PageCommandesInternes() {
                   <span className={libelleChamp}>Objet</span>
                   <input name="objet" required minLength={3} maxLength={200} placeholder="Équipement — ordinateurs, téléphones et flotte Orange" className={CLASSE_CHAMP} />
                 </label>
+                <ChoixBeneficiaire
+                  libelle="Bénéficiaire"
+                  libelleNom="Nom et prénom du bénéficiaire"
+                  groupes={[
+                    { libelle: "Personnel", fiches: beneficiaires.personnel },
+                    { libelle: "Comptes hors Personnel", fiches: beneficiaires.comptes },
+                  ]}
+                  exemple="Kouassi Aya"
+                />
                 <label className="block">
                   <span className={libelleChamp}>Service demandeur (facultatif)</span>
-                  <input name="service" maxLength={120} className={CLASSE_CHAMP} />
+                  {services.length > 0 ? (
+                    <select name="service" defaultValue="" className={CLASSE_CHAMP}>
+                      <option value="">Aucun</option>
+                      {services.map((s) => (
+                        <option key={s} value={s}>
+                          {s}
+                        </option>
+                      ))}
+                    </select>
+                  ) : (
+                    <input name="service" maxLength={120} className={CLASSE_CHAMP} />
+                  )}
                 </label>
                 <label className="block">
-                  <span className={libelleChamp}>Lieu de livraison (facultatif)</span>
-                  <input name="lieuLivraison" maxLength={120} placeholder="Siège" className={CLASSE_CHAMP} />
+                  <span className={libelleChamp}>Lieu de livraison</span>
+                  <input name="lieuLivraison" maxLength={200} defaultValue={siege} className={CLASSE_CHAMP} />
                 </label>
               </div>
               <div className="mt-4">
@@ -82,6 +114,7 @@ export default async function PageCommandesInternes() {
           numero: c.numero,
           objet: c.objet,
           service: c.service,
+          beneficiaire: c.beneficiaire,
           nombreLignes: c.lignes.length,
           total: c.total,
           statut: c.statut,

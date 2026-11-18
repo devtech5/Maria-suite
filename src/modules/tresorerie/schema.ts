@@ -195,6 +195,14 @@ export const bonsCommandeInterne = pgTable(
     /** Service ou poste pour lequel on commande : texte libre. */
     service: text("service"),
     lieuLivraison: text("lieu_livraison"),
+    /**
+     * Nom et prénom de qui recevra le matériel, au jour de la demande :
+     * recopié de la fiche du Personnel ou du compte, ou saisi. Nul sur les
+     * bons antérieurs à la règle.
+     */
+    beneficiaire: text("beneficiaire"),
+    beneficiaireEmployeId: uuid("beneficiaire_employe_id").references(() => employees.id, { onDelete: "set null" }),
+    beneficiaireUserId: uuid("beneficiaire_user_id"),
     notes: text("notes"),
     lignes: jsonb("lignes").$type<LigneCommandeInterne[]>().notNull(),
     total: money("total").notNull(),

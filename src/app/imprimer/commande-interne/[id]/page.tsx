@@ -86,6 +86,7 @@ export default async function ImpressionCommandeInterne({ params }: { params: Pr
             <div className="rounded border border-black/20 p-[3mm]">
               <p className="text-[8pt] uppercase text-black/60">Demandeur</p>
               <p className="font-semibold">{c.demandeur}</p>
+              {c.beneficiaire && <p>Bénéficiaire : <span className="font-semibold">{c.beneficiaire}</span></p>}
               {c.service && <p>Service : {c.service}</p>}
               {c.lieuLivraison && <p>Lieu de livraison : {c.lieuLivraison}</p>}
             </div>
@@ -162,6 +163,7 @@ export default async function ImpressionCommandeInterne({ params }: { params: Pr
             {SIGNATAIRES.map((s) => (
               <div key={s.qui} className="flex h-[26mm] flex-col border border-black/40 px-[2.5mm] py-[1.5mm]">
                 <p className="font-bold">{s.qui}</p>
+                {s.qui === "Le bénéficiaire" && c.beneficiaire && <p className="text-[8.5pt]">{c.beneficiaire}</p>}
                 <p className="text-[7.5pt] text-black/60">{s.mention}</p>
               </div>
             ))}

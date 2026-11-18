@@ -88,13 +88,14 @@ export default async function PageCaisseDepenses({ searchParams }: PageProps<"/t
                     <input name="montant" required inputMode="numeric" className={`${CLASSE_CHAMP} chiffres`} />
                   </label>
                   <ChoixBeneficiaire
-                    libelle="Payé à"
+                    libelle="Bénéficiaire"
+                    libelleNom="Nom et prénom du bénéficiaire"
                     groupes={[
                       { libelle: "Fournisseurs", fiches: beneficiaires.fournisseurs },
                       { libelle: "Personnel", fiches: beneficiaires.personnel },
                       { libelle: "Intervenants", fiches: beneficiaires.intervenants },
                     ]}
-                    exemple="Taxi, station de passage…"
+                    exemple="Kouassi Aya"
                   />
                   <label className="block">
                     <span className={libelleChamp}>Caisse qui paie</span>
