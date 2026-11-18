@@ -4,6 +4,7 @@ import { and, eq } from "drizzle-orm";
 
 import { EnTeteDocument } from "@/components/impression/entete-document";
 import { BoutonImprimer } from "@/components/ui/bouton-imprimer";
+import { BoutonRetour } from "@/components/ui/bouton-retour";
 import { db } from "@/db";
 import { exigerEntreprise } from "@/lib/auth/dal";
 import { calculerBilan, calculerSIG, elementsResultat, type PosteBilan } from "@/lib/comptabilite/etats";
@@ -127,7 +128,8 @@ export default async function ImpressionDsf({ params }: { params: Promise<{ exer
 
   return (
     <main className="min-h-dvh bg-[var(--fond)] py-6 print:bg-white print:py-0">
-      <div className="mx-auto mb-4 flex max-w-[210mm] justify-end px-4 print:hidden">
+      <div className="mx-auto mb-4 flex max-w-[210mm] flex-wrap items-center justify-between gap-3 px-4 print:hidden">
+        <BoutonRetour href="/comptabilite/etats" />
         <BoutonImprimer />
       </div>
       <article className="mx-auto max-w-[210mm] bg-white px-[12mm] py-[12mm] text-[9.5pt] leading-snug text-black shadow print:shadow-none">

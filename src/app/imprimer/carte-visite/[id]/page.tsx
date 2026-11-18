@@ -1,11 +1,11 @@
 import type { Metadata } from "next";
-import Link from "next/link";
 import localFont from "next/font/local";
 import { notFound } from "next/navigation";
 
 import { AccesRefuse } from "@/components/coque/acces-refuse";
 import { LOGO_MARQUE } from "@/components/impression/entete-document";
 import { BoutonImprimer } from "@/components/ui/bouton-imprimer";
+import { BoutonRetour } from "@/components/ui/bouton-retour";
 import { Qr } from "@/components/visiteurs/qr";
 import { tracer } from "@/lib/audit";
 import { identiteEntreprise } from "@/lib/identite";
@@ -57,9 +57,9 @@ export default async function CarteDeVisite({ params }: { params: Promise<{ id: 
     <main className={`${montserrat.className} min-h-dvh bg-[var(--fond)] py-6 print:bg-white print:py-0`}>
       <style>{"@page { size: 85mm 55mm; margin: 0 } @media print { body { margin: 0 } }"}</style>
       <div className="mx-auto mb-4 flex w-[85mm] items-center justify-between gap-3 print:hidden">
-        <Link href="/contacts" className="text-sm text-[var(--encre-douce)] hover:underline">
-          ← Contacts
-        </Link>
+        <BoutonRetour href="/contacts">
+          Contacts
+        </BoutonRetour>
         <BoutonImprimer />
       </div>
 

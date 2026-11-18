@@ -3,6 +3,7 @@ import { notFound } from "next/navigation";
 
 import { EnTeteDocument } from "@/components/impression/entete-document";
 import { BoutonImprimer } from "@/components/ui/bouton-imprimer";
+import { BoutonRetour } from "@/components/ui/bouton-retour";
 import { exigerEntreprise } from "@/lib/auth/dal";
 import { calculerNotesAnnexes, dansLOrdre, type Format, type NoteAnnexe } from "@/lib/comptabilite/notes";
 import { peut } from "@/lib/droits/garde";
@@ -107,7 +108,8 @@ export default async function ImpressionNotesAnnexes({ params }: { params: Promi
 
   return (
     <main className="min-h-dvh bg-[var(--fond)] py-6 print:bg-white print:py-0">
-      <div className="mx-auto mb-4 flex max-w-[210mm] justify-end px-4 print:hidden">
+      <div className="mx-auto mb-4 flex max-w-[210mm] flex-wrap items-center justify-between gap-3 px-4 print:hidden">
+        <BoutonRetour href="/comptabilite/etats/notes" />
         <BoutonImprimer />
       </div>
       <article className="mx-auto max-w-[210mm] bg-white px-[12mm] py-[12mm] text-[8.5pt] leading-snug text-black shadow print:shadow-none">

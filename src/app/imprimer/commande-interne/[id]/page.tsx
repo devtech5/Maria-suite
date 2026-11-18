@@ -1,10 +1,10 @@
 import type { Metadata } from "next";
-import Link from "next/link";
 import { notFound } from "next/navigation";
 
 import { EnTeteDocument, PiedDocument } from "@/components/impression/entete-document";
 import { ApercuA4, FeuilleA4 } from "@/components/impression/feuille-a4";
 import { BoutonImprimer } from "@/components/ui/bouton-imprimer";
+import { BoutonRetour } from "@/components/ui/bouton-retour";
 import { exigerEntreprise } from "@/lib/auth/dal";
 import { peut } from "@/lib/droits/garde";
 import { fmt } from "@/lib/format";
@@ -60,9 +60,9 @@ export default async function ImpressionCommandeInterne({ params }: { params: Pr
   return (
     <main className="min-h-dvh bg-[var(--fond)] py-6 print:bg-white print:py-0">
       <div className="mx-auto mb-4 flex max-w-[210mm] items-center justify-between gap-3 px-4 print:hidden">
-        <Link href="/tresorerie/caisse/commandes" className="text-sm text-[var(--encre-douce)] hover:underline">
-          ← Bons de commande internes
-        </Link>
+        <BoutonRetour href="/tresorerie/caisse/commandes">
+          Bons de commande internes
+        </BoutonRetour>
         <BoutonImprimer />
       </div>
       <ApercuA4>

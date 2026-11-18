@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 
 import { BoutonImprimer } from "@/components/ui/bouton-imprimer";
+import { BoutonRetour } from "@/components/ui/bouton-retour";
 import { Qr } from "@/components/visiteurs/qr";
 import { urlAbsolue } from "@/lib/liens-publics";
 import { accesCourrier } from "@/modules/courrier/acces";
@@ -29,7 +30,8 @@ export default async function EtiquetteCourrier({ params }: { params: Promise<{ 
   return (
     <main className="min-h-dvh bg-[var(--fond)] py-6 print:bg-white print:py-0">
       <style>{"@page { size: 100mm 60mm; margin: 0 } @media print { body { margin: 0 } }"}</style>
-      <div className="mx-auto mb-4 flex w-[100mm] justify-end print:hidden">
+      <div className="mx-auto mb-4 flex w-[100mm] flex-wrap items-center justify-between gap-3 print:hidden">
+        <BoutonRetour href={`/courrier/${id}`} />
         <BoutonImprimer />
       </div>
       <article className="mx-auto flex h-[60mm] w-[100mm] gap-[3mm] overflow-hidden rounded-[2mm] border border-[var(--filet)] bg-white p-[4mm] text-black shadow-md print:rounded-none print:border-0 print:shadow-none">

@@ -4,6 +4,7 @@ import { and, asc, eq } from "drizzle-orm";
 
 import { EnTeteDocument, PiedDocument } from "@/components/impression/entete-document";
 import { BoutonImprimer } from "@/components/ui/bouton-imprimer";
+import { BoutonRetour } from "@/components/ui/bouton-retour";
 import { db } from "@/db";
 import { exigerEntreprise } from "@/lib/auth/dal";
 import { identiteEntreprise } from "@/lib/identite";
@@ -30,7 +31,8 @@ export default async function ImpressionDeclarations({ params }: { params: Promi
 
   return (
     <main className="min-h-dvh bg-[var(--fond)] py-6 print:bg-white print:py-0">
-      <div className="mx-auto mb-4 flex max-w-[297mm] justify-end px-4 print:hidden">
+      <div className="mx-auto mb-4 flex max-w-[297mm] flex-wrap items-center justify-between gap-3 px-4 print:hidden">
+        <BoutonRetour href="/rh/paie" />
         <BoutonImprimer />
       </div>
       <article className="mx-auto max-w-[297mm] bg-white px-[10mm] py-[10mm] text-[9.5pt] leading-snug text-black shadow print:shadow-none">
