@@ -567,6 +567,7 @@ export const CHAPITRES_GESTION: Chapitre[] = [
         texte: [
           "Un bon se demande avec son motif et son montant. Il s'approuve par une autre personne, puis se décaisse de la caisse choisie. Une avance au personnel se justifie ensuite, ou se rembourse.",
           "Chaque étape prévient la suivante dans la cloche : qui doit approuver, qui doit payer.",
+          "« Voir le bon » ouvre la pièce imprimable : montant en chiffres et en lettres, circuit du bon, et cases de signature du bénéficiaire, de la comptable et de la PDG.",
         ],
         etapes: ["Demander un bon : motif, montant.", "Approbation par un responsable.", "Décaissement, puis justificatif."],
       },

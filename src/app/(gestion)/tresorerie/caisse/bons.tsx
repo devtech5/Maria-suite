@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useTransition } from "react";
+import Link from "next/link";
 import { useRouter } from "next/navigation";
 
 import { useApercu } from "@/components/ui/apercu";
@@ -113,6 +114,13 @@ export function ListeBons({
                   )}
                 </div>
                 <div className="flex shrink-0 flex-wrap items-center gap-1.5">
+                  <Link
+                    href={`/imprimer/bon-caisse/${b.id}`}
+                    target="_blank"
+                    className="rounded-lg border border-[var(--filet)] px-2.5 py-1.5 text-xs font-semibold hover:bg-[var(--surface-creuse)]"
+                  >
+                    Voir le bon
+                  </Link>
                   {b.avecJustificatif && (
                     <button type="button" onClick={() => voir(b)} className="rounded-lg border border-[var(--filet)] px-2.5 py-1.5 text-xs font-semibold hover:bg-[var(--surface-creuse)]">
                       Justificatif

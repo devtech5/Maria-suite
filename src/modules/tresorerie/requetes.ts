@@ -1,6 +1,6 @@
 import "server-only";
 
-import { and, sql } from "drizzle-orm";
+import { and, sql, type SQL } from "drizzle-orm";
 
 import { db } from "@/db";
 import { motsRecherche, type FiltresListe } from "@/lib/recherche";
@@ -196,38 +196,32 @@ export interface BonVue {
  * recherche porte sur tous les bons, en base : un bon d'il y a un an doit se
  * retrouver par son numéro.
  */
-export async function listerBons(organizationId: string, userId: string, tous: boolean, filtres?: FiltresListe): Promise<BonVue[]> {
-  const recherche =
-    filtres &&
-    and(
-      motsDans(
-        [sql`b.numero`, sql`c.nom`, sql`coalesce(bt.nom, be.nom, bw.nom, b.beneficiaire)`, sql`b.motif`, sql`d.full_name`, sql`b.ecriture`],
-        motsRecherche(filtres.q),
-      ),
-      dansPeriodeSql(sql`b.created_at`, filtres.periode),
-    );
-  const lignes = await db.execute<{
-    id: string;
-    numero: string;
-    caisse_id: string;
-    caisse: string;
-    nature: NatureBon;
-    montant: string;
-    beneficiaire: string;
-    beneficiaire_qualite: string | null;
-    motif: string;
-    statut: BonVue["statut"];
-    demande_par_user_id: string;
-    demandeur: string | null;
-    cree_le: string | Date;
-    approbateur: string | null;
-    approuve_le: string | Date | null;
-    motif_rejet: string | null;
-    decaisse_le: string | Date | null;
-    ecriture: string | null;
-    justificatif_chemin: string | null;
-    justificatif_nom: string | null;
-  }>(sql`
+type LigneBon = {
+  id: string;
+  numero: string;
+  caisse_id: string;
+  caisse: string;
+  nature: NatureBon;
+  montant: string;
+  beneficiaire: string;
+  beneficiaire_qualite: string | null;
+  motif: string;
+  statut: BonVue["statut"];
+  demande_par_user_id: string;
+  demandeur: string | null;
+  cree_le: string | Date;
+  approbateur: string | null;
+  approuve_le: string | Date | null;
+  motif_rejet: string | null;
+  decaisse_le: string | Date | null;
+  ecriture: string | null;
+  justificatif_chemin: string | null;
+  justificatif_nom: string | null;
+};
+
+/** Bons de caisse de l'entreprise répondant à `condition`, avec leurs noms résolus. */
+function selectionBons(organizationId: string, condition: SQL, suite: SQL = sql``): SQL {
+  return sql`
     select b.id, b.numero, b.caisse_id, c.nom as caisse, b.nature, b.montant,
            coalesce(bt.nom, be.nom, bw.nom, b.beneficiaire) as beneficiaire,
            case when bt.id is not null then 'Fournisseur' when be.id is not null then be.poste when bw.id is not null then bw.qualification end as beneficiaire_qualite,
@@ -241,12 +235,13 @@ export async function listerBons(organizationId: string, userId: string, tous: b
     left join workers bw on bw.id = b.beneficiaire_worker_id
     left join users d on d.id = b.demande_par_user_id
     left join users a on a.id = b.approuve_par_user_id
-    where b.organization_id = ${organizationId} and (${tous} or b.demande_par_user_id = ${userId})
-      and ${recherche ?? sql`(b.statut in ('demande', 'approuve') or b.updated_at > now() - interval '60 days')`}
-    order by case b.statut when 'demande' then 0 when 'approuve' then 1 else 2 end, b.created_at desc
-    limit 300
-  `);
-  return lignes.map((l) => ({
+    where b.organization_id = ${organizationId} and ${condition}
+    ${suite}
+  `;
+}
+
+function versBonVue(l: LigneBon): BonVue {
+  return {
     id: l.id,
     numero: l.numero,
     caisseId: l.caisse_id,
@@ -267,7 +262,38 @@ export async function listerBons(organizationId: string, userId: string, tous: b
     ecriture: l.ecriture,
     justificatifChemin: l.justificatif_chemin,
     justificatifNom: l.justificatif_nom,
-  }));
+  };
+}
+
+export async function listerBons(organizationId: string, userId: string, tous: boolean, filtres?: FiltresListe): Promise<BonVue[]> {
+  const recherche =
+    filtres &&
+    and(
+      motsDans(
+        [sql`b.numero`, sql`c.nom`, sql`coalesce(bt.nom, be.nom, bw.nom, b.beneficiaire)`, sql`b.motif`, sql`d.full_name`, sql`b.ecriture`],
+        motsRecherche(filtres.q),
+      ),
+      dansPeriodeSql(sql`b.created_at`, filtres.periode),
+    );
+  const lignes = await db.execute<LigneBon>(
+    selectionBons(
+      organizationId,
+      sql`(${tous} or b.demande_par_user_id = ${userId})
+      and ${recherche ?? sql`(b.statut in ('demande', 'approuve') or b.updated_at > now() - interval '60 days')`}`,
+      sql`order by case b.statut when 'demande' then 0 when 'approuve' then 1 else 2 end, b.created_at desc
+    limit 300`,
+    ),
+  );
+  return lignes.map(versBonVue);
+}
+
+/**
+ * Un bon de caisse, quel que soit son statut ou son âge. Même règle de
+ * lecture que la liste : qui ne voit pas tout ne lit que les siens.
+ */
+export async function bonCaisse(organizationId: string, userId: string, tous: boolean, id: string): Promise<BonVue | null> {
+  const [ligne] = await db.execute<LigneBon>(selectionBons(organizationId, sql`b.id = ${id} and (${tous} or b.demande_par_user_id = ${userId})`));
+  return ligne ? versBonVue(ligne) : null;
 }
 
 export interface AvanceVue {
