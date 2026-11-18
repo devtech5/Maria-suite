@@ -194,6 +194,7 @@ export const bonsCommandeInterne = pgTable(
     objet: text("objet").notNull(),
     /** Service ou poste pour lequel on commande : texte libre. */
     service: text("service"),
+    /** Vestige : un bon interne ne se livre pas, plus rien ne l'écrit ni ne le lit. */
     lieuLivraison: text("lieu_livraison"),
     /**
      * Nom et prénom de qui recevra le matériel, au jour de la demande :

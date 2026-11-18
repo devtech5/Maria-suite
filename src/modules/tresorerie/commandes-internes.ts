@@ -62,6 +62,17 @@ export function regrouperParRubrique(lignes: readonly LigneCommandeInterne[]): R
   return [...groupes.values()];
 }
 
+/**
+ * Libellé de rubrique repris en milieu de phrase (« Sous-total … ») : seule
+ * l'initiale passe en minuscule. Le reste garde sa casse — « flotte Orange »
+ * reste une marque — et un sigle en tête (« TVA », « BTP ») ne bouge pas.
+ */
+export function rubriqueEnPhrase(rubrique: string): string {
+  const premierMot = rubrique.split(/[\s'’-]/)[0] ?? "";
+  if (premierMot.length > 1 && premierMot === premierMot.toLocaleUpperCase("fr-FR")) return rubrique;
+  return rubrique.charAt(0).toLocaleLowerCase("fr-FR") + rubrique.slice(1);
+}
+
 /** Nombre entier saisi : chiffres et espaces seulement. */
 function entier(v: unknown): number | null {
   if (typeof v === "number") return Number.isSafeInteger(v) ? v : null;

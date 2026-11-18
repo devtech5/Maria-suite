@@ -4,11 +4,13 @@ import { useState, useTransition } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 
-import { Retour, type Resultat } from "@/components/ui/operations";
+import { FormulaireRepliable, Retour, type Resultat } from "@/components/ui/operations";
 import { CLASSE_CHAMP, Pastille, type TonPastille } from "@/components/ui/primitives";
 import { fmt } from "@/lib/format";
-import { annulerCommandeInterne, deciderCommandeInterne } from "@/modules/tresorerie/actions-commandes-internes";
-import type { StatutCommandeInterne } from "@/modules/tresorerie/commandes-internes";
+import { annulerCommandeInterne, deciderCommandeInterne, modifierCommandeInterne } from "@/modules/tresorerie/actions-commandes-internes";
+import type { LigneCommandeInterne, StatutCommandeInterne } from "@/modules/tresorerie/commandes-internes";
+
+import { ChampsCommande, type ChoixCommande } from "./champs-commande";
 
 export interface CommandeAffichee {
   id: string;
@@ -16,6 +18,9 @@ export interface CommandeAffichee {
   objet: string;
   service: string | null;
   beneficiaire: string | null;
+  beneficiaireRef: string | null;
+  notes: string | null;
+  lignes: LigneCommandeInterne[];
   nombreLignes: number;
   total: number;
   statut: StatutCommandeInterne;
@@ -43,10 +48,13 @@ export function ListeCommandes({
   commandes,
   moi,
   droits,
+  edition,
 }: {
   commandes: CommandeAffichee[];
   moi: string;
   droits: { approuver: boolean; estProprietaire: boolean };
+  /** Services et bénéficiaires proposés ; nul pour qui ne peut pas demander, donc pas modifier. */
+  edition: ChoixCommande | null;
 }) {
   const [refus, setRefus] = useState<{ id: string; motif: string } | null>(null);
   const [resultat, setResultat] = useState<Resultat | null>(null);
@@ -76,6 +84,7 @@ export function ListeCommandes({
         {commandes.map((c) => {
           const peutDecider = droits.approuver && c.statut === "demande" && (c.demandeParUserId !== moi || droits.estProprietaire);
           const peutAnnuler = (c.statut === "demande" || c.statut === "approuve") && (c.demandeParUserId === moi || droits.approuver);
+          const peutModifier = edition !== null && peutAnnuler;
           return (
             <li key={c.id} className="px-4 py-3">
               <div className="flex flex-wrap items-start gap-3">
@@ -101,6 +110,20 @@ export function ListeCommandes({
                   >
                     Voir le bon
                   </Link>
+                  {edition && peutModifier && refus?.id !== c.id && (
+                    <FormulaireRepliable libelle="Modifier" titre={`Modifier le bon ${c.numero}`} action={modifierCommandeInterne} variante="discret">
+                      <input type="hidden" name="id" value={c.id} />
+                      {c.statut === "approuve" && (
+                        <p className="mb-3 rounded-lg bg-alerte-50 px-3 py-2 text-sm text-alerte-600">
+                          Ce bon est approuvé : l&apos;enregistrer modifié le renvoie à l&apos;approbation.
+                        </p>
+                      )}
+                      <ChampsCommande
+                        choix={edition}
+                        valeurs={{ objet: c.objet, service: c.service, beneficiaireRef: c.beneficiaireRef, beneficiaire: c.beneficiaire, notes: c.notes, lignes: c.lignes }}
+                      />
+                    </FormulaireRepliable>
+                  )}
                   {peutDecider && refus?.id !== c.id && (
                     <>
                       <button

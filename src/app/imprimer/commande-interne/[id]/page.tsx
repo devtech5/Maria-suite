@@ -10,7 +10,7 @@ import { peut } from "@/lib/droits/garde";
 import { fmt } from "@/lib/format";
 import { identiteEntreprise } from "@/lib/identite";
 import { montantEnLettres } from "@/lib/lettres";
-import { regrouperParRubrique, type StatutCommandeInterne } from "@/modules/tresorerie/commandes-internes";
+import { regrouperParRubrique, rubriqueEnPhrase, type StatutCommandeInterne } from "@/modules/tresorerie/commandes-internes";
 import { commandeInterne } from "@/modules/tresorerie/requetes-commandes-internes";
 
 export const metadata: Metadata = { title: "Bon de commande interne" };
@@ -73,9 +73,7 @@ export default async function ImpressionCommandeInterne({ params }: { params: Pr
               <span className="font-mono text-[11pt]">{c.numero}</span> · Date : {JOUR.format(c.demandeLe)} · <span className="text-black/60">{STATUT[c.statut]}</span>
             </p>
             <p>Objet : {c.objet}</p>
-            {(c.service || c.lieuLivraison) && (
-              <p className="text-[9pt]">{[c.service && `Service : ${c.service}`, c.lieuLivraison && `Livraison : ${c.lieuLivraison}`].filter(Boolean).join(" · ")}</p>
-            )}
+            {c.service && <p className="text-[9pt]">Service : {c.service}</p>}
           </TitreDocument>
 
           {nul && (
@@ -115,7 +113,7 @@ export default async function ImpressionCommandeInterne({ params }: { params: Pr
                 {avecSousTotaux && (
                   <tr className="border-b border-black/30 font-semibold">
                     <td colSpan={3} className={cellule}>
-                      Sous-total {r.rubrique ? r.rubrique.toLowerCase() : "hors rubrique"}
+                      Sous-total {r.rubrique ? rubriqueEnPhrase(r.rubrique) : "hors rubrique"}
                     </td>
                     <td className={`${cellule} text-right tabular-nums`}>{fmt(r.sousTotal)}</td>
                   </tr>

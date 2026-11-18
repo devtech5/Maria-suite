@@ -4,7 +4,12 @@ import type { db as Db } from "@/db";
 import { users } from "@/db/schema";
 import { newId } from "@/lib/ids";
 import { creerSalariePour } from "@/modules/personnes/creation";
-import { annulerCommandeInterneDans, deciderCommandeInterneDans, demanderCommandeInterneDans } from "@/modules/tresorerie/creation-commandes-internes";
+import {
+  annulerCommandeInterneDans,
+  deciderCommandeInterneDans,
+  demanderCommandeInterneDans,
+  modifierCommandeInterneDans,
+} from "@/modules/tresorerie/creation-commandes-internes";
 import { commandeInterne, listerCommandesInternes } from "@/modules/tresorerie/requetes-commandes-internes";
 
 import { ouvrirBaseDeTest, semerEntreprise } from "./base";
@@ -20,7 +25,6 @@ const annee = new Date().toISOString().slice(0, 4);
 const EQUIPEMENT = {
   objet: "Équipement — ordinateurs, téléphones et flotte Orange",
   service: "Direction",
-  lieuLivraison: "Siège",
   beneficiaire: "Kouassi Aya",
   lignes: [
     { rubrique: "Achat d'ordinateurs", designation: "Ordinateur — poste Technicien", quantite: 1, prixUnitaire: 300_000 },
@@ -89,6 +93,43 @@ describe("bon de commande interne", () => {
     await expect(db.transaction((tx) => annulerCommandeInterneDans(tx, org, id, { userId: newId(), approuve: false }))).rejects.toThrow(/Seul le demandeur/);
     await db.transaction((tx) => annulerCommandeInterneDans(tx, org, id, { userId: demandeur, approuve: false }));
     expect((await commandeInterne(org, pdg, true, id))?.statut).toBe("annule");
+  });
+
+  it("se modifie sous le même numéro, total refait sur les nouvelles lignes", async () => {
+    const { id, numero } = await db.transaction((tx) => demanderCommandeInterneDans(tx, org, EQUIPEMENT, demandeur));
+    const r = await db.transaction((tx) =>
+      modifierCommandeInterneDans(
+        tx,
+        org,
+        id,
+        { objet: "Équipement réduit", beneficiaire: "Kouassi Aya Marie", lignes: [{ rubrique: "Achat de téléphones", designation: "Téléphone", quantite: 3, prixUnitaire: 50_000 }] },
+        { userId: demandeur, approuve: false },
+      ),
+    );
+    expect(r).toMatchObject({ numero, total: 150_000, beneficiaire: "Kouassi Aya Marie", approbationRetiree: false });
+    const lu = await commandeInterne(org, pdg, true, id);
+    expect(lu).toMatchObject({ numero, objet: "Équipement réduit", total: 150_000, statut: "demande", service: null, notes: null });
+    expect(lu?.lignes).toHaveLength(1);
+  });
+
+  it("renvoie à l'approbation un bon approuvé qu'on modifie", async () => {
+    const { id } = await db.transaction((tx) => demanderCommandeInterneDans(tx, org, EQUIPEMENT, demandeur));
+    await db.transaction((tx) => deciderCommandeInterneDans(tx, org, id, { approuve: true }, { userId: pdg, estProprietaire: true }));
+    const r = await db.transaction((tx) => modifierCommandeInterneDans(tx, org, id, EQUIPEMENT, { userId: demandeur, approuve: false }));
+    expect(r.approbationRetiree).toBe(true);
+    expect(await commandeInterne(org, pdg, true, id)).toMatchObject({ statut: "demande", approbateur: null, approuveLe: null });
+  });
+
+  it("ne se modifie ni par un tiers sans droit, ni refusé, ni annulé", async () => {
+    const { id } = await db.transaction((tx) => demanderCommandeInterneDans(tx, org, EQUIPEMENT, demandeur));
+    await expect(db.transaction((tx) => modifierCommandeInterneDans(tx, org, id, EQUIPEMENT, { userId: newId(), approuve: false }))).rejects.toThrow(/Seul le demandeur/);
+    await db.transaction((tx) => modifierCommandeInterneDans(tx, org, id, { ...EQUIPEMENT, objet: "Par la direction" }, { userId: pdg, approuve: true }));
+    await db.transaction((tx) => annulerCommandeInterneDans(tx, org, id, { userId: demandeur, approuve: false }));
+    await expect(db.transaction((tx) => modifierCommandeInterneDans(tx, org, id, EQUIPEMENT, { userId: demandeur, approuve: false }))).rejects.toThrow(/ne se modifie plus/);
+
+    const { id: refuse } = await db.transaction((tx) => demanderCommandeInterneDans(tx, org, EQUIPEMENT, demandeur));
+    await db.transaction((tx) => deciderCommandeInterneDans(tx, org, refuse, { approuve: false, motif: "Hors budget" }, { userId: pdg, estProprietaire: true }));
+    await expect(db.transaction((tx) => modifierCommandeInterneDans(tx, org, refuse, EQUIPEMENT, { userId: demandeur, approuve: false }))).rejects.toThrow(/ne se modifie plus/);
   });
 
   it("ne montre à qui ne voit pas tout que ses propres bons", async () => {

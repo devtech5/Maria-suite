@@ -2,20 +2,17 @@ import type { Metadata } from "next";
 
 import { AccesRefuse } from "@/components/coque/acces-refuse";
 import { FormulaireRepliable } from "@/components/ui/operations";
-import { CarteIndicateur, CLASSE_CHAMP, EnTetePage } from "@/components/ui/primitives";
+import { CarteIndicateur, EnTetePage } from "@/components/ui/primitives";
 import { exigerEntreprise } from "@/lib/auth/dal";
 import { peut } from "@/lib/droits/garde";
 import { fmt, fmtEntier } from "@/lib/format";
-import { identiteEntreprise } from "@/lib/identite";
 import { servicesActifs } from "@/modules/personnes/referentiel-services";
 import { demanderCommandeInterne } from "@/modules/tresorerie/actions-commandes-internes";
 import { beneficiairesProposes } from "@/modules/tresorerie/requetes";
 import { listerCommandesInternes } from "@/modules/tresorerie/requetes-commandes-internes";
 
-import { libelleChamp } from "../../champs";
-import { ChoixBeneficiaire } from "../choix-beneficiaire";
 import { OngletsCaisse } from "../onglets-caisse";
-import { LignesCommande } from "./lignes-commande";
+import { ChampsCommande, type ChoixCommande } from "./champs-commande";
 import { ListeCommandes } from "./liste-commandes";
 
 export const metadata: Metadata = { title: "Bons de commande internes" };
@@ -34,15 +31,18 @@ export default async function PageCommandesInternes() {
   if (!demander && !consulter && !approuver) return <AccesRefuse droit="tresorerie.bon.demander" />;
   const voitTout = consulter || approuver;
 
-  const [commandes, services, identite, beneficiaires] = await Promise.all([
+  const [commandes, services, beneficiaires] = await Promise.all([
     listerCommandesInternes(session.organizationId, session.userId, voitTout),
     demander ? servicesActifs(session.organizationId) : Promise.resolve([]),
-    demander ? identiteEntreprise(session.organizationId) : Promise.resolve(null),
     demander ? beneficiairesProposes(session.organizationId) : Promise.resolve({ fournisseurs: [], personnel: [], intervenants: [], comptes: [] }),
   ]);
-  // Livraison au siège par défaut : l'adresse de l'en-tête des documents.
-  const adresseSiege = identite ? [identite.adresse, identite.ville].filter(Boolean).join(", ") : "";
-  const siege = adresseSiege ? `Siège — ${adresseSiege}` : "Siège";
+  const choix: ChoixCommande = {
+    services,
+    groupes: [
+      { libelle: "Personnel", fiches: beneficiaires.personnel },
+      { libelle: "Comptes hors Personnel", fiches: beneficiaires.comptes },
+    ],
+  };
   const aApprouver = commandes.filter((c) => c.statut === "demande");
   const approuvees = commandes.filter((c) => c.statut === "approuve");
 
@@ -55,47 +55,7 @@ export default async function PageCommandesInternes() {
         actions={
           demander && (
             <FormulaireRepliable libelle="Nouveau bon de commande" titre="Bon de commande interne" action={demanderCommandeInterne}>
-              <div className="grid gap-3 sm:grid-cols-2">
-                <label className="block sm:col-span-2">
-                  <span className={libelleChamp}>Objet</span>
-                  <input name="objet" required minLength={3} maxLength={200} placeholder="Équipement — ordinateurs, téléphones et flotte Orange" className={CLASSE_CHAMP} />
-                </label>
-                <ChoixBeneficiaire
-                  libelle="Bénéficiaire"
-                  libelleNom="Nom et prénom du bénéficiaire"
-                  groupes={[
-                    { libelle: "Personnel", fiches: beneficiaires.personnel },
-                    { libelle: "Comptes hors Personnel", fiches: beneficiaires.comptes },
-                  ]}
-                  exemple="Kouassi Aya"
-                />
-                <label className="block">
-                  <span className={libelleChamp}>Service demandeur (facultatif)</span>
-                  {services.length > 0 ? (
-                    <select name="service" defaultValue="" className={CLASSE_CHAMP}>
-                      <option value="">Aucun</option>
-                      {services.map((s) => (
-                        <option key={s} value={s}>
-                          {s}
-                        </option>
-                      ))}
-                    </select>
-                  ) : (
-                    <input name="service" maxLength={120} className={CLASSE_CHAMP} />
-                  )}
-                </label>
-                <label className="block">
-                  <span className={libelleChamp}>Lieu de livraison</span>
-                  <input name="lieuLivraison" maxLength={200} defaultValue={siege} className={CLASSE_CHAMP} />
-                </label>
-              </div>
-              <div className="mt-4">
-                <LignesCommande />
-              </div>
-              <label className="mt-3 block">
-                <span className={libelleChamp}>Observations (facultatif)</span>
-                <textarea name="notes" rows={2} maxLength={1000} className={CLASSE_CHAMP} />
-              </label>
+              <ChampsCommande choix={choix} />
             </FormulaireRepliable>
           )
         }
@@ -115,6 +75,9 @@ export default async function PageCommandesInternes() {
           objet: c.objet,
           service: c.service,
           beneficiaire: c.beneficiaire,
+          beneficiaireRef: c.beneficiaireRef,
+          notes: c.notes,
+          lignes: c.lignes,
           nombreLignes: c.lignes.length,
           total: c.total,
           statut: c.statut,
@@ -126,6 +89,7 @@ export default async function PageCommandesInternes() {
         }))}
         moi={session.userId}
         droits={{ approuver, estProprietaire: session.estProprietaire }}
+        edition={demander ? choix : null}
       />
     </>
   );
