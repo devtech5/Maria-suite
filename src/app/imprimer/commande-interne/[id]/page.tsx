@@ -73,6 +73,9 @@ export default async function ImpressionCommandeInterne({ params }: { params: Pr
               <span className="font-mono text-[11pt]">{c.numero}</span> · Date : {JOUR.format(c.demandeLe)} · <span className="text-black/60">{STATUT[c.statut]}</span>
             </p>
             <p>Objet : {c.objet}</p>
+            {(c.service || c.lieuLivraison) && (
+              <p className="text-[9pt]">{[c.service && `Service : ${c.service}`, c.lieuLivraison && `Livraison : ${c.lieuLivraison}`].filter(Boolean).join(" · ")}</p>
+            )}
           </TitreDocument>
 
           {nul && (
@@ -81,37 +84,6 @@ export default async function ImpressionCommandeInterne({ params }: { params: Pr
               {c.motifRejet ? ` — ${c.motifRejet}` : ""}
             </p>
           )}
-
-          <dl className="mt-[4mm] grid grid-cols-[auto_1fr] gap-x-[3mm] gap-y-[0.6mm] rounded border border-black/20 px-[3mm] py-[2mm] text-[9pt]">
-            <dt className="text-black/60">Demandeur</dt>
-            <dd>
-              <span className="font-semibold">{c.demandeur}</span>
-              {c.service && <> · Service : {c.service}</>}
-            </dd>
-            {c.beneficiaire && (
-              <>
-                <dt className="text-black/60">Bénéficiaire</dt>
-                <dd className="font-semibold">{c.beneficiaire}</dd>
-              </>
-            )}
-            {c.lieuLivraison && (
-              <>
-                <dt className="text-black/60">Livraison</dt>
-                <dd>{c.lieuLivraison}</dd>
-              </>
-            )}
-            <dt className="text-black/60">Décision</dt>
-            <dd>
-              {c.approbateur ? (
-                <>
-                  {c.statut === "rejete" ? "Refusé" : "Approuvé"} par <span className="font-semibold">{c.approbateur}</span>
-                  {c.approuveLe && <> le {JOUR.format(c.approuveLe)}</>}
-                </>
-              ) : (
-                <span className="text-black/60">En attente d&apos;approbation</span>
-              )}
-            </dd>
-          </dl>
 
           <table className="mt-[4mm] w-full border-collapse text-[9pt]">
             <thead className="[display:table-header-group]">
