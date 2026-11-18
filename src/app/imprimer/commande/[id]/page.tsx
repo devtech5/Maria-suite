@@ -16,6 +16,12 @@ import { BoutonImprimer } from "@/components/ui/bouton-imprimer";
 
 export const metadata: Metadata = { title: "Bon de commande" };
 
+/** Visas exigés avant l'envoi au fournisseur : la comptable, puis la PDG. */
+const SIGNATAIRES = [
+  { qui: "La Comptable", mention: "Nom, date et signature" },
+  { qui: "La PDG", mention: "Nom, date, signature et cachet" },
+] as const;
+
 /** Bon de commande fournisseur au format A4, prêt à imprimer ou à envoyer en PDF. */
 export default async function ImpressionCommande({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
@@ -96,7 +102,17 @@ export default async function ImpressionCommande({ params }: { params: Promise<{
         </dl>
 
         {c.notes && <p className="mt-6 whitespace-pre-line">{c.notes}</p>}
-        <p className="mt-10 text-[9pt] text-black/60">Merci d&apos;indiquer le numéro {c.numero} sur votre bordereau de livraison et sur votre facture.</p>
+
+        <section className="mt-8 grid grid-cols-2 gap-[6mm] [break-inside:avoid]" aria-label="Signatures">
+          {SIGNATAIRES.map((s) => (
+            <div key={s.qui} className="flex h-[32mm] flex-col border border-black/40 px-[3mm] py-[2mm]">
+              <p className="font-bold">{s.qui}</p>
+              <p className="text-[8pt] text-black/60">{s.mention}</p>
+            </div>
+          ))}
+        </section>
+
+        <p className="mt-8 text-[9pt] text-black/60">Merci d&apos;indiquer le numéro {c.numero} sur votre bordereau de livraison et sur votre facture.</p>
         {c.statut === "annulee" && <p className="mt-6 rounded border border-black/40 p-2 text-center font-semibold uppercase">Commande annulée</p>}
         <PiedDocument identite={identite} />
       </article>
