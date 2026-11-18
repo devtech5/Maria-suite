@@ -152,7 +152,7 @@ export const CHAPITRES_GESTION: Chapitre[] = [
         ancre: "commandes",
         titre: "Commande et réception",
         chemin: "/achats",
-        texte: ["Un bon de commande part au fournisseur. À la livraison, la réception saisit ce qui est réellement arrivé : le stock monte au prix commandé, et ce qui reste à livrer se lit sur la commande."],
+        texte: ["Un bon de commande part au fournisseur une fois imprimé et signé dans ses deux cases, la comptable puis la PDG. À la livraison, la réception saisit ce qui est réellement arrivé : le stock monte au prix commandé, et ce qui reste à livrer se lit sur la commande."],
       },
       {
         ancre: "factures",
