@@ -1,4 +1,4 @@
-import { EnTeteDocument, PiedDocument } from "@/components/impression/entete-document";
+import { PapierEnTete, TitreDocument, PiedDocument } from "@/components/impression/entete-document";
 import { FeuilleA4 } from "@/components/impression/feuille-a4";
 import type { IdentiteEntreprise } from "@/lib/identite";
 import { NATURES_CONGE, STATUTS_CONGE, formatJours, type NatureConge } from "@/modules/presences/calcul";
@@ -32,14 +32,14 @@ export function DocumentDemandeConge({ identite, conge, solde }: { identite: Ide
   const fin = c ? `${date(c.fin)}${c.finDemi ? " (matin)" : ""}` : null;
 
   return (
-    <FeuilleA4 pied={<PiedDocument identite={identite} />}>
-      <EnTeteDocument identite={identite}>
+    <FeuilleA4 entete={<PapierEnTete identite={identite} />} pied={<PiedDocument identite={identite} />}>
+      <TitreDocument identite={identite}>
         <p className="text-[14pt] font-bold uppercase tracking-wide">Demande de congé</p>
         <p className="text-[9pt]">
           N° {c ? <span className="font-semibold">{c.numero}</span> : <span className="inline-block min-w-[32mm] border-b border-dotted border-black/50">&nbsp;</span>}
         </p>
         {c && <p className="text-[9pt]">Demandée le {JOUR.format(c.creeLe)}</p>}
-      </EnTeteDocument>
+      </TitreDocument>
 
       <p className={titre} style={{ color: identite.couleur }}>
         Le demandeur

@@ -1,4 +1,4 @@
-import { EnTeteDocument, PiedDocument } from "@/components/impression/entete-document";
+import { PapierEnTete, TitreDocument, PiedDocument } from "@/components/impression/entete-document";
 import { FeuilleA4 } from "@/components/impression/feuille-a4";
 import { CorpsMessage } from "@/components/ui/texte-mis-en-forme";
 import type { IdentiteEntreprise } from "@/lib/identite";
@@ -61,10 +61,10 @@ export function DocumentPv({ pv, identite }: { pv: ContenuPv; identite: Identite
   const chantier = pv.type === "chantier" ? pv.chantier : null;
   const parPresence = (p: Participant["presence"]) => pv.participants.filter((x) => x.presence === p);
   return (
-    <FeuilleA4 pied={<PiedDocument identite={identite} />}>
-      <EnTeteDocument identite={identite}>
+    <FeuilleA4 entete={<PapierEnTete identite={identite} />} pied={<PiedDocument identite={identite} />}>
+      <TitreDocument identite={identite}>
         <p className="mt-[7mm] text-[9pt] font-medium">{dateEnLettres(pv.dateSeance)}</p>
-      </EnTeteDocument>
+      </TitreDocument>
 
       <div style={{ color: identite.couleur }} className="text-[9pt] leading-[1.55]">
         <div className="mt-[7mm] text-center">

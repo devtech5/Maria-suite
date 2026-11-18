@@ -2,7 +2,7 @@ import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 
 import { AccesRefuse } from "@/components/coque/acces-refuse";
-import { EnTeteDocument, PiedDocument } from "@/components/impression/entete-document";
+import { PapierEnTete, TitreDocument, PiedDocument } from "@/components/impression/entete-document";
 import { ApercuA4, FeuilleA4 } from "@/components/impression/feuille-a4";
 import { BoutonImprimer } from "@/components/ui/bouton-imprimer";
 import { BoutonRetour } from "@/components/ui/bouton-retour";
@@ -62,13 +62,13 @@ export default async function FicheBesoinsMateriel({ searchParams }: { searchPar
         <BoutonImprimer />
       </div>
       <ApercuA4>
-        <FeuilleA4 pied={<PiedDocument identite={identite} />}>
-          <EnTeteDocument identite={identite}>
+        <FeuilleA4 entete={<PapierEnTete identite={identite} />} pied={<PiedDocument identite={identite} />}>
+          <TitreDocument identite={identite}>
             <p className="text-[14pt] font-bold uppercase tracking-wide">Besoins en matériel</p>
             <p className="text-[9pt]">
               N° <span className="inline-block min-w-[30mm] border-b border-dotted border-black/50">&nbsp;</span>
             </p>
-          </EnTeteDocument>
+          </TitreDocument>
 
           <div className="mt-[4mm] grid grid-cols-2 gap-x-[8mm] gap-y-[2.5mm] text-[9pt]">
             <p>

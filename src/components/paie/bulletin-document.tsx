@@ -1,4 +1,4 @@
-import { EnTeteDocument, PiedDocument } from "@/components/impression/entete-document";
+import { PapierEnTete, TitreDocument, PiedDocument } from "@/components/impression/entete-document";
 import { FeuilleA4 } from "@/components/impression/feuille-a4";
 import { fmt, fmtTauxBp } from "@/lib/format";
 import type { IdentiteEntreprise } from "@/lib/identite";
@@ -39,12 +39,12 @@ export function BulletinDocument({ detail, identite }: { detail: Detail; identit
   ];
 
   return (
-    <FeuilleA4 pied={<PiedDocument identite={identite} />}>
-      <EnTeteDocument identite={identite}>
+    <FeuilleA4 entete={<PapierEnTete identite={identite} />} pied={<PiedDocument identite={identite} />}>
+      <TitreDocument identite={identite}>
         <p className="text-xl font-bold uppercase">Bulletin de paie</p>
         <p className="font-mono">{b.numero}</p>
         <p>Période : {libelleMois(periode.mois)}</p>
-      </EnTeteDocument>
+      </TitreDocument>
       <section className="mt-4 grid grid-cols-2 gap-4 rounded border border-black/20 p-3">
         <div>
           <p className="font-semibold">{b.nom}</p>
