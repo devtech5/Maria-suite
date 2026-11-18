@@ -48,7 +48,7 @@ export interface GroupeModules {
  * dessous (Comptabilité, Trésorerie), et chaque module garde ses sections en
  * pastilles (Écritures, Balance).
  *
- * Une entrée n'est pas forcément un module entier : « Clients », « Bons » ou
+ * Une entrée n'est pas forcément un module entier : « Clients », « Bon de caisse » ou
  * « Intervenants / manœuvres » ouvrent directement une section d'un module.
  * La barre allume l'entrée dont l'adresse correspond le plus précisément.
  *
@@ -154,7 +154,7 @@ export const GROUPES_MODULES: GroupeModules[] = [
       { href: "/comptabilite", racine: "/comptabilite", icone: "comptabilite", libelle: "Comptabilité", description: "Écritures SYSCOHADA, balance et déclarations.", droit: "comptabilite.ecriture.consulter" },
       { href: "/tresorerie", racine: "/tresorerie", icone: "tresorerie", libelle: "Trésorerie", description: "Caisses, banques, bons et plan de trésorerie.", droit: "tresorerie.bon.demander" },
       { href: "/perdiem", racine: "/perdiem", icone: "tresorerie", libelle: "Perdiem", description: "Barème des montants par jour, perdiem des collaborateurs en mission : attribution et paiement.", droit: "perdiem.consulter" },
-      { href: "/tresorerie/caisse", racine: "/tresorerie/caisse", icone: "tresorerie", libelle: "Bons", description: "Bons de caisse : demande, validation et décaissement.", droit: "tresorerie.bon.demander" },
+      { href: "/tresorerie/caisse", racine: "/tresorerie/caisse", icone: "tresorerie", libelle: "Bon de caisse", description: "Bons de caisse : demande, validation et décaissement.", droit: "tresorerie.bon.demander" },
     ],
   },
   {
@@ -269,7 +269,7 @@ export function domaineDe(chemin: string, groupes: GroupeModules[]): string | nu
 
 /**
  * L'entrée à allumer pour la page courante : la plus précise parmi celles
- * offertes. Sur /tresorerie/caisse, « Bons » et non « Trésorerie » ; sur
+ * offertes. Sur /tresorerie/caisse, « Bon de caisse » et non « Trésorerie » ; sur
  * /commercial/fournisseurs, « Fournisseurs » et non « Clients ». Nulle pour
  * une page hors de toute carte (mot de passe, fiche isolée).
  */
