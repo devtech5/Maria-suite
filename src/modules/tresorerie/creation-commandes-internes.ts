@@ -12,7 +12,7 @@ import { lireLignes, totalCommande, type LigneCommandeInterne } from "./commande
 import { bonsCommandeInterne } from "./schema";
 
 /**
- * Bon de commande interne : demande, décision, annulation. Chaque geste dans
+ * Bon de commande interne : demande, modification, décision, annulation. Chaque geste dans
  * la transaction de l'appelant ; le numéro `BCI-AAAA-NNNNN` est attribué
  * dans celle qui crée le bon.
  */
@@ -20,7 +20,6 @@ import { bonsCommandeInterne } from "./schema";
 export interface NouvelleCommandeInterne {
   objet: string;
   service?: string | null;
-  lieuLivraison?: string | null;
   /** Collaborateur du Personnel ou compte de l'entreprise. Absent : le nom saisi. */
   fiche?: Extract<FicheBeneficiaire, { employeId: string } | { userId: string }> | null;
   /** Nom et prénom saisis, quand le bénéficiaire n'a pas de fiche. */
@@ -57,7 +56,6 @@ export async function demanderCommandeInterneDans(
     numero,
     objet: c.objet.trim(),
     service: c.service?.trim() || null,
-    lieuLivraison: c.lieuLivraison?.trim() || null,
     beneficiaire: qui.nom,
     beneficiaireEmployeId: qui.employeId,
     beneficiaireUserId: qui.userId,
@@ -68,6 +66,64 @@ export async function demanderCommandeInterneDans(
   });
   await journaliser(tx, organizationId, userId, "commande_interne.demander", id, { numero, total, lignes: lignes.length, beneficiaire: qui.nom });
   return { id, numero, total, beneficiaire: qui.nom };
+}
+
+export interface CommandeModifiee {
+  numero: string;
+  total: number;
+  beneficiaire: string;
+  /** Vrai quand le bon était approuvé : la modification le renvoie à l'approbation. */
+  approbationRetiree: boolean;
+}
+
+/**
+ * Modification d'un bon encore vivant, sous le même numéro. Mêmes acteurs que
+ * l'annulation : le demandeur, ou qui approuve. Un bon approuvé qui change
+ * n'est plus celui qu'on a approuvé : il repart « à approuver ».
+ */
+export async function modifierCommandeInterneDans(
+  tx: Transaction,
+  organizationId: string,
+  id: string,
+  c: NouvelleCommandeInterne,
+  acteur: { userId: string; approuve: boolean },
+): Promise<CommandeModifiee> {
+  const lignes = lireLignes(c.lignes);
+  if (typeof lignes === "string") throw new Error(lignes);
+  const total = totalCommande(lignes);
+  if (!c.fiche && !estNomComplet(c.beneficiaire)) throw new Error(MESSAGE_NOM_COMPLET);
+  const b = await commandeVerrouillee(tx, organizationId, id);
+  if (b.statut !== "demande" && b.statut !== "approuve") throw new Error(`${b.numero} ne se modifie plus.`);
+  if (b.demandeParUserId !== acteur.userId && !acteur.approuve) throw new Error("Seul le demandeur, ou qui approuve, peut modifier ce bon.");
+  const qui = await resoudreBeneficiaire(tx, organizationId, c.fiche, c.beneficiaire);
+  const approbationRetiree = b.statut === "approuve";
+  const apres = {
+    objet: c.objet.trim(),
+    service: c.service?.trim() || null,
+    beneficiaire: qui.nom,
+    beneficiaireEmployeId: qui.employeId,
+    beneficiaireUserId: qui.userId,
+    notes: c.notes?.trim() || null,
+    lignes,
+    total,
+  };
+  await tx
+    .update(bonsCommandeInterne)
+    .set({
+      ...apres,
+      statut: "demande",
+      approuveParUserId: null,
+      approuveLe: null,
+      updatedAt: new Date(),
+      version: sql`${bonsCommandeInterne.version} + 1`,
+    })
+    .where(eq(bonsCommandeInterne.id, b.id));
+  await journaliser(tx, organizationId, acteur.userId, "commande_interne.modifier", b.id, {
+    numero: b.numero,
+    avant: { objet: b.objet, service: b.service, beneficiaire: b.beneficiaire, notes: b.notes, lignes: b.lignes, total: b.total, statut: b.statut },
+    apres: { ...apres, statut: "demande" },
+  });
+  return { numero: b.numero, total, beneficiaire: qui.nom, approbationRetiree };
 }
 
 async function commandeVerrouillee(tx: Transaction, organizationId: string, id: string) {

@@ -4,7 +4,7 @@ import { useState } from "react";
 
 import { CLASSE_CHAMP } from "@/components/ui/primitives";
 import { fmt } from "@/lib/format";
-import { lireLignes, montantLigne, totalCommande } from "@/modules/tresorerie/commandes-internes";
+import { lireLignes, montantLigne, totalCommande, type LigneCommandeInterne } from "@/modules/tresorerie/commandes-internes";
 
 /** Ligne en cours de saisie : les nombres restent du texte tant qu'on tape. */
 interface LigneSaisie {
@@ -17,14 +17,15 @@ interface LigneSaisie {
 
 let compteur = 0;
 const ligneVide = (rubrique = ""): LigneSaisie => ({ cle: compteur++, rubrique, designation: "", quantite: "1", prixUnitaire: "" });
+const enSaisie = (l: LigneCommandeInterne): LigneSaisie => ({ cle: compteur++, rubrique: l.rubrique, designation: l.designation, quantite: String(l.quantite), prixUnitaire: String(l.prixUnitaire) });
 
 /**
  * Lignes du bon : rubrique, désignation, quantité, prix unitaire. Le total
  * se calcule comme le serveur le refera ; les lignes partent en JSON dans
  * le champ caché `lignes`.
  */
-export function LignesCommande() {
-  const [lignes, setLignes] = useState<LigneSaisie[]>(() => [ligneVide()]);
+export function LignesCommande({ initiales }: { initiales?: LigneCommandeInterne[] }) {
+  const [lignes, setLignes] = useState<LigneSaisie[]>(() => (initiales?.length ? initiales.map(enSaisie) : [ligneVide()]));
   const maj = (cle: number, patch: Partial<LigneSaisie>) => setLignes((ls) => ls.map((l) => (l.cle === cle ? { ...l, ...patch } : l)));
   const lues = lireLignes(lignes);
   const total = typeof lues === "string" ? null : totalCommande(lues);

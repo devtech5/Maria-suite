@@ -11,9 +11,10 @@ export interface CommandeInterneVue {
   numero: string;
   objet: string;
   service: string | null;
-  lieuLivraison: string | null;
   /** Nom et prénom de qui reçoit ; nul sur les bons antérieurs à la règle. */
   beneficiaire: string | null;
+  /** La fiche choisie, au format du formulaire (« e:<id> », « u:<id> ») ; nul pour un nom saisi. */
+  beneficiaireRef: string | null;
   notes: string | null;
   lignes: LigneCommandeInterne[];
   total: number;
@@ -31,8 +32,9 @@ type Ligne = {
   numero: string;
   objet: string;
   service: string | null;
-  lieu_livraison: string | null;
   beneficiaire: string | null;
+  beneficiaire_employe_id: string | null;
+  beneficiaire_user_id: string | null;
   notes: string | null;
   lignes: LigneCommandeInterne[] | string;
   total: string | number;
@@ -49,7 +51,7 @@ const enDate = (v: string | Date) => (v instanceof Date ? v : new Date(v));
 
 function selection(organizationId: string, condition: SQL, suite: SQL = sql``): SQL {
   return sql`
-    select b.id, b.numero, b.objet, b.service, b.lieu_livraison, coalesce(be.nom, b.beneficiaire) as beneficiaire, b.notes, b.lignes, b.total, b.statut,
+    select b.id, b.numero, b.objet, b.service, coalesce(be.nom, b.beneficiaire) as beneficiaire, b.beneficiaire_employe_id, b.beneficiaire_user_id, b.notes, b.lignes, b.total, b.statut,
            b.demande_par_user_id, d.full_name as demandeur, b.created_at as cree_le,
            a.full_name as approbateur, b.approuve_le, b.motif_rejet
     from bons_commande_interne b
@@ -67,8 +69,8 @@ function versVue(l: Ligne): CommandeInterneVue {
     numero: l.numero,
     objet: l.objet,
     service: l.service,
-    lieuLivraison: l.lieu_livraison,
     beneficiaire: l.beneficiaire,
+    beneficiaireRef: l.beneficiaire_employe_id ? `e:${l.beneficiaire_employe_id}` : l.beneficiaire_user_id ? `u:${l.beneficiaire_user_id}` : null,
     notes: l.notes,
     lignes: typeof l.lignes === "string" ? (JSON.parse(l.lignes) as LigneCommandeInterne[]) : l.lignes,
     total: Number(l.total),

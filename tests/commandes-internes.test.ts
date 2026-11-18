@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 
-import { lireLignes, montantLigne, regrouperParRubrique, totalCommande, type LigneCommandeInterne } from "@/modules/tresorerie/commandes-internes";
+import { lireLignes, montantLigne, regrouperParRubrique, rubriqueEnPhrase, totalCommande, type LigneCommandeInterne } from "@/modules/tresorerie/commandes-internes";
 
 /** Le budget d'équipement de novembre 2026 : 1 410 000 F. */
 const BUDGET: LigneCommandeInterne[] = [
@@ -66,5 +66,12 @@ describe("bon de commande interne : lecture de la saisie", () => {
 
   it("refuse ce qui n'est pas une liste", () => {
     expect(lireLignes("n'importe quoi")).toBe("Lignes illisibles.");
+  });
+
+  it("met la rubrique en milieu de phrase sans écraser une marque ni un sigle", () => {
+    expect(rubriqueEnPhrase("Abonnement flotte Orange")).toBe("abonnement flotte Orange");
+    expect(rubriqueEnPhrase("Achat d'ordinateurs")).toBe("achat d'ordinateurs");
+    expect(rubriqueEnPhrase("TVA collectée")).toBe("TVA collectée");
+    expect(rubriqueEnPhrase("É")).toBe("é");
   });
 });

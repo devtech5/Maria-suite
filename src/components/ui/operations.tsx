@@ -44,6 +44,7 @@ export function FormulaireRepliable({
   children,
   desactive,
   presentation = "modale",
+  variante = "principal",
 }: {
   libelle: string;
   titre: string;
@@ -51,6 +52,8 @@ export function FormulaireRepliable({
   children: ReactNode;
   desactive?: boolean;
   presentation?: Presentation;
+  /** « discret » : petit bouton à bordure, pour une action posée sur une ligne de liste. */
+  variante?: "principal" | "discret";
 }) {
   const [ouvert, setOuvert] = useState(false);
   const [modifie, setModifie] = useState(false);
@@ -81,7 +84,11 @@ export function FormulaireRepliable({
           setOuvert(true);
           if (resultat?.ok) setResultat(null);
         }}
-        className="h-cible rounded-lg bg-marque-600 px-3.5 text-sm font-semibold text-white hover:bg-marque-700 disabled:opacity-50"
+        className={
+          variante === "discret"
+            ? "rounded-lg border border-[var(--filet)] px-2.5 py-1.5 text-xs font-semibold hover:bg-[var(--surface-creuse)] disabled:opacity-50"
+            : "h-cible rounded-lg bg-marque-600 px-3.5 text-sm font-semibold text-white hover:bg-marque-700 disabled:opacity-50"
+        }
       >
         {libelle}
       </button>

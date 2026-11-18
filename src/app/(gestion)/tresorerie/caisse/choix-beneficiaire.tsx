@@ -17,15 +17,20 @@ export function ChoixBeneficiaire({
   groupes,
   exemple,
   libelleNom = "Nom du bénéficiaire",
+  initiale,
 }: {
   libelle: string;
   groupes: { libelle: string; fiches: FicheProposee[] }[];
   exemple: string;
   /** Intitulé du champ libre, quand le bénéficiaire n'a pas de fiche. */
   libelleNom?: string;
+  /** Le bénéficiaire déjà retenu, quand on modifie : sa fiche, sinon le nom saisi. */
+  initiale?: { ref: string | null; nom: string | null };
 }) {
   const remplis = groupes.filter((g) => g.fiches.length > 0);
-  const [valeur, setValeur] = useState("");
+  // Une fiche retirée depuis ne figure plus dans la liste : on retombe sur le nom.
+  const connue = initiale?.ref && remplis.some((g) => g.fiches.some((f) => f.valeur === initiale.ref)) ? initiale.ref : "";
+  const [valeur, setValeur] = useState(connue);
 
   return (
     <>
@@ -47,7 +52,7 @@ export function ChoixBeneficiaire({
       {valeur === "" && (
         <label className="block">
           <span className={libelleChamp}>{libelleNom}</span>
-          <input name="beneficiaire" required minLength={2} maxLength={120} placeholder={exemple} className={CLASSE_CHAMP} />
+          <input name="beneficiaire" required minLength={2} maxLength={120} defaultValue={initiale?.nom ?? undefined} placeholder={exemple} className={CLASSE_CHAMP} />
         </label>
       )}
     </>
