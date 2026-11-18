@@ -12,6 +12,8 @@ export interface CommandeInterneVue {
   objet: string;
   service: string | null;
   lieuLivraison: string | null;
+  /** Nom et prénom de qui reçoit ; nul sur les bons antérieurs à la règle. */
+  beneficiaire: string | null;
   notes: string | null;
   lignes: LigneCommandeInterne[];
   total: number;
@@ -30,6 +32,7 @@ type Ligne = {
   objet: string;
   service: string | null;
   lieu_livraison: string | null;
+  beneficiaire: string | null;
   notes: string | null;
   lignes: LigneCommandeInterne[] | string;
   total: string | number;
@@ -46,10 +49,11 @@ const enDate = (v: string | Date) => (v instanceof Date ? v : new Date(v));
 
 function selection(organizationId: string, condition: SQL, suite: SQL = sql``): SQL {
   return sql`
-    select b.id, b.numero, b.objet, b.service, b.lieu_livraison, b.notes, b.lignes, b.total, b.statut,
+    select b.id, b.numero, b.objet, b.service, b.lieu_livraison, coalesce(be.nom, b.beneficiaire) as beneficiaire, b.notes, b.lignes, b.total, b.statut,
            b.demande_par_user_id, d.full_name as demandeur, b.created_at as cree_le,
            a.full_name as approbateur, b.approuve_le, b.motif_rejet
     from bons_commande_interne b
+    left join employees be on be.id = b.beneficiaire_employe_id
     left join users d on d.id = b.demande_par_user_id
     left join users a on a.id = b.approuve_par_user_id
     where b.organization_id = ${organizationId} and b.deleted_at is null and ${condition}
@@ -64,6 +68,7 @@ function versVue(l: Ligne): CommandeInterneVue {
     objet: l.objet,
     service: l.service,
     lieuLivraison: l.lieu_livraison,
+    beneficiaire: l.beneficiaire,
     notes: l.notes,
     lignes: typeof l.lignes === "string" ? (JSON.parse(l.lignes) as LigneCommandeInterne[]) : l.lignes,
     total: Number(l.total),

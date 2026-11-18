@@ -48,6 +48,16 @@ const schemaEntete = z.object({
   notes: z.string().trim().max(1000, "Observations trop longues : 1 000 caractères au plus.").optional(),
 });
 
+/** « e:<id> » un collaborateur du Personnel, « u:<id> » un compte sans fiche. Absent : le nom saisi ; illisible : null. */
+function lireFiche(v: string | undefined): { employeId: string } | { userId: string } | null | undefined {
+  if (!v) return undefined;
+  const id = v.slice(2);
+  if (v[1] !== ":" || !UUID.test(id)) return null;
+  if (v[0] === "e") return { employeId: id };
+  if (v[0] === "u") return { userId: id };
+  return null;
+}
+
 const fmtF = (n: number) => `${n.toLocaleString("fr-FR")} FCFA`;
 
 export async function demanderCommandeInterne(donnees: FormData): Promise<Resultat> {
@@ -71,12 +81,16 @@ export async function demanderCommandeInterne(donnees: FormData): Promise<Result
     }
     const lignes = lireLignes(brut);
     if (typeof lignes === "string") return { ok: false, message: lignes };
+    const fiche = lireFiche(texte(donnees, "beneficiaireRef"));
+    if (fiche === null) return { ok: false, message: "Bénéficiaire inconnu." };
 
-    const { numero, total } = await db.transaction((tx) => demanderCommandeInterneDans(tx, organizationId, { ...entete.data, lignes }, userId));
+    const { numero, total, beneficiaire } = await db.transaction((tx) =>
+      demanderCommandeInterneDans(tx, organizationId, { ...entete.data, lignes, fiche, beneficiaire: texte(donnees, "beneficiaire") }, userId),
+    );
     await notifierDetenteurs(
       organizationId,
       "tresorerie.bon.approuver",
-      { categorie: "bon", titre: `Bon de commande interne ${numero} à approuver`, corps: `${entete.data.objet} — ${fmtF(total)}`, lien: LIEN },
+      { categorie: "bon", titre: `Bon de commande interne ${numero} à approuver`, corps: `${entete.data.objet} — ${fmtF(total)} — pour ${beneficiaire}`, lien: LIEN },
       userId,
     );
     return { ok: true, message: `Bon ${numero} demandé : il attend une approbation.` };

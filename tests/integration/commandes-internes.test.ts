@@ -3,6 +3,7 @@ import { afterAll, beforeAll, describe, expect, it } from "vitest";
 import type { db as Db } from "@/db";
 import { users } from "@/db/schema";
 import { newId } from "@/lib/ids";
+import { creerSalariePour } from "@/modules/personnes/creation";
 import { annulerCommandeInterneDans, deciderCommandeInterneDans, demanderCommandeInterneDans } from "@/modules/tresorerie/creation-commandes-internes";
 import { commandeInterne, listerCommandesInternes } from "@/modules/tresorerie/requetes-commandes-internes";
 
@@ -20,6 +21,7 @@ const EQUIPEMENT = {
   objet: "Équipement — ordinateurs, téléphones et flotte Orange",
   service: "Direction",
   lieuLivraison: "Siège",
+  beneficiaire: "Kouassi Aya",
   lignes: [
     { rubrique: "Achat d'ordinateurs", designation: "Ordinateur — poste Technicien", quantite: 1, prixUnitaire: 300_000 },
     { rubrique: "Achat d'ordinateurs", designation: "Ordinateur — poste Assistant", quantite: 1, prixUnitaire: 300_000 },
@@ -42,19 +44,28 @@ afterAll(async () => fermer());
 describe("bon de commande interne", () => {
   it("se numérote BCI-AAAA-NNNNN, sans trou, et fige le total des lignes", async () => {
     const a = await db.transaction((tx) => demanderCommandeInterneDans(tx, org, EQUIPEMENT, demandeur));
-    const b = await db.transaction((tx) => demanderCommandeInterneDans(tx, org, { objet: "Fournitures", lignes: [{ rubrique: "", designation: "Rame A4", quantite: 10, prixUnitaire: 3_000 }] }, demandeur));
+    const b = await db.transaction((tx) => demanderCommandeInterneDans(tx, org, { objet: "Fournitures", beneficiaire: "Kouassi Aya", lignes: [{ rubrique: "", designation: "Rame A4", quantite: 10, prixUnitaire: 3_000 }] }, demandeur));
     expect(a.numero).toBe(`BCI-${annee}-00001`);
     expect(b.numero).toBe(`BCI-${annee}-00002`);
     expect(a.total).toBe(1_410_000);
 
     const lu = await commandeInterne(org, pdg, true, a.id);
-    expect(lu).toMatchObject({ objet: EQUIPEMENT.objet, total: 1_410_000, statut: "demande", demandeur: "Assistante de direction" });
+    expect(lu).toMatchObject({ objet: EQUIPEMENT.objet, total: 1_410_000, statut: "demande", demandeur: "Assistante de direction", beneficiaire: "Kouassi Aya" });
     expect(lu?.lignes).toHaveLength(7);
+  });
+
+  it("exige le nom et le prénom du bénéficiaire, ou sa fiche", async () => {
+    const lignes = [{ rubrique: "", designation: "Rame A4", quantite: 1, prixUnitaire: 3_000 }];
+    await expect(db.transaction((tx) => demanderCommandeInterneDans(tx, org, { objet: "Sans nom", lignes }, demandeur))).rejects.toThrow(/nom et le prénom/);
+    await expect(db.transaction((tx) => demanderCommandeInterneDans(tx, org, { objet: "Prénom seul", beneficiaire: "Aya", lignes }, demandeur))).rejects.toThrow(/nom et le prénom/);
+    const { id: konan } = await creerSalariePour(org, { nom: "Konan Michel", poste: "Technicien", debut: "2026-01-05", salaireBase: 150_000 }, pdg);
+    const { id } = await db.transaction((tx) => demanderCommandeInterneDans(tx, org, { objet: "Par fiche", fiche: { employeId: konan }, lignes }, demandeur));
+    expect((await commandeInterne(org, pdg, true, id))?.beneficiaire).toBe("Konan Michel");
   });
 
   it("refuse des lignes qui n'ont pas été relues", async () => {
     await expect(
-      db.transaction((tx) => demanderCommandeInterneDans(tx, org, { objet: "Faux", lignes: [{ rubrique: "", designation: "X", quantite: 1.5, prixUnitaire: 100 }] }, demandeur)),
+      db.transaction((tx) => demanderCommandeInterneDans(tx, org, { objet: "Faux", beneficiaire: "Kouassi Aya", lignes: [{ rubrique: "", designation: "X", quantite: 1.5, prixUnitaire: 100 }] }, demandeur)),
     ).rejects.toThrow(/quantité/);
   });
 
@@ -81,7 +92,7 @@ describe("bon de commande interne", () => {
   });
 
   it("ne montre à qui ne voit pas tout que ses propres bons", async () => {
-    await db.transaction((tx) => demanderCommandeInterneDans(tx, org, { objet: "Mon besoin", lignes: [{ rubrique: "", designation: "Agrafeuse", quantite: 1, prixUnitaire: 5_000 }] }, pdg));
+    await db.transaction((tx) => demanderCommandeInterneDans(tx, org, { objet: "Mon besoin", beneficiaire: "Kouassi Aya", lignes: [{ rubrique: "", designation: "Agrafeuse", quantite: 1, prixUnitaire: 5_000 }] }, pdg));
     const siens = await listerCommandesInternes(org, demandeur, false);
     expect(siens.length).toBeGreaterThan(0);
     expect(siens.every((c) => c.demandeParUserId === demandeur)).toBe(true);

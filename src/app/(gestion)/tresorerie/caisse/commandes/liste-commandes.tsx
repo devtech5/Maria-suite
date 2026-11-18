@@ -15,6 +15,7 @@ export interface CommandeAffichee {
   numero: string;
   objet: string;
   service: string | null;
+  beneficiaire: string | null;
   nombreLignes: number;
   total: number;
   statut: StatutCommandeInterne;
@@ -84,6 +85,7 @@ export function ListeCommandes({
                     <span className="chiffres text-sm font-bold">{fmt(c.total)} F</span>
                     <Pastille ton={STATUT[c.statut].ton}>{STATUT[c.statut].libelle}</Pastille>
                   </p>
+                  {c.beneficiaire && <p className="mt-0.5 text-sm text-[var(--encre-douce)]">Pour {c.beneficiaire}</p>}
                   <p className="chiffres mt-0.5 text-xs text-[var(--encre-faible)]">
                     {c.numero} · {c.nombreLignes} ligne{c.nombreLignes > 1 ? "s" : ""}
                     {c.service && ` · ${c.service}`} · demandé par {c.demandeParUserId === moi ? "vous" : c.demandeur} le {MOMENT.format(new Date(c.demandeLeIso))}

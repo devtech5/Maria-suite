@@ -6,6 +6,7 @@ import { auditLogs } from "@/db/schema";
 import { newId } from "@/lib/ids";
 import { prochainNumero, type Transaction } from "@/lib/sequences";
 
+import { resoudreBeneficiaire, type FicheBeneficiaire } from "./creation";
 import { lireLignes, totalCommande, type LigneCommandeInterne } from "./commandes-internes";
 import { bonsCommandeInterne } from "./schema";
 
@@ -19,8 +20,17 @@ export interface NouvelleCommandeInterne {
   objet: string;
   service?: string | null;
   lieuLivraison?: string | null;
+  /** Collaborateur du Personnel ou compte de l'entreprise. Absent : le nom saisi. */
+  fiche?: Extract<FicheBeneficiaire, { employeId: string } | { userId: string }> | null;
+  /** Nom et prénom saisis, quand le bénéficiaire n'a pas de fiche. */
+  beneficiaire?: string | null;
   notes?: string | null;
   lignes: LigneCommandeInterne[];
+}
+
+/** Nom et prénom : deux mots au moins, d'une lettre et plus chacun. */
+function nomComplet(v: string | null | undefined): boolean {
+  return (v ?? "").trim().split(/\s+/).filter((m) => /\p{L}/u.test(m)).length >= 2;
 }
 
 async function journaliser(tx: Transaction, organizationId: string, userId: string, action: string, entiteId: string, apres: Record<string, unknown>) {
@@ -35,11 +45,13 @@ export async function demanderCommandeInterneDans(
   organizationId: string,
   c: NouvelleCommandeInterne,
   userId: string,
-): Promise<{ id: string; numero: string; total: number }> {
+): Promise<{ id: string; numero: string; total: number; beneficiaire: string }> {
   // Revérifiées ici : une ligne qui n'aurait pas été relue ne doit pas fausser le total.
   const lignes = lireLignes(c.lignes);
   if (typeof lignes === "string") throw new Error(lignes);
   const total = totalCommande(lignes);
+  if (!c.fiche && !nomComplet(c.beneficiaire)) throw new Error("Indiquez le nom et le prénom du bénéficiaire.");
+  const qui = await resoudreBeneficiaire(tx, organizationId, c.fiche, c.beneficiaire);
   const a = annee();
   const numero = await prochainNumero(tx, organizationId, { cle: "commande_interne", prefix: `BCI-${a}-`, padding: 5, periode: a });
   const id = newId();
@@ -50,13 +62,16 @@ export async function demanderCommandeInterneDans(
     objet: c.objet.trim(),
     service: c.service?.trim() || null,
     lieuLivraison: c.lieuLivraison?.trim() || null,
+    beneficiaire: qui.nom,
+    beneficiaireEmployeId: qui.employeId,
+    beneficiaireUserId: qui.userId,
     notes: c.notes?.trim() || null,
     lignes,
     total,
     demandeParUserId: userId,
   });
-  await journaliser(tx, organizationId, userId, "commande_interne.demander", id, { numero, total, lignes: lignes.length });
-  return { id, numero, total };
+  await journaliser(tx, organizationId, userId, "commande_interne.demander", id, { numero, total, lignes: lignes.length, beneficiaire: qui.nom });
+  return { id, numero, total, beneficiaire: qui.nom };
 }
 
 async function commandeVerrouillee(tx: Transaction, organizationId: string, id: string) {
