@@ -3,6 +3,7 @@ import { notFound } from "next/navigation";
 
 import { EnTeteDocument, PiedDocument } from "@/components/impression/entete-document";
 import { BoutonImprimer } from "@/components/ui/bouton-imprimer";
+import { BoutonRetour } from "@/components/ui/bouton-retour";
 import { exigerEntreprise } from "@/lib/auth/dal";
 import { peut } from "@/lib/droits/garde";
 import { fmt, fmtDateIso } from "@/lib/format";
@@ -29,7 +30,8 @@ export default async function ImpressionOrdreVirement({ params }: { params: Prom
 
   return (
     <main className="min-h-dvh bg-[var(--fond)] py-6 print:bg-white print:py-0">
-      <div className="mx-auto mb-4 flex max-w-[210mm] justify-end gap-3 px-4 print:hidden">
+      <div className="mx-auto mb-4 flex max-w-[210mm] flex-wrap items-center justify-between gap-3 px-4 print:hidden">
+        <BoutonRetour href="/tresorerie/mouvements" />
         <BoutonImprimer />
       </div>
       <article className="mx-auto max-w-[210mm] bg-white px-[14mm] py-[12mm] text-[10.5pt] leading-snug text-black shadow print:shadow-none">

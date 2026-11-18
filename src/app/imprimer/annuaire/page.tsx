@@ -1,11 +1,11 @@
 import type { Metadata } from "next";
-import Link from "next/link";
 import { notFound } from "next/navigation";
 
 import { AccesRefuse } from "@/components/coque/acces-refuse";
 import { EnTeteDocument, PiedDocument } from "@/components/impression/entete-document";
 import { ApercuA4, FeuilleA4 } from "@/components/impression/feuille-a4";
 import { BoutonImprimer } from "@/components/ui/bouton-imprimer";
+import { BoutonRetour } from "@/components/ui/bouton-retour";
 import { tracer } from "@/lib/audit";
 import { identiteEntreprise } from "@/lib/identite";
 import { moduleOuvert } from "@/lib/modules/garde";
@@ -44,9 +44,9 @@ export default async function ImpressionAnnuaire({ searchParams }: { searchParam
   return (
     <main className="min-h-dvh bg-[var(--fond)] py-6 print:bg-white print:py-0">
       <div className="mx-auto mb-4 flex max-w-[210mm] items-center justify-between gap-3 px-4 print:hidden">
-        <Link href={retour} className="text-sm text-[var(--encre-douce)] hover:underline">
-          ← Contacts
-        </Link>
+        <BoutonRetour href={retour}>
+          Contacts
+        </BoutonRetour>
         <BoutonImprimer />
       </div>
       <ApercuA4>

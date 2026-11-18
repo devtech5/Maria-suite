@@ -1,11 +1,11 @@
 import type { Metadata } from "next";
-import Link from "next/link";
 import { notFound } from "next/navigation";
 
 import { AccesRefuse } from "@/components/coque/acces-refuse";
 import { EnTeteDocument, PiedDocument } from "@/components/impression/entete-document";
 import { ApercuA4, FeuilleA4 } from "@/components/impression/feuille-a4";
 import { BoutonImprimer } from "@/components/ui/bouton-imprimer";
+import { BoutonRetour } from "@/components/ui/bouton-retour";
 import { exigerEntreprise } from "@/lib/auth/dal";
 import { peut } from "@/lib/droits/garde";
 import { identiteEntreprise } from "@/lib/identite";
@@ -48,7 +48,7 @@ export default async function FicheBesoinsMateriel({ searchParams }: { searchPar
   const [identite, fiche] = await Promise.all([identiteEntreprise(org), idProjet ? ficheProjet(org, idProjet) : Promise.resolve(null)]);
   const projet = fiche?.projet ?? null;
   const chantier = projet ? [projet.code, projet.nom].filter(Boolean).join(" — ") : "";
-  const retour = projet ? { href: `/projets/${projet.id}`, libelle: "← Projet" } : achats ? { href: "/achats", libelle: "← Achats" } : { href: "/projets", libelle: "← Projets" };
+  const retour = projet ? { href: `/projets/${projet.id}`, libelle: "Projet" } : achats ? { href: "/achats", libelle: "Achats" } : { href: "/projets", libelle: "Projets" };
 
   const cellule = "border border-black/40 px-[2mm] align-middle";
   const champ = "inline-block min-w-[50mm] border-b border-dotted border-black/50 align-bottom";
@@ -56,9 +56,9 @@ export default async function FicheBesoinsMateriel({ searchParams }: { searchPar
   return (
     <main className="min-h-dvh bg-[var(--fond)] py-6 print:bg-white print:py-0">
       <div className="mx-auto mb-4 flex max-w-[210mm] items-center justify-between gap-3 px-4 print:hidden">
-        <Link href={retour.href} className="text-sm text-[var(--encre-douce)] hover:underline">
+        <BoutonRetour href={retour.href}>
           {retour.libelle}
-        </Link>
+        </BoutonRetour>
         <BoutonImprimer />
       </div>
       <ApercuA4>

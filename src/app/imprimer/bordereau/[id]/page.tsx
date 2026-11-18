@@ -1,11 +1,11 @@
 import type { Metadata } from "next";
-import Link from "next/link";
 import { notFound } from "next/navigation";
 
 import { EnTeteDocument, PiedDocument } from "@/components/impression/entete-document";
 import { ApercuA4, FeuilleA4 } from "@/components/impression/feuille-a4";
 import { trajet } from "@/components/transmissions/liste-transmissions";
 import { BoutonImprimer } from "@/components/ui/bouton-imprimer";
+import { BoutonRetour } from "@/components/ui/bouton-retour";
 import { Qr } from "@/components/visiteurs/qr";
 import { identiteEntreprise } from "@/lib/identite";
 import { urlAbsolue } from "@/lib/liens-publics";
@@ -37,9 +37,9 @@ export default async function ImpressionBordereau({ params }: { params: Promise<
   return (
     <main className="min-h-dvh bg-[var(--fond)] py-6 print:bg-white print:py-0">
       <div className="mx-auto mb-4 flex max-w-[210mm] items-center justify-between gap-3 px-4 print:hidden">
-        <Link href={`/transmissions/${t.id}`} className="text-sm text-[var(--encre-douce)] hover:underline">
-          ← {t.numero}
-        </Link>
+        <BoutonRetour href={`/transmissions/${t.id}`}>
+          {t.numero}
+        </BoutonRetour>
         <BoutonImprimer />
       </div>
       <ApercuA4>

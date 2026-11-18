@@ -1,11 +1,11 @@
 import type { Metadata } from "next";
-import Link from "next/link";
 import { notFound } from "next/navigation";
 
 import { AccesRefuse } from "@/components/coque/acces-refuse";
 import { EnTeteDocument, PiedDocument } from "@/components/impression/entete-document";
 import { ApercuA4, FeuilleA4 } from "@/components/impression/feuille-a4";
 import { BoutonImprimer } from "@/components/ui/bouton-imprimer";
+import { BoutonRetour } from "@/components/ui/bouton-retour";
 import { identiteEntreprise } from "@/lib/identite";
 import { moduleOuvert } from "@/lib/modules/garde";
 import { accesVisiteurs } from "@/modules/visiteurs/acces";
@@ -47,9 +47,9 @@ export default async function FichePresenceVisiteurs({ searchParams }: { searchP
   return (
     <main className="min-h-dvh bg-[var(--fond)] py-6 print:bg-white print:py-0">
       <div className="mx-auto mb-4 flex max-w-[297mm] items-center justify-between gap-3 px-4 print:hidden">
-        <Link href={accueil ? `/visiteurs?accueil=${accueil.id}` : "/visiteurs"} className="text-sm text-[var(--encre-douce)] hover:underline">
-          ← Visiteurs
-        </Link>
+        <BoutonRetour href={accueil ? `/visiteurs?accueil=${accueil.id}` : "/visiteurs"}>
+          Visiteurs
+        </BoutonRetour>
         <BoutonImprimer />
       </div>
       <ApercuA4>

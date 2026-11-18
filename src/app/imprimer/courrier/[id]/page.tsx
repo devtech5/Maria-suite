@@ -1,10 +1,10 @@
 import type { Metadata } from "next";
-import Link from "next/link";
 import { notFound } from "next/navigation";
 
 import { CourrierDocument } from "@/components/impression/courrier-document";
 import { ApercuA4 } from "@/components/impression/feuille-a4";
 import { BoutonImprimer } from "@/components/ui/bouton-imprimer";
+import { BoutonRetour } from "@/components/ui/bouton-retour";
 import { exigerEntreprise } from "@/lib/auth/dal";
 import { peut } from "@/lib/droits/garde";
 import { identiteEntreprise } from "@/lib/identite";
@@ -30,9 +30,9 @@ export default async function ImpressionCourrier({ params }: { params: Promise<{
   return (
     <main className="min-h-dvh bg-[var(--fond)] py-6 print:bg-white print:py-0">
       <div className="mx-auto mb-4 flex max-w-[210mm] items-center justify-between gap-3 px-4 print:hidden">
-        <Link href={`/documents/courriers/${courrier.id}`} className="text-sm text-[var(--encre-douce)] hover:underline">
-          ← {courrier.numero}
-        </Link>
+        <BoutonRetour href={`/documents/courriers/${courrier.id}`}>
+          {courrier.numero}
+        </BoutonRetour>
         <BoutonImprimer />
       </div>
       <ApercuA4>

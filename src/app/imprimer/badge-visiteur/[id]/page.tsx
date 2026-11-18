@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 
 import { BoutonImprimer } from "@/components/ui/bouton-imprimer";
+import { BoutonRetour } from "@/components/ui/bouton-retour";
 import { Qr } from "@/components/visiteurs/qr";
 import { urlAbsolue } from "@/lib/liens-publics";
 import { accesVisiteurs } from "@/modules/visiteurs/acces";
@@ -27,7 +28,8 @@ export default async function BadgeVisiteur({ params }: { params: Promise<{ id: 
   return (
     <main className="min-h-dvh bg-[var(--fond)] py-6 print:bg-white print:py-0">
       <style>{"@page { size: 85.6mm 54mm; margin: 0 } @media print { body { margin: 0 } }"}</style>
-      <div className="mx-auto mb-4 flex w-[85.6mm] justify-end print:hidden">
+      <div className="mx-auto mb-4 flex w-[85.6mm] flex-wrap items-center justify-between gap-3 print:hidden">
+        <BoutonRetour href="/visiteurs" />
         <BoutonImprimer />
       </div>
       <article className="mx-auto flex h-[54mm] w-[85.6mm] overflow-hidden rounded-[3mm] border border-[var(--filet)] bg-white text-black shadow-md print:rounded-none print:border-0 print:shadow-none">
