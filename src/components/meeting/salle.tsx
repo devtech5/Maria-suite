@@ -4,6 +4,7 @@ import { useCallback, useEffect, useRef, useState, type ReactNode } from "react"
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 
+import { confirmer } from "@/components/ui/dialogues";
 import { ecrireEnSalle, entrerDansLaSalle, quitterLaSalle, reagirEnSalle, signalerPresence, terminerDepuisLaSalle, type Jetons } from "@/modules/meeting/actions";
 import { PAS_SIGNAL_MS, REACTIONS, REACTION_MS, adresseFlux, cheminFlux, colonnesMosaique, lienDeSalle } from "@/modules/meeting/calcul";
 import type { MessageSalle, ParticipantVue } from "@/modules/meeting/requetes";
@@ -742,7 +743,7 @@ function SalleOuverte({
   };
 
   const terminer = async () => {
-    if (!confirm("Terminer la réunion pour tous les participants ?")) return;
+    if (!(await confirmer("Terminer la réunion pour tous les participants ?"))) return;
     arreterEcran();
     await terminerDepuisLaSalle(reunionId);
     routeur.push(`/meeting/${reunionId}`);

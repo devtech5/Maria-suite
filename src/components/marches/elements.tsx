@@ -4,6 +4,7 @@ import { useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 
 import { BoutonApercu } from "@/components/ui/apercu";
+import { confirmer, saisir } from "@/components/ui/dialogues";
 import type { Resultat } from "@/components/ui/operations";
 import { CLASSE_CHAMP } from "@/components/ui/primitives";
 import { ajouterPieceDossier, cocherPiece, inviter, joindrePiece, ouvrirFichier, retirerPieceDossier } from "@/modules/marches/actions";
@@ -72,13 +73,13 @@ export function BoutonGeste({
       <button
         type="button"
         disabled={a.enCours}
-        onClick={() => {
+        onClick={async () => {
           let saisi: string | undefined;
           if (motif) {
-            const r = window.prompt(motif);
+            const r = await saisir({ titre: motif, libelle: "Motif", action: libelle });
             if (!r) return;
             saisi = r;
-          } else if (confirmation && !window.confirm(confirmation)) return;
+          } else if (confirmation && !(await confirmer(confirmation))) return;
           a.lancer(() => action(saisi));
         }}
         className={`h-9 rounded-lg border px-3 text-sm font-medium disabled:opacity-50 ${classe}`}
@@ -135,7 +136,7 @@ export function PieceDossier({
               }}
             />
           </label>
-          <button type="button" disabled={a.enCours} onClick={() => window.confirm(`Retirer « ${libelle} » du dossier ?`) && a.lancer(() => retirerPieceDossier(id))} className="text-xs text-danger-600 hover:underline">
+          <button type="button" disabled={a.enCours} onClick={async () => (await confirmer(`Retirer « ${libelle} » du dossier ?`)) && a.lancer(() => retirerPieceDossier(id))} className="text-xs text-danger-600 hover:underline">
             Retirer
           </button>
         </>

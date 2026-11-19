@@ -6,6 +6,7 @@ import { useRouter } from "next/navigation";
 import { BoutonApercu } from "@/components/ui/apercu";
 import { Avatar } from "@/components/ui/courrier";
 import { BlocContact, BlocEvenement, BlocSondage, FenetreContact, FenetreEvenement, FenetreSondage, MenuJoindre, type GenreAJoindre } from "./joindre";
+import { confirmer } from "@/components/ui/dialogues";
 import {
   actualiser,
   ajouterAuGroupe,
@@ -1147,9 +1148,9 @@ function Bulle({ message, mien, groupe, suite, recharger, ecrireAContact }: { me
               <button
                 type="button"
                 className="block w-full px-3 py-2 text-left text-danger-600 hover:bg-[var(--surface-creuse)]"
-                onClick={() => {
+                onClick={async () => {
                   setMenu(false);
-                  if (!window.confirm("Supprimer ce message pour tout le monde ?")) return;
+                  if (!(await confirmer("Supprimer ce message pour tout le monde ?"))) return;
                   demarrer(async () => {
                     const r = await supprimerMessage(message.id);
                     if (r.ok) setEfface(true);
@@ -1301,7 +1302,7 @@ function GestionGroupe({
           ))}
         </ul>
       </div>
-      <button type="button" disabled={enCours} onClick={() => window.confirm("Quitter ce groupe ?") && agir(() => retirerDuGroupe(conversation.id, moi))} className="flex items-center gap-2 font-medium text-danger-600 hover:underline">
+      <button type="button" disabled={enCours} onClick={async () => (await confirmer("Quitter ce groupe ?")) && agir(() => retirerDuGroupe(conversation.id, moi))} className="flex items-center gap-2 font-medium text-danger-600 hover:underline">
         Quitter le groupe
       </button>
       {message && <p className="text-xs text-[var(--encre-douce)]">{message}</p>}

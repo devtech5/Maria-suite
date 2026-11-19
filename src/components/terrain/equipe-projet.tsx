@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 
+import { confirmer } from "@/components/ui/dialogues";
 import { FormulaireRepliable, Retour, useOperation } from "@/components/ui/operations";
 import { CLASSE_CHAMP, CLASSE_CHAMP_COMPACT, Champ, Pastille } from "@/components/ui/primitives";
 import { changerRoleMembre, confierMembre, retirerMembre } from "@/modules/projets/terrain-actions";
@@ -98,7 +99,7 @@ function LigneMembre({ projetId, m, peutGerer }: { projetId: string; m: MembreAf
         <button
           type="button"
           disabled={op.enCours}
-          onClick={() => window.confirm(`Retirer ${m.nom} du projet ? Ses relevés restent.`) && op.lancer(() => retirerMembre(projetId, m.id))}
+          onClick={async () => (await confirmer(`Retirer ${m.nom} du projet ? Ses relevés restent.`)) && op.lancer(() => retirerMembre(projetId, m.id))}
           className="text-xs font-semibold text-[var(--encre-faible)] hover:text-danger-600 hover:underline"
         >
           Retirer

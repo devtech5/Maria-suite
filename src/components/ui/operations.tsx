@@ -3,6 +3,7 @@
 import { useState, useTransition, type ReactNode } from "react";
 import { useRouter } from "next/navigation";
 
+import { confirmer } from "./dialogues";
 import { Fenetre, type Presentation } from "./fenetre";
 
 /**
@@ -68,8 +69,8 @@ export function FormulaireRepliable({
     setModifie(false);
   };
 
-  const abandonner = () => {
-    if (modifie && !window.confirm("Abandonner la saisie en cours ?")) return;
+  const abandonner = async () => {
+    if (modifie && !(await confirmer("Abandonner la saisie en cours ?"))) return;
     vider();
     setResultat(null);
     setOuvert(false);

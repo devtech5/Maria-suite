@@ -17,6 +17,7 @@ import {
   type NomIcone,
 } from "@/components/ui/courrier";
 import { useApercu } from "@/components/ui/apercu";
+import { confirmer } from "@/components/ui/dialogues";
 import { CLASSE_CHAMP_COMPACT } from "@/components/ui/primitives";
 import {
   archiverMessage,
@@ -327,8 +328,8 @@ export function BoiteMail({ adresse, signature }: { adresse: string; signature: 
           </ul>
           <button
             type="button"
-            onClick={() => {
-              if (!window.confirm("Déconnecter cette boîte ? Le mot de passe enregistré sera effacé ; vos e-mails restent chez votre fournisseur.")) return;
+            onClick={async () => {
+              if (!(await confirmer("Déconnecter cette boîte ? Le mot de passe enregistré sera effacé ; vos e-mails restent chez votre fournisseur."))) return;
               demarrer(async () => {
                 await deconnecterBoite();
                 routeur.refresh();

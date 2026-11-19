@@ -4,6 +4,7 @@ import { useState, useTransition } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 
+import { confirmer } from "@/components/ui/dialogues";
 import { FormulaireRepliable, Retour, type Resultat } from "@/components/ui/operations";
 import { CLASSE_CHAMP, Pastille, type TonPastille } from "@/components/ui/primitives";
 import { fmt } from "@/lib/format";
@@ -149,8 +150,8 @@ export function ListeCommandes({
                     <button
                       type="button"
                       disabled={enCours}
-                      onClick={() => {
-                        if (window.confirm(`Annuler le bon ${c.numero} ?`)) lancer(() => annulerCommandeInterne(c.id));
+                      onClick={async () => {
+                        if (await confirmer(`Annuler le bon ${c.numero} ?`)) lancer(() => annulerCommandeInterne(c.id));
                       }}
                       className="rounded-lg px-2.5 py-1.5 text-xs font-semibold text-[var(--encre-faible)] hover:bg-[var(--surface-creuse)] disabled:opacity-50"
                     >
@@ -161,8 +162,8 @@ export function ListeCommandes({
                     <button
                       type="button"
                       disabled={enCours}
-                      onClick={() => {
-                        if (window.confirm(`Supprimer le bon ${c.numero} ? Il disparaîtra de la liste ; son numéro ne sera pas réattribué.`)) {
+                      onClick={async () => {
+                        if (await confirmer(`Supprimer le bon ${c.numero} ? Il disparaîtra de la liste ; son numéro ne sera pas réattribué.`)) {
                           lancer(() => supprimerCommandeInterne(c.id));
                         }
                       }}

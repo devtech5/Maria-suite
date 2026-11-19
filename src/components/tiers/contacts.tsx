@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 
+import { confirmer } from "@/components/ui/dialogues";
 import { Retour, useOperation } from "@/components/ui/operations";
 import { CLASSE_CHAMP_COMPACT } from "@/components/ui/primitives";
 import { enregistrerContact, retirerContact } from "@/modules/tiers/actions-contacts";
@@ -63,7 +64,7 @@ export function ContactsTiers({ tiersId, contacts, modifiable }: { tiersId: stri
                 <button
                   type="button"
                   disabled={op.enCours}
-                  onClick={() => window.confirm(`Retirer ${c.nom} des contacts ?`) && op.lancer(() => retirerContact(c.id))}
+                  onClick={async () => (await confirmer(`Retirer ${c.nom} des contacts ?`)) && op.lancer(() => retirerContact(c.id))}
                   className="text-[var(--encre-faible)] hover:underline"
                 >
                   Retirer

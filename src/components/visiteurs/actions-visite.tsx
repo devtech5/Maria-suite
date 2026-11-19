@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 
+import { confirmer } from "@/components/ui/dialogues";
 import { Retour, useOperation } from "@/components/ui/operations";
 import { annulerVisite, enregistrerSortie, renvoyerQr } from "@/modules/visiteurs/actions";
 
@@ -37,7 +38,7 @@ export function ActionsVisite({ id, statut, accueillir, telephone }: { id: strin
             <button
               type="button"
               disabled={op.enCours}
-              onClick={() => window.confirm("Annuler ce rendez-vous ?") && op.lancer(() => annulerVisite(id))}
+              onClick={async () => (await confirmer("Annuler ce rendez-vous ?")) && op.lancer(() => annulerVisite(id))}
               className={`${bouton} text-danger-600 hover:underline`}
             >
               Annuler

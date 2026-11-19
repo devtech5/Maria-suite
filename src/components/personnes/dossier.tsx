@@ -6,6 +6,7 @@ import { useRouter } from "next/navigation";
 import { ChoixPostes } from "@/components/personnes/choix-postes";
 import { Portrait, reduirePhoto } from "@/components/personnes/photo";
 import { useApercu } from "@/components/ui/apercu";
+import { confirmer } from "@/components/ui/dialogues";
 import { Retour, useOperation, type Resultat } from "@/components/ui/operations";
 import { CLASSE_CHAMP, Champ, Pastille, type TonPastille } from "@/components/ui/primitives";
 import { CIVILITES, LIENS_URGENCE, PAIEMENTS_SALAIRE } from "@/modules/personnes/calcul";
@@ -72,8 +73,8 @@ export function ListePieces({ pieces, peutGerer }: { pieces: PieceAffichee[]; pe
     apercu.ouvrir({ titre, nomFichier: p.nomFichier, signer: () => ouvrirPiece(p.id) });
   }
 
-  function retirer(id: string, libelle: string) {
-    if (!window.confirm(`Retirer « ${libelle} » du dossier ? Le fichier sera effacé.`)) return;
+  async function retirer(id: string, libelle: string) {
+    if (!(await confirmer(`Retirer « ${libelle} » du dossier ? Le fichier sera effacé.`))) return;
     setResultat(null);
     demarrer(async () => {
       const r = await retirerPiece(id);

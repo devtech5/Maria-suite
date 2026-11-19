@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 
+import { confirmer } from "@/components/ui/dialogues";
 import { Fenetre } from "@/components/ui/fenetre";
 import { Retour, useOperation, FormulaireRepliable } from "@/components/ui/operations";
 import { CLASSE_CHAMP, Champ } from "@/components/ui/primitives";
@@ -81,8 +82,8 @@ export function ActionsAdresse({ adresse: a, choix }: { adresse: LigneAdresse; c
       <button
         type="button"
         disabled={op.enCours}
-        onClick={() => {
-          if (window.confirm(`Retirer ${a.adresse} de l'annuaire ?`)) op.lancer(() => retirerAdresse(a.id));
+        onClick={async () => {
+          if (await confirmer(`Retirer ${a.adresse} de l'annuaire ?`)) op.lancer(() => retirerAdresse(a.id));
         }}
         className="text-sm font-semibold text-danger-600 hover:underline disabled:opacity-50"
       >

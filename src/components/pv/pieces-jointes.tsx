@@ -3,6 +3,7 @@
 import { useRef, useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 
+import { confirmer } from "@/components/ui/dialogues";
 import { Retour, type Resultat } from "@/components/ui/operations";
 import { joindrePiece, ouvrirPiece, retirerPiece } from "@/modules/pv/actions";
 import { PIECES_MAX } from "@/modules/pv/regles";
@@ -126,8 +127,8 @@ export function PiecesJointesPv({ pvId, pieces, modifiables }: { pvId: string; p
                 <button
                   type="button"
                   disabled={enCours}
-                  onClick={() => {
-                    if (window.confirm(`Retirer « ${p.nom} » ?`)) lancer(() => retirerPiece(p.id));
+                  onClick={async () => {
+                    if (await confirmer(`Retirer « ${p.nom} » ?`)) lancer(() => retirerPiece(p.id));
                   }}
                   aria-label={`Retirer ${p.nom}`}
                   className="rounded-md px-2 py-1 text-xs text-[var(--encre-faible)] hover:bg-danger-50 hover:text-danger-600 disabled:opacity-50"

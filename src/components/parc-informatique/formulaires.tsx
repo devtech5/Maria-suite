@@ -3,6 +3,7 @@
 import { useRef, useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 
+import { confirmer } from "@/components/ui/dialogues";
 import { Retour, useOperation, type Resultat } from "@/components/ui/operations";
 import { CLASSE_CHAMP, Champ } from "@/components/ui/primitives";
 import {
@@ -318,7 +319,7 @@ export function RetirerLicence({ id, logiciel }: { id: string; logiciel: string 
       <button
         type="button"
         disabled={a.enCours}
-        onClick={() => window.confirm(`Retirer la licence ${logiciel} ? Ses installations tombent avec elle.`) && a.lancer(() => retirerLicence(id))}
+        onClick={async () => (await confirmer(`Retirer la licence ${logiciel} ? Ses installations tombent avec elle.`)) && a.lancer(() => retirerLicence(id))}
         className="text-xs text-danger-600 hover:underline"
       >
         Retirer

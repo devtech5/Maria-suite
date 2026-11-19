@@ -3,6 +3,7 @@
 import { useEffect, useRef, useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 
+import { confirmer } from "@/components/ui/dialogues";
 import { Retour, useOperation, type Resultat } from "@/components/ui/operations";
 import { CLASSE_CHAMP, Champ } from "@/components/ui/primitives";
 import { apercuCampagne, creerCampagne, envoyerCampagne, supprimerBrouillon } from "@/modules/communication/actions";
@@ -161,7 +162,7 @@ export function ActionsBrouillon({ id, titre }: { id: string; titre: string }) {
       <button
         type="button"
         disabled={enCours}
-        onClick={() => window.confirm(`Supprimer le brouillon « ${titre} » ?`) && agir(() => supprimerBrouillon(id))}
+        onClick={async () => (await confirmer(`Supprimer le brouillon « ${titre} » ?`)) && agir(() => supprimerBrouillon(id))}
         className="h-9 rounded-lg px-3 text-sm text-danger-600 hover:bg-danger-50"
       >
         Supprimer
@@ -169,7 +170,7 @@ export function ActionsBrouillon({ id, titre }: { id: string; titre: string }) {
       <button
         type="button"
         disabled={enCours}
-        onClick={() => window.confirm(`Envoyer « ${titre} » maintenant ? Un envoi ne se rattrape pas.`) && agir(() => envoyerCampagne(id))}
+        onClick={async () => (await confirmer(`Envoyer « ${titre} » maintenant ? Un envoi ne se rattrape pas.`)) && agir(() => envoyerCampagne(id))}
         className="h-9 rounded-lg bg-marque-500 px-4 text-sm font-semibold text-white disabled:opacity-50"
       >
         {enCours ? "Envoi…" : "Envoyer"}

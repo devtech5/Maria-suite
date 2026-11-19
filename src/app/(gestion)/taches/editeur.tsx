@@ -3,6 +3,7 @@
 import { useRef, useState, useTransition, type ReactNode } from "react";
 import { useRouter } from "next/navigation";
 
+import { saisir } from "@/components/ui/dialogues";
 import { Retour, type Resultat } from "@/components/ui/operations";
 import { joindreFichierTache, publierMessage } from "@/modules/taches/actions";
 import { FICHIER_MAX_OCTETS, MESSAGE_MAX, TYPES_FICHIER } from "@/modules/taches/suivi-regles";
@@ -34,7 +35,7 @@ function Dessin({ nom }: { nom: string }) {
 }
 
 /** Un bouton de la barre d'outils : il ne prend pas le focus, la sélection du texte reste. */
-function Bouton({ titre, action, actif = false, desactive = false, large = false, children }: { titre: string; action: () => void; actif?: boolean; desactive?: boolean; large?: boolean; children: ReactNode }) {
+function Bouton({ titre, action, actif = false, desactive = false, large = false, children }: { titre: string; action: () => void | Promise<void>; actif?: boolean; desactive?: boolean; large?: boolean; children: ReactNode }) {
   return (
     <button
       type="button"
@@ -166,8 +167,8 @@ export function Editeur({ t, relire }: { t: TacheAffichee; relire: () => void })
         <Bouton
           titre="Lien"
           desactive={apercu}
-          action={() => {
-            const adresse = window.prompt("Adresse du lien (https://…)");
+          action={async () => {
+            const adresse = await saisir({ titre: "Insérer un lien", libelle: "Adresse du lien", placeholder: "https://…", type: "url", action: "Insérer" });
             if (adresse) inserer(/^https?:\/\//i.test(adresse) ? adresse : `https://${adresse}`);
           }}
         >
