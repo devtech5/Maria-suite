@@ -4,6 +4,7 @@ import { useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 
+import { confirmer } from "@/components/ui/dialogues";
 import { Retour, useOperation } from "@/components/ui/operations";
 import { Champ, CLASSE_CHAMP, CLASSE_CHAMP_COMPACT } from "@/components/ui/primitives";
 import { enregistrerCreneau, enregistrerHoraires, poserStatut, supprimerCreneau, terminerStatut } from "@/modules/planning/actions";
@@ -515,7 +516,7 @@ function FormulaireCreneau({ edition, pourUserId, fermer }: { edition: Edition; 
           <button
             type="button"
             disabled={enCours}
-            onClick={() => window.confirm("Supprimer ce créneau ?") && lancer(() => supprimerCreneau(c.id), fermer)}
+            onClick={async () => (await confirmer("Supprimer ce créneau ?")) && lancer(() => supprimerCreneau(c.id), fermer)}
             className="h-cible rounded-lg px-3.5 text-sm font-medium text-danger-600 hover:bg-danger-50 disabled:opacity-50"
           >
             Supprimer

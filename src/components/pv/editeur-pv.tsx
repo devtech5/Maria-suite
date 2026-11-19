@@ -4,6 +4,7 @@ import { useState, useTransition, type ReactNode } from "react";
 import { useRouter } from "next/navigation";
 
 import { ApercuA4 } from "@/components/impression/feuille-a4";
+import { confirmer, saisir } from "@/components/ui/dialogues";
 import { Retour, type Resultat } from "@/components/ui/operations";
 import { CLASSE_CHAMP } from "@/components/ui/primitives";
 import { correspond } from "@/lib/recherche";
@@ -527,8 +528,8 @@ export function EditeurPv({
             <button
               type="button"
               disabled={enCours}
-              onClick={() => {
-                if (window.confirm("Supprimer ce brouillon ?")) lancer(() => supprimerPv(pvId));
+              onClick={async () => {
+                if (await confirmer("Supprimer ce brouillon ?")) lancer(() => supprimerPv(pvId));
               }}
               className="h-cible rounded-lg px-3 text-sm font-semibold text-danger-600 hover:bg-danger-50 disabled:opacity-50"
             >
@@ -539,8 +540,8 @@ export function EditeurPv({
             <button
               type="button"
               disabled={enCours}
-              onClick={() => {
-                const remarque = window.prompt("Remarque au rédacteur : ce qu'il faut reprendre");
+              onClick={async () => {
+                const remarque = await saisir({ titre: "Renvoyer au rédacteur", libelle: "Ce qu'il faut reprendre", minimum: 3, action: "Renvoyer" });
                 if (remarque && remarque.trim().length >= 3) lancer(() => renvoyerPv(pvId, remarque));
               }}
               className="h-cible rounded-lg border border-[var(--filet)] px-3 text-sm font-semibold hover:bg-[var(--surface-creuse)] disabled:opacity-50"
@@ -555,8 +556,8 @@ export function EditeurPv({
             <button
               type="button"
               disabled={enCours || manque !== null}
-              onClick={() => {
-                if (window.confirm(`Publier ? Le texte sera figé, numéroté et diffusé à environ ${nombreLecteurs} personne${nombreLecteurs > 1 ? "s" : ""}.`)) lancer(() => publierPv(pvId, saisie));
+              onClick={async () => {
+                if (await confirmer(`Publier ? Le texte sera figé, numéroté et diffusé à environ ${nombreLecteurs} personne${nombreLecteurs > 1 ? "s" : ""}.`)) lancer(() => publierPv(pvId, saisie));
               }}
               className="h-cible rounded-lg bg-valide-500 px-4 text-sm font-semibold text-white hover:opacity-90 disabled:opacity-50"
             >

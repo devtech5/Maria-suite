@@ -2,6 +2,7 @@
 
 import { useState, useTransition } from "react";
 
+import { saisir } from "@/components/ui/dialogues";
 import { lienQr } from "@/modules/visiteurs/actions";
 
 /** Copie le lien du QR d'entrée, pour l'envoyer soi-même (SMS, e-mail). */
@@ -21,7 +22,7 @@ export function CopierLienQr({ visiteId }: { visiteId: string }) {
               await navigator.clipboard.writeText(lien);
               setEtat("Lien copié.");
             } catch {
-              window.prompt("Copiez le lien du QR :", lien);
+              await saisir({ titre: "Copiez le lien du QR", valeur: lien, lectureSeule: true });
             }
           })
         }

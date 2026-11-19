@@ -1,5 +1,6 @@
 "use client";
 
+import { saisir } from "@/components/ui/dialogues";
 import { Retour, useOperation } from "@/components/ui/operations";
 import { Pastille, Tableau, Td, Th } from "@/components/ui/primitives";
 import { fmt } from "@/lib/format";
@@ -117,8 +118,13 @@ export function Releve({
                         <button
                           type="button"
                           disabled={enCours}
-                          onClick={() => {
-                            const motif = prompt(`Annuler ${m.numero} ? L'écriture sera contre-passée. Motif :`);
+                          onClick={async () => {
+                            const motif = await saisir({
+                              titre: `Annuler ${m.numero} ?`,
+                              detail: "L'écriture sera contre-passée.",
+                              libelle: "Motif",
+                              action: "Annuler l'écriture",
+                            });
                             if (motif) lancer(() => annulerMouvement(m.id, motif));
                           }}
                           className="rounded-lg px-2 py-1 text-xs font-semibold text-danger-600 hover:bg-danger-50 disabled:opacity-50"

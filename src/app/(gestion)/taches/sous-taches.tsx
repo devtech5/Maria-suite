@@ -2,6 +2,7 @@
 
 import { useRef, useState } from "react";
 
+import { confirmer } from "@/components/ui/dialogues";
 import { ajouterSousTache, cocherSousTache, modifierSousTache, supprimerSousTache } from "@/modules/taches/actions";
 import { estClose } from "@/modules/taches/vues";
 import { avancement, TITRE_SOUS_TACHE_MAX } from "@/modules/taches/suivi-regles";
@@ -212,8 +213,8 @@ function Ligne({ t, st, ecrit }: { t: TacheAffichee; st: SousTacheAffichee; ecri
         <button
           type="button"
           disabled={enCours}
-          onClick={() => {
-            if (window.confirm(`Retirer la sous-tâche « ${st.titre} » ?`)) lancer(() => supprimerSousTache(st.id));
+          onClick={async () => {
+            if (await confirmer(`Retirer la sous-tâche « ${st.titre} » ?`)) lancer(() => supprimerSousTache(st.id));
           }}
           aria-label={`Retirer « ${st.titre} »`}
           className="grid size-7 shrink-0 place-items-center rounded-md text-[var(--encre-faible)] opacity-60 hover:bg-danger-50 hover:text-danger-600 group-hover:opacity-100"

@@ -3,6 +3,7 @@
 import { useState } from "react";
 
 import { BoutonApercu } from "@/components/ui/apercu";
+import { confirmer } from "@/components/ui/dialogues";
 import { PrisePhoto } from "@/components/ui/prise-photo";
 import { Retour, useOperation, type Resultat } from "@/components/ui/operations";
 import { CLASSE_CHAMP, Champ } from "@/components/ui/primitives";
@@ -130,7 +131,7 @@ export function Annuler({ id }: { id: string }) {
   const op = useOperation();
   return (
     <div className="flex flex-col items-end">
-      <button type="button" disabled={op.enCours} onClick={() => window.confirm("Annuler ce bordereau ?") && op.lancer(() => annuler(id))} className="text-sm font-semibold text-danger-600 hover:underline">
+      <button type="button" disabled={op.enCours} onClick={async () => (await confirmer("Annuler ce bordereau ?")) && op.lancer(() => annuler(id))} className="text-sm font-semibold text-danger-600 hover:underline">
         Annuler le bordereau
       </button>
       <Retour resultat={op.resultat} />

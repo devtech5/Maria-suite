@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import { agirSurFiche } from "@/lib/fiches/actions";
 import { FICHES, type Geste, type TypeFiche } from "@/lib/fiches/registre";
 
+import { confirmer } from "./dialogues";
 import { Retour, useOperation } from "./operations";
 
 /**
@@ -38,8 +39,8 @@ export function ActionsFiche({
   const avecOff = FICHES[type].actif && actif !== undefined && peutGerer;
   if (!avecOff && !peutSupprimer) return null;
 
-  function lancer(geste: Geste, question: string) {
-    if (!window.confirm(question)) return;
+  async function lancer(geste: Geste, question: string) {
+    if (!(await confirmer(question))) return;
     op.lancer(() => agirSurFiche(type, id, geste), () => {
       if (geste === "supprimer" && retour) routeur.push(retour);
     });

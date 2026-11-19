@@ -4,6 +4,7 @@ import { useRef, useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 
 import { ChoixOrigine } from "@/components/tiers/choix-origine";
+import { saisir } from "@/components/ui/dialogues";
 import { Fenetre } from "@/components/ui/fenetre";
 import { Retour, useOperation, type Resultat } from "@/components/ui/operations";
 import { CLASSE_CHAMP, Champ } from "@/components/ui/primitives";
@@ -324,8 +325,8 @@ export function ActionsPrestation({
           <button
             type="button"
             disabled={enCours}
-            onClick={() => {
-              const motif = window.prompt("Motif de l'annulation ?");
+            onClick={async () => {
+              const motif = await saisir({ titre: "Annuler la prestation ?", libelle: "Motif de l'annulation", action: "Annuler la prestation" });
               if (motif) agir(() => changerStatutPrestation(id, "annulee", motif));
             }}
             className={`${bouton} text-danger-600`}

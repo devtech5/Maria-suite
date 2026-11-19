@@ -3,6 +3,7 @@
 import { useEffect, useRef, useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 
+import { confirmer } from "@/components/ui/dialogues";
 import { Retour, type Resultat } from "@/components/ui/operations";
 import { CLASSE_CHAMP, Champ } from "@/components/ui/primitives";
 import { enregistrerBrouillon, importerReglement, publierVersion, supprimerBrouillon } from "@/modules/reglement/actions";
@@ -93,9 +94,9 @@ export function EditeurReglement({ brouillon, aujourdhui, precedente }: { brouil
     setModifie(true);
   };
 
-  const retirer = (cle: number) => {
+  const retirer = async (cle: number) => {
     const article = articles.find((a) => a.cle === cle);
-    if (article && (article.titre || article.texte) && !window.confirm("Retirer cet article ?")) return;
+    if (article && (article.titre || article.texte) && !(await confirmer("Retirer cet article ?"))) return;
     setArticles((liste) => liste.filter((a) => a.cle !== cle));
     setModifie(true);
   };
@@ -120,7 +121,7 @@ export function EditeurReglement({ brouillon, aujourdhui, precedente }: { brouil
       }
     });
 
-  const publier = () => {
+  const publier = async () => {
     const quand = dateEffet ? dateLongue(dateEffet) : null;
     const confirmation = quand
       ? `Publier la version ${(precedente ?? 0) + 1}, en vigueur le ${quand} ?\n\nSon texte ne se modifiera plus. Tout le monde en sera prévenu et devra l'accepter avant d'ouvrir le logiciel à partir de cette date.`
@@ -129,7 +130,7 @@ export function EditeurReglement({ brouillon, aujourdhui, precedente }: { brouil
       setResultat({ ok: false, message: confirmation });
       return;
     }
-    if (!window.confirm(confirmation)) return;
+    if (!(await confirmer(confirmation))) return;
     demarrer(async () => {
       const r = await publierVersion(brouillon.id, donnees());
       setResultat(r);
@@ -147,9 +148,9 @@ export function EditeurReglement({ brouillon, aujourdhui, precedente }: { brouil
    * Importer un règlement déposé en fichier : la plateforme en récupère le
    * titre, le préambule et les articles ; rien ne part en base avant « Enregistrer ».
    */
-  const importer = (choisi: File) => {
+  const importer = async (choisi: File) => {
     const contenu = Boolean(preambule.trim()) || articles.some((a) => a.titre.trim() || a.texte.trim());
-    if (contenu && !window.confirm("Remplacer le préambule et les articles actuels par ceux du fichier ?")) return;
+    if (contenu && !(await confirmer("Remplacer le préambule et les articles actuels par ceux du fichier ?"))) return;
     const d = new FormData();
     d.set("fichier", choisi);
     demarrer(async () => {
@@ -167,8 +168,8 @@ export function EditeurReglement({ brouillon, aujourdhui, precedente }: { brouil
     });
   };
 
-  const supprimer = () => {
-    if (!window.confirm("Supprimer ce brouillon ? La saisie sera perdue ; les versions publiées ne changent pas.")) return;
+  const supprimer = async () => {
+    if (!(await confirmer("Supprimer ce brouillon ? La saisie sera perdue ; les versions publiées ne changent pas."))) return;
     demarrer(async () => {
       const r = await supprimerBrouillon(brouillon.id);
       if (r.ok) {

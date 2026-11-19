@@ -4,6 +4,7 @@ import { useState, useTransition } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 
+import { confirmer } from "@/components/ui/dialogues";
 import { Retour, type Resultat } from "@/components/ui/operations";
 import { Pastille } from "@/components/ui/primitives";
 import { dateEnLettres } from "@/modules/documents/courriers-calcul";
@@ -139,8 +140,8 @@ export function SuiviPv({
           <button
             type="button"
             disabled={enCours}
-            onClick={() => {
-              if (window.confirm("Corriger ce procès-verbal ? Une nouvelle version s'ouvre en brouillon, sous le même numéro ; celle-ci reste lisible jusqu'à la publication de la suivante.")) lancer(() => reviserPv(pvId));
+            onClick={async () => {
+              if (await confirmer("Corriger ce procès-verbal ? Une nouvelle version s'ouvre en brouillon, sous le même numéro ; celle-ci reste lisible jusqu'à la publication de la suivante.")) lancer(() => reviserPv(pvId));
             }}
             className={bouton}
           >

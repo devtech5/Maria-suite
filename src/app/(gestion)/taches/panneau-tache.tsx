@@ -4,6 +4,7 @@ import { useEffect, useRef, useState, useTransition, type ReactNode } from "reac
 import { createPortal } from "react-dom";
 import { useRouter } from "next/navigation";
 
+import { avertir, confirmer } from "@/components/ui/dialogues";
 import { Retour, type Resultat } from "@/components/ui/operations";
 import {
   chargerSuivi,
@@ -235,8 +236,8 @@ function MisesAJour({ t, suivi, relire }: { t: TacheAffichee; suivi: SuiviTache 
                   <button
                     type="button"
                     disabled={enCours}
-                    onClick={() => {
-                      if (window.confirm("Retirer cette mise à jour ?")) lancer(() => retirerMessage(m.id));
+                    onClick={async () => {
+                      if (await confirmer("Retirer cette mise à jour ?")) lancer(() => retirerMessage(m.id));
                     }}
                     className="rounded-md px-2 py-1 text-xs text-[var(--encre-faible)] hover:bg-danger-50 hover:text-danger-600"
                   >
@@ -261,7 +262,7 @@ function Fichiers({ t, suivi, relire }: { t: TacheAffichee; suivi: SuiviTache | 
   const choix = useRef<HTMLInputElement>(null);
 
   const deposer = (fichier: File) => {
-    if (fichier.size > FICHIER_MAX_OCTETS) return window.alert("Fichier trop lourd : 10 Mo au plus.");
+    if (fichier.size > FICHIER_MAX_OCTETS) return void avertir("Fichier trop lourd : 10 Mo au plus.");
     const donnees = new FormData();
     donnees.set("tacheId", t.id);
     donnees.set("fichier", fichier);
@@ -334,8 +335,8 @@ function Fichiers({ t, suivi, relire }: { t: TacheAffichee; suivi: SuiviTache | 
                 <button
                   type="button"
                   disabled={enCours}
-                  onClick={() => {
-                    if (window.confirm(`Retirer « ${f.nom} » ?`)) lancer(() => retirerFichierTache(f.id));
+                  onClick={async () => {
+                    if (await confirmer(`Retirer « ${f.nom} » ?`)) lancer(() => retirerFichierTache(f.id));
                   }}
                   className="rounded-md px-2 py-1 text-xs text-[var(--encre-faible)] hover:bg-danger-50 hover:text-danger-600"
                 >

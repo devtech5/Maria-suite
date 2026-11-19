@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 
+import { confirmer } from "@/components/ui/dialogues";
 import { FormulaireRepliable, Retour, useOperation } from "@/components/ui/operations";
 import { CLASSE_CHAMP, CLASSE_CHAMP_COMPACT, Champ } from "@/components/ui/primitives";
 import { fmt } from "@/lib/format";
@@ -61,13 +62,14 @@ export function GestesBareme({ ligne }: { ligne: BaremeAffiche }) {
       <button
         type="button"
         disabled={op.enCours}
-        onClick={() =>
-          window.confirm(
+        onClick={async () => {
+          const ok = await confirmer(
             ligne.utilisations > 0
-              ? `« ${ligne.libelle} » a déjà servi ${ligne.utilisations} fois : elle sera retirée du barème, ses perdiem gardent leur montant. Continuer ?`
+              ? `Supprimer « ${ligne.libelle} » du barème ? Elle a déjà servi ${ligne.utilisations} fois : elle sera retirée du barème, ses perdiem gardent leur montant.`
               : `Supprimer « ${ligne.libelle} » du barème ?`,
-          ) && op.lancer(() => supprimerBareme(ligne.id))
-        }
+          );
+          if (ok) op.lancer(() => supprimerBareme(ligne.id));
+        }}
         className="text-xs font-semibold text-danger-600 hover:underline"
       >
         Supprimer

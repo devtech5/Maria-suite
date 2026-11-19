@@ -3,6 +3,7 @@
 import { useRef, useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 
+import { confirmer } from "@/components/ui/dialogues";
 import { Retour, useOperation, type Resultat } from "@/components/ui/operations";
 import { CLASSE_CHAMP, Champ } from "@/components/ui/primitives";
 import { creerVehicule, enregistrerPlein, modifierVehicule, retirerPlein } from "@/modules/parc-auto/actions";
@@ -322,8 +323,8 @@ export function RetirerPlein({ id }: { id: string }) {
       <button
         type="button"
         disabled={enCours}
-        onClick={() => {
-          if (!window.confirm("Retirer ce plein ? Le relevé de compteur qu'il a posé reste.")) return;
+        onClick={async () => {
+          if (!(await confirmer("Retirer ce plein ? Le relevé de compteur qu'il a posé reste."))) return;
           demarrer(async () => {
             const r = await retirerPlein(id);
             setResultat(r.ok ? null : r);

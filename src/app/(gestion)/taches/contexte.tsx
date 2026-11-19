@@ -3,6 +3,7 @@
 import { createContext, useContext, useState, useTransition, type ReactNode } from "react";
 import { useRouter } from "next/navigation";
 
+import { confirmer } from "@/components/ui/dialogues";
 import { Retour, type Resultat } from "@/components/ui/operations";
 import { Fenetre } from "@/components/ui/fenetre";
 import { CLASSE_CHAMP } from "@/components/ui/primitives";
@@ -174,8 +175,8 @@ export function FournisseurTaches({
     gererColonnes: attribue,
     composerColonne: (c) => setComposee(c ?? "nouvelle"),
     deplacerColonne: (c, sens) => lancer(() => deplacerColonne(c.id, sens)),
-    retirerColonne(c) {
-      if (!window.confirm(`Retirer la colonne « ${c.libelle} » ? Elle disparaît du tableau pour toute l'équipe ; ses valeurs restent au journal.`)) return;
+    async retirerColonne(c) {
+      if (!(await confirmer(`Retirer la colonne « ${c.libelle} » ? Elle disparaît du tableau pour toute l'équipe ; ses valeurs restent au journal.`))) return;
       lancer(() => supprimerColonne(c.id));
     },
     creerRapide(titre) {

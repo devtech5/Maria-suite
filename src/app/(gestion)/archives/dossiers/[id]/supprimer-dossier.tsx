@@ -2,6 +2,7 @@
 
 import { useRouter } from "next/navigation";
 
+import { confirmer } from "@/components/ui/dialogues";
 import { Retour, useOperation } from "@/components/ui/operations";
 import { supprimerDossier } from "@/modules/archives/actions";
 
@@ -15,8 +16,8 @@ export function SupprimerDossier({ dossierId, nom }: { dossierId: string; nom: s
       <button
         type="button"
         disabled={op.enCours}
-        onClick={() => {
-          if (!window.confirm(`Supprimer le dossier « ${nom} » ?`)) return;
+        onClick={async () => {
+          if (!(await confirmer(`Supprimer le dossier « ${nom} » ?`))) return;
           op.lancer(() => supprimerDossier(dossierId), () => routeur.push("/archives/dossiers"));
         }}
         className="h-cible rounded-lg px-3.5 text-sm font-semibold text-danger-600 hover:bg-danger-50 disabled:opacity-50"

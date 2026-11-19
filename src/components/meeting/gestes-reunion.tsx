@@ -3,6 +3,7 @@
 import { useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 
+import { confirmer } from "@/components/ui/dialogues";
 import { Retour, useOperation } from "@/components/ui/operations";
 import { CLASSE_CHAMP } from "@/components/ui/primitives";
 import { agirSurLien, agirSurReunion, enregistrerCompteRendu, inviter } from "@/modules/meeting/actions";
@@ -21,8 +22,8 @@ export function GestesReunion({ reunionId, gestes }: { reunionId: string; gestes
           <button
             type="button"
             disabled={op.enCours}
-            onClick={() => {
-              if (confirm("Terminer la réunion pour tous les participants ?")) op.lancer(() => agirSurReunion(reunionId, "terminer"));
+            onClick={async () => {
+              if (await confirmer("Terminer la réunion pour tous les participants ?")) op.lancer(() => agirSurReunion(reunionId, "terminer"));
             }}
             className="h-cible rounded-lg border border-[var(--filet)] bg-[var(--surface)] px-3.5 text-sm font-medium hover:bg-[var(--surface-creuse)] disabled:opacity-50"
           >
@@ -173,8 +174,8 @@ export function GestesLien({ reunionId, gestes, enLigne = false }: { reunionId: 
           <button
             type="button"
             disabled={op.enCours}
-            onClick={() => {
-              if (confirm("Supprimer cette réunion de toutes les listes ? Une réunion en cours est d'abord terminée pour tous.")) {
+            onClick={async () => {
+              if (await confirmer("Supprimer cette réunion de toutes les listes ? Une réunion en cours est d'abord terminée pour tous.")) {
                 op.lancer(() => agirSurLien(reunionId, "supprimer"), () => routeur.push("/meeting"));
               }
             }}
@@ -264,7 +265,7 @@ export function MenuReunion({
             🔗 Copier le lien de la salle
           </button>
           {enCours && peutTerminer && (
-            <button type="button" role="menuitem" className={entree} disabled={op.enCours} onClick={() => confirm("Terminer la réunion pour tous les participants ?") && agir(() => agirSurReunion(reunionId, "terminer"))}>
+            <button type="button" role="menuitem" className={entree} disabled={op.enCours} onClick={async () => (await confirmer("Terminer la réunion pour tous les participants ?")) && agir(() => agirSurReunion(reunionId, "terminer"))}>
               ⏹ Terminer pour tous
             </button>
           )}
@@ -284,7 +285,7 @@ export function MenuReunion({
               role="menuitem"
               className={`${entree} text-danger-600`}
               disabled={op.enCours}
-              onClick={() => confirm("Supprimer cette réunion de toutes les listes ? Une réunion en cours est d'abord terminée pour tous.") && agir(() => agirSurLien(reunionId, "supprimer"))}
+              onClick={async () => (await confirmer("Supprimer cette réunion de toutes les listes ? Une réunion en cours est d'abord terminée pour tous.")) && agir(() => agirSurLien(reunionId, "supprimer"))}
             >
               🗑 Supprimer la réunion
             </button>

@@ -1,5 +1,6 @@
 "use client";
 
+import { confirmer } from "@/components/ui/dialogues";
 import { FormulaireRepliable, Retour, useOperation } from "@/components/ui/operations";
 import { Champ, CLASSE_CHAMP, Pastille, type TonPastille } from "@/components/ui/primitives";
 import { fmt } from "@/lib/format";
@@ -122,8 +123,8 @@ export function ChargesRecurrentes({
                           type="button"
                           disabled={enCours}
                           title="Payée autrement, ou rien à payer ce mois-là"
-                          onClick={() => {
-                            if (confirm(`Écarter l'échéance de ${libelleMois(c.prochaine!.periode)} sans dépense ?`)) lancer(() => ignorerEcheance(c.id, c.prochaine!.periode));
+                          onClick={async () => {
+                            if (await confirmer(`Écarter l'échéance de ${libelleMois(c.prochaine!.periode)} sans dépense ?`)) lancer(() => ignorerEcheance(c.id, c.prochaine!.periode));
                           }}
                           className="rounded-lg border border-[var(--filet)] px-2.5 py-1.5 text-xs font-semibold hover:bg-[var(--surface-creuse)] disabled:opacity-50"
                         >
@@ -142,8 +143,8 @@ export function ChargesRecurrentes({
                     <button
                       type="button"
                       disabled={enCours}
-                      onClick={() => {
-                        if (confirm(`Retirer « ${c.libelle} » des charges récurrentes ?`)) lancer(() => supprimerChargeRecurrente(c.id));
+                      onClick={async () => {
+                        if (await confirmer(`Retirer « ${c.libelle} » des charges récurrentes ?`)) lancer(() => supprimerChargeRecurrente(c.id));
                       }}
                       className="rounded-lg px-2 py-1.5 text-xs font-semibold text-danger-600 hover:bg-danger-50 disabled:opacity-50"
                     >

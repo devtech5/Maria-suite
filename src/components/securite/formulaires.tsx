@@ -2,6 +2,7 @@
 
 import { useState, useTransition } from "react";
 
+import { confirmer } from "@/components/ui/dialogues";
 import { FormulaireRepliable, Retour, useOperation, type Resultat } from "@/components/ui/operations";
 import { CLASSE_CHAMP, Champ } from "@/components/ui/primitives";
 import { configurationDuRelais, creerCamera, creerSite, emettreCleRelais, reglerCamera } from "@/modules/securite/actions";
@@ -92,8 +93,8 @@ export function PanneauRelais({ siteId, nomSite, aUneCle }: { siteId: string; no
   const [resultat, setResultat] = useState<Resultat | null>(null);
   const [enCours, demarrer] = useTransition();
 
-  function emettre() {
-    if (aUneCle && !window.confirm("Une nouvelle clé coupe l'ancienne : le relais devra être reconfiguré. Continuer ?")) return;
+  async function emettre() {
+    if (aUneCle && !(await confirmer("Une nouvelle clé coupe l'ancienne : le relais devra être reconfiguré. Continuer ?"))) return;
     demarrer(async () => {
       const r = await emettreCleRelais(siteId);
       setResultat(r);

@@ -1,4 +1,7 @@
 import type { Metadata, Viewport } from "next";
+
+import { Dialogues } from "@/components/ui/dialogues";
+
 import { EnregistrerServiceWorker } from "./enregistrer-sw";
 import "./globals.css";
 
@@ -39,6 +42,7 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
       </head>
       <body>
         {children}
+        <Dialogues />
         <EnregistrerServiceWorker />
       </body>
     </html>

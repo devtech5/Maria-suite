@@ -2,6 +2,7 @@
 
 import { useState, type ReactNode } from "react";
 
+import { confirmer } from "@/components/ui/dialogues";
 import { Retour, useOperation, type Resultat } from "@/components/ui/operations";
 import { CLASSE_CHAMP, Champ } from "@/components/ui/primitives";
 import { annulerAction, changerStatutPlan, changerStatutProspect, convertirProspect, planifierAction, realiserAction } from "@/modules/prospection/actions";
@@ -139,7 +140,7 @@ export function AnnulerAction({ actionId }: { actionId: string }) {
       <button
         type="button"
         disabled={op.enCours}
-        onClick={() => window.confirm("Annuler cette action ?") && op.lancer(() => annulerAction(actionId))}
+        onClick={async () => (await confirmer("Annuler cette action ?")) && op.lancer(() => annulerAction(actionId))}
         className="text-xs font-semibold text-[var(--encre-faible)] hover:text-danger-600 hover:underline"
       >
         Annuler
@@ -157,7 +158,7 @@ export function StatutPlan({ planId, statut }: { planId: string; statut: "ouvert
       <button
         type="button"
         disabled={op.enCours}
-        onClick={() => (vers === "ouvert" || window.confirm("Clore ce plan ? Il ne se modifie plus, sauf à le rouvrir.")) && op.lancer(() => changerStatutPlan(planId, vers))}
+        onClick={async () => (vers === "ouvert" || (await confirmer("Clore ce plan ? Il ne se modifie plus, sauf à le rouvrir."))) && op.lancer(() => changerStatutPlan(planId, vers))}
         className="h-cible rounded-lg border border-[var(--filet)] bg-[var(--surface)] px-3.5 text-sm font-semibold hover:bg-[var(--surface-creuse)]"
       >
         {vers === "clos" ? "Clore le plan" : "Rouvrir le plan"}
