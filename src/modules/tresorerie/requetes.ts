@@ -187,6 +187,8 @@ export interface BonVue {
   ecriture: string | null;
   justificatifChemin: string | null;
   justificatifNom: string | null;
+  /** Fiche du bénéficiaire, comme la propose le sélecteur (« t: », « e: », « w: ») ; nul pour un nom saisi. */
+  beneficiaireRef: string | null;
 }
 
 /**
@@ -217,6 +219,9 @@ type LigneBon = {
   ecriture: string | null;
   justificatif_chemin: string | null;
   justificatif_nom: string | null;
+  beneficiaire_tiers_id: string | null;
+  beneficiaire_employe_id: string | null;
+  beneficiaire_worker_id: string | null;
 };
 
 /** Bons de caisse de l'entreprise répondant à `condition`, avec leurs noms résolus. */
@@ -227,7 +232,8 @@ function selectionBons(organizationId: string, condition: SQL, suite: SQL = sql`
            case when bt.id is not null then 'Fournisseur' when be.id is not null then be.poste when bw.id is not null then bw.qualification end as beneficiaire_qualite,
            b.motif, b.statut,
            b.demande_par_user_id, d.full_name as demandeur, b.created_at as cree_le, a.full_name as approbateur,
-           b.approuve_le, b.motif_rejet, b.decaisse_le, b.ecriture, b.justificatif_chemin, b.justificatif_nom
+           b.approuve_le, b.motif_rejet, b.decaisse_le, b.ecriture, b.justificatif_chemin, b.justificatif_nom,
+           b.beneficiaire_tiers_id, b.beneficiaire_employe_id, b.beneficiaire_worker_id
     from bons_caisse b
     join comptes_tresorerie c on c.id = b.caisse_id
     left join tiers bt on bt.id = b.beneficiaire_tiers_id
@@ -235,7 +241,7 @@ function selectionBons(organizationId: string, condition: SQL, suite: SQL = sql`
     left join workers bw on bw.id = b.beneficiaire_worker_id
     left join users d on d.id = b.demande_par_user_id
     left join users a on a.id = b.approuve_par_user_id
-    where b.organization_id = ${organizationId} and ${condition}
+    where b.organization_id = ${organizationId} and b.deleted_at is null and ${condition}
     ${suite}
   `;
 }
@@ -262,6 +268,13 @@ function versBonVue(l: LigneBon): BonVue {
     ecriture: l.ecriture,
     justificatifChemin: l.justificatif_chemin,
     justificatifNom: l.justificatif_nom,
+    beneficiaireRef: l.beneficiaire_tiers_id
+      ? `t:${l.beneficiaire_tiers_id}`
+      : l.beneficiaire_employe_id
+        ? `e:${l.beneficiaire_employe_id}`
+        : l.beneficiaire_worker_id
+          ? `w:${l.beneficiaire_worker_id}`
+          : null,
   };
 }
 
@@ -492,7 +505,7 @@ export async function fluxPrevus(organizationId: string, aujourdhui: string): Pr
         left join tiers t on t.id = b.beneficiaire_tiers_id
         left join employees e on e.id = b.beneficiaire_employe_id
         left join workers w on w.id = b.beneficiaire_worker_id
-      where b.organization_id = ${organizationId} and b.statut = 'approuve'
+      where b.organization_id = ${organizationId} and b.statut = 'approuve' and b.deleted_at is null
     `),
     db.execute<{ nom: string; du: string }>(sql`
       select w.nom,
@@ -561,7 +574,7 @@ export async function etatTresorerie(organizationId: string): Promise<EtatTresor
     listerComptes(organizationId),
     db.execute<{ a_approuver: string; a_decaisser: string }>(sql`
       select count(*) filter (where statut = 'demande') as a_approuver, count(*) filter (where statut = 'approuve') as a_decaisser
-      from bons_caisse where organization_id = ${organizationId}
+      from bons_caisse where organization_id = ${organizationId} and deleted_at is null
     `),
     db.execute<{ nombre: string; montant: string }>(sql`
       select count(*) as nombre,

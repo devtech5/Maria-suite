@@ -5,12 +5,15 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 
 import { useApercu } from "@/components/ui/apercu";
+import { confirmer } from "@/components/ui/dialogues";
 import { ChoixFichiers } from "@/components/ui/fichiers";
-import { Retour, type Resultat } from "@/components/ui/operations";
+import { FormulaireRepliable, Retour, type Resultat } from "@/components/ui/operations";
 import { CLASSE_CHAMP, Pastille, type TonPastille } from "@/components/ui/primitives";
 import { fmt } from "@/lib/format";
-import { annulerBon, decaisserBon, deciderBon, ouvrirJustificatif } from "@/modules/tresorerie/actions";
+import { annulerBon, decaisserBon, deciderBon, modifierBon, ouvrirJustificatif, supprimerBon } from "@/modules/tresorerie/actions";
 import { NATURES_BON, type NatureBon } from "@/modules/tresorerie/calcul";
+
+import { ChampsBon, type ChoixBon } from "./champs-bon";
 
 export interface BonAffiche {
   id: string;
@@ -30,6 +33,8 @@ export interface BonAffiche {
   decaisseLeIso: string | null;
   ecriture: string | null;
   avecJustificatif: boolean;
+  caisseId: string;
+  beneficiaireRef: string | null;
 }
 
 const STATUT: Record<BonAffiche["statut"], { libelle: string; ton: TonPastille }> = {
@@ -50,10 +55,13 @@ export function ListeBons({
   bons,
   moi,
   droits,
+  edition,
 }: {
   bons: BonAffiche[];
   moi: string;
   droits: { approuver: boolean; decaisser: boolean; estProprietaire: boolean };
+  /** Caisses et bénéficiaires proposés ; nul pour qui ne peut pas demander, donc pas modifier. */
+  edition: ChoixBon | null;
 }) {
   const [panneau, setPanneau] = useState<{ id: string; type: "refuser" | "decaisser"; motif: string } | null>(null);
   const [resultat, setResultat] = useState<Resultat | null>(null);
@@ -89,6 +97,10 @@ export function ListeBons({
           const peutDecider = droits.approuver && b.statut === "demande" && (b.demandeParUserId !== moi || droits.estProprietaire);
           const peutDecaisser = droits.decaisser && b.statut === "approuve";
           const peutAnnuler = (b.statut === "demande" || b.statut === "approuve") && (b.demandeParUserId === moi || droits.approuver);
+          // Décaissé, l'argent est sorti : seul qui approuve le corrige ou le supprime, et l'écriture est contrepassée.
+          const peutToucher = edition !== null && (b.statut === "decaisse" ? droits.approuver : b.demandeParUserId === moi || droits.approuver);
+          const peutModifier = peutToucher && b.statut !== "annule";
+          const libre = panneau?.id !== b.id;
           return (
             <li key={b.id} className="px-4 py-3">
               <div className="flex flex-wrap items-start gap-3">
@@ -154,14 +166,38 @@ export function ListeBons({
                       Décaisser
                     </button>
                   )}
-                  {peutAnnuler && panneau?.id !== b.id && (
+                  {edition && peutModifier && libre && (
+                    <FormulaireRepliable libelle="Modifier" titre={`Modifier le bon ${b.numero}`} action={modifierBon} variante="discret">
+                      <input type="hidden" name="id" value={b.id} />
+                      <AvisModification bon={b} droits={droits} moi={moi} />
+                      <ChampsBon
+                        choix={edition}
+                        valeurs={{ caisseId: b.caisseId, nature: b.nature, montant: b.montant, beneficiaireRef: b.beneficiaireRef, beneficiaire: b.beneficiaire, motif: b.motif }}
+                      />
+                    </FormulaireRepliable>
+                  )}
+                  {peutAnnuler && libre && (
                     <button
                       type="button"
                       disabled={enCours}
-                      onClick={() => lancer(() => annulerBon(b.id))}
+                      onClick={async () => {
+                        if (await confirmer(`Annuler le bon ${b.numero} ?`)) lancer(() => annulerBon(b.id));
+                      }}
                       className="rounded-lg px-2.5 py-1.5 text-xs font-semibold text-[var(--encre-faible)] hover:bg-[var(--surface-creuse)] disabled:opacity-50"
                     >
                       Annuler
+                    </button>
+                  )}
+                  {peutToucher && libre && (
+                    <button
+                      type="button"
+                      disabled={enCours}
+                      onClick={async () => {
+                        if (await confirmer(questionSuppression(b))) lancer(() => supprimerBon(b.id));
+                      }}
+                      className="rounded-lg px-2.5 py-1.5 text-xs font-semibold text-danger-600 hover:bg-danger-50 disabled:opacity-50"
+                    >
+                      Supprimer
                     </button>
                   )}
                 </div>
@@ -222,4 +258,25 @@ export function ListeBons({
       {apercu.fenetre}
     </>
   );
+}
+
+/** Ce que la suppression entraîne, dit avant de la confirmer. */
+function questionSuppression(b: BonAffiche): string {
+  const suite = "Il disparaîtra de la liste ; son numéro ne sera pas réattribué.";
+  if (b.statut !== "decaisse") return `Supprimer le bon ${b.numero} ? ${suite}`;
+  return `Supprimer le bon ${b.numero} ? Il est décaissé : son écriture ${b.ecriture ?? ""} sera contrepassée et ${fmt(b.montant)} F reviendront dans ${b.caisse}. ${suite}`;
+}
+
+/** Ce que l'enregistrement va changer, au-delà du bon lui-même. */
+function AvisModification({ bon, droits, moi }: { bon: BonAffiche; droits: { approuver: boolean; estProprietaire: boolean }; moi: string }) {
+  let avis: string | null = null;
+  if (bon.statut === "decaisse") {
+    avis = `Ce bon est décaissé. Si la caisse, la nature, le montant ou le bénéficiaire changent, l'écriture ${bon.ecriture ?? ""} sera contrepassée et une nouvelle passée, datées d'aujourd'hui.`;
+  } else if (bon.statut === "approuve" && !(droits.approuver && (bon.demandeParUserId !== moi || droits.estProprietaire))) {
+    avis = "Ce bon est approuvé : l'enregistrer modifié le renvoie à l'approbation.";
+  } else if (bon.statut === "rejete") {
+    avis = "Ce bon a été refusé : l'enregistrer modifié le soumet de nouveau à l'approbation.";
+  }
+  if (!avis) return null;
+  return <p className="mb-3 rounded-lg bg-alerte-50 px-3 py-2 text-sm text-alerte-600">{avis}</p>;
 }

@@ -473,8 +473,13 @@ export async function demanderBonDans(
   return { id, numero, beneficiaire: qui.nom };
 }
 
-async function bonVerrouille(tx: Transaction, organizationId: string, id: string) {
-  const [b] = await tx.select().from(bonsCaisse).where(and(eq(bonsCaisse.id, id), eq(bonsCaisse.organizationId, organizationId))).for("update");
+/** Un bon de caisse de l'entreprise, non supprimé. Verrouillé dans la transaction. */
+export async function bonVerrouille(tx: Transaction, organizationId: string, id: string) {
+  const [b] = await tx
+    .select()
+    .from(bonsCaisse)
+    .where(and(eq(bonsCaisse.id, id), eq(bonsCaisse.organizationId, organizationId), isNull(bonsCaisse.deletedAt)))
+    .for("update");
   if (!b) throw new Error("Bon de caisse introuvable.");
   return b;
 }

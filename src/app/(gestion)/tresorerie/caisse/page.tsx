@@ -8,12 +8,12 @@ import { peut } from "@/lib/droits/garde";
 import { fmt, fmtEntier } from "@/lib/format";
 import { lireFiltresListe } from "@/lib/recherche";
 import { arreterCaisse, demanderBon, remettreAvance } from "@/modules/tresorerie/actions";
-import { NATURES_BON, type NatureBon } from "@/modules/tresorerie/calcul";
 import { beneficiairesProposes, listerArretes, listerAvances, listerBons, listerComptes } from "@/modules/tresorerie/requetes";
 
 import { libelleChamp, OptionsComptes } from "../champs";
 import { ListeAvances } from "./avances";
 import { ListeBons } from "./bons";
+import { ChampsBon, type ChoixBon } from "./champs-bon";
 import { OngletsCaisse } from "./onglets-caisse";
 import { ChampsArrete } from "./champs-arrete";
 import { ChoixBeneficiaire } from "./choix-beneficiaire";
@@ -52,6 +52,13 @@ export default async function PageCaisseDepenses({ searchParams }: PageProps<"/t
   ]);
   const choix = comptes.filter((c) => c.actif).map((c) => ({ id: c.id, nom: c.nom, nature: c.nature, solde: c.solde }));
   const caisses = choix.filter((c) => c.nature !== "banque");
+  const choixBon: ChoixBon = {
+    caisses,
+    fournisseurs: beneficiaires.fournisseurs,
+    personnel: beneficiaires.personnel,
+    intervenants: beneficiaires.intervenants,
+    masquerSolde: !consulter,
+  };
   const aujourdhui = new Date().toISOString().slice(0, 10);
 
   const aApprouver = bons.filter((b) => b.statut === "demande");
@@ -69,48 +76,7 @@ export default async function PageCaisseDepenses({ searchParams }: PageProps<"/t
           <>
             {demander && caisses.length > 0 && (
               <FormulaireRepliable libelle="Demander un bon" titre="Demande de bon de caisse" action={demanderBon}>
-                <div className="grid gap-3 sm:grid-cols-2">
-                  <label className="block">
-                    <span className={libelleChamp}>Nature de la dépense</span>
-                    <select name="nature" required defaultValue="" className={CLASSE_CHAMP}>
-                      <option value="" disabled>
-                        Choisir…
-                      </option>
-                      {(Object.keys(NATURES_BON) as NatureBon[]).map((n) => (
-                        <option key={n} value={n}>
-                          {NATURES_BON[n].libelle}
-                        </option>
-                      ))}
-                    </select>
-                  </label>
-                  <label className="block">
-                    <span className={libelleChamp}>Montant (F)</span>
-                    <input name="montant" required inputMode="numeric" className={`${CLASSE_CHAMP} chiffres`} />
-                  </label>
-                  <ChoixBeneficiaire
-                    libelle="Bénéficiaire"
-                    libelleNom="Nom et prénom du bénéficiaire"
-                    groupes={[
-                      { libelle: "Fournisseurs", fiches: beneficiaires.fournisseurs },
-                      { libelle: "Personnel", fiches: beneficiaires.personnel },
-                      { libelle: "Intervenants", fiches: beneficiaires.intervenants },
-                    ]}
-                    exemple="Kouassi Aya"
-                  />
-                  <label className="block">
-                    <span className={libelleChamp}>Caisse qui paie</span>
-                    <select name="caisseId" required defaultValue={caisses.length === 1 ? caisses[0].id : ""} className={CLASSE_CHAMP}>
-                      <option value="" disabled>
-                        Choisir…
-                      </option>
-                      <OptionsComptes comptes={caisses} sansBanque masquerSolde={!consulter} />
-                    </select>
-                  </label>
-                  <label className="block sm:col-span-2">
-                    <span className={libelleChamp}>À quoi sert la dépense</span>
-                    <input name="motif" required minLength={3} maxLength={500} className={CLASSE_CHAMP} />
-                  </label>
-                </div>
+                <ChampsBon choix={choixBon} />
               </FormulaireRepliable>
             )}
             {tenir && caisses.length > 0 && (
@@ -206,9 +172,12 @@ export default async function PageCaisseDepenses({ searchParams }: PageProps<"/t
                   decaisseLeIso: b.decaisseLe?.toISOString() ?? null,
                   ecriture: b.ecriture,
                   avecJustificatif: Boolean(b.justificatifChemin),
+                  caisseId: b.caisseId,
+                  beneficiaireRef: b.beneficiaireRef,
                 }))}
                 moi={session.userId}
                 droits={{ approuver, decaisser: tenir, estProprietaire: session.estProprietaire }}
+                edition={demander ? choixBon : null}
               />
             )}
           </section>
