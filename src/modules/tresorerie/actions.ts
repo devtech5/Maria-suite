@@ -36,6 +36,7 @@ import {
   type NouveauBon,
   type NouvelleAvance,
 } from "./creation";
+import { modifierBonDans, supprimerBonDans } from "./correction-bons";
 import { bonsCaisse, comptesTresorerie } from "./schema";
 import { notifierDetenteurs } from "@/modules/communication/notifications";
 
@@ -230,26 +231,16 @@ const schemaBon = z.object({
 
 export async function demanderBon(donnees: FormData): Promise<Resultat> {
   return operer("tresorerie.bon.demander", async ({ organizationId, userId }) => {
-    const analyse = schemaBon.safeParse({
-      caisseId: donnees.get("caisseId") ?? "",
-      nature: donnees.get("nature"),
-      montant: montant(donnees, "montant"),
-      beneficiaire: texte(donnees, "beneficiaire"),
-      motif: donnees.get("motif") ?? "",
-    });
-    if (!analyse.success) return { ok: false, message: analyse.error.issues[0].message };
-    const fiche = lireFiche(donnees, "tew");
-    if (fiche === null) return { ok: false, message: "Bénéficiaire inconnu." };
-    const { numero, beneficiaire } = await db.transaction((tx) =>
-      demanderBonDans(tx, organizationId, { ...analyse.data, fiche: fiche as NouveauBon["fiche"] }, userId),
-    );
+    const saisie = lireBon(donnees);
+    if (!saisie.ok) return saisie;
+    const { numero, beneficiaire } = await db.transaction((tx) => demanderBonDans(tx, organizationId, saisie.bon, userId));
     await notifierDetenteurs(
       organizationId,
       "tresorerie.bon.approuver",
       {
         categorie: "bon",
         titre: `Bon de caisse ${numero} à approuver`,
-        corps: `${beneficiaire} — ${analyse.data.montant.toLocaleString("fr-FR")} FCFA : ${analyse.data.motif}`,
+        corps: `${beneficiaire} — ${fr(saisie.bon.montant)} FCFA : ${saisie.bon.motif}`,
         lien: "/tresorerie/caisse",
       },
       userId,
@@ -296,6 +287,65 @@ export async function annulerBon(id: string): Promise<Resultat> {
     const approuve = await peut("tresorerie.bon.approuver");
     const { numero } = await db.transaction((tx) => annulerBonDans(tx, organizationId, id, { userId, approuve }));
     return { ok: true, message: `${numero} annulé.` };
+  });
+}
+
+/** Lit la saisie d'un bon, à la demande comme à la modification. */
+function lireBon(donnees: FormData): { ok: true; bon: NouveauBon } | { ok: false; message: string } {
+  const analyse = schemaBon.safeParse({
+    caisseId: donnees.get("caisseId") ?? "",
+    nature: donnees.get("nature"),
+    montant: montant(donnees, "montant"),
+    beneficiaire: texte(donnees, "beneficiaire"),
+    motif: donnees.get("motif") ?? "",
+  });
+  if (!analyse.success) return { ok: false, message: analyse.error.issues[0].message };
+  const fiche = lireFiche(donnees, "tew");
+  if (fiche === null) return { ok: false, message: "Bénéficiaire inconnu." };
+  return { ok: true, bon: { ...analyse.data, fiche: fiche as NouveauBon["fiche"] } };
+}
+
+/**
+ * Modifie un bon : son demandeur, ou qui approuve. Décaissé, seul qui approuve
+ * le corrige, et l'écriture se refait.
+ */
+export async function modifierBon(donnees: FormData): Promise<Resultat> {
+  return operer("tresorerie.bon.demander", async ({ organizationId, userId, estProprietaire }) => {
+    const id = texte(donnees, "id") ?? "";
+    if (!UUID.test(id)) return { ok: false, message: "Bon introuvable." };
+    const saisie = lireBon(donnees);
+    if (!saisie.ok) return saisie;
+    const approuve = await peut("tresorerie.bon.approuver");
+    const m = await db.transaction((tx) => modifierBonDans(tx, organizationId, id, saisie.bon, { userId, approuve, estProprietaire }));
+    if (m.statut === "demande" && m.statutAvant !== "demande") {
+      await notifierDetenteurs(
+        organizationId,
+        "tresorerie.bon.approuver",
+        {
+          categorie: "bon",
+          titre: `Bon de caisse ${m.numero} modifié, à approuver`,
+          corps: `${m.beneficiaire} — ${fr(m.montant)} FCFA : ${saisie.bon.motif}`,
+          lien: "/tresorerie/caisse",
+        },
+        userId,
+      );
+      return { ok: true, message: `${m.numero} modifié : il repasse à l'approbation.` };
+    }
+    if (m.correction) {
+      return { ok: true, message: `${m.numero} corrigé : écriture ${m.correction.contrepassee} de contre-passation, nouvelle écriture ${m.correction.nouvelle}.` };
+    }
+    return { ok: true, message: `${m.numero} modifié.` };
+  });
+}
+
+/** Supprime un bon. Décaissé, seul qui approuve le supprime, et son écriture est contrepassée. */
+export async function supprimerBon(id: string): Promise<Resultat> {
+  return operer("tresorerie.bon.demander", async ({ organizationId, userId, estProprietaire }) => {
+    if (!UUID.test(id)) return { ok: false, message: "Bon introuvable." };
+    const approuve = await peut("tresorerie.bon.approuver");
+    const s = await db.transaction((tx) => supprimerBonDans(tx, organizationId, id, { userId, approuve, estProprietaire }));
+    if (s.contrepassee) return { ok: true, message: `${s.numero} supprimé : écriture ${s.contrepassee} de contre-passation, ${fr(s.montant)} F reviennent en caisse.` };
+    return { ok: true, message: `${s.numero} supprimé.` };
   });
 }
 

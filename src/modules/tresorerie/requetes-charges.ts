@@ -114,7 +114,7 @@ export async function engagements(organizationId: string): Promise<Engagements> 
     `),
     db.execute<{ approuves: string }>(sql`
       select coalesce(sum(montant), 0) as approuves from bons_caisse
-      where organization_id = ${organizationId} and statut = 'approuve'
+      where organization_id = ${organizationId} and statut = 'approuve' and deleted_at is null
     `),
   ]);
   return { depensesApprouvees: Number(d.approuvees), depensesDemandees: Number(d.demandees), bonsApprouves: Number(b.approuves) };
