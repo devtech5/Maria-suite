@@ -9,6 +9,7 @@ import {
   deciderCommandeInterneDans,
   demanderCommandeInterneDans,
   modifierCommandeInterneDans,
+  supprimerCommandeInterneDans,
 } from "@/modules/tresorerie/creation-commandes-internes";
 import { commandeInterne, listerCommandesInternes } from "@/modules/tresorerie/requetes-commandes-internes";
 
@@ -130,6 +131,28 @@ describe("bon de commande interne", () => {
     const { id: refuse } = await db.transaction((tx) => demanderCommandeInterneDans(tx, org, EQUIPEMENT, demandeur));
     await db.transaction((tx) => deciderCommandeInterneDans(tx, org, refuse, { approuve: false, motif: "Hors budget" }, { userId: pdg, estProprietaire: true }));
     await expect(db.transaction((tx) => modifierCommandeInterneDans(tx, org, refuse, EQUIPEMENT, { userId: demandeur, approuve: false }))).rejects.toThrow(/ne se modifie plus/);
+  });
+
+  it("se supprime logiquement : hors liste et impression, numéro jamais réattribué", async () => {
+    const { id, numero } = await db.transaction((tx) => demanderCommandeInterneDans(tx, org, EQUIPEMENT, demandeur));
+    await expect(db.transaction((tx) => supprimerCommandeInterneDans(tx, org, id, { userId: newId(), approuve: false }))).rejects.toThrow(/Seul le demandeur/);
+    expect(await db.transaction((tx) => supprimerCommandeInterneDans(tx, org, id, { userId: demandeur, approuve: false }))).toEqual({ numero });
+    expect(await commandeInterne(org, pdg, true, id)).toBeNull();
+    expect((await listerCommandesInternes(org, pdg, true)).some((c) => c.id === id)).toBe(false);
+    await expect(db.transaction((tx) => modifierCommandeInterneDans(tx, org, id, EQUIPEMENT, { userId: demandeur, approuve: false }))).rejects.toThrow(/introuvable/);
+    await expect(db.transaction((tx) => supprimerCommandeInterneDans(tx, org, id, { userId: demandeur, approuve: false }))).rejects.toThrow(/introuvable/);
+
+    const suivant = await db.transaction((tx) => demanderCommandeInterneDans(tx, org, EQUIPEMENT, demandeur));
+    expect(suivant.numero > numero).toBe(true);
+  });
+
+  it("refuse de supprimer un bon approuvé, accepte une fois annulé", async () => {
+    const { id } = await db.transaction((tx) => demanderCommandeInterneDans(tx, org, EQUIPEMENT, demandeur));
+    await db.transaction((tx) => deciderCommandeInterneDans(tx, org, id, { approuve: true }, { userId: pdg, estProprietaire: true }));
+    await expect(db.transaction((tx) => supprimerCommandeInterneDans(tx, org, id, { userId: pdg, approuve: true }))).rejects.toThrow(/annulez-le/);
+    await db.transaction((tx) => annulerCommandeInterneDans(tx, org, id, { userId: pdg, approuve: true }));
+    await db.transaction((tx) => supprimerCommandeInterneDans(tx, org, id, { userId: pdg, approuve: true }));
+    expect(await commandeInterne(org, pdg, true, id)).toBeNull();
   });
 
   it("ne montre à qui ne voit pas tout que ses propres bons", async () => {
