@@ -194,6 +194,8 @@ export const GROUPES_MODULES: GroupeModules[] = [
       { href: "/membres", racine: "/membres", icone: "utilisateurs", libelle: "Utilisateurs", description: "Comptes, rôles et accès.", droit: "organisation.membre.gerer" },
       // Le journal suit les utilisateurs : qui a fait quoi se lit à côté de qui a accès à quoi.
       { href: "/journal", racine: "/journal", icone: "journal", libelle: "Journal d'activité", description: "Qui a fait quoi, et quand.", droit: "organisation.journal.consulter" },
+      // Réservée au propriétaire : la page et ses actions le revérifient, au-delà de ce droit.
+      { href: "/donnees", racine: "/donnees", icone: "documents", libelle: "Données", description: "Toutes les lignes de tous les modules : voir, modifier, désactiver, supprimer.", droit: "organisation.parametres.gerer" },
       ...(REPRISE_OUVERTE
         ? [{ href: "/demarrage", racine: "/demarrage", icone: "demarrage", libelle: "Démarrage", description: "Reprise de l'existant : articles, tiers, soldes.", droit: "organisation.reprise.importer" } satisfies EntreeModule]
         : []),

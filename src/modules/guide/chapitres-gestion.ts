@@ -917,6 +917,33 @@ export const CHAPITRES_GESTION: Chapitre[] = [
     ],
   },
   {
+    cle: "donnees",
+    titre: "Données",
+    entree: "/donnees",
+    resume: "Toutes les lignes de tous les modules : voir, modifier, désactiver, supprimer. Réservé au propriétaire.",
+    sections: [
+      {
+        ancre: "tables",
+        titre: "Toutes les tables, par module",
+        chemin: "/donnees",
+        texte: [
+          "La console range chaque table de l'entreprise sous son module, avec son nombre de lignes. Une table ouvre ses lignes, les plus récentes d'abord ; la recherche porte sur leur texte.",
+          "Une ligne montre tous ses champs. Un champ qui désigne une autre ligne y mène d'un clic, et « Utilisée par » liste les lignes qui la désignent.",
+        ],
+      },
+      {
+        ancre: "gestes",
+        titre: "Modifier, désactiver, supprimer",
+        texte: [
+          "Modifier change les champs saisis ; l'identifiant, le numéro, l'entreprise et les dates de suivi ne se touchent pas. Désactiver retire une fiche des listes de son module sans l'effacer.",
+          "Supprimer met la ligne à la corbeille, d'où elle se restaure. Une ligne de la corbeille sans numéro et que plus rien ne désigne peut être effacée définitivement.",
+          "Une ligne comptabilisée ou une pièce numérotée figée (facture émise, bon décaissé) reste en lecture seule : elle se corrige dans son module, par avoir ou contre-passation. Chaque geste est inscrit au journal d'activité.",
+        ],
+      },
+    ],
+    quiz: [],
+  },
+  {
     cle: "entreprise",
     titre: "Entreprise",
     entree: "/entreprise",

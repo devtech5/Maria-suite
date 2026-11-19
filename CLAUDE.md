@@ -304,6 +304,39 @@ qui crée un compte ou ouvre une session passe par elle.
 Les colonnes d'abonnement d'`organizations` et la table
 `paiements_abonnement` sont des vestiges : plus rien ne les lit.
 
+## Console des données
+
+`/donnees` (`src/modules/donnees/`, règles pures dans `regles.ts`) : toutes
+les tables de l'entreprise, rangées par module, et pour chaque ligne voir,
+modifier, désactiver (colonne `actif`), supprimer. **Réservée au
+propriétaire** (`estProprietaire`, revérifié par la page ET chaque action ;
+l'entrée de menu suit `organisation.parametres.gerer`).
+
+Le catalogue (`catalogue.ts`) se lit dans le schéma Drizzle : toute table qui
+porte `organization_id` y entre d'elle-même. Un nouveau schéma de module
+s'ajoute à `GROUPES` pour se ranger sous son module, sinon il tombe dans
+« Autres » et `tests/donnees.test.ts` échoue. Seul le catalogue nomme une
+table ou une colonne dans une requête (`sql.identifier`), jamais la saisie.
+
+Garde-fous, non négociables :
+- un secret (`_hash`, `_chiffre`, mot de passe, clé privée) n'est jamais lu ;
+- identifiant, entreprise, numéro, version, dates de suivi, clés étrangères
+  et horodatages restent en lecture seule ; un montant se saisit en entier ;
+- une ligne comptabilisée (colonne `ecriture*` renseignée) ou une pièce
+  numérotée au statut figé (`STATUTS_FIGES`) ne se modifie ni ne se
+  supprime : son module la corrige, par avoir ou contre-passation. La
+  comptabilité, la numérotation, l'audit, les comptes et les rôles
+  (`TABLES_LECTURE_SEULE`) se lisent seulement ;
+- supprimer = corbeille (`deleted_at`), d'où l'on restaure. L'effacement
+  définitif ne vaut que pour une ligne à la corbeille, sans numéro, que plus
+  rien ne désigne ;
+- chaque geste passe au journal d'audit (`donnees.*`, avant et après), avec
+  `updated_at` et `version`.
+
+Une ligne à la corbeille reste visible dans un écran de module qui ne filtre
+pas `deleted_at is null` : quand un module gagne sa propre suppression, ses
+requêtes filtrent les supprimées (cas des bons de caisse).
+
 ## Verrouillage après inactivité
 
 Sans souris, clavier ni toucher pendant `organizations.delai_verrouillage_minutes`
