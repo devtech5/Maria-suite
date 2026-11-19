@@ -16,6 +16,7 @@ import {
   deciderCommandeInterneDans,
   demanderCommandeInterneDans,
   modifierCommandeInterneDans,
+  supprimerCommandeInterneDans,
   type NouvelleCommandeInterne,
 } from "./creation-commandes-internes";
 
@@ -154,5 +155,14 @@ export async function annulerCommandeInterne(id: string): Promise<Resultat> {
     const approuve = await peut("tresorerie.bon.approuver");
     const { numero } = await db.transaction((tx) => annulerCommandeInterneDans(tx, organizationId, id, { userId, approuve }));
     return { ok: true, message: `${numero} annulé.` };
+  });
+}
+
+export async function supprimerCommandeInterne(id: string): Promise<Resultat> {
+  return operer("tresorerie.bon.demander", async ({ organizationId, userId }) => {
+    if (!UUID.test(id)) return { ok: false, message: "Bon introuvable." };
+    const approuve = await peut("tresorerie.bon.approuver");
+    const { numero } = await db.transaction((tx) => supprimerCommandeInterneDans(tx, organizationId, id, { userId, approuve }));
+    return { ok: true, message: `${numero} supprimé.` };
   });
 }

@@ -7,7 +7,7 @@ import { useRouter } from "next/navigation";
 import { FormulaireRepliable, Retour, type Resultat } from "@/components/ui/operations";
 import { CLASSE_CHAMP, Pastille, type TonPastille } from "@/components/ui/primitives";
 import { fmt } from "@/lib/format";
-import { annulerCommandeInterne, deciderCommandeInterne, modifierCommandeInterne } from "@/modules/tresorerie/actions-commandes-internes";
+import { annulerCommandeInterne, deciderCommandeInterne, modifierCommandeInterne, supprimerCommandeInterne } from "@/modules/tresorerie/actions-commandes-internes";
 import type { LigneCommandeInterne, StatutCommandeInterne } from "@/modules/tresorerie/commandes-internes";
 
 import { ChampsCommande, type ChoixCommande } from "./champs-commande";
@@ -85,6 +85,8 @@ export function ListeCommandes({
           const peutDecider = droits.approuver && c.statut === "demande" && (c.demandeParUserId !== moi || droits.estProprietaire);
           const peutAnnuler = (c.statut === "demande" || c.statut === "approuve") && (c.demandeParUserId === moi || droits.approuver);
           const peutModifier = edition !== null && peutAnnuler;
+          // Approuvé, il engage l'entreprise : il s'annule d'abord.
+          const peutSupprimer = edition !== null && c.statut !== "approuve" && (c.demandeParUserId === moi || droits.approuver);
           return (
             <li key={c.id} className="px-4 py-3">
               <div className="flex flex-wrap items-start gap-3">
@@ -153,6 +155,20 @@ export function ListeCommandes({
                       className="rounded-lg px-2.5 py-1.5 text-xs font-semibold text-[var(--encre-faible)] hover:bg-[var(--surface-creuse)] disabled:opacity-50"
                     >
                       Annuler
+                    </button>
+                  )}
+                  {peutSupprimer && refus?.id !== c.id && (
+                    <button
+                      type="button"
+                      disabled={enCours}
+                      onClick={() => {
+                        if (window.confirm(`Supprimer le bon ${c.numero} ? Il disparaîtra de la liste ; son numéro ne sera pas réattribué.`)) {
+                          lancer(() => supprimerCommandeInterne(c.id));
+                        }
+                      }}
+                      className="rounded-lg px-2.5 py-1.5 text-xs font-semibold text-danger-600 hover:bg-danger-50 disabled:opacity-50"
+                    >
+                      Supprimer
                     </button>
                   )}
                 </div>

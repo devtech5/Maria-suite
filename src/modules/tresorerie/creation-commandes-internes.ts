@@ -1,6 +1,6 @@
 import "server-only";
 
-import { and, eq, sql } from "drizzle-orm";
+import { and, eq, isNull, sql } from "drizzle-orm";
 
 import { auditLogs } from "@/db/schema";
 import { newId } from "@/lib/ids";
@@ -12,7 +12,8 @@ import { lireLignes, totalCommande, type LigneCommandeInterne } from "./commande
 import { bonsCommandeInterne } from "./schema";
 
 /**
- * Bon de commande interne : demande, modification, décision, annulation. Chaque geste dans
+ * Bon de commande interne : demande, modification, décision, annulation,
+ * suppression. Chaque geste dans
  * la transaction de l'appelant ; le numéro `BCI-AAAA-NNNNN` est attribué
  * dans celle qui crée le bon.
  */
@@ -130,7 +131,7 @@ async function commandeVerrouillee(tx: Transaction, organizationId: string, id: 
   const [c] = await tx
     .select()
     .from(bonsCommandeInterne)
-    .where(and(eq(bonsCommandeInterne.id, id), eq(bonsCommandeInterne.organizationId, organizationId)))
+    .where(and(eq(bonsCommandeInterne.id, id), eq(bonsCommandeInterne.organizationId, organizationId), isNull(bonsCommandeInterne.deletedAt)))
     .for("update");
   if (!c) throw new Error("Bon de commande interne introuvable.");
   return c;
@@ -186,5 +187,27 @@ export async function annulerCommandeInterneDans(
     .set({ statut: "annule", updatedAt: new Date(), version: sql`${bonsCommandeInterne.version} + 1` })
     .where(eq(bonsCommandeInterne.id, c.id));
   await journaliser(tx, organizationId, acteur.userId, "commande_interne.annuler", c.id, { numero: c.numero });
+  return { numero: c.numero };
+}
+
+/**
+ * Suppression logique : le bon quitte la liste et l'impression, la ligne
+ * reste en base et son numéro n'est jamais réattribué. Un bon approuvé engage
+ * l'entreprise : on l'annule d'abord. Mêmes acteurs que l'annulation.
+ */
+export async function supprimerCommandeInterneDans(
+  tx: Transaction,
+  organizationId: string,
+  id: string,
+  acteur: { userId: string; approuve: boolean },
+): Promise<{ numero: string }> {
+  const c = await commandeVerrouillee(tx, organizationId, id);
+  if (c.statut === "approuve") throw new Error(`${c.numero} est approuvé : annulez-le avant de le supprimer.`);
+  if (c.demandeParUserId !== acteur.userId && !acteur.approuve) throw new Error("Seul le demandeur, ou qui approuve, peut supprimer ce bon.");
+  await tx
+    .update(bonsCommandeInterne)
+    .set({ deletedAt: new Date(), updatedAt: new Date(), version: sql`${bonsCommandeInterne.version} + 1` })
+    .where(eq(bonsCommandeInterne.id, c.id));
+  await journaliser(tx, organizationId, acteur.userId, "commande_interne.supprimer", c.id, { numero: c.numero, statut: c.statut, objet: c.objet, total: c.total });
   return { numero: c.numero };
 }
