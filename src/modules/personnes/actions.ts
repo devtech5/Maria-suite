@@ -1,6 +1,6 @@
 "use server";
 
-import { and, eq, sql } from "drizzle-orm";
+import { and, eq, isNull, sql } from "drizzle-orm";
 import { revalidatePath } from "next/cache";
 import { z } from "zod";
 
@@ -286,6 +286,7 @@ export async function sortirSalarie(donnees: FormData): Promise<void> {
     })
     .where(
       and(
+        isNull(employees.deletedAt),
         eq(employees.id, id),
         eq(employees.organizationId, session.organizationId),
       ),
@@ -394,7 +395,7 @@ export async function fermerIntervenant(donnees: FormData): Promise<void> {
       version: sql`${workers.version} + 1`,
     })
     .where(
-      and(eq(workers.id, id), eq(workers.organizationId, session.organizationId)),
+      and(isNull(workers.deletedAt), eq(workers.id, id), eq(workers.organizationId, session.organizationId)),
     )
     .returning({ id: workers.id, code: workers.code, nom: workers.nom });
 

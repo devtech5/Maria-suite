@@ -1,6 +1,6 @@
 import "server-only";
 
-import { and, eq, isNull, sql } from "drizzle-orm";
+import { and, eq, isNotNull, isNull, sql } from "drizzle-orm";
 
 import { db } from "@/db";
 import { auditLogs } from "@/db/schema";
@@ -63,7 +63,7 @@ function nettoyer(d: DetailsEquipement) {
 
 async function verifierUtilisateur(tx: Transaction, organizationId: string, id: string | null | undefined) {
   if (!id) return;
-  const [ok] = await tx.select({ id: employees.id }).from(employees).where(and(eq(employees.id, id), eq(employees.organizationId, organizationId)));
+  const [ok] = await tx.select({ id: employees.id }).from(employees).where(and(eq(employees.id, id), eq(employees.organizationId, organizationId), isNull(employees.deletedAt)));
   if (!ok) throw new Error("Utilisateur introuvable.");
 }
 
@@ -114,7 +114,7 @@ export async function completerEquipementPour(
 ): Promise<void> {
   const details = nettoyer(saisie);
   await db.transaction(async (tx) => {
-    const [actif] = await tx.select({ type: actifs.type }).from(actifs).where(and(eq(actifs.id, actifId), eq(actifs.organizationId, organizationId)));
+    const [actif] = await tx.select({ type: actifs.type }).from(actifs).where(and(eq(actifs.id, actifId), eq(actifs.organizationId, organizationId), isNull(actifs.deletedAt)));
     if (!actif) throw new Error("Équipement introuvable.");
     if (actif.type !== "informatique") throw new Error("Cet actif n'est pas un équipement informatique.");
     await verifierUtilisateur(tx, organizationId, saisie.utilisateurId);
@@ -124,7 +124,7 @@ export async function completerEquipementPour(
       .values({ actifId, organizationId, ...details })
       .onConflictDoUpdate({
         target: equipementsInformatiques.actifId,
-        set: { ...details, updatedAt: new Date(), version: sql`${equipementsInformatiques.version} + 1` },
+        set: { ...details, deletedAt: null, updatedAt: new Date(), version: sql`${equipementsInformatiques.version} + 1` },
       });
 
     if (saisie.utilisateurId !== undefined) {
@@ -180,6 +180,7 @@ export async function creerLicencePour(organizationId: string, userId: string, s
           eq(tiers.organizationId, organizationId),
           eq(tiers.estFournisseur, true),
           eq(tiers.actif, true),
+          isNull(tiers.deletedAt),
         ),
       );
     if (!fiche) throw new Error("Ce fournisseur n'existe pas, ou plus.");
@@ -240,14 +241,22 @@ export async function attribuerLicencePour(organizationId: string, userId: strin
       .from(licencesLogicielles)
       .where(and(eq(licencesLogicielles.id, licenceId), eq(licencesLogicielles.organizationId, organizationId), isNull(licencesLogicielles.deletedAt)));
     if (!licence) throw new Error("Licence introuvable.");
-    const [actif] = await tx.select({ type: actifs.type }).from(actifs).where(and(eq(actifs.id, actifId), eq(actifs.organizationId, organizationId)));
+    const [actif] = await tx.select({ type: actifs.type }).from(actifs).where(and(eq(actifs.id, actifId), eq(actifs.organizationId, organizationId), isNull(actifs.deletedAt)));
     if (!actif || actif.type !== "informatique") throw new Error("Équipement introuvable.");
 
-    await tx.insert(licencesAttribuees).values({ id: newId(), organizationId, licenceId, actifId, userId }).onConflictDoNothing();
+    // Une attribution mise à la corbeille revient : sinon le poste ne se réattribuerait plus.
+    await tx
+      .insert(licencesAttribuees)
+      .values({ id: newId(), organizationId, licenceId, actifId, userId })
+      .onConflictDoUpdate({
+        target: [licencesAttribuees.licenceId, licencesAttribuees.actifId],
+        set: { deletedAt: null, userId, updatedAt: new Date() },
+        setWhere: isNotNull(licencesAttribuees.deletedAt),
+      });
     const [{ n }] = await tx
       .select({ n: sql<number>`count(*)::int` })
       .from(licencesAttribuees)
-      .where(eq(licencesAttribuees.licenceId, licenceId));
+      .where(and(eq(licencesAttribuees.licenceId, licenceId), isNull(licencesAttribuees.deletedAt)));
     await tx.insert(auditLogs).values({ id: newId(), organizationId, userId, action: "licence.attribuer", entityType: "licence", entityId: licenceId, after: { logiciel: licence.logiciel, actifId } });
     return { depassement: n > licence.postes };
   });

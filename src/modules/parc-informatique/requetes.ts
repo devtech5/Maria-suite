@@ -20,13 +20,13 @@ export interface EquipementSuivi extends ActifSuivi {
 export async function listerEquipements(organizationId: string, aujourdhui = new Date()): Promise<EquipementSuivi[]> {
   const [tous, fiches, echeances, attributions] = await Promise.all([
     listerActifs(organizationId),
-    db.select().from(equipementsInformatiques).where(eq(equipementsInformatiques.organizationId, organizationId)),
+    db.select().from(equipementsInformatiques).where(and(eq(equipementsInformatiques.organizationId, organizationId), isNull(equipementsInformatiques.deletedAt))),
     listerEcheances(organizationId, aujourdhui),
     db
       .select({ actifId: licencesAttribuees.actifId })
       .from(licencesAttribuees)
       .innerJoin(licencesLogicielles, eq(licencesLogicielles.id, licencesAttribuees.licenceId))
-      .where(and(eq(licencesAttribuees.organizationId, organizationId), isNull(licencesLogicielles.deletedAt))),
+      .where(and(eq(licencesAttribuees.organizationId, organizationId), isNull(licencesAttribuees.deletedAt), isNull(licencesLogicielles.deletedAt))),
   ]);
   const fichePar = new Map(fiches.map((f) => [f.actifId, f]));
   const licencesPar = new Map<string, number>();
@@ -67,7 +67,7 @@ export async function listerLicences(organizationId: string, aujourdhui = new Da
       .leftJoin(tiers, eq(tiers.id, licencesLogicielles.fournisseurId))
       .where(and(eq(licencesLogicielles.organizationId, organizationId), isNull(licencesLogicielles.deletedAt)))
       .orderBy(asc(licencesLogicielles.logiciel)),
-    db.select().from(licencesAttribuees).where(eq(licencesAttribuees.organizationId, organizationId)),
+    db.select().from(licencesAttribuees).where(and(eq(licencesAttribuees.organizationId, organizationId), isNull(licencesAttribuees.deletedAt))),
     listerActifs(organizationId),
   ]);
   const actifsPar = new Map(tous.map((a) => [a.id, a]));
@@ -101,6 +101,6 @@ export async function fournisseursProposes(organizationId: string): Promise<{ id
   return db
     .select({ id: tiers.id, nom: tiers.nom })
     .from(tiers)
-    .where(and(eq(tiers.organizationId, organizationId), eq(tiers.estFournisseur, true), eq(tiers.actif, true)))
+    .where(and(eq(tiers.organizationId, organizationId), eq(tiers.estFournisseur, true), eq(tiers.actif, true), isNull(tiers.deletedAt)))
     .orderBy(asc(tiers.nom));
 }

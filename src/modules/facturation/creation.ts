@@ -194,7 +194,7 @@ async function client(tx: Transaction, organizationId: string, clientId: string)
     })
     .from(tiers)
     .where(
-      and(eq(tiers.id, clientId), eq(tiers.organizationId, organizationId), eq(tiers.estClient, true)),
+      and(eq(tiers.id, clientId), eq(tiers.organizationId, organizationId), eq(tiers.estClient, true), isNull(tiers.deletedAt)),
     );
   if (!fiche) throw new Error("Client introuvable.");
   return fiche;
@@ -206,7 +206,7 @@ async function projetOuvert(tx: Transaction, organizationId: string, projetId: s
   const [projet] = await tx
     .select({ id: projets.id, statut: projets.statut })
     .from(projets)
-    .where(and(eq(projets.id, projetId), eq(projets.organizationId, organizationId)));
+    .where(and(eq(projets.id, projetId), eq(projets.organizationId, organizationId), isNull(projets.deletedAt)));
   if (!projet) throw new Error("Projet introuvable.");
   return projet.id;
 }
@@ -265,6 +265,7 @@ export async function enregistrerBrouillonDans(
       .set({ ...valeurs, updatedAt: new Date(), version: sql`${piecesCommerciales.version} + 1` })
       .where(
         and(
+          isNull(piecesCommerciales.deletedAt),
           eq(piecesCommerciales.id, id),
           eq(piecesCommerciales.organizationId, organizationId),
           eq(piecesCommerciales.statut, "brouillon"),
@@ -304,14 +305,14 @@ async function lirePiece(tx: Transaction, organizationId: string, id: string) {
   const [piece] = await tx
     .select()
     .from(piecesCommerciales)
-    .where(and(eq(piecesCommerciales.id, id), eq(piecesCommerciales.organizationId, organizationId)))
+    .where(and(eq(piecesCommerciales.id, id), eq(piecesCommerciales.organizationId, organizationId), isNull(piecesCommerciales.deletedAt)))
     .for("update");
   if (!piece) throw new Error("Pièce introuvable.");
 
   const lignes = await tx
     .select()
     .from(lignesPiece)
-    .where(eq(lignesPiece.pieceId, id))
+    .where(and(eq(lignesPiece.pieceId, id), isNull(lignesPiece.deletedAt)))
     .orderBy(asc(lignesPiece.ordre));
 
   return { piece, lignes };
@@ -323,7 +324,7 @@ async function commercialValide(tx: Transaction, organizationId: string, id: str
   const [c] = await tx
     .select({ id: commerciaux.id })
     .from(commerciaux)
-    .where(and(eq(commerciaux.id, id), eq(commerciaux.organizationId, organizationId), eq(commerciaux.actif, true)));
+    .where(and(eq(commerciaux.id, id), eq(commerciaux.organizationId, organizationId), eq(commerciaux.actif, true), isNull(commerciaux.deletedAt)));
   if (!c) throw new Error("Commercial introuvable ou inactif.");
   return c.id;
 }
@@ -480,6 +481,7 @@ export async function deciderDevisDans(
     .set({ statut: decision, updatedAt: new Date(), version: sql`${piecesCommerciales.version} + 1` })
     .where(
       and(
+        isNull(piecesCommerciales.deletedAt),
         eq(piecesCommerciales.id, pieceId),
         eq(piecesCommerciales.organizationId, organizationId),
         eq(piecesCommerciales.nature, "devis"),
@@ -576,7 +578,7 @@ export async function annulerFactureDans(
   const [regle] = await tx
     .select({ total: sql<string>`coalesce(sum(${reglementsPiece.montant}), 0)` })
     .from(reglementsPiece)
-    .where(eq(reglementsPiece.pieceId, factureId));
+    .where(and(eq(reglementsPiece.pieceId, factureId), isNull(reglementsPiece.deletedAt)));
   if (Number(regle?.total ?? 0) > 0) {
     throw new Error("Cette facture a reçu des règlements : rembourser le client avant de l'annuler.");
   }
@@ -653,7 +655,7 @@ export async function encaisserDans(
   const [deja] = await tx
     .select({ total: sql<string>`coalesce(sum(${reglementsPiece.montant}), 0)` })
     .from(reglementsPiece)
-    .where(eq(reglementsPiece.pieceId, piece.id));
+    .where(and(eq(reglementsPiece.pieceId, piece.id), isNull(reglementsPiece.deletedAt)));
   const reste = resteDu(piece.totalTtc, Number(deja?.total ?? 0));
 
   if (reglement.montant <= 0) throw new Error("Le montant doit être positif.");

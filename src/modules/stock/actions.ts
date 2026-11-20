@@ -1,6 +1,6 @@
 "use server";
 
-import { and, eq, sql } from "drizzle-orm";
+import { and, eq, isNull, sql } from "drizzle-orm";
 import { revalidatePath } from "next/cache";
 import { z } from "zod";
 
@@ -132,7 +132,7 @@ export async function fermerDepot(donnees: FormData): Promise<void> {
       version: sql`${depots.version} + 1`,
     })
     .where(
-      and(eq(depots.id, id), eq(depots.organizationId, session.organizationId)),
+      and(isNull(depots.deletedAt), eq(depots.id, id), eq(depots.organizationId, session.organizationId)),
     )
     .returning({ id: depots.id, code: depots.code, nom: depots.nom });
 
@@ -215,6 +215,7 @@ export async function enregistrerMouvement(
       and(
         eq(articles.id, valeurs.articleId),
         eq(articles.organizationId, session.organizationId),
+        isNull(articles.deletedAt),
       ),
     );
 

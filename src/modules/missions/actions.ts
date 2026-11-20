@@ -1,6 +1,6 @@
 "use server";
 
-import { and, eq } from "drizzle-orm";
+import { and, eq, isNull } from "drizzle-orm";
 import { revalidatePath } from "next/cache";
 import { z } from "zod";
 
@@ -449,6 +449,7 @@ export async function ouvrirPhoto(preuveId: string): Promise<string | null> {
       and(
         eq(preuvesMission.id, preuveId),
         eq(preuvesMission.organizationId, session.organizationId),
+        isNull(preuvesMission.deletedAt),
       ),
     );
 

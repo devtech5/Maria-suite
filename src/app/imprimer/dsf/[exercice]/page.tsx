@@ -1,6 +1,6 @@
 import type { Metadata } from "next";
 import { notFound } from "next/navigation";
-import { and, eq } from "drizzle-orm";
+import { and, eq, isNull } from "drizzle-orm";
 
 import { EnTeteDocument } from "@/components/impression/entete-document";
 import { BoutonImprimer } from "@/components/ui/bouton-imprimer";
@@ -112,8 +112,8 @@ export default async function ImpressionDsf({ params }: { params: Promise<{ exer
     soldesParCompte(org, exercice),
     soldesParCompte(org, precedent),
     db.select().from(exercicesClotures).where(and(eq(exercicesClotures.organizationId, org), eq(exercicesClotures.exercice, exercice))),
-    db.select().from(impotsBenefices).where(and(eq(impotsBenefices.organizationId, org), eq(impotsBenefices.exercice, exercice))),
-    db.select().from(affectationsResultat).where(and(eq(affectationsResultat.organizationId, org), eq(affectationsResultat.exercice, exercice))),
+    db.select().from(impotsBenefices).where(and(eq(impotsBenefices.organizationId, org), eq(impotsBenefices.exercice, exercice), isNull(impotsBenefices.deletedAt))),
+    db.select().from(affectationsResultat).where(and(eq(affectationsResultat.organizationId, org), eq(affectationsResultat.exercice, exercice), isNull(affectationsResultat.deletedAt))),
     donneesFlux(org, exercice),
     donneesFlux(org, precedent),
   ]);

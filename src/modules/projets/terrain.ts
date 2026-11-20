@@ -217,7 +217,7 @@ export async function relevesDuProjet(organizationId: string, projetId: string, 
   if (lignes.length === 0) return [];
   const ids = lignes.map((l) => l.r.id);
   const [preuves, comptes] = await Promise.all([
-    db.select().from(preuvesReleve).where(and(eq(preuvesReleve.organizationId, organizationId), inArray(preuvesReleve.releveId, ids))).orderBy(asc(preuvesReleve.createdAt)),
+    db.select().from(preuvesReleve).where(and(eq(preuvesReleve.organizationId, organizationId), inArray(preuvesReleve.releveId, ids), isNull(preuvesReleve.deletedAt))).orderBy(asc(preuvesReleve.createdAt)),
     db
       .select({ id: users.id, nom: users.fullName })
       .from(users)
@@ -265,7 +265,7 @@ export async function preuvesAvecContexte(organizationId: string, ids: readonly 
     .select({ id: preuvesReleve.id, chemin: preuvesReleve.chemin, projetId: relevesProjet.projetId, saisiParUserId: relevesProjet.saisiParUserId })
     .from(preuvesReleve)
     .innerJoin(relevesProjet, eq(relevesProjet.id, preuvesReleve.releveId))
-    .where(and(eq(preuvesReleve.organizationId, organizationId), inArray(preuvesReleve.id, [...ids])));
+    .where(and(eq(preuvesReleve.organizationId, organizationId), inArray(preuvesReleve.id, [...ids]), isNull(preuvesReleve.deletedAt), isNull(relevesProjet.deletedAt)));
 }
 
 // ---------------------------------------------------------------- écriture

@@ -1,6 +1,6 @@
 import "server-only";
 
-import { and, eq, sql } from "drizzle-orm";
+import { and, eq, isNull, sql } from "drizzle-orm";
 
 import { auditLogs } from "@/db/schema";
 import { contrepasser } from "@/lib/comptabilite/ecritures";
@@ -35,7 +35,7 @@ async function tiersDe(tx: Transaction, organizationId: string, id: string, role
   const [t] = await tx
     .select({ id: tiers.id, nom: tiers.nom, client: tiers.compteClient, fournisseur: tiers.compteFournisseur, actif: tiers.actif })
     .from(tiers)
-    .where(and(eq(tiers.id, id), eq(tiers.organizationId, organizationId)));
+    .where(and(eq(tiers.id, id), eq(tiers.organizationId, organizationId), isNull(tiers.deletedAt)));
   if (!t) throw new Error("Tiers introuvable.");
   const auxiliaire = role === "client" ? t.client : t.fournisseur;
   if (!auxiliaire) {
@@ -112,7 +112,7 @@ export async function annulerMouvementDans(tx: Transaction, organizationId: stri
   const [m] = await tx
     .select()
     .from(mouvementsTresorerie)
-    .where(and(eq(mouvementsTresorerie.id, id), eq(mouvementsTresorerie.organizationId, organizationId)))
+    .where(and(eq(mouvementsTresorerie.id, id), eq(mouvementsTresorerie.organizationId, organizationId), isNull(mouvementsTresorerie.deletedAt)))
     .for("update");
   if (!m) throw new Error("Mouvement introuvable.");
   if (m.statut === "annule") throw new Error(`${m.numero} est déjà annulé.`);

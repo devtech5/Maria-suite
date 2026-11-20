@@ -1,6 +1,6 @@
 import "server-only";
 
-import { and, eq, sql } from "drizzle-orm";
+import { and, eq, isNull, sql } from "drizzle-orm";
 
 import { db } from "@/db";
 import { auditLogs } from "@/db/schema";
@@ -65,7 +65,7 @@ export async function creerCameraPour(organizationId: string, saisie: NouvelleCa
   const [site] = await db
     .select({ id: sitesSecurite.id })
     .from(sitesSecurite)
-    .where(and(eq(sitesSecurite.id, saisie.siteId), eq(sitesSecurite.organizationId, organizationId)));
+    .where(and(eq(sitesSecurite.id, saisie.siteId), eq(sitesSecurite.organizationId, organizationId), isNull(sitesSecurite.deletedAt)));
   if (!site) throw new Error("Site introuvable.");
 
   const id = newId();
@@ -98,7 +98,7 @@ export async function reglerCameraPour(
   const [maj] = await db
     .update(cameras)
     .set({ ...reglage, updatedAt: new Date(), version: sql`${cameras.version} + 1` })
-    .where(and(eq(cameras.id, cameraId), eq(cameras.organizationId, organizationId)))
+    .where(and(isNull(cameras.deletedAt), eq(cameras.id, cameraId), eq(cameras.organizationId, organizationId)))
     .returning({ nom: cameras.nom });
   if (!maj) throw new Error("Caméra introuvable.");
   await db.insert(auditLogs).values({ id: newId(), organizationId, userId, action: "camera.regler", entityType: "camera", entityId: cameraId, after: { nom: maj.nom, ...reglage } });
@@ -113,7 +113,7 @@ export async function emettreCleRelaisPour(organizationId: string, userId: strin
   const [maj] = await db
     .update(sitesSecurite)
     .set({ relaisEmpreinte: empreinte, relaisVuLe: null, updatedAt: new Date(), version: sql`${sitesSecurite.version} + 1` })
-    .where(and(eq(sitesSecurite.id, siteId), eq(sitesSecurite.organizationId, organizationId)))
+    .where(and(isNull(sitesSecurite.deletedAt), eq(sitesSecurite.id, siteId), eq(sitesSecurite.organizationId, organizationId)))
     .returning({ nom: sitesSecurite.nom });
   if (!maj) throw new Error("Site introuvable.");
   await db.insert(auditLogs).values({ id: newId(), organizationId, userId, action: "site_securite.cle_relais", entityType: "site_securite", entityId: siteId, after: { nom: maj.nom } });
@@ -127,6 +127,7 @@ export async function noterRelaisVu(siteId: string, maintenant = new Date()): Pr
     .set({ relaisVuLe: maintenant })
     .where(
       and(
+        isNull(sitesSecurite.deletedAt),
         eq(sitesSecurite.id, siteId),
         sql`(${sitesSecurite.relaisVuLe} IS NULL OR ${sitesSecurite.relaisVuLe} < ${new Date(maintenant.getTime() - 60_000).toISOString()})`,
       ),

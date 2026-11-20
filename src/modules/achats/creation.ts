@@ -1,6 +1,6 @@
 import "server-only";
 
-import { and, asc, eq, inArray, sql } from "drizzle-orm";
+import { and, asc, eq, inArray, isNull, sql } from "drizzle-orm";
 
 import { db } from "@/db";
 import { auditLogs } from "@/db/schema";
@@ -53,7 +53,7 @@ async function fournisseurDe(tx: Transaction, organizationId: string, id: string
   const [f] = await tx
     .select({ id: tiers.id, nom: tiers.nom, compte: tiers.compteFournisseur, estFournisseur: tiers.estFournisseur, actif: tiers.actif })
     .from(tiers)
-    .where(and(eq(tiers.id, id), eq(tiers.organizationId, organizationId)));
+    .where(and(eq(tiers.id, id), eq(tiers.organizationId, organizationId), isNull(tiers.deletedAt)));
   if (!f || !f.actif) throw new Error("Fournisseur introuvable.");
   if (!f.estFournisseur || !f.compte) throw new Error(`« ${f.nom} » n'est pas déclaré comme fournisseur : il n'a pas de compte 401.`);
   return { ...f, compte: f.compte };
@@ -125,7 +125,7 @@ async function commandeVerrouillee(tx: Transaction, organizationId: string, id: 
   const [c] = await tx
     .select()
     .from(commandesAchat)
-    .where(and(eq(commandesAchat.id, id), eq(commandesAchat.organizationId, organizationId)))
+    .where(and(eq(commandesAchat.id, id), eq(commandesAchat.organizationId, organizationId), isNull(commandesAchat.deletedAt)))
     .for("update");
   if (!c) throw new Error("Commande introuvable.");
   return c;
@@ -172,11 +172,11 @@ export async function envoyerCommandeDans(tx: Transaction, organizationId: strin
 export async function annulerCommandeDans(tx: Transaction, organizationId: string, id: string, motif: string, userId: string): Promise<{ numero: string }> {
   const c = await commandeVerrouillee(tx, organizationId, id);
   if (c.statut === "annulee") throw new Error(`${c.numero} est déjà annulée.`);
-  const [recu] = await tx.select({ n: sql<string>`count(*)` }).from(receptionsAchat).where(eq(receptionsAchat.commandeId, id));
+  const [recu] = await tx.select({ n: sql<string>`count(*)` }).from(receptionsAchat).where(and(eq(receptionsAchat.commandeId, id), isNull(receptionsAchat.deletedAt)));
   const [facture] = await tx
     .select({ n: sql<string>`count(*)` })
     .from(facturesFournisseur)
-    .where(and(eq(facturesFournisseur.commandeId, id), eq(facturesFournisseur.statut, "comptabilisee")));
+    .where(and(eq(facturesFournisseur.commandeId, id), eq(facturesFournisseur.statut, "comptabilisee"), isNull(facturesFournisseur.deletedAt)));
   if (Number(recu?.n ?? 0) > 0 || Number(facture?.n ?? 0) > 0) throw new Error(`${c.numero} a déjà été reçue ou facturée : elle ne s'annule plus.`);
   await tx.update(commandesAchat).set({ statut: "annulee", motifAnnulation: motif, updatedAt: new Date(), version: sql`${commandesAchat.version} + 1` }).where(eq(commandesAchat.id, id));
   await journaliser(tx, organizationId, userId, "commande_achat.annuler", id, { numero: c.numero, motif });
@@ -188,15 +188,18 @@ export async function lignesSuivies(tx: Transaction | typeof db, organizationId:
   const lignes = await tx
     .select()
     .from(lignesCommandeAchat)
-    .where(and(eq(lignesCommandeAchat.commandeId, commandeId), eq(lignesCommandeAchat.organizationId, organizationId)))
+    .where(and(eq(lignesCommandeAchat.commandeId, commandeId), eq(lignesCommandeAchat.organizationId, organizationId), isNull(lignesCommandeAchat.deletedAt)))
     .orderBy(asc(lignesCommandeAchat.ordre));
   const recues = await tx
     .select({ ligne: lignesReceptionAchat.ligneCommandeId, total: sql<string>`sum(${lignesReceptionAchat.quantite})` })
     .from(lignesReceptionAchat)
     .where(
-      inArray(
-        lignesReceptionAchat.ligneCommandeId,
-        lignes.map((l) => l.id).concat(["00000000-0000-0000-0000-000000000000"]),
+      and(
+        inArray(
+          lignesReceptionAchat.ligneCommandeId,
+          lignes.map((l) => l.id).concat(["00000000-0000-0000-0000-000000000000"]),
+        ),
+        isNull(lignesReceptionAchat.deletedAt),
       ),
     )
     .groupBy(lignesReceptionAchat.ligneCommandeId);
@@ -403,11 +406,11 @@ export async function annulerFactureDans(tx: Transaction, organizationId: string
   const [f] = await tx
     .select()
     .from(facturesFournisseur)
-    .where(and(eq(facturesFournisseur.id, id), eq(facturesFournisseur.organizationId, organizationId)))
+    .where(and(eq(facturesFournisseur.id, id), eq(facturesFournisseur.organizationId, organizationId), isNull(facturesFournisseur.deletedAt)))
     .for("update");
   if (!f) throw new Error("Facture introuvable.");
   if (f.statut === "annulee") throw new Error(`${f.numero} est déjà annulée.`);
-  const [regle] = await tx.select({ n: sql<string>`count(*)` }).from(reglementsFournisseur).where(eq(reglementsFournisseur.factureId, id));
+  const [regle] = await tx.select({ n: sql<string>`count(*)` }).from(reglementsFournisseur).where(and(eq(reglementsFournisseur.factureId, id), isNull(reglementsFournisseur.deletedAt)));
   if (Number(regle?.n ?? 0) > 0) throw new Error(`${f.numero} a reçu un règlement : elle ne s'annule plus.`);
   const fournisseur = await fournisseurDe(tx, organizationId, f.fournisseurId);
   const lignes = await tx.select().from(lignesFactureFournisseur).where(eq(lignesFactureFournisseur.factureId, id)).orderBy(asc(lignesFactureFournisseur.ordre));
@@ -453,11 +456,11 @@ export async function reglerDans(tx: Transaction, organizationId: string, factur
   const [f] = await tx
     .select()
     .from(facturesFournisseur)
-    .where(and(eq(facturesFournisseur.id, factureId), eq(facturesFournisseur.organizationId, organizationId)))
+    .where(and(eq(facturesFournisseur.id, factureId), eq(facturesFournisseur.organizationId, organizationId), isNull(facturesFournisseur.deletedAt)))
     .for("update");
   if (!f) throw new Error("Facture introuvable.");
   if (f.statut !== "comptabilisee") throw new Error(`${f.numero} est annulée.`);
-  const [deja] = await tx.select({ total: sql<string>`coalesce(sum(${reglementsFournisseur.montant}), 0)` }).from(reglementsFournisseur).where(eq(reglementsFournisseur.factureId, factureId));
+  const [deja] = await tx.select({ total: sql<string>`coalesce(sum(${reglementsFournisseur.montant}), 0)` }).from(reglementsFournisseur).where(and(eq(reglementsFournisseur.factureId, factureId), isNull(reglementsFournisseur.deletedAt)));
   const reste = f.totalTtc - Number(deja?.total ?? 0);
   const refus = refusReglement(reste, r.montant);
   if (refus) throw new Error(refus);
@@ -465,7 +468,7 @@ export async function reglerDans(tx: Transaction, organizationId: string, factur
   const [compte] = await tx
     .select()
     .from(comptesTresorerie)
-    .where(and(eq(comptesTresorerie.id, r.compteTresorerieId), eq(comptesTresorerie.organizationId, organizationId)))
+    .where(and(eq(comptesTresorerie.id, r.compteTresorerieId), eq(comptesTresorerie.organizationId, organizationId), isNull(comptesTresorerie.deletedAt)))
     .for("update");
   if (!compte || !compte.actif) throw new Error("Compte de trésorerie introuvable ou fermé.");
   await exigerProvision(tx, organizationId, { numero: compte.compte, libelle: compte.nom, nature: compte.nature, nom: compte.nom }, r.montant);
@@ -520,7 +523,7 @@ export async function preparerReassort(organizationId: string, userId: string): 
   const enCours = await db
     .select({ fournisseurId: commandesAchat.fournisseurId })
     .from(commandesAchat)
-    .where(and(eq(commandesAchat.organizationId, organizationId), eq(commandesAchat.statut, "brouillon")));
+    .where(and(eq(commandesAchat.organizationId, organizationId), eq(commandesAchat.statut, "brouillon"), isNull(commandesAchat.deletedAt)));
   const dejaEnBrouillon = new Set(enCours.map((c) => c.fournisseurId));
 
   const parametres = await db

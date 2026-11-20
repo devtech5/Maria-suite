@@ -60,10 +60,10 @@ export async function listerReunions(organizationId: string, userId: string, mai
   }>(sql`
     select r.id, r.numero, r.titre, r.debut_prevu, r.duree_minutes, r.statut, r.organisateur_user_id,
            o.full_name as organisateur, r.lien_actif,
-           (select count(*) from reunion_participants p where p.reunion_id = r.id)::int as invites,
-           (select coalesce(json_agg(p.vu_le), '[]'::json) from reunion_participants p where p.reunion_id = r.id and p.vu_le is not null) as derniers_signaux
+           (select count(*) from reunion_participants p where p.reunion_id = r.id and p.deleted_at is null)::int as invites,
+           (select coalesce(json_agg(p.vu_le), '[]'::json) from reunion_participants p where p.reunion_id = r.id and p.vu_le is not null and p.deleted_at is null) as derniers_signaux
     from reunions r
-    join reunion_participants moi on moi.reunion_id = r.id and moi.user_id = ${userId}
+    join reunion_participants moi on moi.reunion_id = r.id and moi.user_id = ${userId} and moi.deleted_at is null
     left join users o on o.id = r.organisateur_user_id
     where r.organization_id = ${organizationId} and r.deleted_at is null
       and ${recherche ? recherche : sql`(r.statut in ('planifiee', 'en_cours') or r.debut_prevu > now() - interval '90 days')`}

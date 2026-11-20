@@ -87,6 +87,7 @@ export async function codesParArticle(
         eq(entityCodes.organizationId, organizationId),
         eq(entityCodes.entityType, "article"),
         eq(entityCodes.isActive, true),
+        isNull(entityCodes.deletedAt),
       ),
     );
 

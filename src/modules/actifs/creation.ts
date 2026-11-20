@@ -1,6 +1,6 @@
 import "server-only";
 
-import { and, eq } from "drizzle-orm";
+import { and, eq, isNull } from "drizzle-orm";
 
 import { db } from "@/db";
 import { auditLogs } from "@/db/schema";
@@ -176,7 +176,7 @@ export async function enregistrerReleveDans(
     .select({ id: actifs.id, unite: actifs.uniteCompteur, designation: actifs.designation })
     .from(actifs)
     .where(
-      and(eq(actifs.id, donnees.actifId), eq(actifs.organizationId, organizationId)),
+      and(eq(actifs.id, donnees.actifId), eq(actifs.organizationId, organizationId), isNull(actifs.deletedAt)),
     );
 
   if (!actif) throw new Error("Actif introuvable.");
@@ -248,7 +248,7 @@ export async function enregistrerInterventionDans(
     })
     .from(actifs)
     .where(
-      and(eq(actifs.id, donnees.actifId), eq(actifs.organizationId, organizationId)),
+      and(eq(actifs.id, donnees.actifId), eq(actifs.organizationId, organizationId), isNull(actifs.deletedAt)),
     );
 
   if (!actif) throw new Error("Actif introuvable.");

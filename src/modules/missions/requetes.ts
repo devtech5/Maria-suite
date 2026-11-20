@@ -1,6 +1,6 @@
 import "server-only";
 
-import { eq, sql } from "drizzle-orm";
+import { and, eq, isNull, sql } from "drizzle-orm";
 
 import { db } from "@/db";
 
@@ -218,7 +218,7 @@ export async function aUneMission(organizationId: string): Promise<boolean> {
   const [mission] = await db
     .select({ id: missions.id })
     .from(missions)
-    .where(eq(missions.organizationId, organizationId))
+    .where(and(eq(missions.organizationId, organizationId), isNull(missions.deletedAt)))
     .limit(1);
 
   return Boolean(mission);

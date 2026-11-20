@@ -120,7 +120,7 @@ async function exigerAdmin(organizationId: string, conversationId: string, userI
   const [c] = await db
     .select({ type: conversations.type })
     .from(conversations)
-    .where(and(eq(conversations.id, conversationId), eq(conversations.organizationId, organizationId)));
+    .where(and(eq(conversations.id, conversationId), eq(conversations.organizationId, organizationId), isNull(conversations.deletedAt)));
   if (!c) throw new Error("Conversation introuvable.");
   if (c.type !== "groupe") throw new Error("Une conversation privée n'a pas de membres à gérer.");
   if (!gereLesGroupes && !(p && !p.retireLe && p.role === "admin")) throw new Error("Seul un administrateur du groupe peut le faire.");
@@ -517,7 +517,7 @@ export async function repondreEvenementPour(organizationId: string, userId: stri
   const [actuelle] = await db
     .select({ valeur: reponsesMessages.valeur })
     .from(reponsesMessages)
-    .where(and(eq(reponsesMessages.messageId, messageId), eq(reponsesMessages.userId, userId)));
+    .where(and(eq(reponsesMessages.messageId, messageId), eq(reponsesMessages.userId, userId), isNull(reponsesMessages.deletedAt)));
   await db.transaction(async (tx) => {
     await tx.delete(reponsesMessages).where(and(eq(reponsesMessages.messageId, messageId), eq(reponsesMessages.userId, userId)));
     if (actuelle?.valeur !== reponse) await tx.insert(reponsesMessages).values({ organizationId, messageId, userId, valeur: reponse });

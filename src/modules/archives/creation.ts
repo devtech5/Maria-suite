@@ -52,7 +52,14 @@ export async function espaceUtilise(organizationId: string, userId: string): Pro
   const [ligne] = await db
     .select({ total: sql<string>`coalesce(sum(${archives.tailleOctets}), 0)` })
     .from(archives)
-    .where(and(eq(archives.organizationId, organizationId), eq(archives.userId, userId), isNull(archives.retireeLe)));
+    .where(
+      and(
+        eq(archives.organizationId, organizationId),
+        eq(archives.userId, userId),
+        isNull(archives.retireeLe),
+        isNull(archives.deletedAt),
+      ),
+    );
   return Number(ligne?.total ?? 0);
 }
 
@@ -166,7 +173,14 @@ export async function retirerArchivePour(
   const [archive] = await db
     .select({ numero: archives.numero, deposeLe: archives.createdAt, retireeLe: archives.retireeLe })
     .from(archives)
-    .where(and(eq(archives.id, archiveId), eq(archives.organizationId, organizationId), eq(archives.userId, userId)));
+    .where(
+      and(
+        eq(archives.id, archiveId),
+        eq(archives.organizationId, organizationId),
+        eq(archives.userId, userId),
+        isNull(archives.deletedAt),
+      ),
+    );
 
   if (!archive) throw new Error("Archive introuvable dans votre espace.");
   if (archive.retireeLe) throw new Error(`${archive.numero} est déjà retirée.`);
@@ -195,7 +209,7 @@ async function archiveDe(organizationId: string, archiveId: string) {
       dossierId: archives.dossierId,
     })
     .from(archives)
-    .where(and(eq(archives.id, archiveId), eq(archives.organizationId, organizationId)));
+    .where(and(eq(archives.id, archiveId), eq(archives.organizationId, organizationId), isNull(archives.deletedAt)));
   return archive ?? null;
 }
 
@@ -248,6 +262,7 @@ export async function vignettesPropres(organizationId: string, userId: string, i
         eq(archives.userId, userId),
         inArray(archives.id, [...ids]),
         isNull(archives.retireeLe),
+        isNull(archives.deletedAt),
       ),
     );
   // HEIC : le navigateur ne l'affiche pas, l'icône du format suffit.
@@ -303,7 +318,13 @@ export async function regleDossier(
   const designes = await db
     .select({ userId: accesDossiersArchives.userId, peutDeposer: accesDossiersArchives.peutDeposer })
     .from(accesDossiersArchives)
-    .where(and(eq(accesDossiersArchives.dossierId, dossierId), eq(accesDossiersArchives.organizationId, organizationId)));
+    .where(
+      and(
+        eq(accesDossiersArchives.dossierId, dossierId),
+        eq(accesDossiersArchives.organizationId, organizationId),
+        isNull(accesDossiersArchives.deletedAt),
+      ),
+    );
   return { ...dossier, designes: designes.map((d) => d.userId), deposants: designes.filter((d) => d.peutDeposer).map((d) => d.userId) };
 }
 

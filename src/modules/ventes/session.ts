@@ -233,6 +233,7 @@ export async function cloturerSessionDans(
         eq(sessionsCaisse.id, sessionId),
         eq(sessionsCaisse.organizationId, organizationId),
         eq(sessionsCaisse.statut, "ouverte"),
+        isNull(sessionsCaisse.deletedAt),
       ),
     );
 

@@ -440,7 +440,7 @@ export async function aUnDepot(organizationId: string): Promise<boolean> {
   const [depot] = await db
     .select({ id: depots.id })
     .from(depots)
-    .where(eq(depots.organizationId, organizationId))
+    .where(and(eq(depots.organizationId, organizationId), isNull(depots.deletedAt)))
     .limit(1);
 
   return Boolean(depot);

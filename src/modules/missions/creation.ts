@@ -204,6 +204,7 @@ export async function enregistrerPreuveDans(
           eq(etapesMission.id, preuve.etapeId),
           eq(etapesMission.missionId, preuve.missionId),
           eq(etapesMission.organizationId, organizationId),
+          isNull(etapesMission.deletedAt),
         ),
       );
     if (!etape) return { ok: false, message: "Étape introuvable sur cette mission." };
@@ -284,7 +285,7 @@ export async function validerEtapeDans(
     .select()
     .from(etapesMission)
     .where(
-      and(eq(etapesMission.id, etapeId), eq(etapesMission.organizationId, organizationId)),
+      and(eq(etapesMission.id, etapeId), eq(etapesMission.organizationId, organizationId), isNull(etapesMission.deletedAt)),
     );
   if (!etape) return { ok: false, message: "Étape introuvable." };
 
@@ -306,7 +307,7 @@ export async function validerEtapeDans(
   const toutes = await tx
     .select()
     .from(etapesMission)
-    .where(eq(etapesMission.missionId, mission.id))
+    .where(and(eq(etapesMission.missionId, mission.id), isNull(etapesMission.deletedAt)))
     .orderBy(asc(etapesMission.ordre));
 
   const courante = toutes.find((e) => e.id === etapeId);
@@ -411,6 +412,7 @@ export async function cloreMissionDans(
     })
     .where(
       and(
+        isNull(missions.deletedAt),
         eq(missions.id, missionId),
         eq(missions.organizationId, organizationId),
         sql`${missions.statut} in ('planifiee', 'en_cours')`,

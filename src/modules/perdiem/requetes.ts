@@ -44,7 +44,7 @@ export interface LigneBareme {
 export async function listerBareme(organizationId: string): Promise<LigneBareme[]> {
   const lignes = await db.execute<{ id: string; libelle: string; montant: string; notes: string | null; actif: boolean; utilisations: string }>(sql`
     select b.id, b.libelle, b.montant_journalier as montant, b.notes, b.actif,
-           (select count(*) from attributions_perdiem a where a.bareme_id = b.id) as utilisations
+           (select count(*) from attributions_perdiem a where a.bareme_id = b.id and a.deleted_at is null) as utilisations
     from baremes_perdiem b
     where b.organization_id = ${organizationId} and b.deleted_at is null
     order by b.actif desc, b.montant_journalier, lower(b.libelle)`);
@@ -117,7 +117,7 @@ export async function supprimerBaremePour(organizationId: string, userId: string
     .from(baremesPerdiem)
     .where(and(eq(baremesPerdiem.organizationId, organizationId), eq(baremesPerdiem.id, id), isNull(baremesPerdiem.deletedAt)));
   if (!ligne) throw new Error("Ligne du barème introuvable.");
-  const [{ n }] = await db.select({ n: sql<number>`count(*)::int` }).from(attributionsPerdiem).where(eq(attributionsPerdiem.baremeId, id));
+  const [{ n }] = await db.select({ n: sql<number>`count(*)::int` }).from(attributionsPerdiem).where(and(eq(attributionsPerdiem.baremeId, id), isNull(attributionsPerdiem.deletedAt)));
   const utilisee = n > 0;
   await db
     .update(baremesPerdiem)
@@ -196,7 +196,7 @@ export async function choixAttribution(organizationId: string) {
     db
       .select({ id: missions.id, libelle: sql<string>`${missions.reference} || ' · ' || ${missions.titre}` })
       .from(missions)
-      .where(and(eq(missions.organizationId, organizationId), sql`${missions.statut} in ('planifiee', 'en_cours')`))
+      .where(and(eq(missions.organizationId, organizationId), sql`${missions.statut} in ('planifiee', 'en_cours')`, isNull(missions.deletedAt)))
       .orderBy(desc(missions.createdAt)),
   ]);
   return { collaborateurs, bareme, missions: ouvertes };
@@ -230,7 +230,7 @@ export async function attribuerPour(organizationId: string, userId: string, n: N
     if (!ligne) throw new Error("Cette ligne n'est plus au barème : choisissez-en une autre.");
     let missionId: string | null = null;
     if (n.missionId) {
-      const [m] = await tx.select({ id: missions.id }).from(missions).where(and(eq(missions.organizationId, organizationId), eq(missions.id, n.missionId)));
+      const [m] = await tx.select({ id: missions.id }).from(missions).where(and(eq(missions.organizationId, organizationId), eq(missions.id, n.missionId), isNull(missions.deletedAt)));
       if (!m) throw new Error("Mission introuvable.");
       missionId = m.id;
     }

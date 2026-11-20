@@ -1,6 +1,6 @@
 import "server-only";
 
-import { and, eq, sql } from "drizzle-orm";
+import { and, eq, isNull, sql } from "drizzle-orm";
 
 import { db } from "@/db";
 import { auditLogs, memberships } from "@/db/schema";
@@ -58,7 +58,7 @@ async function verifierTiers(tx: Transaction, organizationId: string, tiersId: s
   const [ligne] = await tx
     .select({ id: tiers.id })
     .from(tiers)
-    .where(and(eq(tiers.id, tiersId), eq(tiers.organizationId, organizationId)));
+    .where(and(eq(tiers.id, tiersId), eq(tiers.organizationId, organizationId), isNull(tiers.deletedAt)));
   if (!ligne) throw new Error("Tiers introuvable.");
 }
 
@@ -132,7 +132,7 @@ export async function modifierProjetDans(
   const [modifie] = await tx
     .update(projets)
     .set({ ...modification, ...termine, updatedAt: new Date(), version: sql`${projets.version} + 1` })
-    .where(and(eq(projets.id, projetId), eq(projets.organizationId, organizationId)))
+    .where(and(isNull(projets.deletedAt), eq(projets.id, projetId), eq(projets.organizationId, organizationId)))
     .returning({ code: projets.code });
   if (!modifie) throw new Error("Projet introuvable.");
   await journaliser(tx, organizationId, userId, "projet.modifier", projetId, { ...modification });
@@ -166,7 +166,7 @@ export async function demanderDepenseDans(
     const [projet] = await tx
       .select({ statut: projets.statut })
       .from(projets)
-      .where(and(eq(projets.id, donnees.projetId), eq(projets.organizationId, organizationId)));
+      .where(and(eq(projets.id, donnees.projetId), eq(projets.organizationId, organizationId), isNull(projets.deletedAt)));
     if (!projet) throw new Error("Projet introuvable.");
     if (projet.statut === "termine" || projet.statut === "annule") {
       throw new Error("Ce projet est clos : il n'accepte plus de dépense.");
@@ -199,7 +199,7 @@ async function lireDepense(tx: Transaction, organizationId: string, depenseId: s
     .select({ depense: depenses, projetNom: projets.nom, budget: projets.budget })
     .from(depenses)
     .leftJoin(projets, eq(projets.id, depenses.projetId))
-    .where(and(eq(depenses.id, depenseId), eq(depenses.organizationId, organizationId)))
+    .where(and(eq(depenses.id, depenseId), eq(depenses.organizationId, organizationId), isNull(depenses.deletedAt)))
     .for("update", { of: depenses });
   if (!ligne) throw new Error("Dépense introuvable.");
   return ligne;
@@ -230,7 +230,7 @@ export async function approuverDepenseDans(
     const autres = await tx
       .select({ statut: depenses.statut, montant: depenses.montant })
       .from(depenses)
-      .where(and(eq(depenses.projetId, depense.projetId), sql`${depenses.id} <> ${depense.id}`));
+      .where(and(eq(depenses.projetId, depense.projetId), sql`${depenses.id} <> ${depense.id}`, isNull(depenses.deletedAt)));
     const { engage } = suiviBudget(budget, autres);
     if (depasseBudget(budget, engage, depense.montant)) {
       throw new Error(
@@ -347,14 +347,14 @@ export async function joindrePiece(
     const [depense] = await db
       .select({ projetId: depenses.projetId })
       .from(depenses)
-      .where(and(eq(depenses.id, cible.depenseId), eq(depenses.organizationId, organizationId)));
+      .where(and(eq(depenses.id, cible.depenseId), eq(depenses.organizationId, organizationId), isNull(depenses.deletedAt)));
     if (!depense) throw new Error("Dépense introuvable.");
     projetId ??= depense.projetId;
   } else if (projetId) {
     const [projet] = await db
       .select({ id: projets.id })
       .from(projets)
-      .where(and(eq(projets.id, projetId), eq(projets.organizationId, organizationId)));
+      .where(and(eq(projets.id, projetId), eq(projets.organizationId, organizationId), isNull(projets.deletedAt)));
     if (!projet) throw new Error("Projet introuvable.");
   }
 

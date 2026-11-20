@@ -21,6 +21,7 @@ import {
 } from "@/modules/meeting/creation";
 import { signerFlux } from "@/modules/meeting/jetons";
 import { listerReunions, messagesDeSalle, participantsDe, reunionDe } from "@/modules/meeting/requetes";
+import { reunionParticipants } from "@/modules/meeting/schema";
 
 import { ouvrirBaseDeTest, semerEntreprise } from "./base";
 
@@ -130,6 +131,23 @@ describe("réunion de bout en bout", () => {
     await db.transaction((tx) => appliquerGesteDans(tx, org, id, "annuler", gerant, "Client reçu en urgence"));
     expect(await reunionDe(org, id)).toMatchObject({ statut: "annulee", motifAnnulation: "Client reçu en urgence" });
     await expect(db.transaction((tx) => inviterDans(tx, org, id, [kone.userId], gerant))).rejects.toThrow(/close/);
+  });
+
+  it("ferme la salle à une place mise à la corbeille, et la rend à la réinvitation", async () => {
+    const { id } = await db.transaction((tx) =>
+      creerReunionDans(tx, org, { titre: "Point chantier", debutPrevu: t("16:00:00"), dureeMinutes: 30, participants: [awa.userId] }, gerant),
+    );
+    const corbeille = (userId: string) =>
+      db.update(reunionParticipants).set({ deletedAt: new Date() }).where(and(eq(reunionParticipants.reunionId, id), eq(reunionParticipants.userId, userId)));
+    await corbeille(awa.userId);
+    await expect(db.transaction((tx) => rejoindreDans(tx, org, id, awa))).rejects.toThrow(/pas invité/);
+    expect((await db.transaction((tx) => inviterDans(tx, org, id, [awa.userId], gerant))).nouveaux).toEqual([awa.userId]);
+    await db.transaction((tx) => rejoindreDans(tx, org, id, awa));
+    // L'organisateur, lui, reprend sa place en entrant.
+    await corbeille(gerant.userId);
+    await db.transaction((tx) => rejoindreDans(tx, org, id, gerant));
+    const places = await db.select().from(reunionParticipants).where(eq(reunionParticipants.reunionId, id));
+    expect(places.filter((p) => p.deletedAt === null).map((p) => p.userId).sort()).toEqual([awa.userId, gerant.userId].sort());
   });
 
   it("refuse d'organiser sans le droit", async () => {

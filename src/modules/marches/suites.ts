@@ -89,7 +89,7 @@ async function sourceDe(tx: Transaction, organizationId: string, origine: Origin
   if (c.resilieeLe) throw new Error(`${c.numero} est résiliée : elle n'ouvre plus rien.`);
   if (c.sens === "fournisseur") throw new Error(`${c.numero} lie l'entreprise à un fournisseur : elle n'a ni projet client ni devis à émettre.`);
   // Les avenants priment : dernière fin, dernier montant.
-  const siens = await tx.select().from(avenants).where(eq(avenants.conventionId, c.id)).orderBy(avenants.rang);
+  const siens = await tx.select().from(avenants).where(and(eq(avenants.conventionId, c.id), isNull(avenants.deletedAt))).orderBy(avenants.rang);
   const fin = [...siens].reverse().find((a) => a.nouvelleFin !== null)?.nouvelleFin ?? c.fin;
   const montant = [...siens].reverse().find((a) => a.nouveauMontant !== null)?.nouveauMontant ?? c.montant;
   return {
@@ -165,7 +165,7 @@ export async function preparerDevisDepuisMarcheDans(
   const [client] = await tx
     .select({ id: tiers.id })
     .from(tiers)
-    .where(and(eq(tiers.id, s.clientId), eq(tiers.organizationId, organizationId), eq(tiers.estClient, true)));
+    .where(and(eq(tiers.id, s.clientId), eq(tiers.organizationId, organizationId), eq(tiers.estClient, true), isNull(tiers.deletedAt)));
   if (!client) throw new Error(`La fiche rattachée à ${s.numero} n'est pas un client.`);
   if (!s.montant) throw new Error(`Indiquez le montant de ${s.numero} avant de préparer le devis.`);
 

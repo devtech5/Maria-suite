@@ -144,7 +144,7 @@ export async function envoyerCampagnePour(organizationId: string, userId: string
   const [campagne] = await db
     .update(campagnes)
     .set({ statut: "envoyee", envoyeeLe: new Date(), updatedAt: new Date() })
-    .where(and(eq(campagnes.id, campagneId), eq(campagnes.organizationId, organizationId), eq(campagnes.statut, "brouillon")))
+    .where(and(isNull(campagnes.deletedAt), eq(campagnes.id, campagneId), eq(campagnes.organizationId, organizationId), eq(campagnes.statut, "brouillon")))
     .returning();
   if (!campagne) throw new Error("Message introuvable ou déjà envoyé.");
 
@@ -228,6 +228,7 @@ export async function listerCampagnes(organizationId: string, filtres?: FiltresL
     .where(
       and(
         eq(campagnes.organizationId, organizationId),
+        isNull(campagnes.deletedAt),
         // Filtrés en base : la liste s'arrête aux cent derniers. Un brouillon
         // n'a pas de date d'envoi : il ne répond qu'à une période vide.
         filtres && motsDans([campagnes.numero, campagnes.titre, campagnes.objet, campagnes.corps], motsRecherche(filtres.q)),

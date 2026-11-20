@@ -51,7 +51,7 @@ async function verifierConducteur(tx: Transaction, organizationId: string, condu
   const [ok] = await tx
     .select({ id: employees.id })
     .from(employees)
-    .where(and(eq(employees.id, conducteurId), eq(employees.organizationId, organizationId)));
+    .where(and(eq(employees.id, conducteurId), eq(employees.organizationId, organizationId), isNull(employees.deletedAt)));
   if (!ok) throw new Error("Conducteur introuvable.");
 }
 
@@ -135,7 +135,7 @@ export async function completerVehiculePour(
     const [actif] = await tx
       .select({ id: actifs.id, type: actifs.type })
       .from(actifs)
-      .where(and(eq(actifs.id, actifId), eq(actifs.organizationId, organizationId)));
+      .where(and(eq(actifs.id, actifId), eq(actifs.organizationId, organizationId), isNull(actifs.deletedAt)));
     if (!actif) throw new Error("Véhicule introuvable.");
     if (actif.type !== "vehicule") throw new Error("Cet actif n'est pas un véhicule.");
     await verifierConducteur(tx, organizationId, details.conducteurId);

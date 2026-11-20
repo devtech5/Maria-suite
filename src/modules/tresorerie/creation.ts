@@ -103,7 +103,7 @@ export async function compteDe(tx: Transaction, organizationId: string, id: stri
   const [c] = await tx
     .select()
     .from(comptesTresorerie)
-    .where(and(eq(comptesTresorerie.id, id), eq(comptesTresorerie.organizationId, organizationId)))
+    .where(and(eq(comptesTresorerie.id, id), eq(comptesTresorerie.organizationId, organizationId), isNull(comptesTresorerie.deletedAt)))
     .for("update");
   if (!c) throw new Error("Compte de trésorerie introuvable.");
   if (!c.actif) throw new Error(`« ${c.nom} » est fermé.`);
@@ -174,7 +174,7 @@ export async function modifierCompteDans(
       updatedAt: new Date(),
       version: sql`${comptesTresorerie.version} + 1`,
     })
-    .where(and(eq(comptesTresorerie.id, id), eq(comptesTresorerie.organizationId, organizationId)))
+    .where(and(isNull(comptesTresorerie.deletedAt), eq(comptesTresorerie.id, id), eq(comptesTresorerie.organizationId, organizationId)))
     .returning({ id: comptesTresorerie.id });
   if (!modifie) throw new Error("Compte de trésorerie introuvable.");
   await journaliser(tx, organizationId, userId, "compte_tresorerie.modifier", id, { nom: d.nom, seuilAlerte: d.seuilAlerte, actif: d.actif });
@@ -300,7 +300,7 @@ async function virementVerrouille(tx: Transaction, organizationId: string, id: s
   const [v] = await tx
     .select()
     .from(virementsInternes)
-    .where(and(eq(virementsInternes.id, id), eq(virementsInternes.organizationId, organizationId)))
+    .where(and(eq(virementsInternes.id, id), eq(virementsInternes.organizationId, organizationId), isNull(virementsInternes.deletedAt)))
     .for("update");
   if (!v) throw new Error("Virement introuvable.");
   if (v.statut !== "en_transit") throw new Error(`${v.numero} n'est plus en transit.`);
@@ -386,7 +386,7 @@ export async function resoudreBeneficiaire(
     const [t] = await tx
       .select({ id: tiers.id, nom: tiers.nom })
       .from(tiers)
-      .where(and(eq(tiers.id, fiche.tiersId), eq(tiers.organizationId, organizationId), eq(tiers.actif, true)));
+      .where(and(eq(tiers.id, fiche.tiersId), eq(tiers.organizationId, organizationId), eq(tiers.actif, true), isNull(tiers.deletedAt)));
     if (!t) throw new Error("Ce tiers n'existe pas, ou plus.");
     return { ...vide, nom: t.nom, tiersId: t.id };
   }
@@ -655,12 +655,12 @@ export async function regulariserAvanceDans(
   const [a] = await tx
     .select()
     .from(avancesTresorerie)
-    .where(and(eq(avancesTresorerie.id, avanceId), eq(avancesTresorerie.organizationId, organizationId)))
+    .where(and(eq(avancesTresorerie.id, avanceId), eq(avancesTresorerie.organizationId, organizationId), isNull(avancesTresorerie.deletedAt)))
     .for("update");
   if (!a) throw new Error("Avance introuvable.");
   if (a.statut !== "ouverte") throw new Error(`${a.numero} est déjà soldée.`);
 
-  const passees = await tx.select({ montant: regularisationsAvance.montant }).from(regularisationsAvance).where(eq(regularisationsAvance.avanceId, a.id));
+  const passees = await tx.select({ montant: regularisationsAvance.montant }).from(regularisationsAvance).where(and(eq(regularisationsAvance.avanceId, a.id), isNull(regularisationsAvance.deletedAt)));
   const reste = resteAvance(a.montant, passees);
   const refus = refusRegularisation(reste, r.montant);
   if (refus) throw new Error(refus);
@@ -756,7 +756,7 @@ export async function importerReleve(
     const existantes = await tx
       .select({ date: lignesReleve.dateOperation, montant: lignesReleve.montant, libelle: lignesReleve.libelle })
       .from(lignesReleve)
-      .where(and(eq(lignesReleve.organizationId, organizationId), eq(lignesReleve.compteId, compteId)));
+      .where(and(eq(lignesReleve.organizationId, organizationId), eq(lignesReleve.compteId, compteId), isNull(lignesReleve.deletedAt)));
     const cle = (d: string, m: number, l: string) => `${d}|${m}|${l.trim().toLowerCase()}`;
     const deja = new Set(existantes.map((e) => cle(String(e.date).slice(0, 10), e.montant, e.libelle)));
     const nouvelles = lignes.filter((l) => {
@@ -813,7 +813,7 @@ export async function pointerAutomatiquement(organizationId: string, compteId: s
     const releve = await tx
       .select({ id: lignesReleve.id, date: lignesReleve.dateOperation, montant: lignesReleve.montant })
       .from(lignesReleve)
-      .where(and(eq(lignesReleve.organizationId, organizationId), eq(lignesReleve.compteId, compteId), isNull(lignesReleve.ligneEcritureId)));
+      .where(and(eq(lignesReleve.organizationId, organizationId), eq(lignesReleve.compteId, compteId), isNull(lignesReleve.ligneEcritureId), isNull(lignesReleve.deletedAt)));
     const libres = await lignesComptaLibres(tx, organizationId, compte.numero);
     const paires = rapprocherAuto(
       releve.map((r) => ({ id: r.id, date: String(r.date).slice(0, 10), montant: r.montant })),
@@ -835,7 +835,7 @@ export async function pointerDans(tx: Transaction, organizationId: string, ligne
   const [r] = await tx
     .select()
     .from(lignesReleve)
-    .where(and(eq(lignesReleve.id, ligneReleveId), eq(lignesReleve.organizationId, organizationId)))
+    .where(and(eq(lignesReleve.id, ligneReleveId), eq(lignesReleve.organizationId, organizationId), isNull(lignesReleve.deletedAt)))
     .for("update");
   if (!r) throw new Error("Ligne de relevé introuvable.");
   if (r.ligneEcritureId) throw new Error("Cette ligne de relevé est déjà pointée.");
@@ -856,7 +856,7 @@ export async function depointerDans(tx: Transaction, organizationId: string, lig
   const [r] = await tx
     .update(lignesReleve)
     .set({ ligneEcritureId: null, pointeeLe: null, pointeeParUserId: null, updatedAt: new Date() })
-    .where(and(eq(lignesReleve.id, ligneReleveId), eq(lignesReleve.organizationId, organizationId), isNull(lignesReleve.ecriture)))
+    .where(and(isNull(lignesReleve.deletedAt), eq(lignesReleve.id, ligneReleveId), eq(lignesReleve.organizationId, organizationId), isNull(lignesReleve.ecriture)))
     .returning({ libelle: lignesReleve.libelle, montant: lignesReleve.montant });
   if (!r) throw new Error("Ligne introuvable, ou comptabilisée depuis le relevé : elle ne se dépointe pas.");
   await journaliser(tx, organizationId, userId, "releve.depointer", ligneReleveId, { libelle: r.libelle, montant: r.montant });
@@ -870,7 +870,7 @@ export async function comptabiliserLigneDans(tx: Transaction, organizationId: st
   const [r] = await tx
     .select()
     .from(lignesReleve)
-    .where(and(eq(lignesReleve.id, ligneReleveId), eq(lignesReleve.organizationId, organizationId)))
+    .where(and(eq(lignesReleve.id, ligneReleveId), eq(lignesReleve.organizationId, organizationId), isNull(lignesReleve.deletedAt)))
     .for("update");
   if (!r) throw new Error("Ligne de relevé introuvable.");
   if (r.ligneEcritureId) throw new Error("Cette ligne est déjà pointée sur une écriture.");
@@ -900,7 +900,7 @@ export async function compteTresorerieDe(
   const [c] = await tx
     .select({ numero: comptesTresorerie.compte, libelle: comptesTresorerie.nom, nature: comptesTresorerie.nature, actif: comptesTresorerie.actif })
     .from(comptesTresorerie)
-    .where(and(eq(comptesTresorerie.id, id), eq(comptesTresorerie.organizationId, organizationId)));
+    .where(and(eq(comptesTresorerie.id, id), eq(comptesTresorerie.organizationId, organizationId), isNull(comptesTresorerie.deletedAt)));
   return c && c.actif ? { numero: c.numero, libelle: c.libelle, nature: c.nature } : null;
 }
 

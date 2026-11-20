@@ -30,7 +30,7 @@ export interface ReleveCompte {
  */
 export async function releveCompte(organizationId: string, compteId: string, du: string, au: string): Promise<ReleveCompte | null> {
   const [compte] = await db.execute<{ numero: string }>(sql`
-    select compte as numero from comptes_tresorerie where id = ${compteId} and organization_id = ${organizationId}
+    select compte as numero from comptes_tresorerie where id = ${compteId} and organization_id = ${organizationId} and deleted_at is null
   `);
   if (!compte) return null;
 
@@ -124,7 +124,7 @@ export async function ordreVirement(organizationId: string, mouvementId: string)
     from mouvements_tresorerie mv
     join comptes_tresorerie c on c.id = mv.compte_id
     left join tiers t on t.id = mv.tiers_id
-    where mv.id = ${mouvementId} and mv.organization_id = ${organizationId}
+    where mv.id = ${mouvementId} and mv.organization_id = ${organizationId} and mv.deleted_at is null
   `);
   if (!m) return null;
   return {

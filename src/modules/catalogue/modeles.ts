@@ -41,7 +41,7 @@ async function modeleVerrouille(tx: Transaction, organizationId: string, id: str
   const [m] = await tx
     .select()
     .from(modelesArticle)
-    .where(and(eq(modelesArticle.id, id), eq(modelesArticle.organizationId, organizationId)))
+    .where(and(eq(modelesArticle.id, id), eq(modelesArticle.organizationId, organizationId), isNull(modelesArticle.deletedAt)))
     .for("update");
   if (!m) throw new Error("Modèle introuvable.");
   return m;
@@ -177,7 +177,7 @@ export async function listerModeles(organizationId: string) {
     select a.modele_id, count(distinct a.id) as variantes, coalesce(sum(m.quantite), 0) as stock
     from articles a
     left join mouvements_stock m on m.article_id = a.id and m.deleted_at is null
-    where a.organization_id = ${organizationId} and a.modele_id is not null and a.actif
+    where a.organization_id = ${organizationId} and a.modele_id is not null and a.actif and a.deleted_at is null
     group by a.modele_id
   `);
   const parModele = new Map(comptes.map((c) => [c.modele_id, { variantes: Number(c.variantes), stock: Number(c.stock) }]));
@@ -188,12 +188,12 @@ export async function modeleDetail(organizationId: string, id: string) {
   const [m] = await db
     .select()
     .from(modelesArticle)
-    .where(and(eq(modelesArticle.id, id), eq(modelesArticle.organizationId, organizationId)));
+    .where(and(eq(modelesArticle.id, id), eq(modelesArticle.organizationId, organizationId), isNull(modelesArticle.deletedAt)));
   if (!m) return null;
   const variantes = await db
     .select({ id: articles.id, reference: articles.reference, designation: articles.designation, attributs: articles.attributs, prixVente: articles.prixVente, prixAchat: articles.prixAchat, actif: articles.actif })
     .from(articles)
-    .where(and(eq(articles.organizationId, organizationId), eq(articles.modeleId, id)))
+    .where(and(eq(articles.organizationId, organizationId), eq(articles.modeleId, id), isNull(articles.deletedAt)))
     .orderBy(asc(articles.reference));
   return { modele: m, variantes };
 }

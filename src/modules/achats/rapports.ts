@@ -18,9 +18,9 @@ export const RAPPORTS_ACHATS: DefinitionRapport[] = [
     async executer(organizationId, { du, au }) {
       const lignes = await db.execute<{ fournisseur: string; factures: string; ht: string; tva: string; ttc: string; regle: string }>(sql`
         select f.fournisseur_nom as fournisseur, count(*) as factures, sum(f.total_ht) as ht, sum(f.total_tva) as tva, sum(f.total_ttc) as ttc,
-               coalesce(sum((select sum(r.montant) from reglements_fournisseur r where r.facture_id = f.id and r.date_reglement <= ${au}::date)), 0) as regle
+               coalesce(sum((select sum(r.montant) from reglements_fournisseur r where r.facture_id = f.id and r.deleted_at is null and r.date_reglement <= ${au}::date)), 0) as regle
         from factures_fournisseur f
-        where f.organization_id = ${organizationId} and f.statut = 'comptabilisee'
+        where f.organization_id = ${organizationId} and f.statut = 'comptabilisee' and f.deleted_at is null
           and f.date_facture between ${du}::date and ${au}::date
         group by f.fournisseur_nom order by sum(f.total_ttc) desc
       `);
@@ -66,9 +66,9 @@ export const RAPPORTS_ACHATS: DefinitionRapport[] = [
           sum(reste) as total
         from (
           select f.fournisseur_nom as tiers, ${au}::date - f.echeance as retard,
-                 f.total_ttc - coalesce((select sum(r.montant) from reglements_fournisseur r where r.facture_id = f.id and r.date_reglement <= ${au}::date), 0) as reste
+                 f.total_ttc - coalesce((select sum(r.montant) from reglements_fournisseur r where r.facture_id = f.id and r.deleted_at is null and r.date_reglement <= ${au}::date), 0) as reste
           from factures_fournisseur f
-          where f.organization_id = ${organizationId} and f.statut = 'comptabilisee' and f.date_facture <= ${au}::date
+          where f.organization_id = ${organizationId} and f.statut = 'comptabilisee' and f.deleted_at is null and f.date_facture <= ${au}::date
         ) d
         where reste > 0
         group by tiers order by sum(reste) desc

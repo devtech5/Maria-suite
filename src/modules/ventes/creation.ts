@@ -1,6 +1,6 @@
 import "server-only";
 
-import { and, eq, inArray, sql } from "drizzle-orm";
+import { and, eq, inArray, isNull, sql } from "drizzle-orm";
 
 import { auditLogs } from "@/db/schema";
 import {
@@ -132,6 +132,7 @@ export async function enregistrerVenteDans(
       and(
         eq(postesCaisse.id, vente.caisseId),
         eq(postesCaisse.organizationId, organizationId),
+        isNull(postesCaisse.deletedAt),
       ),
     );
 
@@ -156,6 +157,7 @@ export async function enregistrerVenteDans(
         eq(sessionsCaisse.organizationId, organizationId),
         eq(sessionsCaisse.caisseId, poste.id),
         eq(sessionsCaisse.statut, "ouverte"),
+        isNull(sessionsCaisse.deletedAt),
       ),
     )
     .limit(1);

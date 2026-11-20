@@ -88,7 +88,7 @@ export async function importerTiersDans(
   const existants = await tx
     .select({ id: tiers.id, nom: tiers.nom, compteClient: tiers.compteClient, compteFournisseur: tiers.compteFournisseur })
     .from(tiers)
-    .where(eq(tiers.organizationId, organizationId));
+    .where(and(eq(tiers.organizationId, organizationId), isNull(tiers.deletedAt)));
   const parNom = new Map(existants.map((t) => [t.nom.trim().toLowerCase(), t]));
 
   const bilan = { crees: 0, creances: 0, montantCreances: 0, dettes: 0, montantDettes: 0 };
@@ -234,7 +234,7 @@ export async function importerStockDans(
   const refs = await tx
     .select({ id: articles.id, reference: articles.reference, suiviStock: articles.suiviStock, prixAchat: articles.prixAchat })
     .from(articles)
-    .where(eq(articles.organizationId, organizationId));
+    .where(and(eq(articles.organizationId, organizationId), isNull(articles.deletedAt)));
   const parRef = new Map(refs.map((a) => [a.reference.toLowerCase(), a]));
   const lesDepots = await tx
     .select({ id: depots.id, code: depots.code, nom: depots.nom })
@@ -281,7 +281,7 @@ export async function reprendreTresorerieDans(
   const [c] = await tx
     .select()
     .from(comptesTresorerie)
-    .where(and(eq(comptesTresorerie.id, r.compteTresorerieId), eq(comptesTresorerie.organizationId, organizationId)));
+    .where(and(eq(comptesTresorerie.id, r.compteTresorerieId), eq(comptesTresorerie.organizationId, organizationId), isNull(comptesTresorerie.deletedAt)));
   if (!c) throw new Error("Compte de trésorerie introuvable.");
   if (r.solde < 0 && c.nature !== "banque") throw new Error("Une caisse ou un compte mobile money ne s'ouvre pas en négatif.");
   const piece = `OUV-${c.compte}`;

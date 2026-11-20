@@ -255,7 +255,7 @@ export async function modifierEtatCivilPour(
   const [modifie] = await db
     .update(employees)
     .set({ ...etat, updatedAt: new Date() })
-    .where(and(eq(employees.organizationId, organizationId), eq(employees.id, employeeId)))
+    .where(and(isNull(employees.deletedAt), eq(employees.organizationId, organizationId), eq(employees.id, employeeId)))
     .returning({ nom: employees.nom });
   if (!modifie) throw new Error("Collaborateur introuvable.");
   await tracerPour(organizationId, userId, {
@@ -365,7 +365,7 @@ export async function changerPhotoPour(
   const [modifie] = await db
     .update(employees)
     .set({ photo, updatedAt: new Date() })
-    .where(and(eq(employees.organizationId, organizationId), eq(employees.id, employeeId)))
+    .where(and(isNull(employees.deletedAt), eq(employees.organizationId, organizationId), eq(employees.id, employeeId)))
     .returning({ nom: employees.nom });
   if (!modifie) throw new Error("Collaborateur introuvable.");
   await tracerPour(organizationId, userId, {

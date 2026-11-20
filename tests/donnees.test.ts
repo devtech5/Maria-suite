@@ -8,6 +8,7 @@ import {
   lireSaisie,
   memeValeur,
   refusSuppressionDefinitive,
+  supprimable,
   verrouLigne,
   type ColonneDecrite,
   type TableDecrite,
@@ -68,6 +69,8 @@ describe("accès aux colonnes", () => {
     expect(accesColonne("tiers", colonne({ nom: "caisse_id", genre: "uuid", reference: "comptes_tresorerie" }))).toBe("lecture");
     expect(accesColonne("tiers", colonne({ nom: "approuve_le", genre: "horodatage" }))).toBe("lecture");
     expect(accesColonne("ecritures", colonne({ nom: "libelle", genre: "texte" }))).toBe("lecture");
+    // Droits et modules se règlent dans « Utilisateurs » : la console ne fait que les lire.
+    for (const nom of ["acces_modules_roles", "organization_modules", "memberships", "roles"]) expect(supprimable(table(nom)), nom).toBe(false);
     expect(accesColonne("tiers", colonne({ nom: "nom", genre: "texte" }))).toBe("modifiable");
     expect(accesColonne("sessions", colonne({ nom: "token_hash", genre: "texte" }))).toBe("masquee");
   });

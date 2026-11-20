@@ -165,7 +165,7 @@ export async function jetonEtiquette(organizationId: string, pliId: string): Pro
   const [c] = await db
     .select({ token: entityCodes.token })
     .from(entityCodes)
-    .where(and(eq(entityCodes.organizationId, organizationId), eq(entityCodes.entityType, "pli"), eq(entityCodes.entityId, pliId), eq(entityCodes.isActive, true)));
+    .where(and(eq(entityCodes.organizationId, organizationId), eq(entityCodes.entityType, "pli"), eq(entityCodes.entityId, pliId), eq(entityCodes.isActive, true), isNull(entityCodes.deletedAt)));
   return c?.token ?? null;
 }
 
@@ -174,7 +174,7 @@ export async function pliParJeton(organizationId: string, token: string): Promis
   const [c] = await db
     .select({ id: entityCodes.entityId })
     .from(entityCodes)
-    .where(and(eq(entityCodes.organizationId, organizationId), eq(entityCodes.entityType, "pli"), eq(entityCodes.token, token), eq(entityCodes.isActive, true)));
+    .where(and(eq(entityCodes.organizationId, organizationId), eq(entityCodes.entityType, "pli"), eq(entityCodes.token, token), eq(entityCodes.isActive, true), isNull(entityCodes.deletedAt)));
   return c?.id ?? null;
 }
 
@@ -291,7 +291,7 @@ export async function imputerPour(
     .where(and(eq(memberships.organizationId, organizationId), eq(memberships.userId, i.userId as string), eq(memberships.status, "actif")));
   if (!membre) throw new Error("La personne choisie n'est pas un membre actif de l'entreprise.");
   if (i.serviceId) {
-    const [s] = await db.select({ id: services.id }).from(services).where(and(eq(services.organizationId, organizationId), eq(services.id, i.serviceId)));
+    const [s] = await db.select({ id: services.id }).from(services).where(and(eq(services.organizationId, organizationId), eq(services.id, i.serviceId), isNull(services.deletedAt)));
     if (!s) throw new Error("Service introuvable.");
   }
   const reimputation = p.imputeUserId !== null;

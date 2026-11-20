@@ -1,6 +1,6 @@
 import "server-only";
 
-import { eq, sql } from "drizzle-orm";
+import { and, eq, isNull, sql } from "drizzle-orm";
 
 import { db } from "@/db";
 
@@ -36,7 +36,7 @@ export async function exercicesFiscaux(organizationId: string, aujourdhui: strin
       order by e.exercice
     `),
     db.select().from(exercicesClotures).where(eq(exercicesClotures.organizationId, organizationId)),
-    db.select({ exercice: impotsBenefices.exercice }).from(impotsBenefices).where(eq(impotsBenefices.organizationId, organizationId)),
+    db.select({ exercice: impotsBenefices.exercice }).from(impotsBenefices).where(and(eq(impotsBenefices.organizationId, organizationId), isNull(impotsBenefices.deletedAt))),
   ]);
   const impotConstate = new Set(impots.map((i) => i.exercice));
   const closParExercice = new Map(clotures.map((c) => [c.exercice, c]));

@@ -59,7 +59,7 @@ export async function reglagesDe(organizationId: string): Promise<Reglages> {
   const [org] = await db.select({ pays: organizations.countryCode, fuseau: organizations.timezone }).from(organizations).where(eq(organizations.id, organizationId));
   const pays = org?.pays ?? "CI";
   const regle = regleConges(pays);
-  const [r] = await db.select().from(reglagesPresence).where(eq(reglagesPresence.organizationId, organizationId));
+  const [r] = await db.select().from(reglagesPresence).where(and(eq(reglagesPresence.organizationId, organizationId), isNull(reglagesPresence.deletedAt)));
   return {
     pointageAuto: r?.pointageAuto ?? true,
     heureArrivee: r?.heureArrivee ?? "08:00",
@@ -105,7 +105,7 @@ export async function enregistrerReglagesPour(organizationId: string, userId: st
   await db
     .insert(reglagesPresence)
     .values({ id: newId(), organizationId, ...ligne })
-    .onConflictDoUpdate({ target: reglagesPresence.organizationId, set: { ...ligne, updatedAt: new Date() } });
+    .onConflictDoUpdate({ target: reglagesPresence.organizationId, set: { ...ligne, deletedAt: null, updatedAt: new Date() } });
   oublierContextePresence(organizationId);
   await journaliser(db, organizationId, userId, "presence.reglages", "reglages_presence", organizationId, { ...ligne, verifieLe: undefined });
 }
@@ -116,7 +116,7 @@ export async function feriesEntre(organizationId: string, debut: string, fin: st
   const lignes = await db
     .select({ jour: joursFeries.jour, libelle: joursFeries.libelle })
     .from(joursFeries)
-    .where(and(eq(joursFeries.organizationId, organizationId), gte(joursFeries.jour, debut), lte(joursFeries.jour, fin)));
+    .where(and(eq(joursFeries.organizationId, organizationId), gte(joursFeries.jour, debut), lte(joursFeries.jour, fin), isNull(joursFeries.deletedAt)));
   return new Map(lignes.map((l) => [l.jour, l.libelle]));
 }
 
@@ -124,7 +124,7 @@ export async function ajouterFeriePour(organizationId: string, userId: string, j
   await db
     .insert(joursFeries)
     .values({ id: newId(), organizationId, jour, libelle: libelle.trim() })
-    .onConflictDoUpdate({ target: [joursFeries.organizationId, joursFeries.jour], set: { libelle: libelle.trim(), updatedAt: new Date() } });
+    .onConflictDoUpdate({ target: [joursFeries.organizationId, joursFeries.jour], set: { libelle: libelle.trim(), deletedAt: null, updatedAt: new Date() } });
   await journaliser(db, organizationId, userId, "presence.ferie", "jour_ferie", organizationId, { ajoute: jour, libelle });
 }
 
@@ -154,7 +154,7 @@ async function salarieDe(tx: Transaction | typeof db, organizationId: string, em
   const [s] = await tx
     .select({ id: employees.id, nom: employees.nom, userId: employees.userId, debut: employees.debut, fin: employees.fin, actif: employees.actif })
     .from(employees)
-    .where(and(eq(employees.id, employeeId), eq(employees.organizationId, organizationId)));
+    .where(and(eq(employees.id, employeeId), eq(employees.organizationId, organizationId), isNull(employees.deletedAt)));
   if (!s) throw new Error("Collaborateur introuvable.");
   return s;
 }
@@ -188,7 +188,7 @@ export async function pointerManuellementPour(organizationId: string, userId: st
       .limit(1);
     const champs = { arrivee, derniereActivite: depart ?? arrivee, depart, source: "manuel" as const, corrigeParUserId: userId, motif: s.motif.trim(), employeeId: salarie.id, updatedAt: new Date() };
     if (existante) {
-      await tx.update(presences).set(champs).where(eq(presences.id, existante.id));
+      await tx.update(presences).set({ ...champs, deletedAt: null }).where(eq(presences.id, existante.id));
       await journaliser(tx, organizationId, userId, "presence.corriger", "presence", existante.id, { salarie: salarie.nom, jour: s.jour, arrivee: s.arrivee, depart: s.depart, motif: s.motif });
     } else {
       const id = newId();
@@ -206,7 +206,7 @@ export async function pointerDepartPour(organizationId: string, userId: string):
   const [l] = await db
     .update(presences)
     .set({ depart: maintenant, derniereActivite: sql`greatest(${presences.derniereActivite}, ${maintenant.toISOString()}::timestamptz)`, updatedAt: maintenant })
-    .where(and(eq(presences.organizationId, organizationId), eq(presences.userId, userId), eq(presences.jour, jour)))
+    .where(and(eq(presences.organizationId, organizationId), eq(presences.userId, userId), eq(presences.jour, jour), isNull(presences.deletedAt)))
     .returning({ id: presences.id });
   if (!l) throw new Error("Aucune arrivée pointée aujourd'hui.");
   await journaliser(db, organizationId, userId, "presence.depart", "presence", l.id, { jour });
@@ -262,7 +262,7 @@ export async function demanderCongePour(
     const autres = await tx
       .select({ numero: conges.numero, debut: conges.debut, fin: conges.fin })
       .from(conges)
-      .where(and(eq(conges.organizationId, organizationId), eq(conges.employeeId, salarie.id), inArray(conges.statut, ["demande", "approuve"]), lte(conges.debut, s.fin), gte(conges.fin, s.debut)));
+      .where(and(eq(conges.organizationId, organizationId), eq(conges.employeeId, salarie.id), inArray(conges.statut, ["demande", "approuve"]), lte(conges.debut, s.fin), gte(conges.fin, s.debut), isNull(conges.deletedAt)));
     const conflit = autres.find((a) => chevauche(a, s));
     if (conflit) throw new Error(`Cette période chevauche le congé ${conflit.numero}.`);
 
@@ -306,7 +306,7 @@ export async function deciderCongePour(
   const [lu] = await db
     .select({ debut: conges.debut, fin: conges.fin, debutDemi: conges.debutDemi, finDemi: conges.finDemi })
     .from(conges)
-    .where(and(eq(conges.id, id), eq(conges.organizationId, organizationId)));
+    .where(and(eq(conges.id, id), eq(conges.organizationId, organizationId), isNull(conges.deletedAt)));
   if (!lu) throw new Error("Demande introuvable.");
   const jours = decision === "approuve" ? await decompterDans(organizationId, lu) : undefined;
 
@@ -314,7 +314,7 @@ export async function deciderCongePour(
     const [c] = await tx
       .select({ id: conges.id, numero: conges.numero, statut: conges.statut, demandeur: conges.demandeParUserId, employeeId: conges.employeeId })
       .from(conges)
-      .where(and(eq(conges.id, id), eq(conges.organizationId, organizationId)))
+      .where(and(eq(conges.id, id), eq(conges.organizationId, organizationId), isNull(conges.deletedAt)))
       .for("update");
     if (!c) throw new Error("Demande introuvable.");
     if (c.statut !== "demande") throw new Error("Cette demande a déjà été traitée.");
@@ -336,7 +336,7 @@ export async function annulerCongePour(organizationId: string, userId: string, i
   const [c] = await db
     .select({ id: conges.id, numero: conges.numero, statut: conges.statut, debut: conges.debut, employeeId: conges.employeeId })
     .from(conges)
-    .where(and(eq(conges.id, id), eq(conges.organizationId, organizationId)));
+    .where(and(eq(conges.id, id), eq(conges.organizationId, organizationId), isNull(conges.deletedAt)));
   if (!c) throw new Error("Congé introuvable.");
   if (c.statut === "annule" || c.statut === "refuse") throw new Error("Ce congé n'est plus en cours.");
   if (!responsable) {
@@ -440,7 +440,7 @@ export async function demanderPermissionPour(
     const congesCroises = await tx
       .select({ numero: conges.numero })
       .from(conges)
-      .where(and(eq(conges.organizationId, organizationId), eq(conges.employeeId, salarie.id), inArray(conges.statut, ["demande", "approuve"]), lte(conges.debut, fin), gte(conges.fin, s.debut)));
+      .where(and(eq(conges.organizationId, organizationId), eq(conges.employeeId, salarie.id), inArray(conges.statut, ["demande", "approuve"]), lte(conges.debut, fin), gte(conges.fin, s.debut), isNull(conges.deletedAt)));
     if (congesCroises[0]) throw new Error(`Cette période est déjà couverte par le congé ${congesCroises[0].numero}.`);
 
     const autres = await tx
@@ -453,6 +453,7 @@ export async function demanderPermissionPour(
           inArray(demandesPermission.statut, ["demande", "approuve"]),
           lte(demandesPermission.debut, fin),
           gte(demandesPermission.fin, s.debut),
+          isNull(demandesPermission.deletedAt),
         ),
       );
     const conflit = autres.find((a) => permissionsSeChevauchent(a, plage));
@@ -515,7 +516,7 @@ export async function deciderPermissionPour(
     const [p] = await tx
       .select()
       .from(demandesPermission)
-      .where(and(eq(demandesPermission.id, id), eq(demandesPermission.organizationId, organizationId)))
+      .where(and(eq(demandesPermission.id, id), eq(demandesPermission.organizationId, organizationId), isNull(demandesPermission.deletedAt)))
       .for("update");
     if (!p) throw new Error("Demande introuvable.");
     if (p.statut !== "demande") throw new Error("Cette demande a déjà été traitée.");
@@ -547,7 +548,7 @@ export async function annulerPermissionPour(organizationId: string, userId: stri
   const [p] = await db
     .select({ id: demandesPermission.id, numero: demandesPermission.numero, statut: demandesPermission.statut, debut: demandesPermission.debut, employeeId: demandesPermission.employeeId })
     .from(demandesPermission)
-    .where(and(eq(demandesPermission.id, id), eq(demandesPermission.organizationId, organizationId)));
+    .where(and(eq(demandesPermission.id, id), eq(demandesPermission.organizationId, organizationId), isNull(demandesPermission.deletedAt)));
   if (!p) throw new Error("Demande introuvable.");
   if (p.statut === "annule" || p.statut === "refuse") throw new Error("Cette demande n'est plus en cours.");
   if (!responsable) {

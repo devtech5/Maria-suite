@@ -1,6 +1,6 @@
 "use server";
 
-import { and, eq } from "drizzle-orm";
+import { and, eq, isNull } from "drizzle-orm";
 import { revalidatePath } from "next/cache";
 import { z } from "zod";
 
@@ -286,7 +286,7 @@ export async function ouvrirJustificatif(id: string): Promise<{ ok: true; url: s
     .select({ justificatif: conges.justificatif, salarieUserId: employees.userId })
     .from(conges)
     .innerJoin(employees, eq(employees.id, conges.employeeId))
-    .where(and(eq(conges.id, id), eq(conges.organizationId, s.organizationId)));
+    .where(and(eq(conges.id, id), eq(conges.organizationId, s.organizationId), isNull(conges.deletedAt)));
   if (!c?.justificatif) return { ok: false, message: "Aucun justificatif joint." };
   if (c.salarieUserId !== s.userId && !(await peut("conges.valider"))) return { ok: false, message: "Ce justificatif ne vous est pas destiné." };
   const url = await urlSignee(c.justificatif);
@@ -426,7 +426,7 @@ export async function ouvrirJustificatifPermission(id: string): Promise<{ ok: tr
     .select({ justificatif: demandesPermission.justificatif, salarieUserId: employees.userId })
     .from(demandesPermission)
     .innerJoin(employees, eq(employees.id, demandesPermission.employeeId))
-    .where(and(eq(demandesPermission.id, id), eq(demandesPermission.organizationId, s.organizationId)));
+    .where(and(eq(demandesPermission.id, id), eq(demandesPermission.organizationId, s.organizationId), isNull(demandesPermission.deletedAt)));
   if (!p?.justificatif) return { ok: false, message: "Aucun justificatif joint." };
   if (p.salarieUserId !== s.userId && !(await peut("conges.valider"))) return { ok: false, message: "Ce justificatif ne vous est pas destiné." };
   const url = await urlSignee(p.justificatif);

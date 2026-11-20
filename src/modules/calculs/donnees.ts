@@ -1,6 +1,6 @@
 import "server-only";
 
-import { and, asc, desc, eq, inArray, sql } from "drizzle-orm";
+import { and, asc, desc, eq, inArray, isNull, sql } from "drizzle-orm";
 import { cache } from "react";
 
 import { db } from "@/db";
@@ -45,7 +45,7 @@ export const reglagesCalculsDe = cache(async (organizationId: string): Promise<E
   const [r] = await db
     .select({ valeurs: reglagesCalculs.valeurs, verifieLe: reglagesCalculs.verifieLe })
     .from(reglagesCalculs)
-    .where(eq(reglagesCalculs.organizationId, organizationId))
+    .where(and(eq(reglagesCalculs.organizationId, organizationId), isNull(reglagesCalculs.deletedAt)))
     .limit(1);
   const [o] = await db.select({ fuseau: organizations.timezone }).from(organizations).where(eq(organizations.id, organizationId)).limit(1);
   return {
@@ -72,7 +72,7 @@ export async function enregistrerReglagesCalculsPour(organizationId: string, use
     await tx
       .insert(reglagesCalculs)
       .values({ id: newId(), organizationId, ...ligne })
-      .onConflictDoUpdate({ target: reglagesCalculs.organizationId, set: { ...ligne, updatedAt: new Date(), version: sql`${reglagesCalculs.version} + 1` } });
+      .onConflictDoUpdate({ target: reglagesCalculs.organizationId, set: { ...ligne, deletedAt: null, updatedAt: new Date(), version: sql`${reglagesCalculs.version} + 1` } });
     await tx.insert(auditLogs).values({
       id: newId(),
       organizationId,
@@ -107,7 +107,7 @@ export async function projetsPourNotes(organizationId: string): Promise<OptionPr
   return db
     .select({ id: projets.id, code: projets.code, nom: projets.nom })
     .from(projets)
-    .where(and(eq(projets.organizationId, organizationId), inArray(projets.statut, ["preparation", "en_cours", "suspendu"])))
+    .where(and(eq(projets.organizationId, organizationId), inArray(projets.statut, ["preparation", "en_cours", "suspendu"]), isNull(projets.deletedAt)))
     .orderBy(asc(projets.code));
 }
 
@@ -133,7 +133,7 @@ export async function enregistrerNotePour(organizationId: string, userId: string
     const [projet] = await tx
       .select({ id: projets.id, statut: projets.statut })
       .from(projets)
-      .where(and(eq(projets.id, n.projetId), eq(projets.organizationId, organizationId)));
+      .where(and(eq(projets.id, n.projetId), eq(projets.organizationId, organizationId), isNull(projets.deletedAt)));
     if (!projet) throw new Error("Projet introuvable.");
     if (projet.statut === "termine" || projet.statut === "annule") throw new Error("Ce projet est clos : il ne reçoit plus de note.");
     const annee = jourLocal(new Date(), await fuseauDe(tx, organizationId)).slice(0, 4);
@@ -166,7 +166,7 @@ export async function annulerNotePour(organizationId: string, userId: string, id
     const [note] = await tx
       .select({ numero: notesCalcul.numero, auteur: notesCalcul.creeParUserId, annuleeLe: notesCalcul.annuleeLe })
       .from(notesCalcul)
-      .where(and(eq(notesCalcul.id, id), eq(notesCalcul.organizationId, organizationId)))
+      .where(and(eq(notesCalcul.id, id), eq(notesCalcul.organizationId, organizationId), isNull(notesCalcul.deletedAt)))
       .for("update");
     if (!note) throw new Error("Note introuvable.");
     if (note.annuleeLe) throw new Error("Cette note est déjà annulée.");
@@ -207,7 +207,7 @@ export async function listerNotes(organizationId: string, projetId?: string | nu
     })
     .from(notesCalcul)
     .innerJoin(projets, eq(projets.id, notesCalcul.projetId))
-    .where(and(eq(notesCalcul.organizationId, organizationId), projetId ? eq(notesCalcul.projetId, projetId) : undefined))
+    .where(and(eq(notesCalcul.organizationId, organizationId), isNull(notesCalcul.deletedAt), projetId ? eq(notesCalcul.projetId, projetId) : undefined))
     .orderBy(desc(notesCalcul.createdAt))
     .limit(500);
   return lignes.map(({ annuleeLe, ...l }) => ({ ...l, type: l.type as TypeNote, annulee: annuleeLe !== null }));
@@ -238,12 +238,12 @@ export async function noteDe(organizationId: string, id: string): Promise<Detail
     .innerJoin(projets, eq(projets.id, notesCalcul.projetId))
     .leftJoin(tiers, eq(tiers.id, projets.clientId))
     .leftJoin(users, eq(users.id, notesCalcul.creeParUserId))
-    .where(and(eq(notesCalcul.id, id), eq(notesCalcul.organizationId, organizationId)));
+    .where(and(eq(notesCalcul.id, id), eq(notesCalcul.organizationId, organizationId), isNull(notesCalcul.deletedAt)));
   if (!l) return null;
   const suites = await db
     .select({ id: notesCalculSuites.id, nature: notesCalculSuites.nature, pieceId: notesCalculSuites.pieceId, libelle: notesCalculSuites.libelle, creeLe: notesCalculSuites.createdAt })
     .from(notesCalculSuites)
-    .where(and(eq(notesCalculSuites.organizationId, organizationId), eq(notesCalculSuites.noteId, id)))
+    .where(and(eq(notesCalculSuites.organizationId, organizationId), eq(notesCalculSuites.noteId, id), isNull(notesCalculSuites.deletedAt)))
     .orderBy(asc(notesCalculSuites.createdAt));
   const reglages = normaliserReglages(l.note.reglages);
   return {
@@ -265,7 +265,7 @@ export async function articlesPourCalculs(organizationId: string): Promise<(Arti
   return db
     .select({ id: articles.id, reference: articles.reference, designation: articles.designation, unite: articles.unite, prixVente: articles.prixVente, prixAchat: articles.prixAchat })
     .from(articles)
-    .where(and(eq(articles.organizationId, organizationId), eq(articles.actif, true), eq(articles.type, "marchandise")))
+    .where(and(eq(articles.organizationId, organizationId), eq(articles.actif, true), eq(articles.type, "marchandise"), isNull(articles.deletedAt)))
     .orderBy(asc(articles.designation))
     .limit(2000);
 }
@@ -275,7 +275,7 @@ export async function correspondancesDe(organizationId: string): Promise<Record<
   const lignes = await db
     .select({ cle: calculsArticles.cle, articleId: calculsArticles.articleId })
     .from(calculsArticles)
-    .where(eq(calculsArticles.organizationId, organizationId));
+    .where(and(eq(calculsArticles.organizationId, organizationId), isNull(calculsArticles.deletedAt)));
   return Object.fromEntries(lignes.map((l) => [l.cle, l.articleId]));
 }
 
@@ -291,13 +291,13 @@ export async function enregistrerCorrespondancePour(organizationId: string, user
       const [a] = await tx
         .select({ id: articles.id, unite: articles.unite, designation: articles.designation })
         .from(articles)
-        .where(and(eq(articles.id, articleId), eq(articles.organizationId, organizationId), eq(articles.actif, true)));
+        .where(and(eq(articles.id, articleId), eq(articles.organizationId, organizationId), eq(articles.actif, true), isNull(articles.deletedAt)));
       if (!a) throw new Error("Article introuvable.");
       if (a.unite !== uniteCle(cle)) throw new Error(`« ${a.designation} » se compte en ${a.unite} ; ce matériau se commande en ${LIBELLES_UNITE[uniteCle(cle)]}.`);
       await tx
         .insert(calculsArticles)
         .values({ id: newId(), organizationId, cle, articleId: a.id })
-        .onConflictDoUpdate({ target: [calculsArticles.organizationId, calculsArticles.cle], set: { articleId: a.id, updatedAt: new Date(), version: sql`${calculsArticles.version} + 1` } });
+        .onConflictDoUpdate({ target: [calculsArticles.organizationId, calculsArticles.cle], set: { articleId: a.id, deletedAt: null, updatedAt: new Date(), version: sql`${calculsArticles.version} + 1` } });
     }
     await tx.insert(auditLogs).values({ id: newId(), organizationId, userId, action: "calculs.correspondance", entityType: "calculs_articles", entityId: organizationId, after: { cle, articleId } });
   });
@@ -315,7 +315,7 @@ async function lignesDeLaNote(tx: Transaction, organizationId: string, noteId: s
   const [note] = await tx
     .select()
     .from(notesCalcul)
-    .where(and(eq(notesCalcul.id, noteId), eq(notesCalcul.organizationId, organizationId)))
+    .where(and(eq(notesCalcul.id, noteId), eq(notesCalcul.organizationId, organizationId), isNull(notesCalcul.deletedAt)))
     .for("update");
   if (!note) throw new Error("Note introuvable.");
   if (note.annuleeLe) throw new Error("Cette note est annulée.");
@@ -337,7 +337,7 @@ async function lignesDeLaNote(tx: Transaction, organizationId: string, noteId: s
     })
     .from(articles)
     .leftJoin(famillesArticle, eq(famillesArticle.id, articles.familleId))
-    .where(and(eq(articles.organizationId, organizationId), eq(articles.actif, true), inArray(articles.id, demandees.map((d) => d.articleId))));
+    .where(and(eq(articles.organizationId, organizationId), eq(articles.actif, true), isNull(articles.deletedAt), inArray(articles.id, demandees.map((d) => d.articleId))));
   const parId = new Map(refs.map((a) => [a.id, a]));
   const lignes = demandees.map((d) => {
     const m = materiaux.get(d.cle);
@@ -417,7 +417,7 @@ export async function fournisseursPourCalculs(organizationId: string): Promise<{
   return db
     .select({ id: tiers.id, nom: tiers.nom })
     .from(tiers)
-    .where(and(eq(tiers.organizationId, organizationId), eq(tiers.estFournisseur, true), eq(tiers.actif, true)))
+    .where(and(eq(tiers.organizationId, organizationId), eq(tiers.estFournisseur, true), eq(tiers.actif, true), isNull(tiers.deletedAt)))
     .orderBy(asc(tiers.nom));
 }
 

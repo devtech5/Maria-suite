@@ -1,6 +1,6 @@
 import "server-only";
 
-import { and, desc, eq } from "drizzle-orm";
+import { and, desc, eq, isNull } from "drizzle-orm";
 
 import { db } from "@/db";
 import { envoyerCourriel } from "@/lib/courriel";
@@ -127,6 +127,7 @@ export async function listerEnvois(organizationId: string, limite = 200, filtres
     .where(
       and(
         eq(envois.organizationId, organizationId),
+        isNull(envois.deletedAt),
         // Filtrés en base : sinon la recherche ne verrait que les derniers envois.
         // La date est celle du journal, l'envoi tenté : un échec n'a pas d'`envoye_le`.
         filtres && motsDans([envois.destinataire, envois.nom, envois.objet, envois.corps, envois.origine, envois.raison], motsRecherche(filtres.q)),

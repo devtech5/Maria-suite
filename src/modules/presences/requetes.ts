@@ -45,7 +45,7 @@ export async function presencesDuJour(organizationId: string, jour: string, fuse
     .from(presences)
     .leftJoin(employees, eq(employees.id, presences.employeeId))
     .leftJoin(users, eq(users.id, presences.userId))
-    .where(and(eq(presences.organizationId, organizationId), eq(presences.jour, jour)))
+    .where(and(eq(presences.organizationId, organizationId), eq(presences.jour, jour), isNull(presences.deletedAt)))
     .orderBy(asc(presences.arrivee));
   return lignes.map((l) => ({
     id: l.id,
@@ -65,7 +65,7 @@ export async function maPresence(organizationId: string, userId: string, jour: s
   const [l] = await db
     .select({ arrivee: presences.arrivee, derniere: presences.derniereActivite, depart: presences.depart })
     .from(presences)
-    .where(and(eq(presences.organizationId, organizationId), eq(presences.userId, userId), eq(presences.jour, jour)));
+    .where(and(eq(presences.organizationId, organizationId), eq(presences.userId, userId), eq(presences.jour, jour), isNull(presences.deletedAt)));
   return l ? { arrivee: heureLocale(l.arrivee, fuseau), derniere: heureLocale(l.derniere, fuseau), depart: l.depart ? heureLocale(l.depart, fuseau) : null } : null;
 }
 
@@ -93,7 +93,7 @@ async function congesAccordesSur(organizationId: string, debut: string, fin: str
   const lignes = await db
     .select({ employeeId: conges.employeeId, debut: conges.debut, fin: conges.fin, nature: conges.nature })
     .from(conges)
-    .where(and(eq(conges.organizationId, organizationId), eq(conges.statut, "approuve"), lte(conges.debut, fin), gte(conges.fin, debut)));
+    .where(and(eq(conges.organizationId, organizationId), eq(conges.statut, "approuve"), lte(conges.debut, fin), gte(conges.fin, debut), isNull(conges.deletedAt)));
   const parSalarie = new Map<string, Map<string, NatureConge>>();
   for (const c of lignes) {
     const jours = parSalarie.get(c.employeeId) ?? new Map<string, NatureConge>();
@@ -115,6 +115,7 @@ async function absencesAccordeesSur(organizationId: string, debut: string, fin: 
         eq(demandesPermission.genre, "journees"),
         lte(demandesPermission.debut, fin),
         gte(demandesPermission.fin, debut),
+        isNull(demandesPermission.deletedAt),
       ),
     );
   const parSalarie = new Map<string, Set<string>>();
@@ -154,7 +155,7 @@ export async function registre(
     db
       .select({ employeeId: presences.employeeId, jour: presences.jour, arrivee: presences.arrivee, derniere: presences.derniereActivite })
       .from(presences)
-      .where(and(eq(presences.organizationId, organizationId), gte(presences.jour, debut), lte(presences.jour, fin))),
+      .where(and(eq(presences.organizationId, organizationId), gte(presences.jour, debut), lte(presences.jour, fin), isNull(presences.deletedAt))),
   ]);
   const presenceDe = new Map<string, { arrivee: string; derniere: string }>();
   for (const p of pointages) if (p.employeeId) presenceDe.set(`${p.employeeId}|${p.jour}`, { arrivee: heureLocale(p.arrivee, r.fuseau), derniere: heureLocale(p.derniere, r.fuseau) });
@@ -202,11 +203,11 @@ export async function soldesConges(organizationId: string, r: Reglages, aujourdh
   if (salaries.length === 0) return [];
   const ids = salaries.map((s) => s.id);
   const [ajustements, payes, deduites] = await Promise.all([
-    db.select().from(ajustementsConge).where(and(eq(ajustementsConge.organizationId, organizationId), inArray(ajustementsConge.employeeId, ids))),
+    db.select().from(ajustementsConge).where(and(eq(ajustementsConge.organizationId, organizationId), inArray(ajustementsConge.employeeId, ids), isNull(ajustementsConge.deletedAt))),
     db
       .select({ employeeId: conges.employeeId, debut: conges.debut, statut: conges.statut, jours: conges.joursCentiemes })
       .from(conges)
-      .where(and(eq(conges.organizationId, organizationId), inArray(conges.employeeId, ids), eq(conges.nature, "paye"), inArray(conges.statut, ["demande", "approuve"]))),
+      .where(and(eq(conges.organizationId, organizationId), inArray(conges.employeeId, ids), eq(conges.nature, "paye"), inArray(conges.statut, ["demande", "approuve"]), isNull(conges.deletedAt))),
     // Permissions accordées « déduites des congés » : prises comme un congé payé.
     db
       .select({ employeeId: demandesPermission.employeeId, debut: demandesPermission.debut, centiemes: demandesPermission.centiemesDeduits })
@@ -217,6 +218,7 @@ export async function soldesConges(organizationId: string, r: Reglages, aujourdh
           inArray(demandesPermission.employeeId, ids),
           eq(demandesPermission.statut, "approuve"),
           eq(demandesPermission.traitement, "deduite_conges"),
+          isNull(demandesPermission.deletedAt),
         ),
       ),
   ]);
@@ -274,7 +276,7 @@ export async function listerConges(
   organizationId: string,
   filtre: { employeeId?: string; statuts?: LigneConge["statut"][]; limite?: number; filtres?: FiltresListe } = {},
 ): Promise<LigneConge[]> {
-  const conditions = [eq(conges.organizationId, organizationId)];
+  const conditions = [eq(conges.organizationId, organizationId), isNull(conges.deletedAt)];
   if (filtre.employeeId) conditions.push(eq(conges.employeeId, filtre.employeeId));
   if (filtre.statuts?.length) conditions.push(inArray(conges.statut, filtre.statuts));
   if (filtre.filtres) {
@@ -326,7 +328,7 @@ export async function listerFeries(organizationId: string, annee: number) {
   return db
     .select()
     .from(joursFeries)
-    .where(and(eq(joursFeries.organizationId, organizationId), gte(joursFeries.jour, `${annee}-01-01`), lte(joursFeries.jour, `${annee}-12-31`)))
+    .where(and(eq(joursFeries.organizationId, organizationId), gte(joursFeries.jour, `${annee}-01-01`), lte(joursFeries.jour, `${annee}-12-31`), isNull(joursFeries.deletedAt)))
     .orderBy(asc(joursFeries.jour));
 }
 
@@ -340,12 +342,12 @@ export interface EtatPresences {
 /** Pour le tableau de bord. */
 export async function etatPresences(organizationId: string, aujourdhui: string): Promise<EtatPresences> {
   const [demandes, permissions, presents, salaries] = await Promise.all([
-    db.select({ id: conges.id }).from(conges).where(and(eq(conges.organizationId, organizationId), eq(conges.statut, "demande"))),
+    db.select({ id: conges.id }).from(conges).where(and(eq(conges.organizationId, organizationId), eq(conges.statut, "demande"), isNull(conges.deletedAt))),
     db
       .select({ id: demandesPermission.id })
       .from(demandesPermission)
-      .where(and(eq(demandesPermission.organizationId, organizationId), eq(demandesPermission.statut, "demande"))),
-    db.select({ id: presences.id }).from(presences).where(and(eq(presences.organizationId, organizationId), eq(presences.jour, aujourdhui))),
+      .where(and(eq(demandesPermission.organizationId, organizationId), eq(demandesPermission.statut, "demande"), isNull(demandesPermission.deletedAt))),
+    db.select({ id: presences.id }).from(presences).where(and(eq(presences.organizationId, organizationId), eq(presences.jour, aujourdhui), isNull(presences.deletedAt))),
     salariesSur(organizationId, aujourdhui, aujourdhui),
   ]);
   return { demandesEnAttente: demandes.length, permissionsEnAttente: permissions.length, presentsAujourdhui: presents.length, salaries: salaries.length };
@@ -389,7 +391,7 @@ export async function listerPermissions(
   organizationId: string,
   filtre: { employeeId?: string; statuts?: LignePermission["statut"][]; limite?: number; filtres?: FiltresListe } = {},
 ): Promise<LignePermission[]> {
-  const conditions = [eq(demandesPermission.organizationId, organizationId)];
+  const conditions = [eq(demandesPermission.organizationId, organizationId), isNull(demandesPermission.deletedAt)];
   if (filtre.employeeId) conditions.push(eq(demandesPermission.employeeId, filtre.employeeId));
   if (filtre.statuts?.length) conditions.push(inArray(demandesPermission.statut, filtre.statuts));
   if (filtre.filtres) {

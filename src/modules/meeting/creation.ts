@@ -1,6 +1,6 @@
 import "server-only";
 
-import { and, eq, inArray, isNull, sql } from "drizzle-orm";
+import { and, eq, inArray, isNotNull, isNull, sql } from "drizzle-orm";
 
 import { auditLogs, memberships } from "@/db/schema";
 import { newId } from "@/lib/ids";
@@ -75,7 +75,7 @@ async function participantDe(tx: Transaction, reunionId: string, userId: string)
   const [ligne] = await tx
     .select()
     .from(reunionParticipants)
-    .where(and(eq(reunionParticipants.reunionId, reunionId), eq(reunionParticipants.userId, userId)));
+    .where(and(eq(reunionParticipants.reunionId, reunionId), eq(reunionParticipants.userId, userId), isNull(reunionParticipants.deletedAt)));
   return ligne ?? null;
 }
 
@@ -149,7 +149,12 @@ export async function inviterDans(
   const nouveaux = await tx
     .insert(reunionParticipants)
     .values(demandes.map((userId) => ({ id: newId(), organizationId, reunionId, userId, inviteParUserId: acteur.userId })))
-    .onConflictDoNothing({ target: [reunionParticipants.reunionId, reunionParticipants.userId] })
+    // Une place mise à la corbeille revient à la réinvitation.
+    .onConflictDoUpdate({
+      target: [reunionParticipants.reunionId, reunionParticipants.userId],
+      set: { deletedAt: null, inviteParUserId: acteur.userId, updatedAt: new Date(), version: sql`${reunionParticipants.version} + 1` },
+      setWhere: isNotNull(reunionParticipants.deletedAt),
+    })
     .returning({ userId: reunionParticipants.userId });
   const ids = nouveaux.map((n) => n.userId);
   if (ids.length > 0) await journaliser(tx, organizationId, acteur.userId, "reunion.inviter", reunionId, { numero: reunion.numero, invites: ids });
@@ -179,7 +184,14 @@ export async function rejoindreDans(
   let place = await participantDe(tx, reunionId, acteur.userId);
   if (!place) {
     if (!pilote(reunion, acteur)) throw new Error("Vous n'êtes pas invité à cette réunion.");
-    await tx.insert(reunionParticipants).values({ id: newId(), organizationId, reunionId, userId: acteur.userId, inviteParUserId: acteur.userId });
+    // Sa place mise à la corbeille revient, plutôt que de heurter la contrainte unique.
+    await tx
+      .insert(reunionParticipants)
+      .values({ id: newId(), organizationId, reunionId, userId: acteur.userId, inviteParUserId: acteur.userId })
+      .onConflictDoUpdate({
+        target: [reunionParticipants.reunionId, reunionParticipants.userId],
+        set: { deletedAt: null, inviteParUserId: acteur.userId, updatedAt: new Date(), version: sql`${reunionParticipants.version} + 1` },
+      });
     place = await participantDe(tx, reunionId, acteur.userId);
   }
 

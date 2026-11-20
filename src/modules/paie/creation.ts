@@ -89,6 +89,7 @@ export async function contexteAbsences(organizationId: string, mois: string): Pr
           inArray(conges.nature, ["paye", "sans_solde"]),
           lte(conges.debut, fin),
           gte(conges.fin, debut),
+          isNull(conges.deletedAt),
         ),
       ),
   ]);
@@ -103,7 +104,7 @@ export async function contexteAbsences(organizationId: string, mois: string): Pr
 // ------------------------------------------------------------------ périodes
 
 async function periodeVerrouillee(tx: Transaction, organizationId: string, id: string) {
-  const [p] = await tx.select().from(periodesPaie).where(and(eq(periodesPaie.id, id), eq(periodesPaie.organizationId, organizationId))).for("update");
+  const [p] = await tx.select().from(periodesPaie).where(and(eq(periodesPaie.id, id), eq(periodesPaie.organizationId, organizationId), isNull(periodesPaie.deletedAt))).for("update");
   if (!p) throw new Error("Période de paie introuvable.");
   return p;
 }
@@ -216,7 +217,7 @@ export async function modifierElementsDans(
   bareme: BaremePaie,
   userId: string,
 ): Promise<{ nom: string; net: number }> {
-  const [b] = await tx.select().from(bulletinsPaie).where(and(eq(bulletinsPaie.id, bulletinId), eq(bulletinsPaie.organizationId, organizationId))).for("update");
+  const [b] = await tx.select().from(bulletinsPaie).where(and(eq(bulletinsPaie.id, bulletinId), eq(bulletinsPaie.organizationId, organizationId), isNull(bulletinsPaie.deletedAt))).for("update");
   if (!b) throw new Error("Bulletin introuvable.");
   const periode = await periodeVerrouillee(tx, organizationId, b.periodeId);
   if (periode.statut === "validee") throw new Error("La paie de ce mois est validée : ses bulletins ne se modifient plus.");
@@ -268,7 +269,7 @@ export async function proposerRappel(
     .select({ employeId: bulletinsPaie.employeId, mois: periodesPaie.mois })
     .from(bulletinsPaie)
     .innerJoin(periodesPaie, eq(periodesPaie.id, bulletinsPaie.periodeId))
-    .where(and(eq(bulletinsPaie.id, bulletinId), eq(bulletinsPaie.organizationId, organizationId)));
+    .where(and(eq(bulletinsPaie.id, bulletinId), eq(bulletinsPaie.organizationId, organizationId), isNull(bulletinsPaie.deletedAt)));
   if (!b) throw new Error("Bulletin introuvable.");
   if (depuis >= b.mois) throw new Error("Le rappel porte sur des mois déjà payés, avant celui-ci.");
   const passes = await db
@@ -282,6 +283,8 @@ export async function proposerRappel(
         eq(periodesPaie.statut, "validee"),
         gte(periodesPaie.mois, depuis),
         lt(periodesPaie.mois, b.mois),
+        isNull(bulletinsPaie.deletedAt),
+        isNull(periodesPaie.deletedAt),
       ),
     );
   return rappelRetroactif(passes, nouveauSalaire);
@@ -289,7 +292,7 @@ export async function proposerRappel(
 
 /** Retire un collaborateur de la paie du mois (absent tout le mois, sorti avant le début). */
 export async function retirerBulletinDans(tx: Transaction, organizationId: string, bulletinId: string, userId: string): Promise<{ nom: string }> {
-  const [b] = await tx.select().from(bulletinsPaie).where(and(eq(bulletinsPaie.id, bulletinId), eq(bulletinsPaie.organizationId, organizationId))).for("update");
+  const [b] = await tx.select().from(bulletinsPaie).where(and(eq(bulletinsPaie.id, bulletinId), eq(bulletinsPaie.organizationId, organizationId), isNull(bulletinsPaie.deletedAt))).for("update");
   if (!b) throw new Error("Bulletin introuvable.");
   const periode = await periodeVerrouillee(tx, organizationId, b.periodeId);
   if (periode.statut === "validee") throw new Error("La paie de ce mois est validée.");
@@ -307,7 +310,7 @@ export async function retirerBulletinDans(tx: Transaction, organizationId: strin
 export async function validerPeriodeDans(tx: Transaction, organizationId: string, periodeId: string, bareme: BaremePaie, userId: string): Promise<{ mois: string; ecriture: string; bulletins: number }> {
   const periode = await periodeVerrouillee(tx, organizationId, periodeId);
   if (periode.statut === "validee") throw new Error("Cette paie est déjà validée.");
-  const bulletins = await tx.select().from(bulletinsPaie).where(eq(bulletinsPaie.periodeId, periodeId)).orderBy(asc(bulletinsPaie.matricule));
+  const bulletins = await tx.select().from(bulletinsPaie).where(and(eq(bulletinsPaie.periodeId, periodeId), isNull(bulletinsPaie.deletedAt))).orderBy(asc(bulletinsPaie.matricule));
   if (bulletins.length === 0) throw new Error("Aucun bulletin dans cette paie.");
 
   const calcules = bulletins.map((b) => ({ b, c: calculerBulletinPaie(b, bareme) }));
@@ -365,7 +368,7 @@ export async function validerPeriodeDans(tx: Transaction, organizationId: string
 }
 
 async function compteTresorerie(tx: Transaction, organizationId: string, id: string) {
-  const [c] = await tx.select().from(comptesTresorerie).where(and(eq(comptesTresorerie.id, id), eq(comptesTresorerie.organizationId, organizationId))).for("update");
+  const [c] = await tx.select().from(comptesTresorerie).where(and(eq(comptesTresorerie.id, id), eq(comptesTresorerie.organizationId, organizationId), isNull(comptesTresorerie.deletedAt))).for("update");
   if (!c || !c.actif) throw new Error("Compte de trésorerie introuvable ou fermé.");
   return { ref: { numero: c.compte, libelle: c.nom, nature: c.nature, nom: c.nom }, journal: (c.nature === "banque" ? "BQ" : "CA") as "BQ" | "CA", id: c.id };
 }
@@ -384,7 +387,7 @@ export async function payerSalairesDans(
   const periode = await periodeVerrouillee(tx, organizationId, periodeId);
   if (periode.statut !== "validee") throw new Error("Validez la paie avant de payer les salaires.");
   const compte = await compteTresorerie(tx, organizationId, v.compteTresorerieId);
-  const tous = await tx.select().from(bulletinsPaie).where(and(eq(bulletinsPaie.periodeId, periodeId), isNull(bulletinsPaie.payeLe))).for("update");
+  const tous = await tx.select().from(bulletinsPaie).where(and(eq(bulletinsPaie.periodeId, periodeId), isNull(bulletinsPaie.payeLe), isNull(bulletinsPaie.deletedAt))).for("update");
   const choisis = v.bulletinIds?.length ? tous.filter((b) => v.bulletinIds!.includes(b.id)) : tous;
   const aPayer = choisis.filter((b) => b.net > 0);
   if (aPayer.length === 0) throw new Error("Aucun salaire à payer.");

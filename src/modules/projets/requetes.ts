@@ -124,14 +124,14 @@ function requeteProjets(organizationId: string, projetId?: string) {
            (select coalesce(sum(f.total_ht), 0) from pieces_commerciales f
              where f.projet_id = p.id and f.nature = 'facture' and f.statut = 'emise' and f.deleted_at is null) as facture,
            (select coalesce(sum(r.montant), 0) from reglements_piece r join pieces_commerciales f on f.id = r.piece_id
-             where f.projet_id = p.id and f.nature = 'facture' and f.statut = 'emise' and r.deleted_at is null) as encaisse,
+             where f.projet_id = p.id and f.nature = 'facture' and f.statut = 'emise' and f.deleted_at is null and r.deleted_at is null) as encaisse,
            coalesce(sum(d.montant) filter (where d.statut = 'demandee'), 0) as en_attente,
            count(d.id) filter (where d.statut not in ('rejetee', 'annulee')) as nb_depenses,
-           (select count(*) from pieces_projet x where x.projet_id = p.id and x.nature = 'photo') as photos
+           (select count(*) from pieces_projet x where x.projet_id = p.id and x.nature = 'photo' and x.deleted_at is null) as photos
     from projets p
       left join tiers t on t.id = p.client_id
       left join users u on u.id = p.responsable_user_id
-      left join depenses d on d.projet_id = p.id
+      left join depenses d on d.projet_id = p.id and d.deleted_at is null
     where p.organization_id = ${organizationId} and p.deleted_at is null
       ${projetId ? sql`and p.id = ${projetId}` : sql``}
     group by p.id, t.nom, u.full_name
@@ -200,7 +200,7 @@ export async function listerDepenses(organizationId: string, projetId?: string):
            d.demandee_le, ud.full_name as demandeur, d.demandee_par_user_id,
            d.approuvee_le, ua.full_name as approbateur, d.payee_le, up.full_name as payeur,
            d.moyen, d.reference_paiement, d.ecriture, d.motif,
-           (select count(*) from pieces_projet x where x.depense_id = d.id and x.nature in ('preuve_paiement', 'facture')) as preuves
+           (select count(*) from pieces_projet x where x.depense_id = d.id and x.nature in ('preuve_paiement', 'facture') and x.deleted_at is null) as preuves
     from depenses d
       left join projets p on p.id = d.projet_id
       left join tiers f on f.id = d.fournisseur_id
@@ -267,7 +267,7 @@ export async function piecesDuProjet(organizationId: string, projetId: string): 
     select x.id, x.nature, x.legende, x.nom_fichier, x.type_mime, x.depense_id, x.created_at,
            u.full_name as auteur
     from pieces_projet x left join users u on u.id = x.depose_par_user_id
-    where x.organization_id = ${organizationId} and x.projet_id = ${projetId}
+    where x.organization_id = ${organizationId} and x.projet_id = ${projetId} and x.deleted_at is null
     order by x.created_at desc
   `);
   return lignes.map((l) => ({
@@ -349,7 +349,7 @@ export async function piecesParDepense(organizationId: string): Promise<Map<stri
     created_at: string | Date;
   }>(sql`
     select id, nature, legende, nom_fichier, type_mime, depense_id, created_at
-    from pieces_projet where organization_id = ${organizationId} and depense_id is not null
+    from pieces_projet where organization_id = ${organizationId} and depense_id is not null and deleted_at is null
     order by created_at
   `);
   const parDepense = new Map<string, PieceVue[]>();
@@ -387,7 +387,7 @@ export async function etatDepenses(organizationId: string): Promise<{ aApprouver
       count(*) filter (where statut = 'demandee') as a_approuver,
       coalesce(sum(montant) filter (where statut = 'demandee'), 0) as montant,
       count(*) filter (where statut = 'payee' and not exists (
-        select 1 from pieces_projet x where x.depense_id = depenses.id and x.nature in ('preuve_paiement', 'facture')
+        select 1 from pieces_projet x where x.depense_id = depenses.id and x.nature in ('preuve_paiement', 'facture') and x.deleted_at is null
       )) as sans_preuve
     from depenses where organization_id = ${organizationId} and deleted_at is null
   `);
@@ -399,6 +399,6 @@ export async function etatDepenses(organizationId: string): Promise<{ aApprouver
 }
 
 export async function aUnProjet(organizationId: string): Promise<boolean> {
-  const [l] = await db.execute<{ id: string }>(sql`select id from projets where organization_id = ${organizationId} limit 1`);
+  const [l] = await db.execute<{ id: string }>(sql`select id from projets where organization_id = ${organizationId} and deleted_at is null limit 1`);
   return Boolean(l);
 }

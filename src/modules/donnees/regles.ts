@@ -52,6 +52,9 @@ export const TABLES_LECTURE_SEULE: ReadonlySet<string> = new Set([
   "memberships",
   "roles",
   "acces_modules",
+  "acces_modules_roles",
+  "organization_modules",
+  "sync_cursors",
 ]);
 
 /** Tables absentes de la console : elles ne portent que des jetons de session. */

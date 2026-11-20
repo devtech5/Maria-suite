@@ -1,6 +1,6 @@
 import "server-only";
 
-import { and, asc, desc, eq, isNull, sql } from "drizzle-orm";
+import { and, asc, desc, eq, isNotNull, isNull, sql } from "drizzle-orm";
 
 import { db } from "@/db";
 import { memberships, organizations, users } from "@/db/schema";
@@ -78,7 +78,7 @@ export async function acceptationDe(organizationId: string, userId: string, vers
   const [ligne] = await db
     .select({ le: reglementAcceptations.accepteLe })
     .from(reglementAcceptations)
-    .where(and(eq(reglementAcceptations.organizationId, organizationId), eq(reglementAcceptations.versionId, versionId), eq(reglementAcceptations.userId, userId)));
+    .where(and(eq(reglementAcceptations.organizationId, organizationId), eq(reglementAcceptations.versionId, versionId), eq(reglementAcceptations.userId, userId), isNull(reglementAcceptations.deletedAt)));
   return ligne?.le ?? null;
 }
 
@@ -98,7 +98,7 @@ export async function suiviDe(organizationId: string, versionId: string): Promis
     db
       .select({ userId: reglementAcceptations.userId, accepteLe: reglementAcceptations.accepteLe })
       .from(reglementAcceptations)
-      .where(and(eq(reglementAcceptations.organizationId, organizationId), eq(reglementAcceptations.versionId, versionId))),
+      .where(and(eq(reglementAcceptations.organizationId, organizationId), eq(reglementAcceptations.versionId, versionId), isNull(reglementAcceptations.deletedAt))),
   ]);
   return suiviLectures(membres, lectures);
 }
@@ -265,7 +265,19 @@ export async function accepterPour(
       adresseIp: contexte.adresseIp?.slice(0, 64) ?? null,
       appareil: contexte.appareil?.slice(0, 300) ?? null,
     })
-    .onConflictDoNothing({ target: [reglementAcceptations.versionId, reglementAcceptations.userId] })
+    // Une acceptation mise à la corbeille se repose : sinon ce compte ne pourrait plus jamais accepter.
+    .onConflictDoUpdate({
+      target: [reglementAcceptations.versionId, reglementAcceptations.userId],
+      set: {
+        deletedAt: null,
+        accepteLe: sql`excluded.accepte_le`,
+        adresseIp: sql`excluded.adresse_ip`,
+        appareil: sql`excluded.appareil`,
+        updatedAt: new Date(),
+        version: sql`${reglementAcceptations.version} + 1`,
+      },
+      setWhere: isNotNull(reglementAcceptations.deletedAt),
+    })
     .returning({ id: reglementAcceptations.id });
   if (posees.length > 0) {
     await tracerPour(organizationId, userId, { action: "reglement.accepter", entite: "reglement_version", entiteId: versionId, apres: { numero: version.numero } });

@@ -1,5 +1,5 @@
 import type { Metadata } from "next";
-import { and, eq } from "drizzle-orm";
+import { and, eq, isNull } from "drizzle-orm";
 
 import { BoiteMail } from "@/components/boite-mail/boite";
 import { ConnexionBoite } from "@/components/boite-mail/connexion";
@@ -22,7 +22,7 @@ export default async function PageBoiteMail() {
   const [compte] = await db
     .select({ adresse: comptesCourriel.adresse, signature: comptesCourriel.signature })
     .from(comptesCourriel)
-    .where(and(eq(comptesCourriel.organizationId, session.organizationId), eq(comptesCourriel.userId, session.userId)));
+    .where(and(eq(comptesCourriel.organizationId, session.organizationId), eq(comptesCourriel.userId, session.userId), isNull(comptesCourriel.deletedAt)));
 
   return (
     <>

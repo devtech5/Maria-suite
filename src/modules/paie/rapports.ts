@@ -21,8 +21,8 @@ export const RAPPORTS_PAIE: DefinitionRapport[] = [
     async executer(organizationId, { du, au }) {
       const lignes = await db.execute<{ mois: string; effectif: string; brut: string; cnps: string; impot: string; net: string; patronal: string }>(sql`
         select p.mois, count(b.id) as effectif, p.total_brut as brut, p.total_cnps as cnps, p.total_impot as impot, p.total_net as net, p.total_patronal as patronal
-        from periodes_paie p left join bulletins_paie b on b.periode_id = p.id
-        where p.organization_id = ${organizationId} and p.statut = 'validee'
+        from periodes_paie p left join bulletins_paie b on b.periode_id = p.id and b.deleted_at is null
+        where p.organization_id = ${organizationId} and p.statut = 'validee' and p.deleted_at is null
           and p.mois between ${du.slice(0, 7)} and ${au.slice(0, 7)}
         group by p.id order by p.mois
       `);
@@ -65,6 +65,7 @@ export const RAPPORTS_PAIE: DefinitionRapport[] = [
                sum(b.cnps_patronal + b.prestations_familiales + b.accident_travail) as patronal
         from bulletins_paie b join periodes_paie p on p.id = b.periode_id
         where p.organization_id = ${organizationId} and p.statut = 'validee'
+          and b.deleted_at is null and p.deleted_at is null
           and p.mois between ${du.slice(0, 7)} and ${au.slice(0, 7)}
         group by b.matricule, b.nom order by b.nom
       `);
@@ -133,6 +134,7 @@ export const RAPPORTS_PAIE: DefinitionRapport[] = [
         join periodes_paie p on p.id = b.periode_id
         join employees e on e.id = b.employe_id
         where b.organization_id = ${organizationId} and p.statut = 'validee'
+          and b.deleted_at is null and p.deleted_at is null
           and p.mois between ${du.slice(0, 7)} and ${au.slice(0, 7)}
         group by e.id order by e.nom
       `);
