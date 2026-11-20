@@ -39,7 +39,10 @@ export async function tableauCommissions(organizationId: string, mois: string) {
   const [liste, realisations, validees] = await Promise.all([
     listerCommerciaux(organizationId),
     realisationsDuMois(db, organizationId, mois),
-    db.select().from(commissions).where(and(eq(commissions.organizationId, organizationId), eq(commissions.mois, mois))),
+    db
+      .select()
+      .from(commissions)
+      .where(and(eq(commissions.organizationId, organizationId), eq(commissions.mois, mois), isNull(commissions.deletedAt))),
   ]);
   const parCommercial = new Map(validees.map((v) => [v.commercialId, v]));
   return liste
@@ -62,5 +65,5 @@ export async function commissionsAPayer(organizationId: string) {
   return db
     .select({ id: commissions.id, mois: commissions.mois, total: commissions.total, commercialId: commissions.commercialId })
     .from(commissions)
-    .where(and(eq(commissions.organizationId, organizationId), eq(commissions.statut, "validee")));
+    .where(and(eq(commissions.organizationId, organizationId), eq(commissions.statut, "validee"), isNull(commissions.deletedAt)));
 }

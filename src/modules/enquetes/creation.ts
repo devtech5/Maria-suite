@@ -27,7 +27,7 @@ async function verifierProjet(organizationId: string, projetId: string | null | 
   const [p] = await db
     .select({ id: projets.id })
     .from(projets)
-    .where(and(eq(projets.id, projetId), eq(projets.organizationId, organizationId)));
+    .where(and(eq(projets.id, projetId), eq(projets.organizationId, organizationId), isNull(projets.deletedAt)));
   if (!p) throw new Error("Projet introuvable.");
 }
 
@@ -85,12 +85,12 @@ export async function modifierQuestionsPour(
     const [{ n }] = await tx
       .select({ n: count() })
       .from(reponsesEnquete)
-      .where(and(eq(reponsesEnquete.enqueteId, enqueteId), eq(reponsesEnquete.organizationId, organizationId)));
+      .where(and(eq(reponsesEnquete.enqueteId, enqueteId), eq(reponsesEnquete.organizationId, organizationId), isNull(reponsesEnquete.deletedAt)));
     if (n > 0) throw new Error("L'enquête a déjà des réponses : ses questions ne se modifient plus. Dupliquez-la pour en changer.");
     const [maj] = await tx
       .update(enquetes)
       .set({ questions, updatedAt: new Date(), version: sql`${enquetes.version} + 1` })
-      .where(and(eq(enquetes.id, enqueteId), eq(enquetes.organizationId, organizationId)))
+      .where(and(isNull(enquetes.deletedAt), eq(enquetes.id, enqueteId), eq(enquetes.organizationId, organizationId)))
       .returning({ numero: enquetes.numero });
     if (!maj) throw new Error("Enquête introuvable.");
     await tx.insert(auditLogs).values({
@@ -143,7 +143,7 @@ export async function basculerLienPour(organizationId: string, userId: string, e
   const [maj] = await db
     .update(enquetes)
     .set({ lienPublic: actif, updatedAt: new Date(), version: sql`${enquetes.version} + 1` })
-    .where(and(eq(enquetes.id, enqueteId), eq(enquetes.organizationId, organizationId)))
+    .where(and(isNull(enquetes.deletedAt), eq(enquetes.id, enqueteId), eq(enquetes.organizationId, organizationId)))
     .returning({ numero: enquetes.numero });
   if (!maj) throw new Error("Enquête introuvable.");
   await db.insert(auditLogs).values({
@@ -205,7 +205,7 @@ export async function enregistrerReponsePour(
     const [m] = await db
       .select({ id: missions.id })
       .from(missions)
-      .where(and(eq(missions.id, reponse.missionId), eq(missions.organizationId, organizationId)));
+      .where(and(eq(missions.id, reponse.missionId), eq(missions.organizationId, organizationId), isNull(missions.deletedAt)));
     if (!m) throw new Error("Mission introuvable.");
   }
 

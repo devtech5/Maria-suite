@@ -1,6 +1,6 @@
 "use server";
 
-import { and, eq, sql } from "drizzle-orm";
+import { and, eq, isNull, sql } from "drizzle-orm";
 import { revalidatePath } from "next/cache";
 import { z } from "zod";
 
@@ -140,7 +140,7 @@ export async function archiverArticle(donnees: FormData): Promise<void> {
       version: sql`${articles.version} + 1`,
     })
     .where(
-      and(eq(articles.id, id), eq(articles.organizationId, session.organizationId)),
+      and(isNull(articles.deletedAt), eq(articles.id, id), eq(articles.organizationId, session.organizationId)),
     )
     .returning({ id: articles.id, designation: articles.designation });
 

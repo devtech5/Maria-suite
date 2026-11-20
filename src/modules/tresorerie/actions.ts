@@ -1,6 +1,6 @@
 "use server";
 
-import { and, eq } from "drizzle-orm";
+import { and, eq, isNull } from "drizzle-orm";
 import { revalidatePath } from "next/cache";
 import { z } from "zod";
 
@@ -110,7 +110,7 @@ export async function comptesDisponibles(): Promise<{ id: string; nom: string; n
   return db
     .select({ id: comptesTresorerie.id, nom: comptesTresorerie.nom, nature: comptesTresorerie.nature })
     .from(comptesTresorerie)
-    .where(and(eq(comptesTresorerie.organizationId, session.organizationId), eq(comptesTresorerie.actif, true)))
+    .where(and(eq(comptesTresorerie.organizationId, session.organizationId), eq(comptesTresorerie.actif, true), isNull(comptesTresorerie.deletedAt)))
     .orderBy(comptesTresorerie.nom);
 }
 
@@ -356,7 +356,7 @@ export async function ouvrirJustificatif(bonId: string): Promise<string | null> 
   const [bon] = await db
     .select({ chemin: bonsCaisse.justificatifChemin, demandeur: bonsCaisse.demandeParUserId })
     .from(bonsCaisse)
-    .where(and(eq(bonsCaisse.id, bonId), eq(bonsCaisse.organizationId, session.organizationId)));
+    .where(and(eq(bonsCaisse.id, bonId), eq(bonsCaisse.organizationId, session.organizationId), isNull(bonsCaisse.deletedAt)));
   if (!bon?.chemin) return null;
   if (bon.demandeur !== session.userId && !(await peut("tresorerie.consulter"))) return null;
   return urlSignee(bon.chemin);

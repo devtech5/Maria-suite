@@ -1,6 +1,6 @@
 "use server";
 
-import { and, eq, sql } from "drizzle-orm";
+import { and, eq, isNull, sql } from "drizzle-orm";
 import { revalidatePath } from "next/cache";
 import { z } from "zod";
 
@@ -151,7 +151,7 @@ export async function changerStatutActif(donnees: FormData): Promise<void> {
       version: sql`${actifs.version} + 1`,
     })
     .where(
-      and(eq(actifs.id, id), eq(actifs.organizationId, session.organizationId)),
+      and(isNull(actifs.deletedAt), eq(actifs.id, id), eq(actifs.organizationId, session.organizationId)),
     )
     .returning({ id: actifs.id, code: actifs.code });
 

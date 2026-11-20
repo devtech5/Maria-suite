@@ -68,7 +68,10 @@ export async function creerPrestatairePour(organizationId: string, userId: strin
   return db.transaction(async (tx) => {
     let tiersId = saisie.tiersId ?? null;
     if (tiersId) {
-      const [t] = await tx.select({ id: tiers.id }).from(tiers).where(and(eq(tiers.id, tiersId), eq(tiers.organizationId, organizationId)));
+      const [t] = await tx
+        .select({ id: tiers.id })
+        .from(tiers)
+        .where(and(eq(tiers.id, tiersId), eq(tiers.organizationId, organizationId), isNull(tiers.deletedAt)));
       if (!t) throw new Error("Fiche tiers introuvable.");
       await tx.update(tiers).set({ estFournisseur: true, updatedAt: new Date() }).where(eq(tiers.id, tiersId));
     } else {
@@ -104,7 +107,7 @@ export async function modifierPrestatairePour(organizationId: string, userId: st
     const [modifie] = await tx
       .update(prestataires)
       .set({ ...champs, updatedAt: new Date(), version: sql`${prestataires.version} + 1` })
-      .where(and(eq(prestataires.id, id), eq(prestataires.organizationId, organizationId)))
+      .where(and(isNull(prestataires.deletedAt), eq(prestataires.id, id), eq(prestataires.organizationId, organizationId)))
       .returning({ id: prestataires.id });
     if (!modifie) throw new Error("Prestataire introuvable.");
     await journaliser(tx, organizationId, userId, "prestataire.modifier", id, { metiers: champs.metiers, disponible: champs.disponible });
@@ -151,7 +154,10 @@ export async function demanderPrestationPour(organizationId: string, userId: str
 }
 
 async function prestationDe(tx: Transaction, organizationId: string, id: string): Promise<Prestation> {
-  const [p] = await tx.select().from(prestations).where(and(eq(prestations.id, id), eq(prestations.organizationId, organizationId)));
+  const [p] = await tx
+    .select()
+    .from(prestations)
+    .where(and(eq(prestations.id, id), eq(prestations.organizationId, organizationId), isNull(prestations.deletedAt)));
   if (!p) throw new Error("Prestation introuvable.");
   return p;
 }
@@ -278,7 +284,10 @@ export async function listerPrestataires(organizationId: string): Promise<Presta
       .innerJoin(tiers, eq(tiers.id, prestataires.tiersId))
       .where(and(eq(prestataires.organizationId, organizationId), isNull(prestataires.deletedAt)))
       .orderBy(tiers.nom),
-    db.select({ prestataireId: prestations.prestataireId, statut: prestations.statut, note: prestations.note, montantPaye: prestations.montantPaye }).from(prestations).where(eq(prestations.organizationId, organizationId)),
+    db
+      .select({ prestataireId: prestations.prestataireId, statut: prestations.statut, note: prestations.note, montantPaye: prestations.montantPaye })
+      .from(prestations)
+      .where(and(eq(prestations.organizationId, organizationId), isNull(prestations.deletedAt))),
   ]);
   return lignes.map(({ p, ...t }) => {
     const siennes = toutes.filter((x) => x.prestataireId === p.id);
@@ -303,7 +312,13 @@ export async function listerPrestations(organizationId: string, prestataireId?: 
     .from(prestations)
     .innerJoin(prestataires, eq(prestataires.id, prestations.prestataireId))
     .innerJoin(tiers, eq(tiers.id, prestataires.tiersId))
-    .where(and(eq(prestations.organizationId, organizationId), ...(prestataireId ? [eq(prestations.prestataireId, prestataireId)] : [])))
+    .where(
+      and(
+        eq(prestations.organizationId, organizationId),
+        isNull(prestations.deletedAt),
+        ...(prestataireId ? [eq(prestations.prestataireId, prestataireId)] : []),
+      ),
+    )
     .orderBy(desc(prestations.createdAt));
   return lignes.map(({ p, nom }) => ({ ...p, prestataire: nom }));
 }

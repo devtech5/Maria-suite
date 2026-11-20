@@ -1,6 +1,6 @@
 import "server-only";
 
-import { and, eq, sql } from "drizzle-orm";
+import { and, eq, isNull, sql } from "drizzle-orm";
 
 import { auditLogs } from "@/db/schema";
 import { newId } from "@/lib/ids";
@@ -60,7 +60,7 @@ export async function mouvementsTva(lecteur: Lecteur, organizationId: string): P
 }
 
 export async function declarationsConnues(lecteur: Lecteur, organizationId: string): Promise<DeclarationConnue[]> {
-  const lignes = await lecteur.select().from(declarationsTva).where(eq(declarationsTva.organizationId, organizationId));
+  const lignes = await lecteur.select().from(declarationsTva).where(and(eq(declarationsTva.organizationId, organizationId), isNull(declarationsTva.deletedAt)));
   return lignes.map((d) => ({
     mois: d.mois,
     collectee: d.collectee,
@@ -127,7 +127,7 @@ export async function payerTvaDans(tx: Transaction, organizationId: string, mois
   const [d] = await tx
     .select()
     .from(declarationsTva)
-    .where(and(eq(declarationsTva.organizationId, organizationId), eq(declarationsTva.mois, mois)))
+    .where(and(eq(declarationsTva.organizationId, organizationId), eq(declarationsTva.mois, mois), isNull(declarationsTva.deletedAt)))
     .for("update");
   if (!d) throw new Error(`La TVA de ${mois} n'est pas déclarée.`);
   if (d.payeeLe) throw new Error(`La TVA de ${mois} est déjà payée.`);
@@ -137,7 +137,7 @@ export async function payerTvaDans(tx: Transaction, organizationId: string, mois
   const [c] = await tx
     .select()
     .from(comptesTresorerie)
-    .where(and(eq(comptesTresorerie.id, v.compteTresorerieId), eq(comptesTresorerie.organizationId, organizationId)))
+    .where(and(eq(comptesTresorerie.id, v.compteTresorerieId), eq(comptesTresorerie.organizationId, organizationId), isNull(comptesTresorerie.deletedAt)))
     .for("update");
   if (!c || !c.actif) throw new Error("Compte de trésorerie introuvable ou fermé.");
   const ref = { numero: c.compte, libelle: c.nom, nature: c.nature, nom: c.nom };
@@ -184,7 +184,7 @@ export async function cloturerExerciceDans(tx: Transaction, organizationId: stri
   const clotures = await tx.select({ exercice: exercicesClotures.exercice }).from(exercicesClotures).where(eq(exercicesClotures.organizationId, organizationId));
   const ecrits = await tx.execute<{ exercice: string }>(sql`select distinct exercice from ecritures where organization_id = ${organizationId} and exercice < ${exercice} order by exercice desc limit 1`);
   const calendrier = await calendrierTva(tx, organizationId, aujourdhui);
-  const [impot] = await tx.select({ id: impotsBenefices.id }).from(impotsBenefices).where(and(eq(impotsBenefices.organizationId, organizationId), eq(impotsBenefices.exercice, exercice)));
+  const [impot] = await tx.select({ id: impotsBenefices.id }).from(impotsBenefices).where(and(eq(impotsBenefices.organizationId, organizationId), eq(impotsBenefices.exercice, exercice), isNull(impotsBenefices.deletedAt)));
   const clos = new Set(clotures.map((c) => c.exercice));
   const precedent = ecrits[0]?.exercice ?? null;
   const refus = refusCloture(exercice, aujourdhui, clos.has(exercice), {

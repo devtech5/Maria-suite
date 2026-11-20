@@ -529,7 +529,7 @@ export async function accuserLectureDans(tx: Transaction, organizationId: string
   const [ligne] = await tx
     .select({ id: pvLectures.id, luLe: pvLectures.luLe })
     .from(pvLectures)
-    .where(and(eq(pvLectures.organizationId, organizationId), eq(pvLectures.pvId, pvId), eq(pvLectures.userId, userId)));
+    .where(and(eq(pvLectures.organizationId, organizationId), eq(pvLectures.pvId, pvId), eq(pvLectures.userId, userId), isNull(pvLectures.deletedAt)));
   if (!ligne) throw new Error("Ce procès-verbal ne vous est pas diffusé.");
   if (ligne.luLe) return { deja: true };
   await tx.update(pvLectures).set({ luLe: new Date(), updatedAt: new Date(), version: sql`${pvLectures.version} + 1` }).where(eq(pvLectures.id, ligne.id));
@@ -555,7 +555,12 @@ export async function relancerPvDans(tx: Transaction, organizationId: string, pv
   if (!acteur.valideur && pv.redigeParUserId !== acteur.userId) throw new Error("Seuls le rédacteur et la direction relancent.");
   if (!relancePermise(pv.derniereRelanceLe, maintenant)) throw new Error("Une relance est déjà partie il y a moins d'une heure.");
   const lecteurs = pv.accuseRequis
-    ? (await tx.select({ userId: pvLectures.userId }).from(pvLectures).where(and(eq(pvLectures.pvId, pvId), isNull(pvLectures.luLe)))).map((e) => e.userId)
+    ? (
+        await tx
+          .select({ userId: pvLectures.userId })
+          .from(pvLectures)
+          .where(and(eq(pvLectures.pvId, pvId), isNull(pvLectures.luLe), isNull(pvLectures.deletedAt)))
+      ).map((e) => e.userId)
     : [];
   const aRelancer = [...new Set([...lecteurs, ...(await signatairesEnAttente(tx, pv))])].filter((u) => u !== acteur.userId);
   await tx.update(procesVerbaux).set({ derniereRelanceLe: maintenant, updatedAt: maintenant, version: sql`${procesVerbaux.version} + 1` }).where(eq(procesVerbaux.id, pvId));
@@ -624,7 +629,7 @@ export async function actionEnTacheDans(
     .where(and(eq(pvActions.id, actionId), eq(pvActions.organizationId, organizationId), isNull(pvActions.deletedAt)))
     .for("update");
   if (!action) throw new Error("Action introuvable.");
-  const [pv] = await tx.select().from(procesVerbaux).where(eq(procesVerbaux.id, action.pvId));
+  const [pv] = await tx.select().from(procesVerbaux).where(and(eq(procesVerbaux.id, action.pvId), isNull(procesVerbaux.deletedAt)));
   if (!pv || pv.statut !== "publie") throw new Error("Publiez le procès-verbal avant d'en créer les tâches.");
   if (!acteur.valideur && pv.redigeParUserId !== acteur.userId) throw new Error("Seuls le rédacteur et la direction créent les tâches d'un PV.");
   if (action.tacheId) throw new Error("La tâche de cette action existe déjà.");
@@ -712,7 +717,7 @@ export async function listerPv(organizationId: string, acteur: ActeurPv): Promis
     .from(procesVerbaux)
     .leftJoin(users, eq(users.id, procesVerbaux.redigeParUserId))
     .leftJoin(projets, eq(projets.id, procesVerbaux.projetId))
-    .leftJoin(pvLectures, and(eq(pvLectures.pvId, procesVerbaux.id), eq(pvLectures.userId, moi)))
+    .leftJoin(pvLectures, and(eq(pvLectures.pvId, procesVerbaux.id), eq(pvLectures.userId, moi), isNull(pvLectures.deletedAt)))
     .where(
       and(
         eq(procesVerbaux.organizationId, organizationId),
@@ -773,7 +778,7 @@ export async function pvComplet(organizationId: string, pvId: string, acteur: Ac
   const [maLecture] = await db
     .select({ luLe: pvLectures.luLe })
     .from(pvLectures)
-    .where(and(eq(pvLectures.pvId, pvId), eq(pvLectures.userId, acteur.userId)));
+    .where(and(eq(pvLectures.pvId, pvId), eq(pvLectures.userId, acteur.userId), isNull(pvLectures.deletedAt)));
   const redacteur = pv.redigeParUserId === acteur.userId;
   const participant = signatairesDe(pv.participants).some((p) => p.userId === acteur.userId);
   const voit = redacteur || (acteur.valideur && pv.statut !== "brouillon") || (pv.statut === "publie" && (maLecture !== undefined || participant));
@@ -809,7 +814,7 @@ export async function pvComplet(organizationId: string, pvId: string, acteur: Ac
           .select({ userId: pvLectures.userId, nom: users.fullName, luLe: pvLectures.luLe })
           .from(pvLectures)
           .innerJoin(users, eq(users.id, pvLectures.userId))
-          .where(eq(pvLectures.pvId, pvId))
+          .where(and(eq(pvLectures.pvId, pvId), isNull(pvLectures.deletedAt)))
       : Promise.resolve([]),
     pv.numero
       ? db

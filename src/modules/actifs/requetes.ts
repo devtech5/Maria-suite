@@ -1,6 +1,6 @@
 import "server-only";
 
-import { and, eq, sql } from "drizzle-orm";
+import { and, eq, isNull, sql } from "drizzle-orm";
 
 import { db } from "@/db";
 import { motsRecherche, type FiltresListe } from "@/lib/recherche";
@@ -140,7 +140,7 @@ export async function aUnActif(organizationId: string): Promise<boolean> {
   const [actif] = await db
     .select({ id: actifs.id })
     .from(actifs)
-    .where(eq(actifs.organizationId, organizationId))
+    .where(and(eq(actifs.organizationId, organizationId), isNull(actifs.deletedAt)))
     .limit(1);
 
   return Boolean(actif);
@@ -301,6 +301,7 @@ export async function listerEcheances(
       ) c on c.actif_id = a.id
     where ec.organization_id = ${organizationId}
       and ec.deleted_at is null
+      and a.deleted_at is null
       and ec.honoree_le is null
   `);
 

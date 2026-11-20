@@ -44,7 +44,7 @@ export async function aUnSalarie(organizationId: string): Promise<boolean> {
   const [salarie] = await db
     .select({ id: employees.id })
     .from(employees)
-    .where(eq(employees.organizationId, organizationId))
+    .where(and(eq(employees.organizationId, organizationId), isNull(employees.deletedAt)))
     .limit(1);
 
   return Boolean(salarie);
@@ -167,7 +167,7 @@ export async function aUnIntervenant(organizationId: string): Promise<boolean> {
   const [intervenant] = await db
     .select({ id: workers.id })
     .from(workers)
-    .where(eq(workers.organizationId, organizationId))
+    .where(and(eq(workers.organizationId, organizationId), isNull(workers.deletedAt)))
     .limit(1);
 
   return Boolean(intervenant);

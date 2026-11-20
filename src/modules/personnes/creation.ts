@@ -1,6 +1,6 @@
 import "server-only";
 
-import { and, eq, like } from "drizzle-orm";
+import { and, eq, isNull, like } from "drizzle-orm";
 
 import { db } from "@/db";
 import { auditLogs } from "@/db/schema";
@@ -309,6 +309,7 @@ export async function enregistrerPointageDans(
       and(
         eq(workers.id, donnees.workerId),
         eq(workers.organizationId, organizationId),
+        isNull(workers.deletedAt),
       ),
     );
 
@@ -401,6 +402,7 @@ export async function enregistrerBonPaiementDans(
       and(
         eq(workers.id, donnees.workerId),
         eq(workers.organizationId, organizationId),
+        isNull(workers.deletedAt),
       ),
     );
 

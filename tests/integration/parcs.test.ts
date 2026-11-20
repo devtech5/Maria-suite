@@ -9,6 +9,7 @@ import { listerVehicules } from "@/modules/parc-auto/requetes";
 import { pleinsCarburant } from "@/modules/parc-auto/schema";
 import { attribuerLicencePour, completerEquipementPour, creerEquipementPour, creerLicencePour, desattribuerLicencePour } from "@/modules/parc-informatique/creation";
 import { listerEquipements, listerLicences } from "@/modules/parc-informatique/requetes";
+import { licencesAttribuees } from "@/modules/parc-informatique/schema";
 import { creerSalariePour } from "@/modules/personnes/creation";
 
 import { ouvrirBaseDeTest, semerEntreprise } from "./base";
@@ -128,5 +129,19 @@ describe("parc informatique en base", () => {
 
     const lignes = await db.select().from(echeances).where(and(eq(echeances.actifId, poste1), eq(echeances.nature, "garantie")));
     expect(lignes).toHaveLength(1);
+  });
+
+  it("ne compte plus une licence retirée d'un poste par la corbeille, et la repose", async () => {
+    const { id: poste } = await creerEquipementPour(org, { categorie: "portable", marque: "Lenovo" }, user);
+    const licence = await creerLicencePour(org, user, { logiciel: "Antivirus", type: "abonnement", postes: 1, expireLe: "2027-01-31" });
+    await attribuerLicencePour(org, user, licence, poste);
+    await db.update(licencesAttribuees).set({ deletedAt: new Date() }).where(and(eq(licencesAttribuees.licenceId, licence), eq(licencesAttribuees.actifId, poste)));
+
+    const vue = async () => (await listerLicences(org, "2026-10-06")).find((l) => l.id === licence)!;
+    expect((await vue()).utilises).toBe(0);
+    expect((await listerEquipements(org)).find((e) => e.id === poste)?.licences).toBe(0);
+
+    expect(await attribuerLicencePour(org, user, licence, poste)).toEqual({ depassement: false });
+    expect((await vue()).utilises).toBe(1);
   });
 });

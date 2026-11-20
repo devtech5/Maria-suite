@@ -1,6 +1,6 @@
 import "server-only";
 
-import { and, asc, eq, inArray, sql } from "drizzle-orm";
+import { and, asc, eq, inArray, isNull, sql } from "drizzle-orm";
 
 import { db } from "@/db";
 import { auditLogs, organizations } from "@/db/schema";
@@ -181,7 +181,7 @@ export async function annulerImpotDans(tx: Transaction, organizationId: string, 
   await tx.execute(sql`select pg_advisory_xact_lock(hashtext(${`cloture:${organizationId}`}))`);
   if (motif.trim().length < 5) throw new Error("Dites pourquoi l'impôt est annulé.");
   if (await exerciceClos(tx, organizationId, exercice)) throw new Error(`L'exercice ${exercice} est clôturé : rouvrez-le d'abord.`);
-  const [i] = await tx.select().from(impotsBenefices).where(and(eq(impotsBenefices.organizationId, organizationId), eq(impotsBenefices.exercice, exercice)));
+  const [i] = await tx.select().from(impotsBenefices).where(and(eq(impotsBenefices.organizationId, organizationId), eq(impotsBenefices.exercice, exercice), isNull(impotsBenefices.deletedAt)));
   if (!i) throw new Error(`Aucun impôt constaté sur ${exercice}.`);
   const payees = await tx.select({ id: tableFractions.id }).from(tableFractions).where(and(eq(tableFractions.impotId, i.id), sql`${tableFractions.payeeLe} is not null`));
   if (payees.length) throw new Error("Une fraction de cet impôt est déjà payée : il ne s'annule plus.");
@@ -195,7 +195,7 @@ export async function payerFractionDans(tx: Transaction, organizationId: string,
   const [f] = await tx
     .select()
     .from(tableFractions)
-    .where(and(eq(tableFractions.id, fractionId), eq(tableFractions.organizationId, organizationId)))
+    .where(and(eq(tableFractions.id, fractionId), eq(tableFractions.organizationId, organizationId), isNull(tableFractions.deletedAt)))
     .for("update");
   if (!f) throw new Error("Fraction introuvable.");
   if (f.payeeLe) throw new Error("Cette fraction est déjà payée.");
@@ -203,7 +203,7 @@ export async function payerFractionDans(tx: Transaction, organizationId: string,
   const [c] = await tx
     .select()
     .from(comptesTresorerie)
-    .where(and(eq(comptesTresorerie.id, v.compteTresorerieId), eq(comptesTresorerie.organizationId, organizationId)))
+    .where(and(eq(comptesTresorerie.id, v.compteTresorerieId), eq(comptesTresorerie.organizationId, organizationId), isNull(comptesTresorerie.deletedAt)))
     .for("update");
   if (!c || !c.actif) throw new Error("Compte de trésorerie introuvable ou fermé.");
   await exigerProvision(tx, organizationId, { numero: c.compte, libelle: c.nom, nature: c.nature, nom: c.nom }, f.montant);
@@ -292,15 +292,15 @@ export async function rouvrirExerciceDans(tx: Transaction, organizationId: strin
 // ------------------------------------------------------------- lecture
 
 export async function impotsConstates(organizationId: string) {
-  return db.select().from(impotsBenefices).where(eq(impotsBenefices.organizationId, organizationId));
+  return db.select().from(impotsBenefices).where(and(eq(impotsBenefices.organizationId, organizationId), isNull(impotsBenefices.deletedAt)));
 }
 
 export async function fractionsDe(organizationId: string) {
-  return db.select().from(tableFractions).where(eq(tableFractions.organizationId, organizationId)).orderBy(asc(tableFractions.echeance));
+  return db.select().from(tableFractions).where(and(eq(tableFractions.organizationId, organizationId), isNull(tableFractions.deletedAt))).orderBy(asc(tableFractions.echeance));
 }
 
 export async function affectationsDe(organizationId: string) {
-  return db.select().from(affectationsResultat).where(eq(affectationsResultat.organizationId, organizationId));
+  return db.select().from(affectationsResultat).where(and(eq(affectationsResultat.organizationId, organizationId), isNull(affectationsResultat.deletedAt)));
 }
 
 export async function reouverturesDe(organizationId: string) {
@@ -312,7 +312,7 @@ export async function sortiesImpot(organizationId: string): Promise<{ date: stri
   const lignes = await db
     .select()
     .from(tableFractions)
-    .where(and(eq(tableFractions.organizationId, organizationId), sql`${tableFractions.payeeLe} is null`));
+    .where(and(eq(tableFractions.organizationId, organizationId), sql`${tableFractions.payeeLe} is null`, isNull(tableFractions.deletedAt)));
   return lignes.map((f) => ({ date: String(f.echeance).slice(0, 10), montant: f.montant, libelle: `Impôt sur les bénéfices ${f.exercice}, fraction ${f.rang}` }));
 }
 

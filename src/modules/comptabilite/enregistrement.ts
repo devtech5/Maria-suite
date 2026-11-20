@@ -80,7 +80,7 @@ export async function enregistrerEcritureDans(
   const [verrou] = await tx.execute<{ clos: boolean; declaree: boolean }>(sql`
     select
       exists (select 1 from exercices_clotures where organization_id = ${contexte.organizationId} and exercice = ${contexte.exercice}) as clos,
-      ${tva ? sql`exists (select 1 from declarations_tva where organization_id = ${contexte.organizationId} and mois = ${mois})` : sql`false`} as declaree
+      ${tva ? sql`exists (select 1 from declarations_tva where organization_id = ${contexte.organizationId} and mois = ${mois} and deleted_at is null)` : sql`false`} as declaree
   `);
   const refus = refusPeriodeVerrouillee({ exercice: contexte.exercice, mois, exerciceClos: Boolean(verrou?.clos), toucheTva: tva, tvaDeclaree: Boolean(verrou?.declaree) });
   if (refus) throw new PeriodeVerrouillee(refus);

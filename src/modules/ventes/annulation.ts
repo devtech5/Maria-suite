@@ -1,6 +1,6 @@
 import "server-only";
 
-import { and, asc, eq, sql } from "drizzle-orm";
+import { and, asc, eq, isNull, sql } from "drizzle-orm";
 
 import { auditLogs } from "@/db/schema";
 import { contrepasser, type Ecriture } from "@/lib/comptabilite/ecritures";
@@ -53,6 +53,7 @@ export async function annulerVenteDans(
     })
     .where(
       and(
+        isNull(ventes.deletedAt),
         eq(ventes.id, venteId),
         eq(ventes.organizationId, organizationId),
         eq(ventes.statut, "encaissee"),
@@ -81,6 +82,7 @@ export async function annulerVenteDans(
         eq(mouvementsStock.organizationId, organizationId),
         eq(mouvementsStock.origineType, "vente"),
         eq(mouvementsStock.origineId, venteId),
+        isNull(mouvementsStock.deletedAt),
       ),
     );
 

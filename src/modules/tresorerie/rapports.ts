@@ -29,7 +29,7 @@ export const RAPPORTS_TRESORERIE: DefinitionRapport[] = [
         from comptes_tresorerie c
         left join lignes_ecriture l on l.organization_id = c.organization_id and l.compte = c.compte
         left join ecritures e on e.id = l.ecriture_id and e.date_ecriture <= ${au}::date
-        where c.organization_id = ${organizationId}
+        where c.organization_id = ${organizationId} and c.deleted_at is null
         group by c.id, c.nom, c.nature, c.compte
         order by c.nature, c.nom
       `);
@@ -112,7 +112,7 @@ export const RAPPORTS_TRESORERIE: DefinitionRapport[] = [
       }>(sql`
         select mv.date_operation, mv.numero, c.nom as compte, mv.nature, mv.tiers_nom, mv.libelle, mv.reference, mv.montant, mv.statut
         from mouvements_tresorerie mv join comptes_tresorerie c on c.id = mv.compte_id
-        where mv.organization_id = ${organizationId} and mv.date_operation between ${du}::date and ${au}::date
+        where mv.organization_id = ${organizationId} and mv.deleted_at is null and mv.date_operation between ${du}::date and ${au}::date
         order by mv.date_operation, mv.numero
       `);
       return {

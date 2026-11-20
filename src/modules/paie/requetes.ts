@@ -8,26 +8,26 @@ import { echeanceDeclarations } from "./calcul";
 import { bulletinsPaie, periodesPaie } from "./schema";
 
 export async function listerPeriodes(organizationId: string) {
-  const periodes = await db.select().from(periodesPaie).where(eq(periodesPaie.organizationId, organizationId)).orderBy(desc(periodesPaie.mois)).limit(36);
+  const periodes = await db.select().from(periodesPaie).where(and(eq(periodesPaie.organizationId, organizationId), isNull(periodesPaie.deletedAt))).orderBy(desc(periodesPaie.mois)).limit(36);
   const payes = await db.execute<{ periode_id: string; total: string; payes: string }>(sql`
     select periode_id, count(*) as total, count(*) filter (where paye_le is not null) as payes
-    from bulletins_paie where organization_id = ${organizationId} group by periode_id
+    from bulletins_paie where organization_id = ${organizationId} and deleted_at is null group by periode_id
   `);
   const parPeriode = new Map(payes.map((p) => [p.periode_id, { total: Number(p.total), payes: Number(p.payes) }]));
   return periodes.map((p) => ({ ...p, bulletins: parPeriode.get(p.id)?.total ?? 0, payes: parPeriode.get(p.id)?.payes ?? 0 }));
 }
 
 export async function periodeDetail(organizationId: string, mois: string) {
-  const [periode] = await db.select().from(periodesPaie).where(and(eq(periodesPaie.organizationId, organizationId), eq(periodesPaie.mois, mois)));
+  const [periode] = await db.select().from(periodesPaie).where(and(eq(periodesPaie.organizationId, organizationId), eq(periodesPaie.mois, mois), isNull(periodesPaie.deletedAt)));
   if (!periode) return null;
-  const bulletins = await db.select().from(bulletinsPaie).where(eq(bulletinsPaie.periodeId, periode.id)).orderBy(asc(bulletinsPaie.matricule));
+  const bulletins = await db.select().from(bulletinsPaie).where(and(eq(bulletinsPaie.periodeId, periode.id), isNull(bulletinsPaie.deletedAt))).orderBy(asc(bulletinsPaie.matricule));
   return { periode, bulletins };
 }
 
 export async function bulletinDetail(organizationId: string, id: string) {
-  const [b] = await db.select().from(bulletinsPaie).where(and(eq(bulletinsPaie.id, id), eq(bulletinsPaie.organizationId, organizationId)));
+  const [b] = await db.select().from(bulletinsPaie).where(and(eq(bulletinsPaie.id, id), eq(bulletinsPaie.organizationId, organizationId), isNull(bulletinsPaie.deletedAt)));
   if (!b) return null;
-  const [periode] = await db.select().from(periodesPaie).where(eq(periodesPaie.id, b.periodeId));
+  const [periode] = await db.select().from(periodesPaie).where(and(eq(periodesPaie.id, b.periodeId), isNull(periodesPaie.deletedAt)));
   return { bulletin: b, periode };
 }
 
@@ -36,7 +36,7 @@ export async function bulletinsNumerotes(organizationId: string, periodeId: stri
   const lignes = await db
     .select({ id: bulletinsPaie.id, numero: bulletinsPaie.numero, nom: bulletinsPaie.nom })
     .from(bulletinsPaie)
-    .where(and(eq(bulletinsPaie.organizationId, organizationId), eq(bulletinsPaie.periodeId, periodeId), isNotNull(bulletinsPaie.numero)))
+    .where(and(eq(bulletinsPaie.organizationId, organizationId), eq(bulletinsPaie.periodeId, periodeId), isNotNull(bulletinsPaie.numero), isNull(bulletinsPaie.deletedAt)))
     .orderBy(asc(bulletinsPaie.numero));
   return lignes.map((l) => ({ id: l.id, numero: l.numero ?? "", nom: l.nom }));
 }
@@ -56,11 +56,12 @@ export async function etatPaie(organizationId: string, aujourdhui: string): Prom
       select count(*) as nombre, coalesce(sum(b.net), 0) as montant
       from bulletins_paie b join periodes_paie p on p.id = b.periode_id
       where b.organization_id = ${organizationId} and p.statut = 'validee' and b.paye_le is null and b.net > 0
+        and b.deleted_at is null and p.deleted_at is null
     `),
     db
       .select({ mois: periodesPaie.mois, totalCnps: periodesPaie.totalCnps, totalImpot: periodesPaie.totalImpot, cnps: periodesPaie.cnpsVerseeLe, impot: periodesPaie.impotVerseLe })
       .from(periodesPaie)
-      .where(and(eq(periodesPaie.organizationId, organizationId), eq(periodesPaie.statut, "validee"))),
+      .where(and(eq(periodesPaie.organizationId, organizationId), eq(periodesPaie.statut, "validee"), isNull(periodesPaie.deletedAt))),
   ]);
   let declarationsDues = 0;
   let montantDeclarations = 0;
@@ -88,9 +89,9 @@ export async function sortiesPaie(organizationId: string, aujourdhui: string): P
       .select({ mois: periodesPaie.mois, montant: sql<string>`coalesce(sum(${bulletinsPaie.net}), 0)` })
       .from(bulletinsPaie)
       .innerJoin(periodesPaie, eq(periodesPaie.id, bulletinsPaie.periodeId))
-      .where(and(eq(bulletinsPaie.organizationId, organizationId), eq(periodesPaie.statut, "validee"), isNull(bulletinsPaie.payeLe)))
+      .where(and(eq(bulletinsPaie.organizationId, organizationId), eq(periodesPaie.statut, "validee"), isNull(bulletinsPaie.payeLe), isNull(bulletinsPaie.deletedAt), isNull(periodesPaie.deletedAt)))
       .groupBy(periodesPaie.mois),
-    db.select().from(periodesPaie).where(and(eq(periodesPaie.organizationId, organizationId), eq(periodesPaie.statut, "validee"))),
+    db.select().from(periodesPaie).where(and(eq(periodesPaie.organizationId, organizationId), eq(periodesPaie.statut, "validee"), isNull(periodesPaie.deletedAt))),
   ]);
   const sorties: { date: string; montant: number; libelle: string }[] = [];
   for (const n of nets) if (Number(n.montant) > 0) sorties.push({ date: aujourdhui, montant: Number(n.montant), libelle: `Salaires nets de ${n.mois}` });

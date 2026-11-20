@@ -235,7 +235,7 @@ export async function changerStatutPlanPour(organizationId: string, userId: stri
   const [modifie] = await db
     .update(plansProspection)
     .set({ statut, closLe: statut === "clos" ? new Date() : null, updatedAt: new Date(), version: sql`${plansProspection.version} + 1` })
-    .where(and(eq(plansProspection.organizationId, organizationId), eq(plansProspection.id, planId)))
+    .where(and(isNull(plansProspection.deletedAt), eq(plansProspection.organizationId, organizationId), eq(plansProspection.id, planId)))
     .returning({ numero: plansProspection.numero });
   if (!modifie) throw new Error("Plan introuvable.");
   await tracerPour(organizationId, userId, { action: statut === "clos" ? "prospection.plan.clore" : "prospection.plan.rouvrir", entite: "plan_prospection", entiteId: planId, apres: { numero: modifie.numero } });
@@ -403,7 +403,7 @@ export async function annulerActionPour(organizationId: string, userId: string, 
   const [modifie] = await db
     .update(actionsProspection)
     .set({ statut: "annulee", updatedAt: new Date(), version: sql`${actionsProspection.version} + 1` })
-    .where(and(eq(actionsProspection.organizationId, organizationId), eq(actionsProspection.id, actionId), eq(actionsProspection.statut, "prevue")))
+    .where(and(isNull(actionsProspection.deletedAt), eq(actionsProspection.organizationId, organizationId), eq(actionsProspection.id, actionId), eq(actionsProspection.statut, "prevue")))
     .returning({ id: actionsProspection.id });
   if (!modifie) throw new Error("Cette action n'est plus à faire.");
   await tracerPour(organizationId, userId, { action: "prospection.action.annuler", entite: "action_prospection", entiteId: actionId });

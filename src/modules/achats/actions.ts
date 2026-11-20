@@ -1,6 +1,6 @@
 "use server";
 
-import { and, eq } from "drizzle-orm";
+import { and, eq, isNull } from "drizzle-orm";
 import { revalidatePath } from "next/cache";
 import { z } from "zod";
 
@@ -201,6 +201,6 @@ export async function ouvrirJustificatifFacture(id: string): Promise<string | nu
   const [f] = await db
     .select({ chemin: facturesFournisseur.justificatifChemin })
     .from(facturesFournisseur)
-    .where(and(eq(facturesFournisseur.id, id), eq(facturesFournisseur.organizationId, session.organizationId)));
+    .where(and(eq(facturesFournisseur.id, id), eq(facturesFournisseur.organizationId, session.organizationId), isNull(facturesFournisseur.deletedAt)));
   return f?.chemin ? urlSignee(f.chemin) : null;
 }

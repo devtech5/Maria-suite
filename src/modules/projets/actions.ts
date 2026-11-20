@@ -1,7 +1,7 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
-import { and, eq, inArray } from "drizzle-orm";
+import { and, eq, inArray, isNull } from "drizzle-orm";
 import { z } from "zod";
 
 import { db } from "@/db";
@@ -292,7 +292,7 @@ export async function signerPiecesProjet(ids: string[]): Promise<Record<string, 
   const lignes = await db
     .select({ id: piecesProjet.id, chemin: piecesProjet.chemin })
     .from(piecesProjet)
-    .where(and(eq(piecesProjet.organizationId, session.organizationId), inArray(piecesProjet.id, valides)));
+    .where(and(eq(piecesProjet.organizationId, session.organizationId), inArray(piecesProjet.id, valides), isNull(piecesProjet.deletedAt)));
   const signees = await Promise.all(lignes.map(async (l) => [l.id, await urlSignee(l.chemin)] as const));
   return Object.fromEntries(signees.filter((s): s is readonly [string, string] => s[1] !== null));
 }

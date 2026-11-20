@@ -1,6 +1,6 @@
 "use server";
 
-import { and, eq, sql } from "drizzle-orm";
+import { and, eq, isNull, sql } from "drizzle-orm";
 import { revalidatePath } from "next/cache";
 import { z } from "zod";
 
@@ -148,7 +148,7 @@ export async function archiverTiers(donnees: FormData): Promise<void> {
       // deux appareils hors connexion de détecter qu'ils ont divergé.
       version: sql`${tiers.version} + 1`,
     })
-    .where(and(eq(tiers.id, id), eq(tiers.organizationId, session.organizationId)))
+    .where(and(isNull(tiers.deletedAt), eq(tiers.id, id), eq(tiers.organizationId, session.organizationId)))
     .returning({ id: tiers.id, nom: tiers.nom });
 
   if (!modifie) return;
@@ -181,7 +181,7 @@ export async function changerNatureTiers(id: string, nature: string): Promise<{ 
   const [avant] = await db
     .select({ nature: tiers.nature, nom: tiers.nom })
     .from(tiers)
-    .where(and(eq(tiers.id, id), eq(tiers.organizationId, session.organizationId)));
+    .where(and(eq(tiers.id, id), eq(tiers.organizationId, session.organizationId), isNull(tiers.deletedAt)));
   if (!avant) return { ok: false, message: "Client introuvable." };
   if (avant.nature === nature) return { ok: true, message: "Type inchangé." };
 
@@ -230,7 +230,7 @@ export async function changerOrigineTiers(id: string, origine: string, pays: str
   const [avant] = await db
     .select({ paysCode: tiers.paysCode, nom: tiers.nom })
     .from(tiers)
-    .where(and(eq(tiers.id, id), eq(tiers.organizationId, session.organizationId)));
+    .where(and(eq(tiers.id, id), eq(tiers.organizationId, session.organizationId), isNull(tiers.deletedAt)));
   if (!avant) return { ok: false, message: "Fiche introuvable." };
   if ((avant.paysCode ?? null) === lieu.paysCode) return { ok: true, message: "Origine inchangée." };
 

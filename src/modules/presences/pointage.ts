@@ -1,6 +1,6 @@
 import "server-only";
 
-import { and, eq, sql } from "drizzle-orm";
+import { and, eq, isNull, sql } from "drizzle-orm";
 import { after } from "next/server";
 
 import { db } from "@/db";
@@ -41,7 +41,7 @@ async function contexte(organizationId: string): Promise<{ fuseau: string; actif
   const [ligne] = await db
     .select({ fuseau: organizations.timezone, actif: reglagesPresence.pointageAuto })
     .from(organizations)
-    .leftJoin(reglagesPresence, eq(reglagesPresence.organizationId, organizations.id))
+    .leftJoin(reglagesPresence, and(eq(reglagesPresence.organizationId, organizations.id), isNull(reglagesPresence.deletedAt)))
     .where(eq(organizations.id, organizationId));
   const c = { fuseau: ligne?.fuseau ?? "Africa/Abidjan", actif: ligne?.actif ?? true, expire: Date.now() + DUREE_CONTEXTE_MS };
   contextes.set(organizationId, c);
@@ -67,7 +67,7 @@ export async function pointerPresence(organizationId: string, userId: string): P
     const [salarie] = await db
       .select({ id: employees.id })
       .from(employees)
-      .where(and(eq(employees.organizationId, organizationId), eq(employees.userId, userId), eq(employees.actif, true)))
+      .where(and(eq(employees.organizationId, organizationId), eq(employees.userId, userId), eq(employees.actif, true), isNull(employees.deletedAt)))
       .limit(1);
 
     const ligne = { id: newId(), organizationId, userId, employeeId: salarie?.id ?? null, jour, arrivee: maintenant, derniereActivite: maintenant };

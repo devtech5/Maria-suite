@@ -1,6 +1,6 @@
 import type { Metadata } from "next";
 import { notFound } from "next/navigation";
-import { and, asc, eq } from "drizzle-orm";
+import { and, asc, eq, isNull } from "drizzle-orm";
 
 import { EnTeteDocument, PiedDocument } from "@/components/impression/entete-document";
 import { BoutonImprimer } from "@/components/ui/bouton-imprimer";
@@ -23,9 +23,9 @@ export default async function ImpressionDeclarations({ params }: { params: Promi
   const { id } = await params;
   const session = await exigerEntreprise();
   if (!(await peut("personnes.consulter"))) notFound();
-  const [periode] = await db.select().from(periodesPaie).where(and(eq(periodesPaie.id, id), eq(periodesPaie.organizationId, session.organizationId)));
+  const [periode] = await db.select().from(periodesPaie).where(and(eq(periodesPaie.id, id), eq(periodesPaie.organizationId, session.organizationId), isNull(periodesPaie.deletedAt)));
   if (!periode || periode.statut !== "validee") notFound();
-  const bulletins = await db.select().from(bulletinsPaie).where(eq(bulletinsPaie.periodeId, id)).orderBy(asc(bulletinsPaie.matricule));
+  const bulletins = await db.select().from(bulletinsPaie).where(and(eq(bulletinsPaie.periodeId, id), isNull(bulletinsPaie.deletedAt))).orderBy(asc(bulletinsPaie.matricule));
   const identite = await identiteEntreprise(session.organizationId);
   const s = (f: (b: (typeof bulletins)[number]) => number) => bulletins.reduce((t, b) => t + f(b), 0);
 

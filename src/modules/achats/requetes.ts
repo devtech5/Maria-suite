@@ -1,6 +1,6 @@
 import "server-only";
 
-import { and, asc, eq, sql } from "drizzle-orm";
+import { and, asc, eq, isNull, sql } from "drizzle-orm";
 
 import { db } from "@/db";
 import { motsRecherche, type FiltresListe } from "@/lib/recherche";
@@ -56,7 +56,7 @@ export async function listerCommandes(organizationId: string, filtres?: FiltresL
     depot: string | null;
   }>(sql`
     select c.id, c.numero, c.fournisseur_id, c.fournisseur_nom, c.date_commande, c.livraison_prevue, c.statut, c.total_ttc,
-           coalesce((select sum(f.total_ttc) from factures_fournisseur f where f.commande_id = c.id and f.statut = 'comptabilisee'), 0) as facture,
+           coalesce((select sum(f.total_ttc) from factures_fournisseur f where f.commande_id = c.id and f.statut = 'comptabilisee' and f.deleted_at is null), 0) as facture,
            d.nom as depot
     from commandes_achat c left join depots d on d.id = c.depot_id
     where c.organization_id = ${organizationId} and c.deleted_at is null
@@ -82,15 +82,15 @@ export async function commandeDetail(organizationId: string, id: string) {
   const [c] = await db
     .select()
     .from(commandesAchat)
-    .where(and(eq(commandesAchat.id, id), eq(commandesAchat.organizationId, organizationId)));
+    .where(and(eq(commandesAchat.id, id), eq(commandesAchat.organizationId, organizationId), isNull(commandesAchat.deletedAt)));
   if (!c) return null;
   const [lignes, receptions, factures, depot] = await Promise.all([
     lignesSuivies(db, organizationId, id),
     db.execute<{ id: string; numero: string; date_reception: string | Date; bordereau: string | null; depot: string; auteur: string | null; lignes: string }>(sql`
       select r.id, r.numero, r.date_reception, r.bordereau, d.nom as depot, u.full_name as auteur,
-             (select count(*) from lignes_reception_achat x where x.reception_id = r.id) as lignes
+             (select count(*) from lignes_reception_achat x where x.reception_id = r.id and x.deleted_at is null) as lignes
       from receptions_achat r join depots d on d.id = r.depot_id left join users u on u.id = r.user_id
-      where r.commande_id = ${id} and r.organization_id = ${organizationId}
+      where r.commande_id = ${id} and r.organization_id = ${organizationId} and r.deleted_at is null
       order by r.date_reception, r.numero
     `),
     db
@@ -103,14 +103,14 @@ export async function commandeDetail(organizationId: string, id: string) {
         dateFacture: facturesFournisseur.dateFacture,
       })
       .from(facturesFournisseur)
-      .where(and(eq(facturesFournisseur.commandeId, id), eq(facturesFournisseur.organizationId, organizationId))),
+      .where(and(eq(facturesFournisseur.commandeId, id), eq(facturesFournisseur.organizationId, organizationId), isNull(facturesFournisseur.deletedAt))),
     c.depotId ? db.select({ nom: depots.nom }).from(depots).where(eq(depots.id, c.depotId)) : Promise.resolve([]),
   ]);
   // Ce qui est déjà facturé, ligne par ligne : pour proposer à la facture le reçu non encore facturé.
   const facturees = await db.execute<{ ligne: string; quantite: string }>(sql`
     select l.ligne_commande_id as ligne, sum(l.quantite) as quantite
     from lignes_facture_fournisseur l join factures_fournisseur f on f.id = l.facture_id
-    where f.commande_id = ${id} and f.statut = 'comptabilisee' and l.ligne_commande_id is not null
+    where f.commande_id = ${id} and f.statut = 'comptabilisee' and l.ligne_commande_id is not null and l.deleted_at is null and f.deleted_at is null
     group by l.ligne_commande_id
   `);
   const parLigne = new Map(facturees.map((f) => [f.ligne, Number(f.quantite)]));
@@ -182,7 +182,7 @@ export async function listerFactures(
            (select coalesce(json_agg(json_build_object('numero', r.numero, 'date', r.date_reglement, 'montant', r.montant,
                     'compte', t.nom, 'ecriture', r.ecriture) order by r.date_reglement), '[]'::json)
               from reglements_fournisseur r join comptes_tresorerie t on t.id = r.compte_tresorerie_id
-             where r.facture_id = f.id) as reglements
+             where r.facture_id = f.id and r.deleted_at is null) as reglements
     from factures_fournisseur f left join commandes_achat c on c.id = f.commande_id
     where f.organization_id = ${organizationId} and f.deleted_at is null
       and (${filtre.fournisseurId ?? null}::uuid is null or f.fournisseur_id = ${filtre.fournisseurId ?? null}::uuid)
@@ -222,7 +222,7 @@ export async function fournisseursActifs(organizationId: string) {
     db
       .select({ id: tiers.id, nom: tiers.nom, delaiLivraisonJours: tiers.delaiLivraisonJours })
       .from(tiers)
-      .where(and(eq(tiers.organizationId, organizationId), eq(tiers.estFournisseur, true), eq(tiers.actif, true)))
+      .where(and(eq(tiers.organizationId, organizationId), eq(tiers.estFournisseur, true), eq(tiers.actif, true), isNull(tiers.deletedAt)))
       .orderBy(asc(tiers.nom)),
     contactsParTiers(organizationId),
   ]);
@@ -249,7 +249,7 @@ export async function articlesAchetables(organizationId: string) {
     })
     .from(articles)
     .leftJoin(famillesArticle, eq(famillesArticle.id, articles.familleId))
-    .where(and(eq(articles.organizationId, organizationId), eq(articles.actif, true)))
+    .where(and(eq(articles.organizationId, organizationId), eq(articles.actif, true), isNull(articles.deletedAt)))
     .orderBy(asc(articles.designation));
   return lignes.map((l) => ({
     id: l.id,
@@ -267,7 +267,7 @@ export async function depotsActifs(organizationId: string) {
   return db
     .select({ id: depots.id, nom: depots.nom, parDefaut: depots.parDefaut })
     .from(depots)
-    .where(and(eq(depots.organizationId, organizationId), eq(depots.actif, true)))
+    .where(and(eq(depots.organizationId, organizationId), eq(depots.actif, true), isNull(depots.deletedAt)))
     .orderBy(asc(depots.nom));
 }
 
@@ -283,8 +283,8 @@ export async function etatAchats(organizationId: string): Promise<EtatAchats> {
   const [[d], [l]] = await Promise.all([
     db.execute<{ echues: string; montant: string; bientot: string }>(sql`
       with restes as (
-        select f.echeance, f.total_ttc - coalesce((select sum(r.montant) from reglements_fournisseur r where r.facture_id = f.id), 0) as reste
-        from factures_fournisseur f where f.organization_id = ${organizationId} and f.statut = 'comptabilisee'
+        select f.echeance, f.total_ttc - coalesce((select sum(r.montant) from reglements_fournisseur r where r.facture_id = f.id and r.deleted_at is null), 0) as reste
+        from factures_fournisseur f where f.organization_id = ${organizationId} and f.statut = 'comptabilisee' and f.deleted_at is null
       )
       select count(*) filter (where reste > 0 and echeance < current_date) as echues,
              coalesce(sum(reste) filter (where reste > 0 and echeance < current_date), 0) as montant,
@@ -293,7 +293,7 @@ export async function etatAchats(organizationId: string): Promise<EtatAchats> {
     `),
     db.execute<{ retard: string }>(sql`
       select count(*) as retard from commandes_achat
-      where organization_id = ${organizationId} and statut in ('envoyee', 'partielle') and livraison_prevue < current_date
+      where organization_id = ${organizationId} and deleted_at is null and statut in ('envoyee', 'partielle') and livraison_prevue < current_date
     `),
   ]);
   return {

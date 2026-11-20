@@ -48,7 +48,7 @@ export async function missionBudgetee(organizationId: string, id: string): Promi
     .from(missions)
     .leftJoin(employees, eq(employees.id, missions.employeId))
     .leftJoin(workers, eq(workers.id, missions.intervenantId))
-    .where(and(eq(missions.organizationId, organizationId), eq(missions.id, id)));
+    .where(and(eq(missions.organizationId, organizationId), eq(missions.id, id), isNull(missions.deletedAt)));
   if (!m) return null;
   return { id: m.m.id, reference: m.m.reference, titre: m.m.titre, statut: m.m.statut, lieu: m.m.lieu, budget: m.m.budget, collaborateur: m.collaborateur, intervenant: m.intervenant };
 }
@@ -98,7 +98,7 @@ export async function choixIntervenants(organizationId: string) {
     db
       .select({ id: workers.id, nom: workers.nom, telephone: workers.telephone })
       .from(workers)
-      .where(and(eq(workers.organizationId, organizationId), eq(workers.actif, true)))
+      .where(and(eq(workers.organizationId, organizationId), eq(workers.actif, true), isNull(workers.deletedAt)))
       .orderBy(asc(workers.nom)),
     db
       .select({ id: prestataires.id, nom: tiers.nom, telephone: tiers.telephone })
@@ -117,7 +117,7 @@ async function engageDe(organizationId: string, missionId: string): Promise<numb
 
 /** Fixe, relève ou réduit le budget : jamais sous ce qui est déjà confié. */
 export async function fixerBudgetPour(organizationId: string, userId: string, missionId: string, budget: number): Promise<void> {
-  const [m] = await db.select({ budget: missions.budget }).from(missions).where(and(eq(missions.organizationId, organizationId), eq(missions.id, missionId)));
+  const [m] = await db.select({ budget: missions.budget }).from(missions).where(and(eq(missions.organizationId, organizationId), eq(missions.id, missionId), isNull(missions.deletedAt)));
   if (!m) throw new Error("Mission introuvable.");
   const erreur = erreurBudget(budget, await engageDe(organizationId, missionId));
   if (erreur) throw new Error(erreur);
@@ -146,7 +146,7 @@ export async function confierIntervenantPour(organizationId: string, userId: str
     const [m] = await tx
       .select({ budget: missions.budget, statut: missions.statut })
       .from(missions)
-      .where(and(eq(missions.organizationId, organizationId), eq(missions.id, missionId)))
+      .where(and(eq(missions.organizationId, organizationId), eq(missions.id, missionId), isNull(missions.deletedAt)))
       .for("update");
     if (!m) throw new Error("Mission introuvable.");
     if (m.statut === "terminee" || m.statut === "echouee" || m.statut === "annulee") throw new Error("Cette mission est close : on n'y confie plus de tâche.");
@@ -162,7 +162,7 @@ export async function confierIntervenantPour(organizationId: string, userId: str
     let workerId: string | null = null;
     let prestataireId: string | null = null;
     if (n.workerId) {
-      const [w] = await tx.select({ nom: workers.nom, telephone: workers.telephone }).from(workers).where(and(eq(workers.organizationId, organizationId), eq(workers.id, n.workerId)));
+      const [w] = await tx.select({ nom: workers.nom, telephone: workers.telephone }).from(workers).where(and(eq(workers.organizationId, organizationId), eq(workers.id, n.workerId), isNull(workers.deletedAt)));
       if (!w) throw new Error("Intervenant introuvable.");
       workerId = n.workerId;
       nom = w.nom;
@@ -172,7 +172,7 @@ export async function confierIntervenantPour(organizationId: string, userId: str
         .select({ nom: tiers.nom, telephone: tiers.telephone })
         .from(prestataires)
         .innerJoin(tiers, eq(tiers.id, prestataires.tiersId))
-        .where(and(eq(prestataires.organizationId, organizationId), eq(prestataires.id, n.prestataireId)));
+        .where(and(eq(prestataires.organizationId, organizationId), eq(prestataires.id, n.prestataireId), isNull(prestataires.deletedAt)));
       if (!p) throw new Error("Prestataire introuvable.");
       prestataireId = n.prestataireId;
       nom = p.nom;

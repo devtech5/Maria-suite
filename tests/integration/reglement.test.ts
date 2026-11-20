@@ -7,7 +7,7 @@ import { newId } from "@/lib/ids";
 import { jourLocal } from "@/modules/presences/calcul";
 import { versionAAccepter } from "@/modules/reglement/garde";
 import { RELANCE_MIN_MS } from "@/modules/reglement/regles";
-import { accepterPour, creerBrouillonPour, enregistrerBrouillonPour, publierPour, relancerPour, suiviDe, supprimerBrouillonPour, versionDe } from "@/modules/reglement/requetes";
+import { acceptationDe, accepterPour, creerBrouillonPour, enregistrerBrouillonPour, publierPour, relancerPour, suiviDe, supprimerBrouillonPour, versionDe } from "@/modules/reglement/requetes";
 
 import { ouvrirBaseDeTest, semerEntreprise } from "./base";
 
@@ -130,5 +130,16 @@ describe("règlement intérieur sur une vraie base", () => {
     expect(await versionAAccepter(org, kone)).toBeNull();
     await db.delete(organizationModules).where(and(eq(organizationModules.organizationId, org), eq(organizationModules.moduleKey, "reglement")));
     expect(await versionAAccepter(org, kone)).toBe(v1);
+  });
+
+  it("oublie une acceptation mise à la corbeille, qui se repose", async () => {
+    await db.update(reglementAcceptations).set({ deletedAt: new Date() }).where(and(eq(reglementAcceptations.userId, awa), eq(reglementAcceptations.versionId, v1)));
+    expect(await acceptationDe(org, awa, v1)).toBeNull();
+    expect((await suiviDe(org, v1)).enAttente.map((m) => m.userId)).toContain(awa);
+    await accepterPour(org, awa, v1, { adresseIp: "10.0.0.2", appareil: "Test" });
+    const lignes = await db.select().from(reglementAcceptations).where(and(eq(reglementAcceptations.userId, awa), eq(reglementAcceptations.versionId, v1)));
+    expect(lignes).toHaveLength(1);
+    expect(lignes[0]).toMatchObject({ deletedAt: null, adresseIp: "10.0.0.2" });
+    expect(await acceptationDe(org, awa, v1)).not.toBeNull();
   });
 });

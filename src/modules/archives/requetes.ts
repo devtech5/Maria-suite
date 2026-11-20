@@ -155,18 +155,18 @@ export async function dossiersVisibles(
     select d.id, d.nom, d.description, d.visibilite, d.depot_ouvert,
            (select coalesce(json_agg(json_build_object('userId', x.user_id, 'nom', coalesce(u.full_name, 'Ancien membre')) order by u.full_name), '[]'::json)
               from acces_dossiers_archives x left join users u on u.id = x.user_id
-             where x.dossier_id = d.id and x.organization_id = d.organization_id) as designes,
+             where x.dossier_id = d.id and x.organization_id = d.organization_id and x.deleted_at is null) as designes,
            (select coalesce(json_agg(json_build_object('userId', x.user_id, 'nom', coalesce(u.full_name, 'Ancien membre')) order by u.full_name), '[]'::json)
               from acces_dossiers_archives x left join users u on u.id = x.user_id
-             where x.dossier_id = d.id and x.organization_id = d.organization_id and x.peut_deposer) as deposants,
-           (select count(*) from archives a where a.dossier_id = d.id and a.retiree_le is null) as archives,
-           (select coalesce(sum(a.taille_octets), 0) from archives a where a.dossier_id = d.id and a.retiree_le is null) as octets,
-           (select max(a.created_at) from archives a where a.dossier_id = d.id and a.retiree_le is null) as derniere
+             where x.dossier_id = d.id and x.organization_id = d.organization_id and x.peut_deposer and x.deleted_at is null) as deposants,
+           (select count(*) from archives a where a.dossier_id = d.id and a.retiree_le is null and a.deleted_at is null) as archives,
+           (select coalesce(sum(a.taille_octets), 0) from archives a where a.dossier_id = d.id and a.retiree_le is null and a.deleted_at is null) as octets,
+           (select max(a.created_at) from archives a where a.dossier_id = d.id and a.retiree_le is null and a.deleted_at is null) as derniere
     from dossiers_archives d
     where d.organization_id = ${organizationId} and d.deleted_at is null
       and (${gestionnaire} or d.visibilite = 'tous' or exists (
         select 1 from acces_dossiers_archives x
-        where x.dossier_id = d.id and x.organization_id = d.organization_id and x.user_id = ${userId}
+        where x.dossier_id = d.id and x.organization_id = d.organization_id and x.user_id = ${userId} and x.deleted_at is null
       ))
     order by d.nom
   `);

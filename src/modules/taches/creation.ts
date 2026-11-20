@@ -196,7 +196,7 @@ async function tacheVerrouillee(tx: Transaction, organizationId: string, tacheId
   const [tache] = await tx
     .select()
     .from(taches)
-    .where(and(eq(taches.id, tacheId), eq(taches.organizationId, organizationId)))
+    .where(and(eq(taches.id, tacheId), eq(taches.organizationId, organizationId), isNull(taches.deletedAt)))
     .for("update");
   if (!tache) throw new Error("Tâche introuvable.");
   return tache;

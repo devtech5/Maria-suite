@@ -73,7 +73,7 @@ export async function enregistrerAccueilPour(
       const modifies = await db
         .update(accueils)
         .set({ nom, lieu, pieceExigee: saisie.pieceExigee, actif: saisie.actif, updatedAt: new Date(), version: sql`${accueils.version} + 1` })
-        .where(and(eq(accueils.organizationId, organizationId), eq(accueils.id, saisie.id)))
+        .where(and(isNull(accueils.deletedAt), eq(accueils.organizationId, organizationId), eq(accueils.id, saisie.id)))
         .returning({ id: accueils.id });
       if (modifies.length === 0) throw new Error("Point d'accueil introuvable.");
       await tracerPour(organizationId, userId, { action: "accueil.modifier", entite: "accueil", entiteId: saisie.id, apres: { nom, actif: saisie.actif } });
@@ -92,7 +92,10 @@ export async function enregistrerAccueilPour(
 }
 
 export async function affecterAgentPour(organizationId: string, userId: string, accueilId: string, agentId: string, affecter: boolean): Promise<void> {
-  const [accueil] = await db.select({ id: accueils.id }).from(accueils).where(and(eq(accueils.organizationId, organizationId), eq(accueils.id, accueilId)));
+  const [accueil] = await db
+    .select({ id: accueils.id })
+    .from(accueils)
+    .where(and(eq(accueils.organizationId, organizationId), eq(accueils.id, accueilId), isNull(accueils.deletedAt)));
   if (!accueil) throw new Error("Point d'accueil introuvable.");
   if (affecter) {
     const [membre] = await db

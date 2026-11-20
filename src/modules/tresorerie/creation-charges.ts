@@ -65,7 +65,7 @@ export async function creerChargeDans(
     const [f] = await tx
       .select({ id: tiers.id })
       .from(tiers)
-      .where(and(eq(tiers.id, c.fournisseurId), eq(tiers.organizationId, organizationId)));
+      .where(and(eq(tiers.id, c.fournisseurId), eq(tiers.organizationId, organizationId), isNull(tiers.deletedAt)));
     if (!f) throw new Error("Fournisseur introuvable.");
   }
 

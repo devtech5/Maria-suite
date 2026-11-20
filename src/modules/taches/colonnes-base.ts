@@ -215,7 +215,7 @@ export async function definirValeurDans(
   const [avant] = await tx
     .select({ valeur: tachesValeurs.valeur })
     .from(tachesValeurs)
-    .where(and(eq(tachesValeurs.tacheId, tacheId), eq(tachesValeurs.colonneId, colonneId)));
+    .where(and(eq(tachesValeurs.tacheId, tacheId), eq(tachesValeurs.colonneId, colonneId), isNull(tachesValeurs.deletedAt)));
   if ((avant?.valeur ?? null) === verdict.valeur) return { numero: tache.numero, libelle: colonne.libelle };
 
   const maintenant = new Date();

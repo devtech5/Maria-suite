@@ -1,6 +1,6 @@
 import "server-only";
 
-import { and, eq, sql } from "drizzle-orm";
+import { and, eq, isNull, sql } from "drizzle-orm";
 
 import { db } from "@/db";
 import { auditLogs } from "@/db/schema";
@@ -153,6 +153,7 @@ export async function supprimerDocumentPour(
     })
     .where(
       and(
+        isNull(documents.deletedAt),
         eq(documents.id, documentId),
         eq(documents.organizationId, organizationId),
       ),
@@ -221,6 +222,7 @@ export async function creerDemandeSignatureDans(
       and(
         eq(documents.id, donnees.documentId),
         eq(documents.organizationId, organizationId),
+        isNull(documents.deletedAt),
       ),
     );
 
@@ -311,6 +313,7 @@ export async function signerDans(
     })
     .where(
       and(
+        isNull(signataires.deletedAt),
         eq(signataires.id, signataireId),
         eq(signataires.organizationId, organizationId),
         // Signer deux fois ne veut rien dire, et écraserait la date d'origine.
@@ -327,6 +330,7 @@ export async function signerDans(
     .where(
       and(
         eq(signataires.demandeId, signe.demandeId),
+        isNull(signataires.deletedAt),
         sql`${signataires.signeLe} IS NULL`,
       ),
     );

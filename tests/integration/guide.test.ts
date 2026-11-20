@@ -2,7 +2,7 @@ import { and, eq } from "drizzle-orm";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
 
 import type { db as Db } from "@/db";
-import { guideLectures, memberships, roles, users } from "@/db/schema";
+import { guideLectures, guideQuiz, memberships, roles, users } from "@/db/schema";
 import { newId } from "@/lib/ids";
 import type { Correction } from "@/modules/guide/regles";
 import { chapitresLus, enregistrerQuizPour, marquerLuPour, nombreEssais, resultatQuiz, suiviGuide } from "@/modules/guide/requetes";
@@ -72,5 +72,22 @@ describe("guide d'utilisation sur une vraie base", () => {
     expect(deAwa).toMatchObject({ lus: 2, meilleur: { bonnes: 9, total: 10 } });
     expect(deAwa.reussiLe).toEqual(new Date("2026-11-10T09:00:00Z"));
     expect(deKone).toMatchObject({ lus: 0, reussiLe: null, meilleur: null, derniereLecture: null });
+  });
+
+  it("oublie un passage du quiz mis à la corbeille", async () => {
+    await db.update(guideQuiz).set({ deletedAt: new Date() }).where(and(eq(guideQuiz.userId, awa), eq(guideQuiz.bonnes, 9)));
+    expect(await nombreEssais(org, awa)).toBe(2);
+    expect(await resultatQuiz(org, awa)).toMatchObject({ bonnes: 6, reussi: false });
+    const deAwa = (await suiviGuide(org)).find((l) => l.userId === awa)!;
+    expect(deAwa).toMatchObject({ reussiLe: null, meilleur: { bonnes: 6, total: 10 } });
+  });
+
+  it("oublie une lecture mise à la corbeille, et la reprend au marquage suivant", async () => {
+    await marquerLuPour(org, kone, "premiers-pas");
+    await db.update(guideLectures).set({ deletedAt: new Date() }).where(eq(guideLectures.userId, kone));
+    expect(await chapitresLus(org, kone)).toEqual(new Set());
+    expect((await suiviGuide(org)).find((l) => l.userId === kone)).toMatchObject({ lus: 0, derniereLecture: null });
+    await marquerLuPour(org, kone, "premiers-pas");
+    expect(await chapitresLus(org, kone)).toEqual(new Set(["premiers-pas"]));
   });
 });

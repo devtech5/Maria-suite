@@ -114,7 +114,7 @@ export async function enregistrerCommercialDans(
     const [m] = await tx
       .update(commerciaux)
       .set({ ...valeurs, updatedAt: new Date(), version: sql`${commerciaux.version} + 1` })
-      .where(and(eq(commerciaux.id, id), eq(commerciaux.organizationId, organizationId)))
+      .where(and(isNull(commerciaux.deletedAt), eq(commerciaux.id, id), eq(commerciaux.organizationId, organizationId)))
       .returning({ id: commerciaux.id });
     if (!m) throw new Error("Commercial introuvable.");
   } else {
@@ -149,6 +149,7 @@ export async function realisationsDuMois(lecteur: Lecteur, organizationId: strin
         -- Une facture annulée l'est par un avoir, compté en négatif : la garder
         -- évite de la retirer deux fois, et reprend la commission au mois de l'avoir.
         and p.statut <> 'brouillon'
+        and p.deleted_at is null
         and p.date_piece >= ${du} and p.date_piece < ${au}
         and not exists (select 1 from lignes_piece l where l.piece_id = p.id and l.compte_vente = '4711')
       union all
@@ -158,6 +159,7 @@ export async function realisationsDuMois(lecteur: Lecteur, organizationId: strin
       from ventes v
       where v.organization_id = ${organizationId}
         and v.statut = 'encaissee'
+        and v.deleted_at is null
         and v.encaissee_le >= ${du}::date and v.encaissee_le < ${au}::date
     )
     select a.commercial_id, sum(a.ca) as ca, coalesce(sum(c.cout), 0) as cout
@@ -174,7 +176,10 @@ export async function realisationsDuMois(lecteur: Lecteur, organizationId: strin
 }
 
 async function commercialDe(tx: Lecteur, organizationId: string, id: string) {
-  const [c] = await tx.select().from(commerciaux).where(and(eq(commerciaux.id, id), eq(commerciaux.organizationId, organizationId)));
+  const [c] = await tx
+    .select()
+    .from(commerciaux)
+    .where(and(eq(commerciaux.id, id), eq(commerciaux.organizationId, organizationId), isNull(commerciaux.deletedAt)));
   if (!c) throw new Error("Commercial introuvable.");
   return c;
 }
@@ -206,7 +211,11 @@ export async function validerCommissionDans(tx: Transaction, organizationId: str
 }
 
 async function commissionVerrouillee(tx: Transaction, organizationId: string, id: string) {
-  const [k] = await tx.select().from(commissions).where(and(eq(commissions.id, id), eq(commissions.organizationId, organizationId))).for("update");
+  const [k] = await tx
+    .select()
+    .from(commissions)
+    .where(and(eq(commissions.id, id), eq(commissions.organizationId, organizationId), isNull(commissions.deletedAt)))
+    .for("update");
   if (!k) throw new Error("Commission introuvable.");
   if (k.statut === "payee") throw new Error("Cette commission est déjà payée.");
   return k;
@@ -221,7 +230,13 @@ export async function payerCommissionDans(tx: Transaction, organizationId: strin
   const [compte] = await tx
     .select()
     .from(comptesTresorerie)
-    .where(and(eq(comptesTresorerie.id, v.compteTresorerieId), eq(comptesTresorerie.organizationId, organizationId)))
+    .where(
+      and(
+        eq(comptesTresorerie.id, v.compteTresorerieId),
+        eq(comptesTresorerie.organizationId, organizationId),
+        isNull(comptesTresorerie.deletedAt),
+      ),
+    )
     .for("update");
   if (!compte || !compte.actif) throw new Error("Compte de trésorerie introuvable ou fermé.");
   await exigerProvision(tx, organizationId, { numero: compte.compte, libelle: compte.nom, nature: compte.nature, nom: compte.nom }, k.total);
@@ -248,13 +263,16 @@ export async function reporterEnPaieDans(tx: Transaction, organizationId: string
   const k = await commissionVerrouillee(tx, organizationId, id);
   const c = await commercialDe(tx, organizationId, k.commercialId);
   if (!c.employeeId) throw new Error(`${c.nom} n'est pas rattaché à un collaborateur : payez sa commission depuis la trésorerie.`);
-  const [periode] = await tx.select().from(periodesPaie).where(and(eq(periodesPaie.organizationId, organizationId), eq(periodesPaie.mois, moisPaie)));
+  const [periode] = await tx
+    .select()
+    .from(periodesPaie)
+    .where(and(eq(periodesPaie.organizationId, organizationId), eq(periodesPaie.mois, moisPaie), isNull(periodesPaie.deletedAt)));
   if (!periode) throw new Error(`La paie de ${moisPaie} n'est pas préparée : préparez-la d'abord.`);
   if (periode.statut === "validee") throw new Error(`La paie de ${moisPaie} est déjà validée.`);
   const [b] = await tx
     .select()
     .from(bulletinsPaie)
-    .where(and(eq(bulletinsPaie.periodeId, periode.id), eq(bulletinsPaie.employeId, c.employeeId)))
+    .where(and(eq(bulletinsPaie.periodeId, periode.id), eq(bulletinsPaie.employeId, c.employeeId), isNull(bulletinsPaie.deletedAt)))
     .orderBy(asc(bulletinsPaie.matricule));
   if (!b) throw new Error(`${c.nom} n'a pas de bulletin dans la paie de ${moisPaie}.`);
   const { bareme } = await baremeDe(organizationId);

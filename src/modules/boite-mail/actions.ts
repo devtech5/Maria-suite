@@ -1,6 +1,6 @@
 "use server";
 
-import { and, eq } from "drizzle-orm";
+import { and, eq, isNull } from "drizzle-orm";
 import { revalidatePath } from "next/cache";
 import { z } from "zod";
 
@@ -29,7 +29,7 @@ async function maConnexion(): Promise<{ organizationId: string; userId: string; 
   const [c] = await db
     .select()
     .from(comptesCourriel)
-    .where(and(eq(comptesCourriel.organizationId, session.organizationId), eq(comptesCourriel.userId, session.userId)));
+    .where(and(eq(comptesCourriel.organizationId, session.organizationId), eq(comptesCourriel.userId, session.userId), isNull(comptesCourriel.deletedAt)));
   if (!c) return { ok: false, message: "Aucune boîte mail connectée." };
   let motDePasse: string;
   try {
@@ -114,7 +114,7 @@ export async function connecterBoite(d: FormData): Promise<Resultat> {
   await db
     .insert(comptesCourriel)
     .values({ id: newId(), organizationId: session.organizationId, userId: session.userId, ...ligne })
-    .onConflictDoUpdate({ target: [comptesCourriel.organizationId, comptesCourriel.userId], set: { ...ligne, updatedAt: new Date() } });
+    .onConflictDoUpdate({ target: [comptesCourriel.organizationId, comptesCourriel.userId], set: { ...ligne, deletedAt: null, updatedAt: new Date() } });
   await tracer({ action: "boite_mail.connecter", entite: "compte", entiteId: session.userId, apres: { adresse, serveur: r.imapHote } });
   revalidatePath("/boite-mail");
   return { ok: true, message: `${adresse} connectée.` };

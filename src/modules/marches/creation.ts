@@ -79,7 +79,7 @@ export async function cheminFichier(organizationId: string, nature: "piece" | "o
   const [l] = await db
     .select({ chemin: table.chemin })
     .from(table)
-    .where(and(eq(table.id, id), eq(table.organizationId, organizationId)));
+    .where(and(eq(table.id, id), eq(table.organizationId, organizationId), isNull(table.deletedAt)));
   return l?.chemin ?? null;
 }
 
@@ -138,7 +138,7 @@ export async function modifierSoumissionPour(
   const [l] = await db
     .update(soumissions)
     .set({ ...m, updatedAt: new Date(), version: sql`${soumissions.version} + 1` })
-    .where(and(eq(soumissions.id, id), eq(soumissions.organizationId, organizationId)))
+    .where(and(isNull(soumissions.deletedAt), eq(soumissions.id, id), eq(soumissions.organizationId, organizationId)))
     .returning({ numero: soumissions.numero });
   if (!l) throw new Error("Soumission introuvable.");
   await journaliser(db, organizationId, userId, "soumission.modifier", "soumission", id, { numero: l.numero });
@@ -157,11 +157,11 @@ export async function changerStatutSoumissionPour(
   options: { motif?: string | null; forcer?: boolean } = {},
 ): Promise<string> {
   return db.transaction(async (tx) => {
-    const [s] = await tx.select().from(soumissions).where(and(eq(soumissions.id, id), eq(soumissions.organizationId, organizationId)));
+    const [s] = await tx.select().from(soumissions).where(and(eq(soumissions.id, id), eq(soumissions.organizationId, organizationId), isNull(soumissions.deletedAt)));
     if (!s) throw new Error("Soumission introuvable.");
     if (!SUITES_SOUMISSION[s.statut].includes(vers)) throw new Error(`${s.numero} ne peut pas passer de « ${s.statut} » à « ${vers} ».`);
     if (vers === "deposee") {
-      const pieces = await tx.select({ fournie: piecesSoumission.fournie }).from(piecesSoumission).where(eq(piecesSoumission.soumissionId, id));
+      const pieces = await tx.select({ fournie: piecesSoumission.fournie }).from(piecesSoumission).where(and(eq(piecesSoumission.soumissionId, id), isNull(piecesSoumission.deletedAt)));
       const manquantes = pieces.filter((p) => !p.fournie).length;
       if (manquantes > 0 && !options.forcer) throw new Error(`${manquantes} pièce${manquantes > 1 ? "s" : ""} du dossier ${manquantes > 1 ? "manquent" : "manque"} encore.`);
       if (s.montantPropose === null) throw new Error("Indiquez le montant de l'offre avant de la déposer.");
@@ -183,14 +183,14 @@ export async function changerStatutSoumissionPour(
 }
 
 async function pieceDe(organizationId: string, pieceId: string) {
-  const [p] = await db.select().from(piecesSoumission).where(and(eq(piecesSoumission.id, pieceId), eq(piecesSoumission.organizationId, organizationId)));
+  const [p] = await db.select().from(piecesSoumission).where(and(eq(piecesSoumission.id, pieceId), eq(piecesSoumission.organizationId, organizationId), isNull(piecesSoumission.deletedAt)));
   if (!p) throw new Error("Pièce introuvable.");
   return p;
 }
 
 export async function ajouterPieceDossierPour(organizationId: string, soumissionId: string, libelle: string): Promise<void> {
   if (libelle.trim().length < 2) throw new Error("Nommez la pièce.");
-  const [s] = await db.select({ id: soumissions.id }).from(soumissions).where(and(eq(soumissions.id, soumissionId), eq(soumissions.organizationId, organizationId)));
+  const [s] = await db.select({ id: soumissions.id }).from(soumissions).where(and(eq(soumissions.id, soumissionId), eq(soumissions.organizationId, organizationId), isNull(soumissions.deletedAt)));
   if (!s) throw new Error("Soumission introuvable.");
   const [{ rang }] = await db.select({ rang: max(piecesSoumission.rang) }).from(piecesSoumission).where(eq(piecesSoumission.soumissionId, soumissionId));
   await db.insert(piecesSoumission).values({ id: newId(), organizationId, soumissionId, libelle: libelle.trim(), rang: (rang ?? 0) + 1 });
@@ -224,7 +224,7 @@ export interface SoumissionSuivie extends Soumission {
 export async function listerSoumissions(organizationId: string, maintenant = new Date()): Promise<SoumissionSuivie[]> {
   const [liste, pieces] = await Promise.all([
     db.select().from(soumissions).where(and(eq(soumissions.organizationId, organizationId), isNull(soumissions.deletedAt))).orderBy(desc(soumissions.createdAt)),
-    db.select({ soumissionId: piecesSoumission.soumissionId, fournie: piecesSoumission.fournie }).from(piecesSoumission).where(eq(piecesSoumission.organizationId, organizationId)),
+    db.select({ soumissionId: piecesSoumission.soumissionId, fournie: piecesSoumission.fournie }).from(piecesSoumission).where(and(eq(piecesSoumission.organizationId, organizationId), isNull(piecesSoumission.deletedAt))),
   ]);
   return liste.map((s) => {
     const siennes = pieces.filter((p) => p.soumissionId === s.id);
@@ -236,7 +236,7 @@ export async function listerSoumissions(organizationId: string, maintenant = new
 export async function soumissionDe(organizationId: string, id: string): Promise<(SoumissionSuivie & { dossier: PieceSoumission[] }) | null> {
   const s = (await listerSoumissions(organizationId)).find((x) => x.id === id);
   if (!s) return null;
-  const dossier = await db.select().from(piecesSoumission).where(eq(piecesSoumission.soumissionId, id)).orderBy(asc(piecesSoumission.rang));
+  const dossier = await db.select().from(piecesSoumission).where(and(eq(piecesSoumission.soumissionId, id), isNull(piecesSoumission.deletedAt))).orderBy(asc(piecesSoumission.rang));
   return { ...s, dossier };
 }
 
@@ -274,7 +274,7 @@ export async function creerConsultationPour(organizationId: string, userId: stri
 }
 
 async function consultationDeTx(tx: Transaction | typeof db, organizationId: string, id: string): Promise<Consultation> {
-  const [c] = await tx.select().from(consultations).where(and(eq(consultations.id, id), eq(consultations.organizationId, organizationId)));
+  const [c] = await tx.select().from(consultations).where(and(eq(consultations.id, id), eq(consultations.organizationId, organizationId), isNull(consultations.deletedAt)));
   if (!c) throw new Error("Consultation introuvable.");
   return c;
 }
@@ -294,7 +294,7 @@ export async function inviterPour(
   const c = await consultationDeTx(db, organizationId, consultationId);
   if (c.statut !== "brouillon" && c.statut !== "ouverte") throw new Error("Consultation fermée : plus d'invitation.");
   const candidats = tiersIds.length
-    ? await db.select().from(tiers).where(and(eq(tiers.organizationId, organizationId), inArray(tiers.id, tiersIds)))
+    ? await db.select().from(tiers).where(and(eq(tiers.organizationId, organizationId), inArray(tiers.id, tiersIds), isNull(tiers.deletedAt)))
     : [];
   let invites = 0;
   for (const t of candidats) {
@@ -339,7 +339,7 @@ export async function enregistrerOffrePour(
   o: { montant: number; delaiJours?: number | null; noteTechnique?: number | null; commentaire?: string | null },
   fichier: FichierRecu | null,
 ): Promise<void> {
-  const [offre] = await db.select().from(offres).where(and(eq(offres.id, offreId), eq(offres.organizationId, organizationId)));
+  const [offre] = await db.select().from(offres).where(and(eq(offres.id, offreId), eq(offres.organizationId, organizationId), isNull(offres.deletedAt)));
   if (!offre) throw new Error("Offre introuvable.");
   const c = await consultationDeTx(db, organizationId, offre.consultationId);
   if (c.statut !== "ouverte" && c.statut !== "cloturee") throw new Error("Consultation fermée.");
@@ -373,7 +373,7 @@ export async function cloturerConsultationPour(organizationId: string, userId: s
 /** Attribue la consultation à une offre ; les autres offres reçues sont écartées. */
 export async function attribuerPour(organizationId: string, userId: string, offreId: string): Promise<string> {
   return db.transaction(async (tx) => {
-    const [offre] = await tx.select().from(offres).where(and(eq(offres.id, offreId), eq(offres.organizationId, organizationId)));
+    const [offre] = await tx.select().from(offres).where(and(eq(offres.id, offreId), eq(offres.organizationId, organizationId), isNull(offres.deletedAt)));
     if (!offre) throw new Error("Offre introuvable.");
     if (offre.statut !== "recue") throw new Error("On n'attribue qu'une offre reçue.");
     const c = await consultationDeTx(tx, organizationId, offre.consultationId);
@@ -409,8 +409,8 @@ export interface ConsultationSuivie extends Consultation {
 
 export async function listerConsultations(organizationId: string): Promise<ConsultationSuivie[]> {
   const [liste, toutes] = await Promise.all([
-    db.select().from(consultations).where(eq(consultations.organizationId, organizationId)).orderBy(desc(consultations.createdAt)),
-    db.select({ o: offres, nom: tiers.nom }).from(offres).innerJoin(tiers, eq(tiers.id, offres.tiersId)).where(eq(offres.organizationId, organizationId)),
+    db.select().from(consultations).where(and(eq(consultations.organizationId, organizationId), isNull(consultations.deletedAt))).orderBy(desc(consultations.createdAt)),
+    db.select({ o: offres, nom: tiers.nom }).from(offres).innerJoin(tiers, eq(tiers.id, offres.tiersId)).where(and(eq(offres.organizationId, organizationId), isNull(offres.deletedAt))),
   ]);
   return liste.map((c) => {
     const siennes = toutes.filter((x) => x.o.consultationId === c.id);
@@ -424,13 +424,13 @@ export async function listerConsultations(organizationId: string): Promise<Consu
 }
 
 export async function consultationDe(organizationId: string, id: string): Promise<{ consultation: Consultation; offres: OffreAffichee[] } | null> {
-  const [c] = await db.select().from(consultations).where(and(eq(consultations.id, id), eq(consultations.organizationId, organizationId)));
+  const [c] = await db.select().from(consultations).where(and(eq(consultations.id, id), eq(consultations.organizationId, organizationId), isNull(consultations.deletedAt)));
   if (!c) return null;
   const lignes = await db
     .select({ o: offres, nom: tiers.nom, email: tiers.email, telephone: tiers.telephone })
     .from(offres)
     .innerJoin(tiers, eq(tiers.id, offres.tiersId))
-    .where(eq(offres.consultationId, id));
+    .where(and(eq(offres.consultationId, id), isNull(offres.deletedAt)));
   const notes = noterOffres(
     lignes.map((l) => ({ id: l.o.id, montant: l.o.statut === "invitee" ? null : l.o.montant, noteTechnique: l.o.noteTechnique })),
     c.poidsPrixBp,
@@ -462,7 +462,7 @@ export async function creerConventionPour(organizationId: string, userId: string
   if (c.intitule.trim().length < 3) throw new Error("Indiquez l'intitulé de la convention.");
   if (c.fin && c.fin < c.debut) throw new Error("La fin précède le début.");
   if (c.tiersId) {
-    const [t] = await db.select({ id: tiers.id }).from(tiers).where(and(eq(tiers.id, c.tiersId), eq(tiers.organizationId, organizationId)));
+    const [t] = await db.select({ id: tiers.id }).from(tiers).where(and(eq(tiers.id, c.tiersId), eq(tiers.organizationId, organizationId), isNull(tiers.deletedAt)));
     if (!t) throw new Error("Tiers introuvable.");
   }
   const f = fichier ? await deposerFichier(organizationId, fichier) : null;
@@ -498,7 +498,7 @@ export async function creerConventionPour(organizationId: string, userId: string
 }
 
 export async function joindreConventionPour(organizationId: string, userId: string, id: string, fichier: FichierRecu): Promise<void> {
-  const [c] = await db.select({ chemin: conventions.chemin }).from(conventions).where(and(eq(conventions.id, id), eq(conventions.organizationId, organizationId)));
+  const [c] = await db.select({ chemin: conventions.chemin }).from(conventions).where(and(eq(conventions.id, id), eq(conventions.organizationId, organizationId), isNull(conventions.deletedAt)));
   if (!c) throw new Error("Convention introuvable.");
   const f = await deposerFichier(organizationId, fichier);
   await db.update(conventions).set({ ...f, updatedAt: new Date() }).where(eq(conventions.id, id));
@@ -514,7 +514,7 @@ export async function ajouterAvenantPour(
   fichier: FichierRecu | null,
 ): Promise<number> {
   if (a.objet.trim().length < 3) throw new Error("Indiquez l'objet de l'avenant.");
-  const [c] = await db.select().from(conventions).where(and(eq(conventions.id, conventionId), eq(conventions.organizationId, organizationId)));
+  const [c] = await db.select().from(conventions).where(and(eq(conventions.id, conventionId), eq(conventions.organizationId, organizationId), isNull(conventions.deletedAt)));
   if (!c) throw new Error("Convention introuvable.");
   if (c.resilieeLe) throw new Error("Convention résiliée : plus d'avenant.");
   if (a.nouvelleFin && a.nouvelleFin < c.debut) throw new Error("La nouvelle fin précède le début de la convention.");
@@ -549,7 +549,7 @@ export async function resilierConventionPour(organizationId: string, userId: str
   const [c] = await db
     .update(conventions)
     .set({ resilieeLe: date, motifResiliation: motif.trim(), updatedAt: new Date(), version: sql`${conventions.version} + 1` })
-    .where(and(eq(conventions.id, id), eq(conventions.organizationId, organizationId), isNull(conventions.resilieeLe)))
+    .where(and(isNull(conventions.deletedAt), eq(conventions.id, id), eq(conventions.organizationId, organizationId), isNull(conventions.resilieeLe)))
     .returning({ numero: conventions.numero });
   if (!c) throw new Error("Convention introuvable ou déjà résiliée.");
   await journaliser(db, organizationId, userId, "convention.resilier", "convention", id, { numero: c.numero, date, motif });
@@ -566,7 +566,7 @@ export interface ConventionSuivie extends Convention {
 export async function listerConventions(organizationId: string, aujourdhui = new Date().toISOString().slice(0, 10)): Promise<ConventionSuivie[]> {
   const [liste, tous] = await Promise.all([
     db.select().from(conventions).where(and(eq(conventions.organizationId, organizationId), isNull(conventions.deletedAt))).orderBy(desc(conventions.debut)),
-    db.select().from(avenants).where(eq(avenants.organizationId, organizationId)).orderBy(asc(avenants.rang)),
+    db.select().from(avenants).where(and(eq(avenants.organizationId, organizationId), isNull(avenants.deletedAt))).orderBy(asc(avenants.rang)),
   ]);
   return liste.map((c) => {
     const siens = tous.filter((a) => a.conventionId === c.id);

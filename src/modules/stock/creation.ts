@@ -1,6 +1,6 @@
 import "server-only";
 
-import { and, eq, sql } from "drizzle-orm";
+import { and, eq, isNull, sql } from "drizzle-orm";
 
 import { db } from "@/db";
 import { auditLogs } from "@/db/schema";
@@ -45,7 +45,7 @@ export async function creerDepotDans(
   const [premier] = await tx
     .select({ id: depots.id })
     .from(depots)
-    .where(eq(depots.organizationId, organizationId))
+    .where(and(eq(depots.organizationId, organizationId), isNull(depots.deletedAt)))
     .limit(1);
 
   const parDefaut = donnees.parDefaut ?? !premier;
@@ -126,6 +126,7 @@ export async function coutMoyenDans(
         eq(mouvementsStock.organizationId, organizationId),
         eq(mouvementsStock.depotId, depotId),
         eq(mouvementsStock.articleId, articleId),
+        isNull(mouvementsStock.deletedAt),
       ),
     );
 

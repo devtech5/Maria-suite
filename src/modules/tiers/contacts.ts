@@ -1,6 +1,6 @@
 import "server-only";
 
-import { and, asc, desc, eq, sql } from "drizzle-orm";
+import { and, asc, desc, eq, isNull, sql } from "drizzle-orm";
 
 import { db } from "@/db";
 import { auditLogs } from "@/db/schema";
@@ -35,7 +35,10 @@ export async function enregistrerContactDans(
   f: FicheContact,
   userId: string,
 ): Promise<{ id: string }> {
-  const [t] = await tx.select({ id: tiers.id }).from(tiers).where(and(eq(tiers.id, tiersId), eq(tiers.organizationId, organizationId)));
+  const [t] = await tx
+    .select({ id: tiers.id })
+    .from(tiers)
+    .where(and(eq(tiers.id, tiersId), eq(tiers.organizationId, organizationId), isNull(tiers.deletedAt)));
   if (!t) throw new Error("Tiers introuvable.");
   if (!f.nom.trim()) throw new Error("Le nom du contact est requis.");
   if (f.email && !/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(f.email.trim())) throw new Error("Adresse e-mail invalide.");
@@ -58,7 +61,7 @@ export async function enregistrerContactDans(
     const [m] = await tx
       .update(contactsTiers)
       .set({ ...valeurs, updatedAt: new Date(), version: sql`${contactsTiers.version} + 1` })
-      .where(and(eq(contactsTiers.id, id), eq(contactsTiers.tiersId, tiersId), eq(contactsTiers.organizationId, organizationId)))
+      .where(and(isNull(contactsTiers.deletedAt), eq(contactsTiers.id, id), eq(contactsTiers.tiersId, tiersId), eq(contactsTiers.organizationId, organizationId)))
       .returning({ id: contactsTiers.id });
     if (!m) throw new Error("Contact introuvable.");
   } else {
@@ -74,7 +77,7 @@ export async function retirerContactDans(tx: Transaction, organizationId: string
   const [c] = await tx
     .update(contactsTiers)
     .set({ actif: false, principal: false, updatedAt: new Date(), version: sql`${contactsTiers.version} + 1` })
-    .where(and(eq(contactsTiers.id, id), eq(contactsTiers.organizationId, organizationId)))
+    .where(and(isNull(contactsTiers.deletedAt), eq(contactsTiers.id, id), eq(contactsTiers.organizationId, organizationId)))
     .returning({ nom: contactsTiers.nom });
   if (!c) throw new Error("Contact introuvable.");
   await tx.insert(auditLogs).values({ id: newId(), organizationId, userId, action: "contact.retirer", entityType: "contact", entityId: id, after: { nom: c.nom } });
@@ -95,7 +98,15 @@ export async function contactPourPiece(
   const [c] = await lecteur
     .select({ id: contactsTiers.id, nom: contactsTiers.nom, fonction: contactsTiers.fonction })
     .from(contactsTiers)
-    .where(and(eq(contactsTiers.id, contactId), eq(contactsTiers.organizationId, organizationId), eq(contactsTiers.tiersId, tiersId), eq(contactsTiers.actif, true)));
+    .where(
+      and(
+        eq(contactsTiers.id, contactId),
+        eq(contactsTiers.organizationId, organizationId),
+        eq(contactsTiers.tiersId, tiersId),
+        eq(contactsTiers.actif, true),
+        isNull(contactsTiers.deletedAt),
+      ),
+    );
   if (!c) throw new Error("Ce contact n'appartient pas à ce tiers.");
   return { contactId: c.id, contactNom: libelleContact(c) };
 }
@@ -125,7 +136,7 @@ export async function contactsParTiers(organizationId: string): Promise<Map<stri
       notes: contactsTiers.notes,
     })
     .from(contactsTiers)
-    .where(and(eq(contactsTiers.organizationId, organizationId), eq(contactsTiers.actif, true)))
+    .where(and(eq(contactsTiers.organizationId, organizationId), eq(contactsTiers.actif, true), isNull(contactsTiers.deletedAt)))
     .orderBy(desc(contactsTiers.principal), asc(contactsTiers.nom));
   const parTiers = new Map<string, ContactVue[]>();
   for (const l of lignes) parTiers.set(l.tiersId, [...(parTiers.get(l.tiersId) ?? []), l]);

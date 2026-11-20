@@ -60,11 +60,11 @@ export async function listerComptes(organizationId: string): Promise<CompteVue[]
            (select coalesce(sum(l.debit - l.credit), 0) from lignes_ecriture l
              where l.organization_id = c.organization_id and l.compte = c.compte) as solde,
            a.date_arrete as arrete_le, a.ecart as arrete_ecart,
-           (select count(*) from lignes_releve r where r.compte_id = c.id and r.ligne_ecriture_id is null) as non_pointees
+           (select count(*) from lignes_releve r where r.compte_id = c.id and r.ligne_ecriture_id is null and r.deleted_at is null) as non_pointees
     from comptes_tresorerie c
     left join users u on u.id = c.responsable_user_id
     left join lateral (
-      select date_arrete, ecart from arretes_caisse x where x.compte_id = c.id order by x.created_at desc limit 1
+      select date_arrete, ecart from arretes_caisse x where x.compte_id = c.id and x.deleted_at is null order by x.created_at desc limit 1
     ) a on true
     where c.organization_id = ${organizationId} and c.deleted_at is null
     order by c.actif desc, case c.nature when 'caisse' then 0 when 'mobile_money' then 1 else 2 end, c.nom
@@ -90,7 +90,7 @@ export async function listerComptes(organizationId: string): Promise<CompteVue[]
 export async function enTransit(organizationId: string): Promise<{ montant: number; virements: number }> {
   const [l] = await db.execute<{ montant: string; nombre: string }>(sql`
     select coalesce(sum(montant), 0) as montant, count(*) as nombre
-    from virements_internes where organization_id = ${organizationId} and statut = 'en_transit'
+    from virements_internes where organization_id = ${organizationId} and statut = 'en_transit' and deleted_at is null
   `);
   return { montant: Number(l?.montant ?? 0), virements: Number(l?.nombre ?? 0) };
 }
@@ -142,7 +142,7 @@ export async function listerVirements(organizationId: string, limite = 100, filt
     join comptes_tresorerie s on s.id = v.source_id
     join comptes_tresorerie d on d.id = v.destination_id
     left join users u on u.id = v.envoye_par_user_id
-    where v.organization_id = ${organizationId}${recherche ? sql` and ${recherche}` : sql``}
+    where v.organization_id = ${organizationId} and v.deleted_at is null${recherche ? sql` and ${recherche}` : sql``}
     order by case v.statut when 'en_transit' then 0 else 1 end, v.created_at desc
     limit ${limite}
   `);
@@ -345,10 +345,10 @@ export async function listerAvances(organizationId: string): Promise<AvanceVue[]
            a.created_at as cree_le, a.ecriture,
            (select coalesce(json_agg(json_build_object('type', r.type, 'montant', r.montant, 'nature', r.nature,
                     'libelle', r.libelle, 'ecriture', r.ecriture, 'le', r.created_at) order by r.created_at), '[]'::json)
-              from regularisations_avance r where r.avance_id = a.id) as regularisations
+              from regularisations_avance r where r.avance_id = a.id and r.deleted_at is null) as regularisations
     from avances_tresorerie a join comptes_tresorerie c on c.id = a.caisse_id
       left join employees e on e.id = a.beneficiaire_employe_id
-    where a.organization_id = ${organizationId}
+    where a.organization_id = ${organizationId} and a.deleted_at is null
       and (a.statut = 'ouverte' or a.updated_at > now() - interval '60 days')
     order by case a.statut when 'ouverte' then 0 else 1 end, a.echeance nulls last, a.created_at desc
     limit 300
@@ -411,7 +411,7 @@ export async function listerArretes(organizationId: string, limite = 30): Promis
     select a.id, a.numero, c.nom as compte, a.date_arrete, a.theorique, a.compte_constate, a.ecart, a.ecriture, a.observations,
            u.full_name as auteur
     from arretes_caisse a join comptes_tresorerie c on c.id = a.compte_id left join users u on u.id = a.user_id
-    where a.organization_id = ${organizationId}
+    where a.organization_id = ${organizationId} and a.deleted_at is null
     order by a.created_at desc
     limit ${limite}
   `);
@@ -455,7 +455,7 @@ export async function releveDuCompte(organizationId: string, compteId: string): 
     from lignes_releve r
     left join lignes_ecriture l on l.id = r.ligne_ecriture_id
     left join ecritures e on e.id = l.ecriture_id
-    where r.organization_id = ${organizationId} and r.compte_id = ${compteId}
+    where r.organization_id = ${organizationId} and r.compte_id = ${compteId} and r.deleted_at is null
     order by (r.ligne_ecriture_id is null) desc, r.date_operation desc
     limit 400
   `);
@@ -493,7 +493,7 @@ export async function fluxPrevus(organizationId: string, aujourdhui: string): Pr
       select p.numero, p.client_nom as client, coalesce(p.echeance, p.date_piece) as echeance,
              p.total_ttc - coalesce((select sum(r.montant) from reglements_piece r where r.piece_id = p.id and r.deleted_at is null), 0) as reste
       from pieces_commerciales p
-      where p.organization_id = ${organizationId} and p.nature = 'facture' and p.statut = 'emise'
+      where p.organization_id = ${organizationId} and p.nature = 'facture' and p.statut = 'emise' and p.deleted_at is null
     `),
     db.execute<{ numero: string; libelle: string; montant: string }>(sql`
       select numero, objet as libelle, montant from depenses
@@ -509,15 +509,15 @@ export async function fluxPrevus(organizationId: string, aujourdhui: string): Pr
     `),
     db.execute<{ nom: string; du: string }>(sql`
       select w.nom,
-             coalesce((select sum(p.montant) from pointages p where p.worker_id = w.id), 0)
-           - coalesce((select sum(b.montant) from bons_paiement b where b.worker_id = w.id), 0) as du
+             coalesce((select sum(p.montant) from pointages p where p.worker_id = w.id and p.deleted_at is null), 0)
+           - coalesce((select sum(b.montant) from bons_paiement b where b.worker_id = w.id and b.deleted_at is null), 0) as du
       from workers w where w.organization_id = ${organizationId} and w.deleted_at is null
     `),
     db.execute<{ numero: string; fournisseur: string; echeance: string | Date; reste: string }>(sql`
       select f.numero || ' (' || f.reference_fournisseur || ')' as numero, f.fournisseur_nom as fournisseur, f.echeance,
-             f.total_ttc - coalesce((select sum(r.montant) from reglements_fournisseur r where r.facture_id = f.id), 0) as reste
+             f.total_ttc - coalesce((select sum(r.montant) from reglements_fournisseur r where r.facture_id = f.id and r.deleted_at is null), 0) as reste
       from factures_fournisseur f
-      where f.organization_id = ${organizationId} and f.statut = 'comptabilisee'
+      where f.organization_id = ${organizationId} and f.statut = 'comptabilisee' and f.deleted_at is null
     `),
     sortiesPaie(organizationId, aujourdhui),
     sortiesTva(organizationId, aujourdhui),
@@ -578,15 +578,15 @@ export async function etatTresorerie(organizationId: string): Promise<EtatTresor
     `),
     db.execute<{ nombre: string; montant: string }>(sql`
       select count(*) as nombre,
-             coalesce(sum(a.montant - coalesce((select sum(r.montant) from regularisations_avance r where r.avance_id = a.id), 0)), 0) as montant
+             coalesce(sum(a.montant - coalesce((select sum(r.montant) from regularisations_avance r where r.avance_id = a.id and r.deleted_at is null), 0)), 0) as montant
       from avances_tresorerie a
-      where a.organization_id = ${organizationId} and a.statut = 'ouverte'
+      where a.organization_id = ${organizationId} and a.statut = 'ouverte' and a.deleted_at is null
         and coalesce(a.echeance, (a.created_at + interval '30 days')::date) < current_date
     `),
     // Trois jours en route, c'est le délai d'un versement en banque : au-delà, il faut aller voir.
     db.execute<{ nombre: string }>(sql`
       select count(*) as nombre from virements_internes
-      where organization_id = ${organizationId} and statut = 'en_transit' and date_envoi < current_date - 3
+      where organization_id = ${organizationId} and statut = 'en_transit' and date_envoi < current_date - 3 and deleted_at is null
     `),
   ]);
   return {
@@ -634,7 +634,7 @@ export async function beneficiairesProposes(organizationId: string): Promise<Ben
   const [fournisseurs, personnel, intervenants, comptes] = await Promise.all([
     db.execute<{ id: string; nom: string }>(sql`
       select id, nom from tiers
-      where organization_id = ${organizationId} and est_fournisseur and actif
+      where organization_id = ${organizationId} and est_fournisseur and actif and deleted_at is null
       order by nom
     `),
     db.execute<{ id: string; nom: string; poste: string }>(sql`

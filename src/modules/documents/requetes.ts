@@ -168,7 +168,7 @@ export async function aUnDocument(organizationId: string): Promise<boolean> {
   const [document] = await db
     .select({ id: documents.id })
     .from(documents)
-    .where(eq(documents.organizationId, organizationId))
+    .where(and(eq(documents.organizationId, organizationId), isNull(documents.deletedAt)))
     .orderBy(desc(documents.createdAt))
     .limit(1);
 

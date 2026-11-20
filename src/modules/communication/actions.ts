@@ -1,6 +1,6 @@
 "use server";
 
-import { and, eq } from "drizzle-orm";
+import { and, eq, isNull } from "drizzle-orm";
 import { revalidatePath } from "next/cache";
 import { z } from "zod";
 
@@ -94,12 +94,18 @@ export async function envoyerPiece(pieceId: string, canal: "email" | "whatsapp",
   const [client] = await db
     .select({ nom: tiers.nom, email: tiers.email, telephone: tiers.telephone })
     .from(tiers)
-    .where(and(eq(tiers.id, piece.clientId), eq(tiers.organizationId, session.organizationId)));
+    .where(and(eq(tiers.id, piece.clientId), eq(tiers.organizationId, session.organizationId), isNull(tiers.deletedAt)));
   const [contact] = piece.contactId
     ? await db
         .select({ nom: contactsTiers.nom, email: contactsTiers.email, telephone: contactsTiers.telephone })
         .from(contactsTiers)
-        .where(and(eq(contactsTiers.id, piece.contactId), eq(contactsTiers.organizationId, session.organizationId)))
+        .where(
+          and(
+            eq(contactsTiers.id, piece.contactId),
+            eq(contactsTiers.organizationId, session.organizationId),
+            isNull(contactsTiers.deletedAt),
+          ),
+        )
     : [];
 
   const champ = canal === "email" ? "email" : "telephone";

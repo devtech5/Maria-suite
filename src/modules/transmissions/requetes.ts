@@ -173,7 +173,7 @@ export async function creerTransmissionPour(organizationId: string, userId: stri
   } else {
     if (!n.tiersId && n.entreprise.trim().length < 2) throw new Error("Indiquez l'entreprise.");
     if (n.tiersId) {
-      const [t] = await db.select({ id: tiers.id }).from(tiers).where(and(eq(tiers.organizationId, organizationId), eq(tiers.id, n.tiersId)));
+      const [t] = await db.select({ id: tiers.id }).from(tiers).where(and(eq(tiers.organizationId, organizationId), eq(tiers.id, n.tiersId), isNull(tiers.deletedAt)));
       if (!t) throw new Error("Entreprise introuvable.");
     }
     if (!n.dejaFait && !n.dateLimite) throw new Error(n.sens === "entrante" ? "Indiquez la date à laquelle l'entreprise doit transmettre." : "Indiquez la date limite de transmission.");
