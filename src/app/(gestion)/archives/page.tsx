@@ -49,9 +49,12 @@ export default async function PageMesArchives({ searchParams }: PageProps<"/arch
       gestionnaire,
     ),
   );
-  const utilise = archives.reduce((s, a) => s + a.tailleOctets, 0);
+  // Les désactivées restent listées, pour être réactivées, mais ne comptent plus dans l'espace.
+  const actives = archives.filter((a) => a.retireeLe === null);
+  const desactivees = archives.length - actives.length;
+  const utilise = actives.reduce((s, a) => s + a.tailleOctets, 0);
   const dossiers = [...new Set(archives.map((a) => a.dossier).filter((d): d is string => Boolean(d)))].sort();
-  const scellees = archives.filter((a) => !retraitPossible(a.deposeLe)).length;
+  const scellees = actives.filter((a) => !retraitPossible(a.deposeLe)).length;
   const stockageActif = stockageConfigure();
 
   return (
@@ -119,8 +122,10 @@ export default async function PageMesArchives({ searchParams }: PageProps<"/arch
       <p className="mb-5 rounded-xl border-l-4 border-marque-500 bg-[var(--surface)] px-4 py-3 text-sm text-[var(--encre-douce)]">
         Ce que vous archivez ici est{" "}
         <strong className="font-semibold text-[var(--encre)]">visible de l&apos;administration — propriétaire et gérant</strong> — de
-        l&apos;entreprise, et chacune de leurs ouvertures vous est signalée. Vous pouvez retirer une archive pendant{" "}
-        {DELAI_RETRAIT_HEURES} h ; elle disparaît alors de votre espace mais reste conservée pour eux. Passé ce délai, elle est scellée.
+        l&apos;entreprise, et chacune de leurs ouvertures vous est signalée. Vous pouvez à tout moment modifier le titre, la
+        rubrique ou le dossier partagé d&apos;une archive, la désactiver pour la masquer aux autres membres, puis la réactiver.
+        Vous pouvez la supprimer pendant {DELAI_RETRAIT_HEURES} h ; passé ce délai, elle est scellée et seule l&apos;administration
+        peut la supprimer. Le fichier, lui, ne change jamais : son empreinte le prouve.
       </p>
 
       {!stockageActif && (
@@ -133,8 +138,8 @@ export default async function PageMesArchives({ searchParams }: PageProps<"/arch
       <section className="mb-5 grid grid-cols-2 gap-2 sm:grid-cols-3 sm:gap-3 max-sm:[&>*:last-child:nth-child(odd)]:col-span-2">
         <CarteIndicateur
           libelle="Archives"
-          valeur={fmtEntier(archives.length)}
-          precision={`${fmtEntier(scellees)} scellée${scellees > 1 ? "s" : ""}`}
+          valeur={fmtEntier(actives.length)}
+          precision={`${fmtEntier(scellees)} scellée${scellees > 1 ? "s" : ""}${desactivees > 0 ? ` · ${fmtEntier(desactivees)} désactivée${desactivees > 1 ? "s" : ""}` : ""}`}
         />
         <CarteIndicateur
           libelle="Espace utilisé"
@@ -159,7 +164,10 @@ export default async function PageMesArchives({ searchParams }: PageProps<"/arch
         <ListeArchives
           archives={archives.map(affichee)}
           mode="personnel"
-          peutRetirer={deposer}
+          peutGerer={deposer}
+          moi={session.userId}
+          destinations={destinations.map((d) => ({ id: d.id, nom: d.nom }))}
+          rubriques={dossiers}
           rechercheInitiale={filtres.q}
           periodeInitiale={filtres.periode}
         />

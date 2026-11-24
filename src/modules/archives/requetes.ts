@@ -102,9 +102,12 @@ async function lire(organizationId: string, filtre: SQL): Promise<ArchiveVue[]> 
   return lignes.map(vue);
 }
 
-/** L'espace d'une personne : ce qu'elle a déposé et n'a pas retiré. */
+/**
+ * L'espace d'une personne : tout ce qu'elle a déposé, désactivées comprises —
+ * elle doit pouvoir les réactiver. Les supprimées n'y sont plus.
+ */
 export function mesArchives(organizationId: string, userId: string): Promise<ArchiveVue[]> {
-  return lire(organizationId, sql`a.user_id = ${userId} and a.retiree_le is null`);
+  return lire(organizationId, sql`a.user_id = ${userId}`);
 }
 
 /** Toutes les archives de l'entreprise, retirées comprises : la vue de l'administrateur légal. */

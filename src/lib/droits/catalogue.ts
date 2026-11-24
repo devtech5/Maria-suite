@@ -554,8 +554,8 @@ export const DROITS = [
     moduleKey: "archives",
     libelle: "Archiver des données",
     description:
-      "Déposer des fichiers dans son espace, et retirer une archive pendant le délai " +
-      "de correction. Un retrait masque l'archive, il ne l'efface pas.",
+      "Déposer des fichiers dans son espace, modifier leur titre, rubrique ou dossier, " +
+      "les désactiver puis les réactiver, et les supprimer pendant le délai de correction.",
   },
   {
     cle: "archives.dossier.gerer",
@@ -570,8 +570,9 @@ export const DROITS = [
     moduleKey: "archives",
     libelle: "Superviser les archives",
     description:
-      "Voir et ouvrir les archives de tous les membres, retirées comprises, vérifier " +
-      "leur intégrité et lire le journal des accès. Propriétaire et gérant par défaut. " +
+      "Voir et ouvrir les archives de tous les membres, désactivées comprises, les modifier, " +
+      "les désactiver, les réactiver ou les supprimer, vérifier leur intégrité et lire le " +
+      "journal des accès. Propriétaire et gérant par défaut. " +
       "Chaque ouverture est tracée.",
   },
 

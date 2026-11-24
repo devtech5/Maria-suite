@@ -260,7 +260,10 @@ const LIBELLES: Record<string, string> = {
 
   "archive.deposer": "a archivé un fichier",
   "archive.ouvrir": "a ouvert une archive",
-  "archive.retirer": "a retiré une archive",
+  "archive.retirer": "a désactivé une archive",
+  "archive.reactiver": "a réactivé une archive",
+  "archive.modifier": "a modifié une archive",
+  "archive.supprimer": "a supprimé une archive",
   "archive.verifier": "a vérifié l'intégrité d'une archive",
   "archive_dossier.creer": "a créé un dossier partagé",
   "archive_dossier.modifier": "a modifié un dossier partagé",

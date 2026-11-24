@@ -119,7 +119,7 @@ export default async function PageDossier({ params }: PageProps<"/archives/dossi
           actions={gestionnaire ? <SupprimerDossier dossierId={dossier.id} nom={dossier.nom} /> : undefined}
         />
       ) : (
-        <ListeArchives archives={contenu.map(affichee)} mode="dossier" moi={session.userId} peutRetirer={deposer} />
+        <ListeArchives archives={contenu.map(affichee)} mode="dossier" moi={session.userId} peutGerer={deposer} />
       )}
 
       <p className="mt-5 max-w-[70ch] text-xs text-[var(--encre-faible)]">
