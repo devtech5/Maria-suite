@@ -158,42 +158,185 @@ export async function archiverPour(
   return { numeros };
 }
 
+/** Qui agit sur une archive : son auteur, ou l'administration qui supervise. */
+export interface Gestionnaire {
+  /** Porte `archives.deposer` : gère ce qu'il a lui-même déposé. */
+  auteur: boolean;
+  /** Porte `archives.superviser` : gère toutes les archives de l'entreprise. */
+  superviseur: boolean;
+  /** Porte `archives.dossier.gerer` : peut verser dans n'importe quel dossier partagé. */
+  gestionnaireDossiers?: boolean;
+}
+
 /**
- * Retrait par l'auteur, dans le délai de correction.
- *
- * Le fichier reste dans le dépôt et la fiche en base : l'administrateur légal
- * continue de les voir, avec la date et le motif du retrait.
+ * Lit l'archive qu'on veut gérer et vérifie qu'on en a le droit. L'auteur ne
+ * touche qu'aux siennes ; le superviseur à toutes. Ailleurs : introuvable,
+ * sans dire si elle existe.
  */
-export async function retirerArchivePour(
+async function archiveGerable(organizationId: string, userId: string, archiveId: string, qui: Gestionnaire) {
+  const [archive] = await db
+    .select({
+      numero: archives.numero,
+      userId: archives.userId,
+      titre: archives.titre,
+      dossier: archives.dossier,
+      dossierId: archives.dossierId,
+      description: archives.description,
+      deposeLe: archives.createdAt,
+      retireeLe: archives.retireeLe,
+      motifRetrait: archives.motifRetrait,
+    })
+    .from(archives)
+    .where(and(eq(archives.id, archiveId), eq(archives.organizationId, organizationId), isNull(archives.deletedAt)));
+  if (!archive) throw new Error("Archive introuvable.");
+  const sienne = qui.auteur && archive.userId === userId;
+  if (!sienne && !qui.superviseur) throw new Error("Archive introuvable dans votre espace.");
+  return { ...archive, sienne };
+}
+
+export interface ModificationArchive {
+  titre: string;
+  dossier?: string | null;
+  description?: string | null;
+  /** Dossier partagé : nul la garde dans l'espace de son auteur seul. */
+  dossierId?: string | null;
+}
+
+/**
+ * Change le titre, la rubrique, la description ou le dossier partagé d'une
+ * archive. Le FICHIER ne change jamais : son empreinte reste celle du dépôt.
+ * Le journal garde l'avant et l'après.
+ */
+export async function modifierArchivePour(
   organizationId: string,
   userId: string,
   archiveId: string,
-  motif: string,
+  modification: ModificationArchive,
+  qui: Gestionnaire,
 ): Promise<{ numero: string }> {
-  const [archive] = await db
-    .select({ numero: archives.numero, deposeLe: archives.createdAt, retireeLe: archives.retireeLe })
-    .from(archives)
-    .where(
-      and(
-        eq(archives.id, archiveId),
-        eq(archives.organizationId, organizationId),
-        eq(archives.userId, userId),
-        isNull(archives.deletedAt),
-      ),
-    );
+  const archive = await archiveGerable(organizationId, userId, archiveId, qui);
+  const titre = modification.titre.trim();
+  if (titre.length === 0) throw new Error("Indiquez un titre.");
 
-  if (!archive) throw new Error("Archive introuvable dans votre espace.");
-  if (archive.retireeLe) throw new Error(`${archive.numero} est déjà retirée.`);
-  if (!retraitPossible(archive.deposeLe)) {
-    throw new Error(`${archive.numero} est scellée : le délai de retrait est passé.`);
+  const dossierId = modification.dossierId ?? null;
+  if (dossierId && dossierId !== archive.dossierId) {
+    const regle = await regleDossier(organizationId, dossierId);
+    if (!regle) throw new Error("Dossier introuvable.");
+    // Le superviseur range où il veut ; l'auteur, là où il a le droit de déposer.
+    if (!qui.superviseur && !depotDossierPermis(regle, userId, qui.gestionnaireDossiers ?? false)) {
+      throw new Error(`Le dossier « ${regle.nom} » n'accepte pas vos dépôts.`);
+    }
   }
+
+  const apres = {
+    titre,
+    dossier: modification.dossier?.trim() || null,
+    description: modification.description?.trim() || null,
+    dossierId,
+  };
+  await db.transaction(async (tx) => {
+    await tx
+      .update(archives)
+      .set({ ...apres, updatedAt: new Date(), version: sql`${archives.version} + 1` })
+      .where(and(eq(archives.id, archiveId), eq(archives.organizationId, organizationId)));
+    await tx.insert(auditLogs).values({
+      id: newId(),
+      organizationId,
+      userId,
+      action: "archive.modifier",
+      entityType: "archive",
+      entityId: archiveId,
+      before: {
+        numero: archive.numero,
+        titre: archive.titre,
+        dossier: archive.dossier,
+        description: archive.description,
+        dossierId: archive.dossierId,
+      },
+      after: { numero: archive.numero, ...apres },
+    });
+  });
+  return { numero: archive.numero };
+}
+
+/**
+ * Désactive une archive : elle sort des dossiers partagés et ne s'ouvre plus
+ * que par son auteur et l'administration. Elle reste conservée et se réactive
+ * d'un clic. Désactiver masque, n'efface pas.
+ */
+export async function desactiverArchivePour(
+  organizationId: string,
+  userId: string,
+  archiveId: string,
+  motif: string | null,
+  qui: Gestionnaire,
+): Promise<{ numero: string }> {
+  const archive = await archiveGerable(organizationId, userId, archiveId, qui);
+  if (archive.retireeLe) throw new Error(`${archive.numero} est déjà désactivée.`);
+  const raison =
+    motif?.trim().slice(0, 300) || (archive.sienne ? "Désactivée par son auteur" : "Désactivée par l'administration");
 
   await db
     .update(archives)
-    .set({ retireeLe: new Date(), motifRetrait: motif, updatedAt: new Date(), version: sql`${archives.version} + 1` })
+    .set({ retireeLe: new Date(), motifRetrait: raison, updatedAt: new Date(), version: sql`${archives.version} + 1` })
     .where(and(eq(archives.id, archiveId), eq(archives.organizationId, organizationId)));
-  await journaliser(organizationId, userId, "archive.retirer", archiveId, { numero: archive.numero, motif });
+  await journaliser(organizationId, userId, "archive.retirer", archiveId, { numero: archive.numero, motif: raison });
+  return { numero: archive.numero };
+}
 
+/** Réactive une archive désactivée : elle reparaît dans ses dossiers partagés. */
+export async function reactiverArchivePour(
+  organizationId: string,
+  userId: string,
+  archiveId: string,
+  qui: Gestionnaire,
+): Promise<{ numero: string }> {
+  const archive = await archiveGerable(organizationId, userId, archiveId, qui);
+  if (!archive.retireeLe) throw new Error(`${archive.numero} est déjà active.`);
+
+  await db
+    .update(archives)
+    .set({ retireeLe: null, motifRetrait: null, updatedAt: new Date(), version: sql`${archives.version} + 1` })
+    .where(and(eq(archives.id, archiveId), eq(archives.organizationId, organizationId)));
+  await journaliser(organizationId, userId, "archive.reactiver", archiveId, {
+    numero: archive.numero,
+    motifPrecedent: archive.motifRetrait,
+  });
+  return { numero: archive.numero };
+}
+
+/**
+ * Supprime une archive. L'auteur le peut pendant le délai de correction ;
+ * passé ce délai, l'archive est scellée et seule l'administration la
+ * supprime. La suppression est logique — elle se réplique — et le journal
+ * garde le numéro et le titre de ce qui a été supprimé.
+ */
+export async function supprimerArchivePour(
+  organizationId: string,
+  userId: string,
+  archiveId: string,
+  qui: Gestionnaire,
+): Promise<{ numero: string }> {
+  const archive = await archiveGerable(organizationId, userId, archiveId, qui);
+  if (!qui.superviseur && !retraitPossible(archive.deposeLe)) {
+    throw new Error(`${archive.numero} est scellée : seule l'administration peut la supprimer.`);
+  }
+
+  await db.transaction(async (tx) => {
+    await tx
+      .update(archives)
+      .set({ deletedAt: new Date(), updatedAt: new Date(), version: sql`${archives.version} + 1` })
+      .where(and(eq(archives.id, archiveId), eq(archives.organizationId, organizationId)));
+    await tx.insert(auditLogs).values({
+      id: newId(),
+      organizationId,
+      userId,
+      action: "archive.supprimer",
+      entityType: "archive",
+      entityId: archiveId,
+      before: { numero: archive.numero, titre: archive.titre, auteur: archive.userId },
+    });
+  });
   return { numero: archive.numero };
 }
 
@@ -216,7 +359,7 @@ async function archiveDe(organizationId: string, archiveId: string) {
 /**
  * Autorise l'ouverture et la journalise.
  *
- * L'auteur ouvre ce qu'il n'a pas retiré ; un membre ouvre ce que contient un
+ * L'auteur ouvre ce qu'il a déposé ; un membre ouvre ce que contient un
  * dossier partagé qui lui est visible ; l'administrateur légal ouvre tout.
  * Chaque ouverture laisse une ligne : l'auteur voit qu'on a consulté son
  * archive, l'administrateur répond de ses consultations.
@@ -230,7 +373,8 @@ export async function autoriserOuverture(
   const archive = await archiveDe(organizationId, archiveId);
   if (!archive) return null;
 
-  const sienne = droits.consulter && archive.userId === userId && !archive.retireeLe;
+  // L'auteur rouvre aussi ce qu'il a désactivé : désactiver masque aux AUTRES.
+  const sienne = droits.consulter && archive.userId === userId;
   let partagee = false;
   if (!sienne && !droits.superviseur && archive.dossierId && !archive.retireeLe) {
     const regle = await regleDossier(organizationId, archive.dossierId);
@@ -261,7 +405,6 @@ export async function vignettesPropres(organizationId: string, userId: string, i
         eq(archives.organizationId, organizationId),
         eq(archives.userId, userId),
         inArray(archives.id, [...ids]),
-        isNull(archives.retireeLe),
         isNull(archives.deletedAt),
       ),
     );

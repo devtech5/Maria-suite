@@ -7,7 +7,7 @@ import { exigerEntreprise } from "@/lib/auth/dal";
 import { peut } from "@/lib/droits/garde";
 import { fmtEntier } from "@/lib/format";
 import { tailleLisible } from "@/modules/archives/calcul";
-import { journalArchives, titulaires, toutesArchives } from "@/modules/archives/requetes";
+import { dossiersVisibles, journalArchives, titulaires, toutesArchives } from "@/modules/archives/requetes";
 
 import { affichee } from "../affichage";
 import { ListeArchives } from "../liste-archives";
@@ -27,7 +27,10 @@ const MOMENT = new Intl.DateTimeFormat("fr-FR", {
 const GESTE: Record<string, string> = {
   "archive.deposer": "Dépôt",
   "archive.ouvrir": "Ouverture",
-  "archive.retirer": "Retrait",
+  "archive.retirer": "Désactivation",
+  "archive.reactiver": "Réactivation",
+  "archive.modifier": "Modification",
+  "archive.supprimer": "Suppression",
   "archive.verifier": "Vérification",
   "archive_dossier.creer": "Dossier créé",
   "archive_dossier.modifier": "Dossier modifié",
@@ -58,11 +61,14 @@ export default async function PageSupervision({ searchParams }: PageProps<"/arch
   const { membre: brut } = await searchParams;
   const membre = typeof brut === "string" && UUID.test(brut) ? brut : null;
 
-  const [archives, personnes, journal] = await Promise.all([
+  const [archives, personnes, journal, dossiers] = await Promise.all([
     toutesArchives(session.organizationId, membre),
     titulaires(session.organizationId),
     journalArchives(session.organizationId),
+    // L'administration range une archive dans n'importe quel dossier partagé.
+    dossiersVisibles(session.organizationId, session.userId, true),
   ]);
+  const rubriques = [...new Set(archives.map((a) => a.dossier).filter((d): d is string => Boolean(d)))].sort();
 
   const volume = personnes.reduce((s, p) => s + p.octets, 0);
   const fichiers = personnes.reduce((s, p) => s + p.fichiers, 0);
@@ -81,19 +87,19 @@ export default async function PageSupervision({ searchParams }: PageProps<"/arch
         titre="Supervision des archives"
         sousTitre={
           choisi
-            ? `Archives de ${choisi.nom}, retirées comprises`
-            : "Archives de tous les membres, retirées comprises — chaque ouverture est tracée"
+            ? `Archives de ${choisi.nom}, désactivées comprises`
+            : "Archives de tous les membres, désactivées comprises — chaque ouverture est tracée"
         }
       />
 
       <section className="mb-5 grid grid-cols-2 gap-2 sm:gap-3 xl:grid-cols-4">
         <CarteIndicateur libelle="Archives" valeur={fmtEntier(fichiers)} precision={`${personnes.length} titulaire${personnes.length > 1 ? "s" : ""}`} />
-        <CarteIndicateur libelle="Volume conservé" valeur={volume === 0 ? "0 Ko" : tailleLisible(volume)} precision="Hors archives retirées" />
+        <CarteIndicateur libelle="Volume conservé" valeur={volume === 0 ? "0 Ko" : tailleLisible(volume)} precision="Hors archives désactivées" />
         <CarteIndicateur
-          libelle="Retirées"
+          libelle="Désactivées"
           valeur={fmtEntier(retirees)}
           ton={retirees > 0 ? "alerte" : "neutre"}
-          precision={choisi ? "Pour ce membre" : "Conservées malgré le retrait"}
+          precision={choisi ? "Pour ce membre" : "Masquées aux membres, conservées"}
         />
         <CarteIndicateur
           libelle="Intégrité"
@@ -127,7 +133,14 @@ export default async function PageSupervision({ searchParams }: PageProps<"/arch
           message="Les membres n'ont encore rien archivé. Chacun dépose depuis « Mes archives » ; tout ce qu'ils déposent apparaît ici."
         />
       ) : (
-        <ListeArchives archives={archives.map(affichee)} mode="supervision" />
+        <ListeArchives
+          archives={archives.map(affichee)}
+          mode="supervision"
+          peutGerer
+          moi={session.userId}
+          destinations={dossiers.map((d) => ({ id: d.id, nom: d.nom }))}
+          rubriques={rubriques}
+        />
       )}
 
       <section className="mt-8">
@@ -161,6 +174,10 @@ export default async function PageSupervision({ searchParams }: PageProps<"/arch
                     <span className="text-xs text-[var(--encre-douce)]">
                       {e.action === "archive.retirer"
                         ? `Motif : ${String(e.detail?.motif ?? "—")}`
+                        : e.action === "archive.modifier"
+                          ? `« ${String(e.avant?.titre ?? "—")} » → « ${String(e.detail?.titre ?? "—")} »`
+                        : e.action === "archive.supprimer"
+                          ? `« ${String(e.avant?.titre ?? "—")} » supprimée`
                         : e.action === "archive.verifier"
                           ? e.detail?.etat === "conforme"
                             ? "Intègre"

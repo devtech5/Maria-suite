@@ -11,8 +11,12 @@ import {
   archiverPour,
   autoriserOuverture,
   creerDossierPour,
+  desactiverArchivePour,
+  type Gestionnaire,
+  modifierArchivePour,
   modifierDossierPour,
-  retirerArchivePour,
+  reactiverArchivePour,
+  supprimerArchivePour,
   supprimerDossierPour,
   verifierArchivePour,
   vignettesPropres,
@@ -84,19 +88,97 @@ export async function archiver(donnees: FormData): Promise<Resultat> {
   }
 }
 
-export async function retirerArchive(archiveId: string, motif: string): Promise<Resultat> {
+/** Les droits de la personne sur les archives : les siennes, ou toutes. */
+async function droitsGestion(): Promise<Gestionnaire | null> {
+  const [auteur, superviseur, gestionnaireDossiers] = await Promise.all([
+    peut("archives.deposer"),
+    peut("archives.superviser"),
+    peut("archives.dossier.gerer"),
+  ]);
+  if (!auteur && !superviseur) return null;
+  return { auteur, superviseur, gestionnaireDossiers };
+}
+
+const REFUS_GESTION = "Vous n'avez pas le droit de gérer les archives.";
+
+const schemaModification = z.object({
+  titre: z.string().trim().min(1, "Indiquez un titre.").max(160, "Titre trop long : 160 caractères au plus."),
+  dossier: z.string().max(60, "Rubrique trop longue : 60 caractères au plus.").optional(),
+  description: z.string().max(1000, "Description trop longue : 1 000 caractères au plus.").optional(),
+});
+
+export async function modifierArchive(archiveId: string, donnees: FormData): Promise<Resultat> {
   const session = await exigerEntreprise();
-  const refus = await refusDroit("archives.deposer");
-  if (refus) return { ok: false, message: refus.erreur };
+  const qui = await droitsGestion();
+  if (!qui) return { ok: false, message: REFUS_GESTION };
   if (!UUID.test(archiveId)) return { ok: false, message: "Archive inconnue." };
-  if (motif.trim().length < 3) return { ok: false, message: "Indiquez le motif du retrait." };
+
+  const analyse = schemaModification.safeParse({
+    titre: donnees.get("titre") ?? "",
+    dossier: texte(donnees, "dossier"),
+    description: texte(donnees, "description"),
+  });
+  if (!analyse.success) return { ok: false, message: analyse.error.issues[0].message };
+  const dossierId = texte(donnees, "dossierId") ?? null;
+  if (dossierId && !UUID.test(dossierId)) return { ok: false, message: "Dossier inconnu." };
 
   try {
-    const { numero } = await retirerArchivePour(session.organizationId, session.userId, archiveId, motif.trim().slice(0, 300));
+    const { numero } = await modifierArchivePour(
+      session.organizationId,
+      session.userId,
+      archiveId,
+      { ...analyse.data, dossierId },
+      qui,
+    );
     revalidatePath("/archives", "layout");
-    return { ok: true, message: `${numero} retirée de votre espace.` };
+    return { ok: true, message: `${numero} mise à jour.` };
   } catch (erreur) {
-    return { ok: false, message: lisible(erreur, "retrait refusé") };
+    return { ok: false, message: lisible(erreur, "modification refusée") };
+  }
+}
+
+export async function desactiverArchive(archiveId: string, motif: string): Promise<Resultat> {
+  const session = await exigerEntreprise();
+  const qui = await droitsGestion();
+  if (!qui) return { ok: false, message: REFUS_GESTION };
+  if (!UUID.test(archiveId)) return { ok: false, message: "Archive inconnue." };
+
+  try {
+    const { numero } = await desactiverArchivePour(session.organizationId, session.userId, archiveId, motif, qui);
+    revalidatePath("/archives", "layout");
+    return { ok: true, message: `${numero} désactivée : elle n'est plus visible des autres membres.` };
+  } catch (erreur) {
+    return { ok: false, message: lisible(erreur, "désactivation refusée") };
+  }
+}
+
+export async function reactiverArchive(archiveId: string): Promise<Resultat> {
+  const session = await exigerEntreprise();
+  const qui = await droitsGestion();
+  if (!qui) return { ok: false, message: REFUS_GESTION };
+  if (!UUID.test(archiveId)) return { ok: false, message: "Archive inconnue." };
+
+  try {
+    const { numero } = await reactiverArchivePour(session.organizationId, session.userId, archiveId, qui);
+    revalidatePath("/archives", "layout");
+    return { ok: true, message: `${numero} réactivée : elle est de nouveau visible.` };
+  } catch (erreur) {
+    return { ok: false, message: lisible(erreur, "réactivation refusée") };
+  }
+}
+
+export async function supprimerArchive(archiveId: string): Promise<Resultat> {
+  const session = await exigerEntreprise();
+  const qui = await droitsGestion();
+  if (!qui) return { ok: false, message: REFUS_GESTION };
+  if (!UUID.test(archiveId)) return { ok: false, message: "Archive inconnue." };
+
+  try {
+    const { numero } = await supprimerArchivePour(session.organizationId, session.userId, archiveId, qui);
+    revalidatePath("/archives", "layout");
+    return { ok: true, message: `${numero} supprimée.` };
+  } catch (erreur) {
+    return { ok: false, message: lisible(erreur, "suppression refusée") };
   }
 }
 

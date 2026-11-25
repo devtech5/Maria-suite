@@ -67,7 +67,7 @@ describe("courrier sur une vraie base", () => {
 
   it("impute, prévient l'imputé, puis accuse et traite avec la réponse partie", async () => {
     await expect(traiterPour(org, ingenieur, arrive, { note: "", reponsePliId: null })).rejects.toThrow(/plus possible/);
-    await imputerPour(org, dg, arrive, { userId: ingenieur, serviceId: null, instructions: "Préparer le devis", delaiReponse: "2026-11-20" });
+    await imputerPour(org, dg, arrive, { userId: ingenieur, serviceId: null, instructions: "Préparer le devis", delaiReponse: "2099-01-01" });
     expect(await titres(ingenieur)).toEqual(["📨 Courrier imputé : CA-2026-00001"]);
     await expect(accuserPour(org, secretaire, arrive)).rejects.toThrow(/pas imputé/);
     await accuserPour(org, ingenieur, arrive);

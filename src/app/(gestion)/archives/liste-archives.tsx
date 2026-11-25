@@ -8,7 +8,15 @@ import { useApercu } from "@/components/ui/apercu";
 import { Retour, type Resultat } from "@/components/ui/operations";
 import { CLASSE_CHAMP, CLASSE_CHAMP_COMPACT, Pastille } from "@/components/ui/primitives";
 import { correspond, dansPeriode, lirePeriode, type Periode } from "@/lib/recherche";
-import { ouvrirArchive, retirerArchive, verifierArchive, vignettesArchives } from "@/modules/archives/actions";
+import {
+  desactiverArchive,
+  modifierArchive,
+  ouvrirArchive,
+  reactiverArchive,
+  supprimerArchive,
+  verifierArchive,
+  vignettesArchives,
+} from "@/modules/archives/actions";
 import {
   extensionDe,
   familleDe,
@@ -124,20 +132,36 @@ function choisirVue(v: Vue) {
  * Les vignettes ne montrent que les images que la personne a ELLE-MÊME
  * déposées : celles des autres ne se voient qu'ouvertes, donc tracées.
  */
+/** Le geste en cours sur une archive : un seul formulaire ouvert à la fois. */
+type Geste =
+  | { id: string; type: "modifier" }
+  | { id: string; type: "desactiver"; motif: string }
+  | { id: string; type: "supprimer" };
+
 export function ListeArchives({
   archives,
   mode,
-  peutRetirer = false,
+  peutGerer = false,
   moi,
+  destinations = [],
+  rubriques = [],
   rechercheInitiale = "",
   periodeInitiale = { du: null, au: null },
 }: {
   archives: ArchiveAffichee[];
   /** personnel : son espace · dossier : un dossier partagé · supervision : tout. */
   mode: "personnel" | "dossier" | "supervision";
-  peutRetirer?: boolean;
-  /** Utilisateur courant : dans un dossier partagé, on ne retire que ce qu'on a déposé. */
+  /**
+   * Peut modifier, désactiver, réactiver et supprimer. Hors supervision, ne
+   * porte que sur les archives que la personne a elle-même déposées.
+   */
+  peutGerer?: boolean;
+  /** Utilisateur courant : hors supervision, on ne gère que ce qu'on a déposé. */
   moi?: string;
+  /** Dossiers partagés proposés au formulaire de modification. */
+  destinations?: { id: string; nom: string }[];
+  /** Rubriques déjà employées, suggérées à la saisie. */
+  rubriques?: string[];
   /** `?q=` de l'adresse : la recherche globale y renvoie avec le mot déjà posé. */
   rechercheInitiale?: string;
   periodeInitiale?: Periode;
@@ -148,7 +172,7 @@ export function ListeArchives({
   const [dossier, setDossier] = useState<string | null>(null);
   const [famille, setFamille] = useState<Famille | null>(null);
   const [tri, setTri] = useState<Tri>("recentes");
-  const [retrait, setRetrait] = useState<{ id: string; motif: string } | null>(null);
+  const [geste, setGeste] = useState<Geste | null>(null);
   const [resultat, setResultat] = useState<Resultat | null>(null);
   const [vignettes, setVignettes] = useState<Record<string, string>>({});
   const [enCours, demarrer] = useTransition();
@@ -174,7 +198,7 @@ export function ListeArchives({
   const imagesPropres = useMemo(
     () =>
       archives
-        .filter((a) => a.retireeLeIso === null && familleDe(a.typeMime) === "image" && (mode === "personnel" || a.auteurId === moi))
+        .filter((a) => familleDe(a.typeMime) === "image" && (mode === "personnel" || a.auteurId === moi))
         .map((a) => a.id)
         .join(","),
     [archives, mode, moi],
@@ -237,7 +261,7 @@ export function ListeArchives({
     demarrer(async () => {
       const r = await action();
       setResultat(r);
-      if (r.ok) setRetrait(null);
+      if (r.ok) setGeste(null);
       routeur.refresh();
     });
   }
@@ -245,15 +269,17 @@ export function ListeArchives({
   function etatDe(a: ArchiveAffichee) {
     const heures = heuresAvantScellement(new Date(a.deposeLeIso), new Date(maintenant));
     const retiree = a.retireeLeIso !== null;
-    const retirable =
-      (mode === "personnel" || (mode === "dossier" && a.auteurId === moi)) && peutRetirer && !retiree && heures > 0 && retrait?.id !== a.id;
-    return { heures, retiree, retirable };
+    // L'administration gère tout ; ailleurs, chacun ne gère que ce qu'il a déposé.
+    const gerable = peutGerer && (mode === "supervision" || (moi !== undefined && a.auteurId === moi));
+    // Passé le délai, l'archive est scellée : seule l'administration la supprime.
+    const supprimable = gerable && (mode === "supervision" || heures > 0);
+    return { heures, retiree, gerable, supprimable };
   }
 
   function pastilleEtat(a: ArchiveAffichee) {
     const { heures, retiree } = etatDe(a);
-    if (retiree) return <Pastille ton="danger">Retirée par son auteur</Pastille>;
-    if (heures > 0) return <Pastille ton="alerte">Retirable encore {heures} h</Pastille>;
+    if (retiree) return <Pastille ton="danger">Désactivée</Pastille>;
+    if (heures > 0) return <Pastille ton="alerte">Supprimable encore {heures} h</Pastille>;
     return <Pastille ton="valide">Scellée</Pastille>;
   }
 
@@ -274,67 +300,181 @@ export function ListeArchives({
     );
   }
 
+  const BOUTON = "rounded-lg border border-[var(--filet)] px-2.5 py-1.5 text-xs font-semibold hover:bg-[var(--surface-creuse)] disabled:opacity-50";
+
   function boutons(a: ArchiveAffichee) {
-    const { retirable } = etatDe(a);
+    const { retiree, gerable, supprimable } = etatDe(a);
+    const ouvert = geste?.id === a.id;
     return (
       <>
         {mode === "supervision" && (
-          <button
-            type="button"
-            disabled={enCours}
-            onClick={() => lancer(() => verifierArchive(a.id))}
-            className="rounded-lg border border-[var(--filet)] px-2.5 py-1.5 text-xs font-semibold hover:bg-[var(--surface-creuse)] disabled:opacity-50"
-          >
+          <button type="button" disabled={enCours} onClick={() => lancer(() => verifierArchive(a.id))} className={BOUTON}>
             Vérifier
           </button>
         )}
-        {retirable && (
-          <button
-            type="button"
-            onClick={() => setRetrait({ id: a.id, motif: "" })}
-            className="rounded-lg px-2.5 py-1.5 text-xs font-semibold text-danger-600 hover:bg-danger-50"
-          >
-            Retirer
-          </button>
+        {gerable && !ouvert && (
+          <>
+            <button type="button" disabled={enCours} onClick={() => setGeste({ id: a.id, type: "modifier" })} className={BOUTON}>
+              Modifier
+            </button>
+            {retiree ? (
+              <button
+                type="button"
+                disabled={enCours}
+                onClick={() => lancer(() => reactiverArchive(a.id))}
+                className="rounded-lg border border-valide-500/50 px-2.5 py-1.5 text-xs font-semibold text-valide-600 hover:bg-valide-50 disabled:opacity-50"
+              >
+                Réactiver
+              </button>
+            ) : (
+              <button
+                type="button"
+                disabled={enCours}
+                onClick={() => setGeste({ id: a.id, type: "desactiver", motif: "" })}
+                className="rounded-lg border border-alerte-500/50 px-2.5 py-1.5 text-xs font-semibold text-alerte-600 hover:bg-alerte-50 disabled:opacity-50"
+              >
+                Désactiver
+              </button>
+            )}
+            {supprimable && (
+              <button
+                type="button"
+                disabled={enCours}
+                onClick={() => setGeste({ id: a.id, type: "supprimer" })}
+                className="rounded-lg px-2.5 py-1.5 text-xs font-semibold text-danger-600 hover:bg-danger-50 disabled:opacity-50"
+              >
+                Supprimer
+              </button>
+            )}
+          </>
         )}
       </>
     );
   }
 
-  function formulaireRetrait(a: ArchiveAffichee) {
-    if (retrait?.id !== a.id) return null;
+  const ANNULER = "h-cible rounded-lg px-3 text-sm text-[var(--encre-faible)] hover:underline";
+
+  function formulaireGeste(a: ArchiveAffichee) {
+    if (geste?.id !== a.id) return null;
+
+    if (geste.type === "modifier") {
+      return (
+        <form
+          onSubmit={(e) => {
+            e.preventDefault();
+            const donnees = new FormData(e.currentTarget);
+            lancer(() => modifierArchive(a.id, donnees));
+          }}
+          className="mt-3 space-y-2.5 rounded-lg border border-[var(--filet)] bg-[var(--surface-creuse)]/50 p-3"
+        >
+          <div className="grid gap-2.5 sm:grid-cols-2">
+            <label className="block">
+              <span className="mb-1 block text-xs font-semibold text-[var(--encre-faible)]">Titre</span>
+              <input name="titre" required maxLength={160} defaultValue={a.titre} autoFocus className={CLASSE_CHAMP} />
+            </label>
+            <label className="block">
+              <span className="mb-1 block text-xs font-semibold text-[var(--encre-faible)]">Rubrique</span>
+              <input
+                name="dossier"
+                maxLength={60}
+                defaultValue={a.dossier ?? ""}
+                list={`rubriques-${a.id}`}
+                placeholder="Contrats, Banque, Fiscal…"
+                className={CLASSE_CHAMP}
+              />
+              <datalist id={`rubriques-${a.id}`}>
+                {rubriques.map((r) => (
+                  <option key={r} value={r} />
+                ))}
+              </datalist>
+            </label>
+          </div>
+          {(destinations.length > 0 || a.dossierPartage) && (
+            <label className="block">
+              <span className="mb-1 block text-xs font-semibold text-[var(--encre-faible)]">Visible dans le dossier partagé</span>
+              <select name="dossierId" defaultValue={a.dossierPartage?.id ?? ""} className={CLASSE_CHAMP}>
+                <option value="">Aucun : espace de son auteur seulement</option>
+                {a.dossierPartage && !destinations.some((d) => d.id === a.dossierPartage?.id) && (
+                  <option value={a.dossierPartage.id}>{a.dossierPartage.nom}</option>
+                )}
+                {destinations.map((d) => (
+                  <option key={d.id} value={d.id}>
+                    {d.nom}
+                  </option>
+                ))}
+              </select>
+            </label>
+          )}
+          <label className="block">
+            <span className="mb-1 block text-xs font-semibold text-[var(--encre-faible)]">Description</span>
+            <textarea name="description" maxLength={1000} rows={2} defaultValue={a.description ?? ""} className={`${CLASSE_CHAMP} h-auto py-2`} />
+          </label>
+          <p className="text-xs text-[var(--encre-faible)]">Le fichier ne change pas : son empreinte reste celle du dépôt.</p>
+          <div className="flex flex-wrap gap-2">
+            <button type="submit" disabled={enCours} className="h-cible rounded-lg bg-nuit px-3.5 text-sm font-semibold text-white disabled:opacity-50">
+              Enregistrer
+            </button>
+            <button type="button" onClick={() => setGeste(null)} className={ANNULER}>
+              Annuler
+            </button>
+          </div>
+        </form>
+      );
+    }
+
+    if (geste.type === "desactiver") {
+      return (
+        <form
+          onSubmit={(e) => {
+            e.preventDefault();
+            lancer(() => desactiverArchive(a.id, geste.motif));
+          }}
+          className="mt-3 rounded-lg border border-alerte-500/40 bg-alerte-50 p-3"
+        >
+          <p className="mb-2 text-xs text-alerte-600">
+            L&apos;archive ne sera plus visible des autres membres ni de ses dossiers partagés. Elle reste conservée et se réactive à tout moment.
+          </p>
+          <div className="flex flex-wrap gap-2">
+            <input
+              autoFocus
+              value={geste.motif}
+              onChange={(e) => setGeste({ ...geste, motif: e.target.value })}
+              placeholder="Motif (facultatif) : mauvais fichier, doublon…"
+              aria-label="Motif de la désactivation"
+              maxLength={300}
+              className={`${CLASSE_CHAMP} min-w-0 flex-1`}
+            />
+            <button type="submit" disabled={enCours} className="h-cible rounded-lg bg-alerte-500 px-3.5 text-sm font-semibold text-white disabled:opacity-50">
+              Désactiver
+            </button>
+            <button type="button" onClick={() => setGeste(null)} className={ANNULER}>
+              Annuler
+            </button>
+          </div>
+        </form>
+      );
+    }
+
     return (
-      <form
-        onSubmit={(e) => {
-          e.preventDefault();
-          lancer(() => retirerArchive(a.id, retrait.motif));
-        }}
-        className="mt-3 rounded-lg border border-danger-500/40 bg-danger-50 p-3"
-      >
+      <div className="mt-3 rounded-lg border border-danger-500/40 bg-danger-50 p-3">
         <p className="mb-2 text-xs text-danger-600">
-          L&apos;archive disparaîtra de votre espace, mais l&apos;administration la conserve, avec ce motif.
+          Supprimer définitivement {a.numero} « {a.titre} » ? Elle disparaîtra de tous les espaces. Le journal garde la trace de la suppression.
         </p>
         <div className="flex flex-wrap gap-2">
-          <input
-            autoFocus
-            value={retrait.motif}
-            onChange={(e) => setRetrait({ id: a.id, motif: e.target.value })}
-            placeholder="Motif : mauvais fichier, doublon…"
-            aria-label="Motif du retrait"
-            className={`${CLASSE_CHAMP} min-w-0 flex-1`}
-          />
           <button
-            type="submit"
-            disabled={enCours || retrait.motif.trim().length < 3}
+            type="button"
+            autoFocus
+            disabled={enCours}
+            onClick={() => lancer(() => supprimerArchive(a.id))}
             className="h-cible rounded-lg bg-danger-500 px-3.5 text-sm font-semibold text-white disabled:opacity-50"
           >
-            Retirer
+            Supprimer
           </button>
-          <button type="button" onClick={() => setRetrait(null)} className="h-cible rounded-lg px-3 text-sm text-[var(--encre-faible)] hover:underline">
+          <button type="button" onClick={() => setGeste(null)} className={ANNULER}>
             Annuler
           </button>
         </div>
-      </form>
+      </div>
     );
   }
 
@@ -473,7 +613,7 @@ export function ListeArchives({
                 key={a.id}
                 className={`group flex flex-col overflow-hidden rounded-2xl border border-[var(--filet)] bg-[var(--surface)] shadow-sm transition hover:-translate-y-0.5 hover:border-or hover:shadow-md ${
                   retiree ? "opacity-70" : ""
-                } ${retrait?.id === a.id ? "col-span-2" : ""}`}
+                } ${geste?.id === a.id ? "col-span-2" : ""}`}
               >
                 <button
                   type="button"
@@ -512,9 +652,9 @@ export function ListeArchives({
                     {pastilleEtat(a)}
                     {pastillesSuivi(a)}
                   </div>
-                  {(etatDe(a).retirable || mode === "supervision") && <div className="flex flex-wrap justify-end gap-1">{boutons(a)}</div>}
+                  {(etatDe(a).gerable || mode === "supervision") && <div className="flex flex-wrap justify-end gap-1">{boutons(a)}</div>}
                   {retiree && <p className="text-[11px] text-danger-600">Motif : {a.motifRetrait}</p>}
-                  {formulaireRetrait(a)}
+                  {formulaireGeste(a)}
                 </div>
               </li>
             );
@@ -554,7 +694,7 @@ export function ListeArchives({
                     {a.description && <p className="mt-1 text-xs text-[var(--encre-douce)]">{a.description}</p>}
                     {retiree && (
                       <p className="mt-1 text-xs text-danger-600">
-                        Retirée le {MOMENT.format(new Date(a.retireeLeIso!))} — motif : {a.motifRetrait}
+                        Désactivée le {MOMENT.format(new Date(a.retireeLeIso!))} — motif : {a.motifRetrait}
                       </p>
                     )}
                     <p className="chiffres mt-1 truncate text-[10px] text-[var(--encre-faible)]" title={`SHA-256 ${a.empreinte}`}>
@@ -562,9 +702,9 @@ export function ListeArchives({
                     </p>
                   </div>
 
-                  <div className="flex shrink-0 flex-col items-end gap-1.5">{boutons(a)}</div>
+                  <div className="flex shrink-0 flex-wrap items-start justify-end gap-1.5">{boutons(a)}</div>
                 </div>
-                {formulaireRetrait(a)}
+                {formulaireGeste(a)}
               </li>
             );
           })}
